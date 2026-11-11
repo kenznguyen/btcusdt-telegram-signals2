@@ -107,3 +107,15 @@ Before implementation, every fixture must have a single intended mutation, exact
 - L4-Minimum aggregate: **BLOCKED / NOT VERIFIED**.
 
 No tests were run because this is a read-only, documentation-only review. Paper-only and `AI_EXECUTION_ENABLED=false` remain unchanged.
+
+
+## 7. PyPI dependency provenance spot-check (2026-11-12)
+
+The proposed dependency candidate was checked against the official PyPI release page for `cryptography==50.0.2`.
+
+- PyPI lists `cryptography-50.0.2-cp311-abi3-manylinux_2_34_x86_64.whl` as a CPython 3.11+ stable-ABI Linux x86-64 wheel requiring glibc 2.34+, approximately 4.8 MB.
+- PyPI displays SHA-256 `9dab55f57c74c3cad24c323bacbbd04be4705ba6eb0d92e920b1fc4837ed5079`, matching the candidate evidence document.
+- PyPI marks this file as having provenance, signed by GitHub Actions and verified by PyPI on 2026-09-30. Published repository identity: `pyca/cryptography`; publishing commit `fe12d283180ea89ceed622021242fddb31d27f84`; workflow `.github/workflows/pypi-publish.yml`; publishing run `36731020563`.
+- Official source: https://pypi.org/project/cryptography/50.0.2/ (release file details and provenance metadata).
+- An attempt to download the exact wheel bytes into the review environment failed. Therefore no independent SHA-256 calculation, Sigstore bundle verification, or offline provenance verification was completed.
+- **Disposition: OFFICIAL PYPI METADATA / DECLARED HASH / PROVENANCE PRESENCE — CORROBORATED; EXACT WHEEL BYTES AND ATTESTATION CRYPTOGRAPHIC VERIFICATION — NOT VERIFIED.** This does not authorize installing the package, freezing the dependency, changing lockfiles or CI.
