@@ -28,6 +28,22 @@ class DecisionTest(unittest.TestCase):
             "trainedThroughMs": opening-1_800_000, "modelVersion": "model-1", "strategyVersion": "strategy-1",
             "trainingCompletedAtMs": opening+1000, "trainingDatasetVersion": "sha256:"+"a"*64,
             "predictedReturn": "0.004", "doPredict": 1, "datasetVersion": self.window["datasetVersion"]}
+        self.prediction["calibration"] = {
+            "calibratedConfidence": "0.8",
+            "calibrationVersion": "decision-fixture-v1",
+            "calibrationMethod": "isotonic-fixture",
+            "calibrationArtifactHash": "sha256:" + "b"*64,
+            "calibrationDatasetVersion": "sha256:" + "c"*64,
+            "calibrationSampleCount": 1000,
+            "calibrationStartMs": self.prediction["trainedThroughMs"] + 1,
+            "calibrationEndMs": self.prediction["trainedThroughMs"] + 500,
+            "calibratedAtMs": self.prediction["availableAtMs"] - 1,
+            "labelDefinition": "direction_correct_at_horizon",
+            "forecastHorizonMs": 900000,
+            "modelVersion": self.prediction["modelVersion"],
+            "strategyVersion": self.prediction["strategyVersion"],
+            "trainingDatasetVersion": self.prediction["trainingDatasetVersion"],
+        }
         trade_path = Path(self.temp.name) / "trades.csv"
         trade_at = self.now-1500
         with trade_path.open("w", newline="") as output:
