@@ -1137,3 +1137,43 @@ This is the current disposition and supersedes the earlier historical NOT RUN / 
 - Proposal asks owner to decide Core leverage policy, ROE threshold semantics and explicit per-ENTRY/per-DCA sizing contract. No numerical Core leverage range is assumed; AI 1x–3x policy is not automatically transferred to Core.
 - DS-03 remains BLOCKED. No source/test/workflow/runtime change was made for this proposal.
 - Next gate: owner decision on D1-D3 in the proposal. Only then prepare the bounded TDD implementation plan; do not change Core sizing/leverage or run backtests without separate approval.
+
+
+
+## DS-03 Core leverage and order sizing — owner approval and TDD completion (2026-11-11)
+
+### Owner decision
+- Owner approved fixed Strategy Core leverage **13x**.
+- Preserve existing leverage-adjusted ROE semantics and thresholds without reinterpretation: TP **+5 ROE**, DCA **-20 ROE**, Soft SL **-35 ROE**, Emergency SL **-90 ROE**.
+- Every new Core ENTRY and every exposure-increasing Core DCA receives a fresh admission-time margin budget of **1% of current reconciled Account Equity**.
+- Shared Risk Engine remains the final ACCEPT/REJECT authority and independently recalculates the admission budget at submit time.
+- AI leverage/configuration remains separate; this increment does not alter AI strategy logic or AI ledger leverage configuration.
+- Paper-only. No live execution, database migration/cutover, backtest, VPS operation, deployment, T0 canonical data change or T1 activation.
+
+### Implementation
+- Source commit: `6ef0d7456b2791fae73bfea8855ee30482774673`.
+- Changed source blobs:
+  - `pipeline/core_strategy.py`: `c14e76f2cecb9f8aca54db263ded1ff17881cb24`;
+  - `pipeline/api.py`: `d3f587c795daa89b54beb5783b89f14acc189df0`;
+  - `paper_execution/ledger.py`: `21ff7ce8446381baaa4102553fc8f69a8bbacbb3`;
+  - `risk_policy.py`: `91b46513041033cbcd7e939ed081b71714c82ff3`.
+- Core leverage is a fixed policy constant, independent of the generic `LEVERAGE` environment setting. Core ledger construction rejects any leverage other than 13x.
+- Core sizing uses the reconciled account-wide equity snapshot only when `riskReady=true`; unavailable/unready equity preserves the signal result but emits no trade intent.
+- ENTRY and DCA candidates are sized against the same visible limit price used by the ledger, using a fresh 1% margin budget and fixed 13x leverage. Persisted `initialMarginQuote` is no longer used as the DCA budget.
+- The shared ledger admission check uses the common 1% policy constant, records the margin policy in its risk-config version, and remains authoritative if account equity changes between signal generation and admission.
+- No RSI, ADX, Smart-DCA eligibility, TP, DCA, Soft SL or Emergency SL predicate/threshold was changed.
+
+### TDD and CI evidence
+- RED source commit: `92eb3f737d96e9edbfe0e8cf679ed64db79f0ba4`.
+- RED workflow run [42974245487](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42974245487): compile PASS; 229 focused tests executed with the new sizing contract producing 2 errors and 1 assertion failure as expected. Artifact `13834382898`, digest `sha256:247f12f8a84b9126e0c6b599dce8df50fd29755a943d022a0d0898f010f2303f`.
+- Final Dual Ledger workflow run [42975606884](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42975606884), exact source SHA `6ef0d7456b2791fae73bfea8855ee30482774673`: focused contract **237/237 PASS**; full `paper_execution` regression **300/300 PASS**; compile PASS; isolated paper-only preflight PASS.
+- Final Dual Ledger artifact: ID `13834194926`, name `dual-ledger-red-evidence-6ef0d7456b2791fae73bfea8855ee30482774673`, digest `sha256:66403ab6b9c8079e2d9f3b04dcfc650709a64abd77e62554e6a54c2c101cd5c4`.
+- Pinned Freqtrade 2026.9 strategy-load smoke [42975606665](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42975606665): SUCCESS at the same exact source SHA. Artifact ID `13835351582`, digest `sha256:b76352b07321f3921dcdcf8cacfefd88103f366078188fb2a212648aadc17d0e`.
+- Intermediate failures were corrected before the final exact-SHA PASS: run `42974877655` exposed a missing `os` import; run `42975018595` exposed incomplete-history argument compatibility and account-risk snapshot fail-closed handling. The final run above includes both regressions.
+
+### Review and disposition
+- Five-axis self-review (correctness, readability, architecture, security, performance): no Critical or Required finding remains. The shared policy constants were placed in a root-level module to avoid a pipeline-to-execution package dependency. No dependency was added.
+- DS-03: **PASS — source and isolated CI scope only**.
+- Persistent DB migration, account cutover/funding readiness, VPS activation/deployment, live execution and backtest acceptance: **NOT AUTHORIZED / NOT PERFORMED / NOT VERIFIED**.
+- T0 canonical candles, lease/fencing, T0 runtime, T1 activation, credentials and exchange state were not modified.
+- Next permitted work: read-only review of AI Strategy leverage/configuration propagation and its independent signal-to-Shared-Risk-Engine path. Any AI sizing/code changes require a separately bounded TDD scope and approval.

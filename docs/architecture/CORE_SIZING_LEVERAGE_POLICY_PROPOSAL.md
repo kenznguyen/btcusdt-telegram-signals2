@@ -1,6 +1,6 @@
 # Strategy Core sizing and leverage policy — owner decision proposal
 
-**Status:** PROPOSAL ONLY — no Core sizing/leverage change authorized  
+**Status:** OWNER APPROVED — TDD IMPLEMENTATION COMPLETE / PAPER-ONLY  
 **Date:** 2026-11-11  
 **Branch:** `feature/t0-centralized-data-feeder-p1-20261101`  
 **Scope:** Resolve DS-03 without changing RSI / ADX / Smart-DCA signal rules.
@@ -134,3 +134,27 @@ Approval of this proposal's policy decisions would authorize only the specifical
 approved follow-up TDD scope. It would not authorize persistent account DB
 migration, account cutover, VPS/runtime activation, deployment, exchange
 connectivity, or live execution. Those remain separate approval gates.
+
+
+
+## 7. Superseding owner decision — 2026-11-11
+
+The original decision requests and recommendations in §§3–6 are retained as historical proposal context. The owner has since explicitly approved the following decisions, which supersede the prior unselected/blocked disposition:
+
+1. **Core leverage:** fixed **13x**. This is a Core-specific policy and is not inherited from or shared with the AI 1x–3x policy.
+2. **ROE semantics:** preserve the existing leverage-adjusted ROE calculation and current thresholds: TP +5, DCA -20, Soft SL -35, Emergency SL -90. No price-return reinterpretation.
+3. **ENTRY/DCA sizing:** every new Core ENTRY and every exposure-increasing Core DCA receives a fresh margin budget equal to **1% of current reconciled Account Equity** at admission. DCA does not reuse the persisted initial margin as its sizing budget.
+4. **Authority:** the producer may emit a candidate only when a reconciled account-equity input is available. Shared Risk Engine independently rechecks current account equity, margin reservation, gross exposure, liquidity, readiness and Kill Switch; it retains final ACCEPT/REJECT authority.
+5. **Signal rules:** RSI, ADX, Smart-DCA eligibility, TP, DCA, Soft SL and Emergency SL predicates remain unchanged.
+
+## 8. Implementation and bounded verification
+
+- Implementation source SHA: `6ef0d7456b2791fae73bfea8855ee30482774673`.
+- Shared policy constants: root-level `risk_policy.py`; Core strategy and ledger consume the same fixed leverage and 1% order-margin budget constants.
+- Core sizing reads `read_account_risk_snapshot()` only after the dual-ledger schema is already ready and only uses `accountEquityQuote` when `riskReady=true`. Missing/unready equity produces no trade intent; it does not fall back to `PAPER_INITIAL_CAPITAL`.
+- The producer sizes against the same visible limit price that the ledger uses for admission. The ledger independently recomputes the 1% budget and records the margin-policy version in the reservation's risk configuration.
+- Core ledger construction rejects leverage other than 13x. API construction pins Core to 13x while leaving the AI ledger's existing configuration path unchanged.
+- RED: run [42974245487](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42974245487), exact test-only SHA `92eb3f737d96e9edbfe0e8cf679ed64db79f0ba4`; new contract tests failed against the old implementation as expected.
+- GREEN: run [42975606884](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42975606884), exact source SHA `6ef0d7456b2791fae73bfea8855ee30482774673`; focused tests 237/237 PASS, full `paper_execution` suite 300/300 PASS, compile PASS.
+- Freqtrade 2026.9 strategy-load smoke: run [42975606665](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42975606665), same source SHA, SUCCESS.
+- Final disposition: **DS-03 PASS — source/isolated CI scope only**. No backtest, persistent DB migration, account cutover, VPS/runtime action, deployment, exchange connectivity or live trading was authorized or performed.
