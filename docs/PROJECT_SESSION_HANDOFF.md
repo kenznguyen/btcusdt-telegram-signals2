@@ -2244,3 +2244,20 @@ Next: if owner wants to proceed beyond planning, first approve a bounded provisi
 - G0.39-A remains PARTIAL / NOT VERIFIED; earlier local working-copy 24/24 tests and compile PASS do not establish final GitHub blob verification.
 - Evidence report updated: `docs/evidence/G0_39A_S1_MEASUREMENT_HARNESS_IMPLEMENTATION_RESULTS_2026-11-11.md`; update commit `0f9dfe5fdaf403f7c69a5eb486c9347bfe6da150`.
 - Retry only exact read-only checkout plus the two approved commands when GitHub DNS/network is available. G0.40 remains NOT AUTHORIZED.
+
+### G0.39-B — Exact-source verification via GitHub Actions (2026-11-11)
+
+- Owner explicitly approved Cách 2: add and run an isolated GitHub Actions workflow for exact-source verification.
+- Workflow: `.github/workflows/g039-b-exact-source-verification.yml`.
+- Workflow blob: `1e6241911845762c8770f7e59e23e21d4d51b0a8`.
+- Workflow commit / run head: `bae7430ca68fd0ab35806dd7f00d133166c53699`.
+- Workflow run ID: `43046949518`; job ID: `130613317796`; conclusion SUCCESS.
+- Run URL: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43046949518
+- The workflow checked out exact frozen commit `30fa54e6a24e95a275c4fbfd27170371e1d56d78`, then asserted harness blob `0f713a1cc87f4c0c355d4488f1cf6af4d8f08d98` and tests blob `ff5e3c9d584e13948fc4265f9ca261e697fa9da6`.
+- Python 3.14.4; `python -m unittest tools.test_s1_measurement_harness -v`: **24 tests PASS** (`Ran 24 tests in 0.124s`, `OK`); `python -m py_compile tools/s1_measurement_harness.py tools/test_s1_measurement_harness.py`: SUCCESS.
+- Artifact: `g039-b-exact-source-verification`, ID `13867028275`, size 1,338 bytes, SHA-256 `554a0bb3afdb00f8f2319471873a128676f7c64549c1c8f9f382170496853d62`; identity, test and compile logs only; expires 2026-11-18T15:17:56Z.
+- G0.39-B verdict: **PASS**. The prior exact-source attribution gap is closed; G0.39-A implementation + focused test/compile scope is PASS.
+- Evidence report: `docs/evidence/G0_39B_EXACT_SOURCE_VERIFICATION_2026-11-11.md`; report commit `20eabc02ba093c895eb61df2a11a0383294c68e0`.
+- Earlier DNS-blocked manual checkout remains historically accurate but is superseded by this successful exact-source GitHub Actions run.
+- G0.40 corpus generation/measurement remains NOT AUTHORIZED. Numeric D11 ceilings remain OPEN / NOT RATIFIED. Parser/verifier production implementation and CI beyond this isolated workflow remain NOT AUTHORIZED.
+- No T0/T1/T2, runtime/VPS, market-data, model, ledger or destructive changes. T0 remains independent/protected; CORE_LEDGER and AI_LEDGER remain separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
