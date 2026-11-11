@@ -1,0 +1,127 @@
+# AI Strategy GREEN Implementation Plan — Owner Review
+
+**Status:** PLAN ONLY — OWNER REVIEW REQUIRED  
+**Date:** 2026-11-11  
+**Branch:** `feature/t0-centralized-data-feeder-p1-20261101`  
+**Design authority:** `AI_STRATEGY_CONTRACT.md` and owner-approved `AI_STRATEGY_API_CONTRACT_PROPOSAL.md`  
+**Current verified RED source SHA:** `d37c0d4b554bbdcb936c419ebc134c6a8ff28783`  
+**Current verified RED run:** [42991526067](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42991526067)
+
+This document sequences a possible GREEN implementation. It does not authorize production edits or select any unresolved policy/provider value.
+
+## 1. Current baseline
+
+- Decision API `pipeline/decision.py::evaluate` currently accepts the legacy inputs and does not accept `admission_context`.
+- API ledger factory `pipeline/api.py::ledger` has no explicit `admitted_leverage` argument; non-Core strategy leverage can still be sourced from generic `LEVERAGE`.
+- `paper_execution/ledger.py::PaperLedger` enforces positive leverage and pins Core to 13x, but does not enforce AI's [1x, 3x] domain.
+- `pipeline/api.py::signal_snapshot` invokes Core and AI decisions separately. Existing E2E test demonstrates AI BUY with Core WAIT, AI ledger isolation and Shared Risk Engine rejection without a reservation.
+- Current exact-SHA RED result: compile PASS; 46 tests, 5 assertion failures, 48 skips, 0 errors. The 48 skips are blocked on the missing admission-context API; they are not accepted behavior.
+- No production code changes are part of this plan.
+
+## 2. Mandatory owner/provider decisions before GREEN
+
+These are blockers, not implementation defaults:
+
+1. Calibration trust boundary: registry/manifest provider, artifact lookup and digest verification mechanism.
+2. Calibration compatibility: authoritative model/strategy/training-dataset identifiers, label definition and forecast-horizon matching rules.
+3. Calibration policy: numerical `C_min`, minimum sample count, minimum calibration duration and maximum calibration age. No values are proposed here.
+4. Account-risk source: exact existing provider for reconciled equity, `riskReady`, observation timestamp, freshness limit, reconciliation state/version, risk configuration version and Kill Switch.
+5. Instrument metadata: authoritative versioned BTCUSDT market/lot/tick/minimum-notional rule source and freshness semantics.
+6. AI DCA v1: explicitly choose disabled for v1 or define a separate trigger/eligibility contract. Sizing formula alone is not a DCA strategy.
+7. Reservation evidence: decide whether complete immutable inputs are persisted directly or through opaque versioned references. This may imply schema work and therefore needs separate authorization.
+
+Until each mandatory input is resolved, the corresponding path must fail closed. Test fixture values are not production policy.
+
+## 3. Proposed implementation sequence
+
+### GREEN-0 — Provider and contract freeze (no code until resolved)
+
+- Identify existing account-risk, instrument-rule, calibration registry and AI-ledger-position providers in the repository.
+- Confirm their source-of-truth, freshness, versioning and failure semantics.
+- Freeze the admission-context field contract and provider ownership.
+- Explicitly defer AI DCA if its trigger policy is not approved.
+- Deliverable: a short provider mapping and resolved/unresolved decision table.
+- Exit: no hidden defaults; all mandatory dependencies have an owner and fail-closed behavior.
+
+### GREEN-1 — Pure AI decision admission boundary
+
+Target: `pipeline/decision.py::evaluate`.
+
+- Add a single server-constructed admission context as an additive keyword-only input; retain legacy Core call behavior unchanged.
+- Validate the context shape and required version identifiers.
+- Validate calibrated confidence as a finite decimal, reject bool/non-finite/out-of-range values, and require configured `C_min`.
+- Validate calibration provenance, hash/registry evidence, dataset/model/strategy/horizon compatibility, temporal OOS ordering, sample/period minimums and freshness from the approved providers/policy.
+- Derive AI leverage only from the approved formula; never use generic `LEVERAGE`.
+- Require fresh reconciled positive equity, `riskReady`, Kill Switch permission and versioned risk configuration.
+- Compute ENTRY quantity from the 1% equity margin budget, admitted AI leverage, validated execution limit and lot-step floor. No valid quantity means no intent.
+- Keep this function deterministic/pure with respect to provider access; providers construct the immutable context outside it.
+- Exit tests: the previously skipped decision-level calibration, policy, freshness, price, instrument and sizing tests become executable and pass. No calibration value may be hard-coded.
+
+### GREEN-2 — AI ledger leverage isolation
+
+Targets: `pipeline/api.py::ledger`, `paper_execution/ledger.py::PaperLedger`.
+
+- Add explicit AI admitted-leverage input to the AI ledger factory.
+- Require it for `AI_FREQAI`; reject missing/invalid values and values outside inclusive [1x, 3x].
+- Do not fall back to environment `LEVERAGE` for AI.
+- Preserve Core fixed 13x and existing MANUAL behavior.
+- Keep ledger independently enforcing the AI leverage domain even if API validation is bypassed.
+- Do not alter database schema or migrations in this phase.
+- Exit tests: explicit AI leverage factory behavior and [1x,3x] ledger boundary tests pass; Core 13x regression passes.
+
+### GREEN-3 — Shared Risk Engine admission and reservation consistency
+
+- Connect the valid AI candidate to the existing account-scoped Shared Risk Engine and Kill Switch; do not create a parallel risk engine.
+- Independently recompute the 1% margin budget against current reconciled equity at reservation/admission time.
+- Reject stale/unready equity, changed risk state, invalid leverage, exposure/liquidity constraints or Kill Switch denial.
+- Ensure a rejection creates no partial reservation, fill or exposure increase.
+- Ensure AI position/DCA state is isolated from Core.
+- Do not add persistence fields or schema changes until the snapshot-persistence decision is approved.
+- Exit tests: E2E AI BUY/Core WAIT writes only to AI ledger; Shared Risk Engine/Kill Switch rejection leaves no reservation/fill; Core state unchanged.
+
+### GREEN-4 — Reservation replay and snapshot evidence (separate gate if schema is needed)
+
+- Implement immutable replay evidence only after the owner chooses full snapshot persistence versus versioned references.
+- Enforce idempotent intent replay: same intent identity and same payload returns the original result; same identity with changed payload rejects.
+- If a schema migration is required, stop and request separate migration approval before writing it.
+- Exit tests: retry/replay cannot silently change calibration, leverage, equity, risk-policy, price, lot rules or quantity.
+
+### GREEN-5 — Regression and paper-only acceptance
+
+- Run focused AI tests and the full existing `paper_execution` suite.
+- Verify Core RSI/ADX/Smart-DCA predicates, fixed 13x leverage and ROE/TP/DCA/SL semantics remain unchanged.
+- Verify `AI_EXECUTION_ENABLED=false`, no exchange credentials and no live execution path.
+- Run Freqtrade strategy-load/compatibility smoke only if the changed interface is used by that integration.
+- Record exact source SHA, workflow run, test counts, artifact ID/digest and PASS/FAIL/BLOCKED/NOT VERIFIED.
+- No backtest/OOS acceptance, feature activation, VPS, migration/cutover or deployment is implied by this phase.
+
+## 4. Change boundaries
+
+Allowed only after separate GREEN approval:
+- The decision API and AI policy validation.
+- AI ledger factory and AI-only leverage validation.
+- Wiring through existing Shared Risk Engine.
+- Tests and documentation needed for the above.
+
+Not included:
+- Strategy Core signal logic, RSI/ADX/Smart-DCA predicates or ROE semantics.
+- T0 canonical data, T1 collector, T2 data transport or their runtime.
+- Database/schema migration, calibration training, model retraining or OOS acceptance.
+- AI DCA activation without its own approved trigger contract.
+- VPS/runtime changes, systemd/autostart, deployment, exchange connectivity or live orders.
+
+## 5. Approval gates
+
+| Gate | Scope | Status |
+|---|---|---|
+| A | AI Strategy API Contract design | APPROVED |
+| B | RED test-only refinement | COMPLETED for currently exposed API; dependent tests remain skipped |
+| C0 | Resolve providers and policy decisions | PENDING OWNER REVIEW |
+| C1 | GREEN decision boundary | NOT AUTHORIZED |
+| C2 | AI ledger leverage isolation | NOT AUTHORIZED |
+| C3 | Shared Risk Engine wiring | NOT AUTHORIZED |
+| C4 | Reservation snapshot/idempotency/schema | NOT AUTHORIZED; separate migration approval if required |
+| C5 | Paper-only regression acceptance | NOT AUTHORIZED |
+| D | Migration, backtest/OOS acceptance, VPS/runtime, deployment or activation | NOT AUTHORIZED |
+
+**Requested next decision:** approve or revise this implementation sequence and resolve GREEN-0 provider/policy ownership. Approval of this plan alone must not be interpreted as approval to edit production code. GREEN requires a separate explicit authorization naming the permitted gates.
