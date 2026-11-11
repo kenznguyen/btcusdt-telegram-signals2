@@ -2115,6 +2115,28 @@ class PaperLedger:
                 else:
                     raise sqlite3.DatabaseError("ACCOUNT_RISK_LEGACY_ADJUSTMENT_INVALID")
 
+            reserved_notional = reserved_margin = Decimal(0)
+            for row in connection.execute(
+                """SELECT status,remaining_notional_quote,remaining_margin_quote,
+                          reserved_notional_quote,reserved_margin_quote
+                   FROM paper_risk_reservations WHERE account_id=1"""
+            ):
+                status, raw_notional, raw_margin, raw_original_notional, raw_original_margin = row
+                try:
+                    remaining_notional = number(raw_notional)
+                    remaining_margin = number(raw_margin)
+                    original_notional = number(raw_original_notional)
+                    original_margin = number(raw_original_margin)
+                except ValueError:
+                    raise sqlite3.DatabaseError("ACCOUNT_RISK_RESERVATION_INVALID") from None
+                if remaining_notional > original_notional or remaining_margin > original_margin:
+                    raise sqlite3.DatabaseError("ACCOUNT_RISK_RESERVATION_EXCEEDS_ORIGINAL")
+                if status in ("ACTIVE", "PARTIAL"):
+                    reserved_notional += remaining_notional
+                    reserved_margin += remaining_margin
+                elif status not in ("RELEASED", "CONSUMED", "EXPIRED"):
+                    raise sqlite3.DatabaseError("ACCOUNT_RISK_RESERVATION_STATUS_INVALID")
+
             equity = (
                 number(account[0]) + realized + legacy_pnl + unrealized
                 - fees - legacy_fees - funding
@@ -2151,7 +2173,8 @@ class PaperLedger:
             self.audit(connection, observed_at, "ACCOUNT_MARK", {
                 "markPrice": text(mark), "candleCloseMs": candle_at,
                 "datasetVersion": dataset_version, "accountEquityQuote": text(equity),
-                "riskReady": risk_ready,
+                "reservedNotionalQuote": text(reserved_notional),
+                "reservedMarginQuote": text(reserved_margin), "riskReady": risk_ready,
             })
             if not cutover or risk[1] is None:
                 return {
@@ -2159,7 +2182,8 @@ class PaperLedger:
                     "riskReady": False, "unavailableReason": unavailable,
                     "accountEquityQuote": text(equity), "markPrice": text(mark),
                     "markObservedAtMs": observed_at, "datasetVersion": dataset_version,
-                    "positions": positions, "updatedAtMs": observed_at,
+                    "positions": positions, "reservedNotionalQuote": text(reserved_notional),
+                    "reservedMarginQuote": text(reserved_margin), "updatedAtMs": observed_at,
                 }
         return read_account_risk_snapshot(self.path, now_ms=observed_at)
 
