@@ -2069,3 +2069,19 @@ Next: if owner wants to proceed beyond planning, first approve a bounded provisi
 - Documentation-only. No source/test/fixture/schema/API/registry/adapter/runner/workflow/permission/credential/key/trust-root/database/storage/market-data/model/ledger/VPS/runtime changes; no tests or workflow dispatch; no cryptographic operations, provider/network/database/VPS access or inventory; no lifecycle mutation.
 - Next owner decision: explicitly ratify or amend each D05/D10/D11/D14 recommendation. No implementation authorization is implied.
 - D01–D04, D06–D09, D12 and D13 remain OPEN / NOT RATIFIED. T0 remains independent/protected; CORE_LEDGER and AI_LEDGER remain separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
+
+
+## G0.31 — Owner Ratification of S1 Decisions (2026-11-11)
+
+- Baseline HEAD: `1eacb16bf78aa96818a5bd4ec34e4ef4d4bb8d14`; baseline handoff blob: `c2ce28871cef5ded62f8c4c5fd54be0aab9cd7bf`.
+- Owner explicitly approved all four G0.30 recommendations without amendment.
+- Report: `docs/evidence/G0_31_OWNER_RATIFICATION_S1_DECISIONS_2026-11-11.md`.
+- Report creation commit: `daf7d989a42c9822e80dc7986fb022c5343d6577`.
+- D05 OWNER-RATIFIED: Synthetic Contract Fixture v1 structure; UTF-8 JSON only; strict duplicate/unknown/type/version/encoding rejection; parser-only reason codes; no trusted facts or cryptographic semantics.
+- D10 OWNER-RATIFIED: closed 11-value synthetic-only `fixture_type` allowlist. It is separate from production `data_class`.
+- D11 OWNER-RATIFIED: measurement-first resource policy. Numeric candidate ceilings from G0.30 are explicitly NOT RATIFIED; measure a synthetic corpus, report maxima and safety margin, then seek separate approval of numeric limits.
+- D14 OWNER-RATIFIED: future S1 boundary is limited to `pipeline/synthetic_contract.py`, `pipeline/test_synthetic_contract.py`, evidence docs and handoff; focused local commands are specified; no CI workflow changes. This ratifies the boundary only, not permission to begin implementation or run tests.
+- G0.31 verdict: **OWNER-RATIFICATION PASS — D05/D10/D11 measurement-first/D14 ratified; numeric D11 ceilings remain open; S1 implementation/tests NOT AUTHORIZED**.
+- D01–D04, D06–D09, D12–D13 remain OPEN / NOT RATIFIED. No source/test/fixture/schema implementation, workflow, key, cryptographic operation, provider/network/database/VPS/runtime access or lifecycle mutation.
+- Next gate: prepare measured synthetic corpus profile and numeric-limit proposal as documentation/evidence only, or obtain separate exact approval for S1 implementation. Do not infer implementation authority from G0.31.
+- T0 remains independent/protected; CORE_LEDGER and AI_LEDGER remain separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
