@@ -233,7 +233,7 @@ class CalibrationRegistryVerifierTest(unittest.TestCase):
 
     def test_calibration_window_obeys_horizon_embargo_and_precedes_artifact_creation(self):
         invalid = copy.deepcopy(self.manifest)
-        invalid["calibration_start"] = "2026-01-01T00:15:00Z"
+        invalid["calibration_start"] = "2026-01-01T00:14:59Z"
         raw = canonical(invalid)
         with self.assertRaisesRegex(CalibrationVerificationError, "CALIBRATION_WINDOW_NOT_OUT_OF_SAMPLE"):
             self.verify(manifest_bytes=raw, envelope=self.make_envelope(raw, invalid))
