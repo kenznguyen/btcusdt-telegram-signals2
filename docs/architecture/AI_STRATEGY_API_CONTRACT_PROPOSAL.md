@@ -1,6 +1,6 @@
 # AI Strategy API Contract Proposal — Review Before GREEN
 
-**Status:** PROPOSAL — OWNER REVIEW REQUIRED; not an implementation authorization  
+**Status:** OWNER-APPROVED API CONTRACT DESIGN — 2026-11-11; test-only refinement authorized as the next gate. GREEN and runtime work remain unauthorized  
 **Date:** 2026-11-11  
 **Baseline:** `aa7897520b5435ff4c981b3f2ab8a6710f811eea`  
 **Scope:** Clarify the pure decision interface, policy/evidence snapshots, AI ledger admission and test acceptance. Documentation only.
@@ -158,4 +158,10 @@ No defaults should be invented for these items. Missing mandatory policy or evid
 
 ## 6. Approval boundary
 
-This document is a proposal for owner review only. It does not amend the owner-approved contract, authorize test changes, or authorize GREEN implementation. The next safe step is owner review of the unresolved decisions and explicit approval of any test-only refinements. All runtime, migration, deployment and live-trading boundaries remain unchanged.
+**Owner approval recorded 2026-11-11:** The owner approves this API Contract proposal as the design basis for the next test-only refinement gate. This approval adopts the interface boundaries and behavioral invariants in Sections 2–4 as the target contract for RED test preparation.
+
+This approval does not select numerical `C_min`, calibration sample/period/age thresholds, a calibration registry, account-risk provider, instrument-rule source, AI DCA v1 eligibility or snapshot persistence implementation. These remain explicit policy/provider decisions. Tests may use clearly identified fixture values to exercise boundaries, but must not promote fixtures into production defaults or imply owner selection of those values. Where a required policy/provider decision is unresolved, tests must assert fail-closed behavior or isolate the unresolved dependency without inventing a default.
+
+**Authorized next step:** test-only refinement of the AI Strategy RED suite against this approved contract, including replacing brittle signature-introspection sentinels with behavioral API/provider-boundary tests and adding deterministic missing-coverage cases. Preserve intentional RED failures for absent production behavior. Do not edit production source.
+
+**Not authorized:** GREEN implementation; production-source edits; schema/database changes; migration/cutover; calibration training or OOS acceptance; model changes; backtest acceptance; feature activation; VPS/T0/T1/T2 runtime; deployment; exchange connectivity or live orders. These require separate owner approval. Paper-only posture and `AI_EXECUTION_ENABLED=false` remain unchanged.
