@@ -1957,3 +1957,17 @@ Next: if owner wants to proceed beyond planning, first approve a bounded provisi
 - G0.23 synthetic verifier tests/fixtures, owner/security ratification of open decisions, G0.24 evaluator adapter, implementation/CI, TEST-01–07, runtime inventory and any executor each remain separate gates and approvals.
 - Documentation-only. No source/test/fixture/schema/API/registry/adapter/runner/oracle/workflow/scheduler/permission/credential/database/storage/market-data/model/ledger/VPS/runtime changes; no tests or workflow dispatch; no key operation, network/provider/database/VPS access, inventory, archive, quarantine, cleanup, expiry, compaction, VACUUM or deletion.
 - T0 remains independent/protected; CORE_LEDGER and AI_LEDGER remain separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
+
+
+## G0.23 — Synthetic Verifier Contract Test Matrix (2026-11-11)
+
+- Owner approved G0.23 synthetic verifier contract test design.
+- Baseline / starting HEAD: `be802d46efd7399b84212c9724f70aadb49fa0a2`.
+- Report: `docs/evidence/G0_23_SYNTHETIC_VERIFIER_CONTRACT_TEST_MATRIX_2026-11-11.md`; report commit: `dbc03705a16ae84b7419f6d200f9831c7f293c84`.
+- Defined 38 wholly synthetic logical cases covering positive control; forged identity/issuer/authority; exact object/version binding; digest/signature/purpose binding; provenance and inventory completeness; sensitivity/policy inheritance; freshness/revocation; malformed/oversized envelopes; downstream-use proof; immutable verified-facts output; and separation from owner authorization/execution.
+- Fixture identifiers and data must be synthetic only. No real identities, production evidence, T0/T1/T2 records, credentials, keys or secrets.
+- Because G0.22 leaves physical schema, verifier interface, cryptographic profile, trust root, revocation source, freshness windows, registries and resource limits open, G0.23 records abstract fixture descriptors and expected outcomes only. No serialized/executable fixture files or test modules were created.
+- G0.23 verdict: **TEST-DESIGN PASS — 38 cases specified; executable verification NOT RUN because verifier implementation and ratified physical envelope/trust profile do not exist.**
+- No source/test module/fixture/schema/API/registry/adapter/runner/oracle/workflow/scheduler/permission/credential/key/database/storage/market-data/model/ledger/VPS/runtime changes; no test or workflow dispatch; no network/provider/database/VPS access, inventory or secret scan; no archive, quarantine, cleanup, expiry, compaction, VACUUM or deletion.
+- Next: owner/security decision package for open cryptographic, trust-root, canonical encoding, revocation/freshness, registry, schema and resource-limit choices. Verifier implementation and executable synthetic tests require separate approval. G0.24 adapter, TEST-01–07, runtime inventory and any executor remain separate gates.
+- T0 remains independent/protected; CORE_LEDGER and AI_LEDGER remain separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
