@@ -238,5 +238,38 @@ class DualStrategyApiScopeRedTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "PAPER_ORDER_OWNER_UNVERIFIED"):
             resolve_order_strategy(str(self.db), "legacy-order")
 
+
+    def test_cancel_api_cancels_the_persisted_owner_without_cross_strategy_write(self):
+        self.activate_dual_schema()
+        order = {
+            "orderId": "api-core-pending", "createdAtMs": 1_799_999_000_000,
+            "status": "OPEN", "filledBase": "0",
+            "strategyId": "STRATEGY_CORE",
+        }
+        with sqlite3.connect(self.db) as connection:
+            connection.execute(
+                """INSERT INTO paper_orders
+                   (intent_id,payload_hash,order_id,status,document,account_id,
+                    strategy_id,strategy_event,reservation_id,created_schema_version)
+                   VALUES (?,?,?,?,?,1,'STRATEGY_CORE','ENTRY',NULL,1)""",
+                ("api-core-intent", "payload-hash", order["orderId"], "OPEN",
+                 json.dumps(order)),
+            )
+
+        with patch.object(api, "control_permit", return_value=True):
+            status, result = self.request(
+                "/v1/paper/cancel", {"orderId": "api-core-pending"}
+            )
+
+        self.assertEqual(status, 200)
+        self.assertEqual(result["status"], "CANCELED")
+        self.assertEqual(result["strategyId"], "STRATEGY_CORE")
+        with sqlite3.connect(self.db) as connection:
+            stored = connection.execute(
+                "SELECT status,strategy_id FROM paper_orders WHERE order_id=?",
+                ("api-core-pending",),
+            ).fetchone()
+        self.assertEqual(stored, ("CANCELED", "STRATEGY_CORE"))
+
 if __name__ == "__main__":
     unittest.main()
