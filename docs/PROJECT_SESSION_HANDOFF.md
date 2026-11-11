@@ -879,3 +879,16 @@ This is the current disposition and supersedes the earlier historical NOT RUN / 
 - Disposition: full Signature Statement schema freeze **BLOCKED** until owner/security contract review resolves the three provenance references and envelope descriptor mapping. The Ed25519 primitive boundary remains unchanged and stateless.
 - Documentation-only; no tests run. No code, dependency, key, trust root, policy/anchor state, CI dispatch, VPS/runtime, T0, trading or destructive operation changed.
 - Next step: prepare a bounded options note for the three provenance references and envelope-ID lifecycle; request owner decision before revising/finalizing the statement schema. No implementation authority implied.
+
+
+### Stage II — provenance and envelope identity options recorded (2026-11-11)
+
+- Options note: `docs/evidence/T0_SIGNATURE_A2_2_STAGE_II_PROVENANCE_AND_ENVELOPE_ID_OPTIONS_2026-11-11.md`.
+- Note commit: `0212aee2efed213e6d41e96f1adcacb6cb02b135`.
+- Compared Option A (three provenance/authorization references directly in the signed Signature Statement) against Option B (separately signed Authorization Evidence Object bound by exact immutable descriptor).
+- Compared E1 (preassigned stable envelope ID, not derived from completed envelope bytes) against E2 (detached descriptor identity, independently assigned/derived without self-reference).
+- Recorded trade-offs, required contract work, replay/substitution/offline dependency risks, and invariants. **No option selected**; no field names or object schema invented.
+- Ed25519 primitive remains exact-bytes-only, stateless and unchanged.
+- Status: **OPTIONS RECORDED / OWNER DECISION REQUIRED / CONTRACT FREEZE BLOCKED**.
+- Documentation-only; no tests run. No A1/A2.2 normative amendment, code, dependencies, keys, trust root, policy/anchor state, CI dispatch, VPS/T0/runtime, trading or destructive operation changed.
+- Next owner decision: choose A or B and E1 or E2, or request a bounded revision. Independent security review and separate implementation approval remain required downstream.
