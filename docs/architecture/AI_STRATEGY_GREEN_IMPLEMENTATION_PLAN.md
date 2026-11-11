@@ -164,3 +164,15 @@ Read-only inspection at source HEAD `723570f845c0f52ef5776218cc5486f8864e72f8`:
 - Instrument rules: `market_data.binance_connectivity_probe.probe_rest` already queries Binance USD-M `/fapi/v1/exchangeInfo`, but `validate_exchange_info` checks only BTCUSDT contract/status/assets and does not parse trading filters. Hummingbot order-book data is not exchange filter metadata. No authoritative versioned tick/lot/minimum-notional provider was found. G0-05 remains BLOCKED.
 - Binance `/fapi/v1/exchangeInfo` is recorded only as a candidate upstream for a future read-only filter adapter, not as an existing provider or verified source in this system.
 - No tests/workflow, network request, source-code edit, DB/runtime/VPS action or exchange interaction occurred. GREEN implementation remains NOT AUTHORIZED.
+
+
+## GREEN-0 design contracts drafted — 2026-11-11
+
+Owner approved the next GREEN-0 step as documentation/design and source-contract inspection only. Two design contracts were added:
+
+- `docs/architecture/AI_CALIBRATION_ARTIFACT_CONTRACT.md`: trusted registry/manifest boundary, artifact identity/digest, model/training/calibration provenance, temporal OOS checks, confidence validation, versioned policy inputs and fail-closed behavior. No registry, schema, calibration method or numeric threshold was selected.
+- `docs/architecture/BINANCE_USDM_INSTRUMENT_RULES_CONTRACT.md`: candidate Binance USD-M `/fapi/v1/exchangeInfo` source, BTCUSDT identity, required price/lot/notional filters, normalized version/digest, freshness and fail-closed validation. No adapter or network request was made; endpoint remains a candidate pending owner confirmation.
+
+These are design proposals, not implementation specifications frozen for coding. Open choices include registry/trust root and artifact schema; calibration method/OOS lineage and thresholds; exact supported exchange filter variants, order-type scope, canonical digest and freshness policy.
+
+**Status:** GREEN-0 design deliverables WRITTEN; calibration provider G0-01/02/03 BLOCKED; instrument provider G0-05 BLOCKED; no adapter implementation authorized. GREEN-1..5 remain NOT AUTHORIZED.
