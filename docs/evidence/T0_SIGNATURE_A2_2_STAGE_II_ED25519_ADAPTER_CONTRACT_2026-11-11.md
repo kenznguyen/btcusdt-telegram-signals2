@@ -198,3 +198,80 @@ This document does NOT authorize:
 - deletion, retention, compaction, or any destructive data operation.
 
 **Disposition: OWNER DECISIONS RECORDED; CONTRACT DRAFT ONLY; NOT FROZEN; IMPLEMENTATION BLOCKED / NOT AUTHORIZED.**
+
+
+## 11. Owner-approved higher-level provenance and envelope identity decisions (2026-11-11)
+
+**Decision status: ARCHITECTURE PATTERN SELECTED / DETAILED SCHEMAS NOT FROZEN.**  
+The owner approved Option B + E2 from the Stage II provenance/envelope options note. This decision authorizes documentation and contract refinement only. It does not authorize implementation, tests, dependency changes, key operations, trust-state changes, CI dispatch, or runtime integration.
+
+### 11.1 Option B — separately signed Authorization Evidence Object
+
+The three A1 §14.4 provenance/authorization items MUST be represented in a distinct Authorization Evidence Object rather than added as direct fields to the Signature Statement:
+
+1. signing software/build identity;
+2. signing request/decision reference;
+3. signer authority/custody evidence reference.
+
+The Signature Statement MUST bind the exact Authorization Evidence Object using an immutable descriptor. At minimum, the descriptor contract MUST define and bind:
+- object ID;
+- object type;
+- schema version;
+- canonicalization identifier;
+- digest algorithm and digest over the exact canonical object bytes;
+- exact byte length;
+- purpose/context.
+
+The Authorization Evidence Object MUST have its own signed statement and signature. Its signature MUST be verified independently from the main Signature Statement. A mathematically valid signature on either object MUST NOT by itself be treated as proof of signer authority, custody, trust, or policy authorization.
+
+The object schema, exact field names/types, signer role, signature domain/profile, trust chain, evidence issuer namespaces, cardinality, reuse scope, revocation and historical-time semantics remain open contract work. They MUST be specified consistently with A1 before schema freeze. A referenced object MUST NOT be accepted based only on a mutable URL, label, or unverified ID.
+
+The Authorization Evidence Object signer MUST NOT be allowed to establish its own authority merely by asserting it inside the same object. The governing trust layer must validate the signer and authority evidence through an independently defined trust path.
+
+### 11.2 Option E2 — detached descriptor identity
+
+Envelope identity MUST use a detached descriptor. The envelope ID MUST NOT be inserted into bytes from which that same ID is derived.
+
+The detached descriptor MUST bind the completed envelope using at least:
+- a descriptor ID assigned independently of the descriptor bytes (or by a separately specified non-self-referential derivation);
+- the exact envelope content digest and digest algorithm;
+- exact envelope byte length;
+- the envelope type/schema/profile identifiers needed to interpret the bytes.
+
+For this draft, use an independently assigned opaque descriptor ID as the conservative baseline. The allocation authority, namespace, uniqueness scope, collision handling, and retry semantics remain to be specified before freeze. Do not derive the descriptor ID from a descriptor serialization that contains the ID itself.
+
+The envelope digest MUST be computed only after the complete envelope bytes exist. External Verification Records MUST reference the immutable descriptor/envelope digest, not a mutable locator or descriptor ID alone. Verification Records remain post-signing append-only records and MUST NOT be inserted retroactively into the signed Signature Statement.
+
+### 11.3 Non-circular object lifecycle
+
+The intended higher-level lifecycle is:
+
+1. Construct and canonicalize the Authorization Evidence Object.
+2. Sign that object under its separately specified, A1-consistent signature contract.
+3. Compute its exact immutable descriptor fields (digest and byte length included).
+4. Include that descriptor in the main Signature Statement.
+5. Canonicalize and sign the main Signature Statement using the existing A1 §4.3 preimage and Ed25519 adapter boundary.
+6. Construct the completed envelope.
+7. Compute the envelope digest and byte length.
+8. Create the detached descriptor and assign its independent opaque ID.
+9. Append Verification Records referencing the exact descriptor/envelope digest after verification.
+
+This is a contract-level ordering model, not an implementation workflow authorization. Exact object serialization, signature domains, descriptor schemas, failure semantics, and transaction/retry behavior remain open.
+
+### 11.4 Separation from the cryptographic primitive
+
+The Ed25519 adapter defined in §§3–7 remains unchanged and stateless. It receives exact preimage bytes, SPKI DER, and a 64-octet signature. It does not parse Authorization Evidence Objects, resolve descriptors, establish signer authority, evaluate Trust Policy, check revocation/anchors, or mutate Verification Records.
+
+### 11.5 Remaining blockers
+
+The B + E2 architecture choice resolves the representation-level owner decision. It does NOT close the complete schema or implementation gates. The following remain open:
+1. Exact Authorization Evidence Object schema, field names/types, cardinality and canonicalization.
+2. Authorization-object signature statement, domain separator, signer role and trust-chain contract, consistent with A1.
+3. Exact immutable descriptor schema and ID allocation/uniqueness/retry rules.
+4. Resource ceilings, parser limits and maximum object/preimage sizes.
+5. Pinned PyCA release, dependency hashes and build provenance.
+6. Complete A1/A2.2 consistency review and qualifying independent security review.
+7. Verification Record schema, retention and append-only enforcement contract.
+8. Stable public reason-code compatibility policy, if externally consumed.
+
+**Updated disposition: B + E2 OWNER-APPROVED AS ARCHITECTURE PATTERN; DETAILED CONTRACT DRAFT / NOT FROZEN; IMPLEMENTATION BLOCKED / NOT AUTHORIZED.**
