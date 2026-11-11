@@ -48,9 +48,10 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", default=".data/canonical-window.json")
     parser.add_argument("--bars", type=int, default=2)
+    parser.add_argument("--timeframe", choices=("15m", "1h"), default="15m")
     args = parser.parse_args()
     try:
-        window = canonical_context(bars=args.bars)
+        window = canonical_context(bars=args.bars, timeframe=args.timeframe)
         write_artifact(args.output, window)
     except (CandleHttpError, OSError, ValueError, TypeError, OverflowError) as error:
         parser.exit(1, f"Canonical context unavailable ({type(error).__name__}).\n")
