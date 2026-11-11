@@ -2969,3 +2969,14 @@ Critical limits:
 - D2 resource ceilings, D3 exact schemas/descriptor namespace and D4 schema-only Verification Record remain PENDING OWNER DECISION.
 - **Disposition: D1 APPROVED; D2–D4 PENDING; A2.3 CONTRACT NOT FROZEN; STAGE II IMPLEMENTATION NOT AUTHORIZED; L4-MINIMUM BLOCKED / NOT VERIFIED.**
 - Next: request/record D2 independently; do not infer approval of D2–D4 from D1.
+
+
+### Owner decision D2 recorded — A2.3 normative v1 resource ceilings (2026-11-12)
+
+- Owner approved D2 Option A (“phê duyệt”): adopt the exact A2.3 §9 ceilings as normative v1 parser/resource limits.
+- Approved values: AEO body 1,048,576 B; canonical Signature Statement 1,048,576 B; fully prefixed signature preimage 1,048,640 B; SPKI DER 4,096 B; Ed25519 signature exactly 64 B; canonical signature envelope 1,114,112 B; detached descriptor 65,536 B; each nested evidence dependency 1,048,576 B; maximum 64 dependencies/AEO package; total frozen verification input set 16,777,216 B (16 MiB); JSON depth 32; object members 256; array elements 256; UTF-8 string length 16,384 B.
+- Required later conformance: exact-boundary and immediately-over-limit tests for each ceiling; reject before unbounded allocation/processing; all failures fail closed without advancing policy, anchor, trust-root, accepted-checkpoint or verification-history state.
+- Decision package updated: `docs/decisions/T0_L4_SIGNATURE_CONTRACT_FREEZE_OWNER_DECISION_PACKAGE_2026-11-12.md`; commit `1f1bbbef49c158e4692e3418ae93c888e384985e`; blob `b735979f1396c14ea45c5e359f2e0803d6572ced`.
+- D2 applies only to parser/resource limits. It is not a retention/deletion/cleanup policy and does not authorize implementation, CI/dependency changes, package installation, key/trust operations or real evidence verification.
+- **Disposition: D1 APPROVED; D2 APPROVED; D3–D4 PENDING; A2.3 CONTRACT NOT FROZEN; STAGE II IMPLEMENTATION NOT AUTHORIZED; L4-MINIMUM BLOCKED / NOT VERIFIED.**
+- Next: request/record D3 independently; do not infer approval of D3/D4 from D1/D2.
