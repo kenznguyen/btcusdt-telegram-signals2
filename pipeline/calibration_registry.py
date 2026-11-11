@@ -334,7 +334,7 @@ _TRANSFORM_FIELDS = frozenset({
     "input_semantics", "output_semantics", "label_definition_id",
     "forecast_horizon_value", "forecast_horizon_unit", "knots",
 })
-_DECIMAL = re.compile(r"(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?\\Z")
+_DECIMAL = re.compile(r"(?:0|[1-9][0-9]*)(?:\.[0-9]+)?\Z")
 
 
 def _canonical_transform(artifact_bytes):
