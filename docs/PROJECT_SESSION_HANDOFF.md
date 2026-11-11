@@ -1267,7 +1267,7 @@ Owner approved recording the independent AI Strategy contract and preparing test
 - Contract commit: `2f498b33953cb3ecf2c66c242000e9e0de2048ce`.
 - Test-only commit: `d0f1b014463e6ad1eff36425a18411233c484ba2`.
 - E2E RED test commit: `550a529c2a726f82911602aee207f0df32c78eb9`.
-- Evidence commit: `fa5147e57b354c605aaa0c63c8f4aba7201dcabe`.
+- Evidence report latest commit: `aa4eb61b86a80a51aa2eaa940778d63a334750b5`.
 - Contract covers calibrated confidence/provenance, versioned `C_min`, AI leverage [1x,3x], 1%-equity margin sizing, execution-price/lot-step sizing, AI ledger isolation and Shared Risk Engine/Kill Switch authority.
 - Initial five RED test methods cover missing/invalid calibration, provenance, AI admitted leverage vs generic `LEVERAGE`, equity sizing and missing/non-positive equity.
 - RED test execution: **NOT VERIFIED**. Container could not resolve `github.com` to obtain a local checkout. GitHub commit status query returned no checks for the initial test commit; no workflow run/artifact verified for final test SHA.
