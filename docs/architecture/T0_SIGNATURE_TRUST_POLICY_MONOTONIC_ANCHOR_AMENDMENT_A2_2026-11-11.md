@@ -210,7 +210,8 @@ A test MUST NOT pass by accepting alternative verdicts. Compound attacks MUST be
 | A2-NV-39 | Crash after VPS publication but before GitHub publication | Anchor transition pending; accepted head unchanged | BLOCKED | `ANCHOR_PUBLICATION_INCOMPLETE` |
 | A2-NV-40 | Crash after both readbacks but before head commit | Before recovery: transition pending and accepted head unchanged. After recovery: same reserved transition commits; no N+1 or duplicate sequence | Before recovery BLOCKED; after recovery PASS | `ANCHOR_COMMIT_PENDING` before recovery; `ANCHOR_RECOVERY_COMMITTED` after recovery |
 | A2-NV-41 | Missing or invalid root bootstrap owner authorization | Bootstrap BLOCKED | BLOCKED | `ROOT_BOOTSTRAP_UNAUTHORIZED` |
-| A2-NV-42 | Missing owner delegation for an explicit owner-approval purpose | Owner authorization UNTRUSTED | UNTRUSTED | `OWNER_DELEGATION_INVALID` |\n| A2-NV-43 | Signer authority evidence is present but its digest does not match exact bytes | Authorization INVALID | INVALID | `SIGNER_AUTHORITY_DIGEST_MISMATCH` |
+| A2-NV-42 | Missing owner delegation for an explicit owner-approval purpose | Owner authorization UNTRUSTED | UNTRUSTED | `OWNER_DELEGATION_INVALID` |
+| A2-NV-43 | Signer authority evidence is present but its digest does not match exact bytes | Authorization INVALID | INVALID | `SIGNER_AUTHORITY_DIGEST_MISMATCH` |
 
 A2-NV-40 is a stateful recovery test with two ordered assertions: pending before recovery, then successful commit of the same reserved transition after recovery. A2-NV-33 and A2-NV-43 are separate single-fault fixtures; no fixture may combine missing evidence with a digest mismatch.
 
