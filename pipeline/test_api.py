@@ -59,7 +59,7 @@ class FiveLayerApiTest(unittest.TestCase):
         self.book = {"source": "hummingbot", "connector": "binance_perpetual", "symbol": "BTCUSDT",
                      "observedAtMs": self.now-100, "bids": [{"price": "100", "quantity": "1"}],
                      "asks": [{"price": "100.02", "quantity": "1"}]}
-        self.config = {"MARKET_DATA_DB": str(self.db), "PAPER_SOURCE_SHA": "a"*40, "MARKET_DATA_TOKEN": "read-token",
+        self.config = {"MARKET_DATA_DB": str(self.db), "MARKET_DATA_TOKEN": "read-token",
                        "CONTROL_TOKEN": "paper-control-token", "INTELLIGENCE_REPORT_PATH": str(self.intel_path),
                        "FREQAI_REPORT_PATH": str(self.pred_path), "STRATEGY_CORE_REPORT_PATH": str(self.core_path),
                        "PAPER_MAX_DRAWDOWN_PCT":"95", "PAPER_MAX_DAILY_LOSS_USDT":"95",
