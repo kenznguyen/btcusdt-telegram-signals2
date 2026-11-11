@@ -399,3 +399,15 @@ Reconcile the four-artifact Actions allowlist with all eligible source artifacts
 - The failures above were caused by a stale repository blob reference during evidence-document synchronization. The corrected exact-source runs are PASS; the failed historical runs remain visible and are not erased.
 - No T0/VPS/SQLite/runtime access, key generation/signing, trust-root changes, offline verification, artifact deletion or destructive operation occurred. L4 control dispositions remain unchanged; aggregate L4-Minimum remains BLOCKED / NOT VERIFIED.
 - Next: review whether the reconciled six-artifact manifest and 40-file source inventory are stable enough to start **signature/negative-verification design only**. Do not generate keys, sign, change trust roots or run offline verification without separate approval. Option C — No Destructive Authority remains ACTIVE.
+
+
+### Owner decision — revoke Option C (No Destructive Authority) — 2026-11-11
+
+- User explicitly instructed: **“thu hồi option c”**.
+- Decision status: **Option C — No Destructive Authority: REVOKED** as of 2026-11-11.
+- This supersedes earlier handoff statements that Option C remains ACTIVE. Do not continue treating Option C as an active blanket prohibition.
+- Scope clarification: revoking Option C is a governance-state change, not an instruction to immediately delete data, clean up artifacts, alter retention, vacuum/compact databases, or run any other destructive operation. Each concrete operation must still have its target, exact scope, expected effect, recovery/rollback plan and explicit approval established before execution.
+- Existing paper-only trading constraints remain unchanged: no live orders; `AI_EXECUTION_ENABLED=false`.
+- T0 remains an independent data asset. Do not infer that canonical T0 data, owner evidence, GitHub artifacts or audit records are disposable merely because Option C was revoked.
+- All prior L4 test results and control dispositions remain as recorded; revoking Option C does not itself promote L4 controls or establish custody/signature/offline-verification assurance.
+- Next: update any active governance/evidence documents that still describe Option C as ACTIVE, preserving historical records and recording this revocation as a dated owner decision. No destructive action is authorized by this handoff update alone.
