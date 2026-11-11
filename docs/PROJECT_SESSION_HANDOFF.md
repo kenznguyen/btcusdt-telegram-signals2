@@ -597,7 +597,6 @@ Reconcile the four-artifact Actions allowlist with all eligible source artifacts
 
 
 ## A2.2 signature-contract correction and adversarial self-review — 2026-11-11
-
 - User said "tiếp theo" following the proposal to prepare a new A2.2 documentation-only candidate; work was limited to drafting and self-review. No implementation approval is implied.
 - New candidate: `docs/architecture/T0_SIGNATURE_TRUST_POLICY_MONOTONIC_ANCHOR_AMENDMENT_A2_2_2026-11-11.md`.
 - A2.2 create commit: `c3bf12457d5d81ec0e4a86c279c2e5f75b821e02`. Subsequent documentation correction commits: `6c91b7e709888afa147bc4fb5c359a59e965c572`, `56d698148c18cce2ede624f75cfb2c32098195dd`, `4b1bb83ae6aa17c8676a228d273dce222948ff3c`, `67122890358691aee25f3233448023984b3818df`, `bfb27bd11a8665248d9afea505baa52e8899fed1`, `94eb0bb578391f429b4f6a4eab1c3c23922ffad4`, `e02971b1ce4d6ee16b3782b1dcd41f4cc69b127a`, final fixture clarification commit `3a3bbcb802f72904e789e4f6a94bc64986fc3bee`.
@@ -2274,3 +2273,17 @@ Next: if owner wants to proceed beyond planning, first approve a bounded provisi
 - Historical G0.34/G0.37-A metrics and digests remain NOT VERIFIED for D11 use; their one-attempt authorizations remain consumed. No retry or reuse.
 - Verdict: **REVIEW PACKAGE READY — G0.40-A and D14 runner-path amendment PENDING EXPLICIT OWNER APPROVAL**.
 - Documentation-only. No runner, corpus, fixture, measurement, test, compile, workflow, runtime, database, T0/T1/T2, model, ledger or lifecycle operation. T0 remains independent/protected; CORE_LEDGER and AI_LEDGER remain separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
+
+## G0.40-A — S1 Measurement Runner Implementation Results (2026-11-11)
+
+- Owner approved G0.40-A and D14 amendment for exactly `tools/s1_measurement_runner.py` and `tools/test_s1_measurement_runner.py`.
+- Baseline HEAD: `f34706c32c839856a28a5e4fd651508428fafa44`.
+- Test-first file commit: `0d5f32ebb816463f8b1294685276f8c14fbfda91`; runner initial commit: `f6dc5d26e7359de5ad48346381689db259fd62ef`; source correction commits: `e36721d1a7264a9c3985d92edde126996a19e944`, `38a841f7d02cdf124def9cc30e7c03ef13315fe5`; final structural-test commit / HEAD: `59b59a4c8505edc0bcaae6e5603efc2329859d73`.
+- Final runner blob: `784d2b5381fa50007ceba468b8bc81ce045b80c2`; final tests blob: `47363d0a30cd12795fe43b22e0b5a22f934854bf`; frozen G0.39 harness blob unchanged: `0f713a1cc87f4c0c355d4488f1cf6af4d8f08d98`.
+- Runner defines 22 deterministic synthetic fixture recipes, five approved case IDs, all 11 D10 types, separate parser bytes/manifest/oracle, D05/D10 validation, deterministic two-pass test orchestration, runner/harness source digest checks, A-01–A-13 evaluator integration and report readback. SYN-31 structural tests cover nested objects/arrays and exact input byte/structural metrics.
+- Compare with G0.40 baseline: ahead 5 / behind 0; exactly two changed files, both approved paths.
+- Evidence report: `docs/evidence/G0_40A_S1_MEASUREMENT_RUNNER_IMPLEMENTATION_RESULTS_2026-11-11.md`; report commit `32a867256b047582c611760d35868f39379e4d75`; report blob `6a51f229b2abe031512ab59ef39ff6e1e652f19d`.
+- Exact focused commands were NOT RUN. A read-only local checkout attempt failed before checkout because `github.com` DNS resolution failed (Git exit 128). No GitHub Actions workflow was added or dispatched because CI/workflow is outside G0.40-A approval.
+- Status: implementation and scope PASS; focused tests NOT RUN/NOT VERIFIED; compile NOT RUN/NOT VERIFIED; TDD RED execution NOT VERIFIED; overall G0.40-A **PARTIAL / NOT VERIFIED**.
+- No corpus generation or measurement attempt occurred; no raw payload/oracle/report/digest persisted. G0.41 remains NOT AUTHORIZED. Numeric D11 ceilings remain OPEN / NOT RATIFIED.
+- No CI/workflow, dependency, external/provider/network/database/VPS/runtime, T0/T1/T2, market-data, model, ledger, lifecycle or destructive change. T0 remains independent/protected; CORE_LEDGER and AI_LEDGER separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
