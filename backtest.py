@@ -10,8 +10,7 @@ import pandas as pd
 import requests
 import bot
 
-# Output paths are configurable so dashboard and Telegram workflows can share this engine
-# without overwriting each other's reports. Defaults preserve Telegram's existing filenames.
+# Output paths are configurable for isolated CLI/research runs; defaults preserve historical report filenames.
 STATUS = Path(os.getenv("BACKTEST_STATUS_FILE", "backtest_status.json"))
 RESULT = Path(os.getenv("BACKTEST_RESULT_FILE", "backtest_last_result.json"))
 TRADES_CSV = Path(os.getenv("BACKTEST_TRADES_FILE", "backtest_trades.csv"))
@@ -19,7 +18,7 @@ EQUITY_CSV = Path(os.getenv("BACKTEST_EQUITY_FILE", "backtest_equity.csv"))
 CURVE_CSV = Path(os.getenv("BACKTEST_CURVE_FILE", "backtest_equity_m15.csv"))
 FEE = float(os.getenv("TAKER_FEE_RATE", "0.0005"))
 INITIAL_CAPITAL = float(os.getenv("BACKTEST_INITIAL_CAPITAL", "100"))
-# Workflow/dashboard inputs use percentages (50, 100); legacy env values may use fractions (0.50, 1.00).
+# Accept either percentage inputs (50, 100) or fractional values (0.50, 1.00).
 _entry_margin_raw = float(os.getenv("ENTRY_MARGIN_PCT", "0.50"))
 ENTRY_MARGIN_PCT = _entry_margin_raw / 100.0 if _entry_margin_raw > 1.0 else _entry_margin_raw
 _dca_margin_raw = float(os.getenv("DCA_MARGIN_RATIO", "1.00"))
@@ -49,33 +48,10 @@ def _status(value, **extra):
 
 
 def get_backtest_status():
-    # Prefer live GitHub Actions status so this command can see a backtest running in another job.
-    token = os.getenv("ACTIONS_GITHUB_TOKEN", "").strip()
-    repository = os.getenv("GITHUB_REPOSITORY", "").strip()
-    if token and repository:
-        try:
-            response = requests.get(
-                f"https://api.github.com/repos/{repository}/actions/workflows/telegram-command.yml/runs",
-                params={"status": "in_progress", "per_page": 100},
-                headers={"Accept": "application/vnd.github+json", "Authorization": f"Bearer {token}"},
-                timeout=10,
-            )
-            response.raise_for_status()
-            for run in response.json().get("workflow_runs", []):
-                title = str(run.get("display_title") or run.get("name") or "")
-                if title.strip().lower() == "telegram command: backtest":
-                    return "\n".join([
-                        "🧪 BACKTEST STATUS",
-                        "Trạng thái: RUNNING",
-                        f"Run ID: {run.get('id', 'N/A')}",
-                        f"Bắt đầu: {run.get('run_started_at', 'N/A')}",
-                        f"Chi tiết: {run.get('html_url', '')}",
-                    ])
-        except Exception as exc:
-            print(f"Could not query live GitHub Actions status: {exc}")
+    # A saved report is historical state, not proof that another run is active.
     try:
         s = json.loads(STATUS.read_text(encoding="utf-8"))
-        return "\n".join(["🧪 BACKTEST STATUS", f"Trạng thái: {s.get('status')}",
+        return "\n".join(["🧪 BACKTEST STATUS", f"Trạng thái báo cáo đã lưu: {s.get('status')}",
                            f"Bắt đầu: {s.get('started_at', 'N/A')}",
                            f"Kết thúc: {s.get('finished_at', 'N/A')}",
                            f"Thông tin: {s.get('message', '')}"])
@@ -510,3 +486,4 @@ if __name__ == "__main__":
         "net_profit_usdt": result.get("net_profit_usdt"),
         "result_file": str(RESULT),
     }, ensure_ascii=False), flush=True)
+
