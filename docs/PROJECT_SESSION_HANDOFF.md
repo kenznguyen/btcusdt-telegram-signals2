@@ -1421,3 +1421,13 @@ Owner approval recorded in the GREEN-0 evidence report and implementation plan:
 - G0-07: reservation snapshot design deferred; no schema/migration authorized.
 
 This approval is design/documentation only. GREEN-1 through GREEN-5 remain NOT AUTHORIZED. No code, tests, schema, DB, migration, calibration, backtest, feature activation, runtime, VPS, deployment, exchange or live-trading action is authorized. Paper-only and `AI_EXECUTION_ENABLED=false` remain unchanged.
+
+
+## Latest GREEN-0 read-only inventory — 2026-11-11
+
+At source HEAD `723570f845c0f52ef5776218cc5486f8864e72f8`, the next read-only inspection found:
+
+- No calibration artifact registry/manifest or calibrated-confidence provider in the inspected FreqAI exporter/decision/API paths. Current artifacts provide raw prediction and training provenance only; calibration admission remains BLOCKED.
+- No authoritative instrument-filter provider in the inspected paths. The existing Binance USD-M connectivity probe calls `/fapi/v1/exchangeInfo` but only validates BTCUSDT contract status/assets, not tick/lot/minimum-notional filters. Hummingbot book depth is not instrument metadata.
+- Binance USD-M `/fapi/v1/exchangeInfo` is a candidate for a future read-only adapter, not a verified implementation.
+- G0-01/G0-02/G0-03/G0-05 remain BLOCKED. No network request, tests, workflow, code edits, DB/runtime/VPS/exchange actions occurred. GREEN-1..5 remain NOT AUTHORIZED.
