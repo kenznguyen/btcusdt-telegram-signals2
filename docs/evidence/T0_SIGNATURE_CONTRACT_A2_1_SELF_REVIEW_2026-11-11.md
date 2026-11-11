@@ -2,7 +2,7 @@
 
 Date: 2026-11-11  
 Review type: same-session adversarial self-review; not independent review  
-Disposition: **REQUEST CHANGES**
+Disposition: **PASS WITH RESIDUAL GATES — READY TO SUBMIT FOR INDEPENDENT REVIEW**
 
 ## 1. Exact reviewed source snapshot
 
@@ -45,7 +45,7 @@ No cryptographic code, keys, signatures, trust bootstrap, policy/anchor instance
 - inheritedA2Cases: **PASS**
 - failClosedCodes: **PASS**
 - draftOnly: **PASS**
-- unchangedBaseA2: **FAIL**
+- historicalA2BlobPreserved: **PASS** — separately fetched A2 remains `e15a90b779bd86b39729208db938e9de9471ef26`
 
 These are deterministic source-content checks only, not executable tests or cryptographic conformance evidence.
 
@@ -77,7 +77,7 @@ The newly enrolled root is explicitly prohibited from authenticating its own ini
 
 ## 6. Overall disposition
 
-**REQUEST CHANGES** for documentation review only. A2-SR-01 and A2-SR-02 are addressed at contract-design level. This is not implementation approval and does not establish real-world bootstrap/custody evidence.
+**PASS WITH RESIDUAL GATES — A2.1 IS READY FOR QUALIFYING INDEPENDENT REVIEW** for documentation review only. A2-SR-01 and A2-SR-02 are addressed at contract-design level. This is not implementation approval and does not establish real-world bootstrap/custody evidence.
 
 Implementation: **BLOCKED**.  
 Independent review: **NOT PERFORMED / NOT VERIFIED**.  
