@@ -2368,3 +2368,18 @@ Next: if owner wants to proceed beyond planning, first approve a bounded provisi
 - Explicit exclusions remain: parser/verifier production implementation, cryptography/trust changes, T0/T1/T2, market/model data, CORE_LEDGER/AI_LEDGER, Shared Risk Engine, Kill Switch, PostgreSQL, VPS/runtime, provider/database/network/exchange and destructive lifecycle operations.
 - T0 remains independent/protected; CORE_LEDGER and AI_LEDGER remain separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
 - Next gate: owner must explicitly approve or reject the exact G0.41 scope in the package. No measurement is authorized by the package's preparation or by a generic continuation request.
+
+
+### G0.41 — Owner approval and D14 amendment (2026-11-11)
+
+- Owner explicitly approved the exact one-shot G0.41 package in `docs/evidence/G0_41_S1_SINGLE_MEASUREMENT_OWNER_DECISION_PACKAGE_2026-11-11.md` (package commit `ed37acab60df5f35d303f4e352cf474bcae339be`; package blob `9ac65f797711e1d74e2ff847aad52c87a361cf18`).
+- Approved scope is indivisible and one-shot: add exactly `.github/workflows/g041-s1-single-measurement.yml`; amend D14 for that exact workflow; one push-triggered call to the frozen `tools.s1_measurement_runner.prepare_preflight(...)`; persist exactly one bounded JSON report artifact with seven-day retention.
+- D14 ratification record amended: commit `79c7023690c66d1b7295ff52feb5db52e102177d`; blob `f2bb2252b68188caf96742a29d2f879cfb33ff5b`. No other D14 paths are added.
+- Frozen Python source identities must remain unchanged: harness blob `e8db71c11e0503ea6d9a2480d75470185c4d5100`; runner blob `23a35aab7f7aeacd8a3f63d630a875fe76b1ff6a`; focused tests blob `d06a5b533af14378ed284051e5b057cf57377876`.
+- Workflow constraints: exact event SHA/branch, three source-blob assertions, read-only `contents: read`, no secrets/install/network/provider/database/VPS/exchange, Python 3.14.4, timeout ≤5 minutes, no retry, and a first-attempt guard so any GitHub rerun attempt skips before measurement. The sole workflow trigger is the push that adds the exact workflow path; later modifications/manual dispatch/schedule/PR/tag/other branches are excluded.
+- The one runner invocation contains two internal deterministic construction/measurement passes. No standalone test suite is run in this workflow because that would invoke the runner repeatedly.
+- Persist only one JSON report. No raw parser inputs, oracle payloads, corpus/fixture files, caches or intermediate source copies. No diagnostic-output ceiling invention and no numeric D11 proposal/ratification/enforcement.
+- Any pre-invocation source/runtime guard failure: stop and return for a new owner decision, without measurement. Any failure after invocation begins consumes the one-shot authorization; no repair/rerun.
+- This approval does not authorize harness/runner/test/dependency changes, production parser/verifier, crypto/trust changes, S2, T0/T1/T2, market/model data, CORE_LEDGER/AI_LEDGER, Shared Risk Engine, Kill Switch, PostgreSQL, VPS/runtime, external services/network or destructive lifecycle actions.
+- D11 numeric ceilings remain **OPEN / NOT RATIFIED**. T0 remains independent/protected; CORE_LEDGER and AI_LEDGER remain separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
+- At this point the D14 amendment is recorded; the exact workflow file is the remaining implementation step. No G0.41 measurement has yet been invoked.
