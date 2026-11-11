@@ -2288,3 +2288,18 @@ Next: if owner wants to proceed beyond planning, first approve a bounded provisi
 - Status: implementation and scope PASS; focused tests NOT RUN/NOT VERIFIED; compile NOT RUN/NOT VERIFIED; TDD RED execution NOT VERIFIED; overall G0.40-A **PARTIAL / NOT VERIFIED**.
 - No corpus generation or measurement attempt occurred; no raw payload/oracle/report/digest persisted. G0.41 remains NOT AUTHORIZED. Numeric D11 ceilings remain OPEN / NOT RATIFIED.
 - No CI/workflow, dependency, external/provider/network/database/VPS/runtime, T0/T1/T2, market-data, model, ledger, lifecycle or destructive change. T0 remains independent/protected; CORE_LEDGER and AI_LEDGER separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
+
+### G0.40-A — Exact-source GitHub Actions verification (2026-11-11)
+
+- Owner instruction “tự chạy git action” authorized an isolated exact-source focused verification workflow for G0.40-A.
+- Workflow: `.github/workflows/g040-a-exact-source-verification.yml`; blob `ebb0ad4296b8656b62220d3d88be8dc0a8866596`.
+- Workflow commit / run head: `6222102147431c25ba2796ab111240e9e1129c18`.
+- Exact frozen checkout: `a68d0096f6a04b9ce25591118a47b89660c0965c`.
+- Exact runner/test blobs asserted: `784d2b5381fa50007ceba468b8bc81ce045b80c2` / `47363d0a30cd12795fe43b22e0b5a22f934854bf`.
+- Workflow run: [43048826022](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43048826022), event `push`, conclusion SUCCESS; job `130620048937` SUCCESS.
+- Python 3.14.4; focused unit tests **18/18 PASS**; focused `py_compile` PASS; immutable source identity assertions PASS.
+- Artifact `g040-a-exact-source-verification`, ID `13868137683`, 1,153 bytes, GitHub-reported ZIP SHA-256 `fe0d2aefacd12ba6da86bd101333865732b1c652a9ef121e15c6c671495b3247`, expires `2026-11-18T15:29:14Z`. Repository retention policy capped actual retention to 7 days; artifact payload was not independently downloaded/re-hashed.
+- Evidence report: `docs/evidence/G0_40A_EXACT_SOURCE_GITHUB_ACTIONS_VERIFICATION_2026-11-11.md`; report commit `5060923dfc4604e3129f4adcd16f39e3fbbbff49`.
+- G0.40-A focused implementation verification: **PASS**. TDD RED execution remains NOT VERIFIED; this workflow does not prove a pre-implementation failing test run.
+- No separate corpus generation/measurement occurred. G0.41 measurement remains NOT AUTHORIZED; numeric D11 ceilings OPEN / NOT RATIFIED. No parser/verifier implementation, broad CI, runtime/VPS, external/provider/database/network, T0/T1/T2, market data, model, ledger, lifecycle or destructive operation.
+- T0 remains independent/protected; CORE_LEDGER and AI_LEDGER remain separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
