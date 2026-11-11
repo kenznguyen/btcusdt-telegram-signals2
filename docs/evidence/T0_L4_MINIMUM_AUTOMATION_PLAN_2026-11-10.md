@@ -5,8 +5,8 @@ Repository: `kenznguyen/btcusdt-telegram-signals2`
 Branch: `feature/t0-centralized-data-feeder-p1-20261101`
 Status: **OWNER-APPROVED PLAN — LINEAGE GATE PASS — SIX-ARTIFACT ACTIONS INVENTORY PASS — 40-FILE REPOSITORY INVENTORY CI PASS; REFERENCE RECONCILIATION PARTIAL PASS; REMAINING L4 CONTROLS NOT VERIFIED**
 Approval: owner approval in conversation on 2026-11-10 to automate L4M-01–08 as far as technically possible and reserve owner participation for real-world custody/control assertions and L4M-10 acceptance.
-Controlling matrix: `docs/evidence/p1-8/L4-MINIMUM-PROVENANCE-ACCEPTANCE-MATRIX.md` (current branch blob at plan preparation: `75db0d98134fd656d91a8545bc307c56595aebf7`).
-Current register at plan preparation: `docs/evidence/T0_L4_MINIMUM_NINE_CONTROL_EVIDENCE_ACQUISITION_REGISTER_2026-11-10.md` (blob `e67a58591b5f6168ab3a0f3f403557292aca45d5`).
+Controlling matrix: `docs/evidence/p1-8/L4-MINIMUM-PROVENANCE-ACCEPTANCE-MATRIX.md` (current branch blob at plan preparation: `7c413504db397877b308345b21c9f6f58271c89a`).
+Current register at plan preparation: `docs/evidence/T0_L4_MINIMUM_NINE_CONTROL_EVIDENCE_ACQUISITION_REGISTER_2026-11-10.md` (blob `6aa362731cbb9363b62bf6483a65f18d46853e00`).
 
 ## 1. Approved operating principle
 
@@ -157,7 +157,7 @@ Each implementation increment must be reviewed and tested before proceeding. Do 
 
 ### Six-artifact allowlist reconciliation — 2026-11-11
 
-- Current Evidence Register blob: `e67a58591b5f6168ab3a0f3f403557292aca45d5`.
+- Current Evidence Register blob: `6aa362731cbb9363b62bf6483a65f18d46853e00`.
 - Current allowlist blob: `0280cd7751c9660baec237242ca7aadef09205a6`; six entries: two P1.8.14 synthetic artifacts and four L4 lineage CI artifacts.
 - Validation run [42922670634](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42922670634), exact source SHA `0251a8cc7995903d2516fc84cc0a33b73ec02777`: lineage 12/12, repository inventory 10/10, manifest 19/19; 41/41 total PASS.
 - All three current-run output ZIPs independently downloaded and re-hashed; manifest declares six inputs and excludes its own outputs. Aggregate L4-Minimum remains BLOCKED / NOT VERIFIED.
