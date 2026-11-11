@@ -176,7 +176,7 @@ def _validate_manifest(payload):
     path = payload["artifact_path"]
     pure = PurePosixPath(path)
     if (not path.startswith("docs/registry/ai-calibration/artifacts/") or
-            pure.is_absolute() or "\\\\" in path or
+            pure.is_absolute() or "\\" in path or
             any(part in {"", ".", ".."} for part in path.split("/"))):
         _fail("ARTIFACT_PATH_OUTSIDE_REGISTRY")
     parsed_times = {}
