@@ -2173,3 +2173,18 @@ Next: if owner wants to proceed beyond planning, first approve a bounded provisi
 - No corpus generation, measurement, source/test/workflow/runtime changes or external access occurred.
 - Next gate: await explicit approval of the complete G0.37-A scope in the report. Do not execute before that approval.
 - T0 remains independent/protected; CORE_LEDGER and AI_LEDGER remain separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
+
+## G0.37-A — Corrected S1 Synthetic Measurement Attempt (2026-11-11)
+
+- Baseline HEAD: `89fd0d2a9461978a71793d6e7f33cd22fe211c3f`; baseline handoff blob: `5e2c4689bfaf14e095ef43c2cecc18ffb1a7ed09`.
+- Owner explicitly approved the exact G0.37-A one-attempt scope in this conversation. The authorization is now consumed.
+- One in-memory corpus attempt executed: 22 synthetic fixtures, SYN-01/SYN-29–32, all 11 D10 fixture types; two measurement passes compared equal.
+- Intermediate observations: total bytes 42,995; maximum input 16,742 bytes; depth 26 (root=1); max object members 1,251; max array items 720; max string value 5,200 bytes; max key 18 bytes; scalar nodes 1,260. Corpus digest: `e04e13a1025a7957c4f96f550893aa65c029b58a64001e206f5900f2b2ebdb4c`.
+- These metrics are NOT VERIFIED for D11 policy use. Review found A-02 was hard-coded true instead of performing D05 structural validation; A-06 did not verify duplicate-key handling; A-10 was hard-coded true and exact harness source revision/hash was not captured. The attempt therefore fails the package acceptance contract.
+- Report: `docs/evidence/G0_37A_S1_CORRECTED_MEASUREMENT_ATTEMPT_2026-11-11.md`.
+- Report creation commit: `59943a4b81d8bdfe0dbc6d0814c2ef8a6a056d34`; report finalization commit: `f4adda967bb3a9334985a6b5b83d79059c71f019`; final report blob: `868f1a4cb0fa343bebd9e11fdf7bdc4056801c4f`.
+- Final report was fetched from GitHub; A-11 report readback PASS. This does not change the overall FAILED/INCOMPLETE verdict.
+- G0.37-A verdict: **FAILED / INCOMPLETE — one attempt consumed; no retry or repair-and-rerun authorized**.
+- No raw payload/oracle files persisted; no parser/tests/CI, benchmark, external/network/provider/database/VPS/runtime, T0/T1/T2, market data, model, ledger or lifecycle change. No numeric D11 ceiling proposed or ratified.
+- Next gate: prepare a new owner decision package before any further measurement. Do not rerun or repair the consumed attempt. D11 remains OPEN / NOT RATIFIED.
+- T0 remains independent/protected; CORE_LEDGER and AI_LEDGER remain separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
