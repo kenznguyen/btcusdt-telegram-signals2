@@ -106,7 +106,7 @@ def _canonical_manifest(manifest_bytes):
         _fail("INVALID_MANIFEST_BYTES")
     try:
         decoded = manifest_bytes.decode("utf-8", errors="strict")
-        if decoded.startswith("\\ufeff"):
+        if decoded.startswith("\ufeff"):
             _fail("MANIFEST_BOM_NOT_ALLOWED")
         payload = json.loads(
             decoded,
@@ -342,7 +342,7 @@ def _canonical_transform(artifact_bytes):
         _fail("INVALID_ARTIFACT_BYTES")
     try:
         decoded = artifact_bytes.decode("utf-8", errors="strict")
-        if decoded.startswith("\\ufeff"):
+        if decoded.startswith("\ufeff"):
             _fail("ARTIFACT_BOM_NOT_ALLOWED")
         transform = json.loads(
             decoded,
