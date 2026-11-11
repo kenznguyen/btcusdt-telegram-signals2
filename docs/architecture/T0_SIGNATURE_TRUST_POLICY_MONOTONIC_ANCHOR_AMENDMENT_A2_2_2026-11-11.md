@@ -422,9 +422,9 @@ Bootstrap MUST use exactly one of the following documented paths. The selected p
 
 A2.2 is a documentation-only correction candidate. The original A2 blob remains preserved as historical review input. These additions address only A2-SR-01 and A2-SR-02 at contract-design level; they do not close implementation blockers listed in §9.
 
-The exact A2.2 source blob must be frozen and subjected to adversarial self-review, followed by qualifying independent review of the exact source snapshot. Implementation still requires a separate explicit owner approval. No algorithm, key, owner authority, bootstrap ceremony, trust root, policy/anchor instance, verifier, workflow, CI, VPS/runtime or canonical T0 operation is selected or exercised here.
+The A2.2 source blob and each review disposition MUST be recorded in separate exact-blob evidence reports. Qualifying independent review of the exact source snapshot remains mandatory; this document does not encode mutable gate status. Implementation still requires a separate explicit owner approval. No algorithm, key, owner authority, bootstrap ceremony, trust root, policy/anchor instance, verifier, workflow, CI, VPS/runtime or canonical T0 operation is selected or exercised here.
 
-**A2.2 disposition: DRAFT CORRECTION CANDIDATE — R2-01..R2-05 CORRECTIONS PROPOSED — SELF-REVIEW PENDING — NOT INDEPENDENTLY REVIEWED — NOT IMPLEMENTATION-APPROVED.**
+**A2.2 disposition: DRAFT CORRECTION CANDIDATE — R2-01..R2-05 CORRECTIONS PROPOSED — REVIEW-GATE STATUS RECORDED IN SEPARATE EXACT-BLOB EVIDENCE — NOT IMPLEMENTATION-APPROVED.**
 
 
 ## 14. A2.1-R2-01 — Revision identity, status and review-gate precedence
