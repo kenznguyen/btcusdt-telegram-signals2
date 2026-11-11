@@ -2641,3 +2641,31 @@ Owner approved autonomous work through completion of calibrated-confidence/prove
 - Existing owner-approved direction is GitHub append-only Registry + offline Ed25519 signing. Exact manifest schema/canonicalization, pinned public-key/trust-root profile, revocation/rollback semantics, calibration method/OOS evidence provider and numerical thresholds remain unresolved. No registry, key, calibration artifact, model/training job, dependency, DB/schema, migration, runtime or exchange operation was created.
 - **Disposition:** structural confidence/provenance validator IMPLEMENTED; focused latest verification NOT VERIFIED; trusted calibration provenance provider BLOCKED. No AI production intent can pass the current API path. Core, T0, Dual Ledger schema and Shared Risk Engine were not changed.
 - **Next permitted work:** prepare a compact exact registry manifest/verifier contract using the already approved GitHub append-only + offline Ed25519 direction, then stop for the remaining owner choices that cannot be inferred (especially trust-root/key profile and OOS/calibration evidence source). Do not select C_min or claim trusted calibration until those are resolved.
+
+## AI calibration verifier v1 — RFC 8785 + Ed25519 (2026-11-11)
+
+Owner approved RFC 8785 JCS canonicalization, Ed25519 detached-signature verification and an independently pinned public-key configuration. Work remained on the active branch; no branch/PR divergence was introduced.
+
+- Active branch: `feature/t0-centralized-data-feeder-p1-20261101`.
+- Latest source HEAD before this handoff update: `9dca3380c9a94fd36dc871729ba52b54c46698ee`.
+- Verifier implementation: `pipeline/calibration_registry.py`, blob `cf6571a3bc7037eda6b3a9cf778204c0a7ae6fc6`, introduced in commit `e0bf825a957cd9b4e8ef9032fe816715ba410fa8`.
+- Verifier tests: `pipeline/test_ai_calibration_registry.py`, blob `6127e6817e5625183431c1cf5a2913980575ec1a`, latest test update commit `ee5a649cdd5b24adc25ff2083b6dee820f5717af`.
+- Dependencies: `requirements-web.txt` blob `1ee5316a56713357a8008da7e5423af69e2e9b9b`; `requirements.txt` blob `f5c242bdac51eba200b19233e08e7d4b22f598c4`. Added `cryptography>=42.0.0,<47` and `rfc8785>=0.1.4,<0.2`.
+- Workflow `.github/workflows/ai-strategy-contract-red.yml` blob `d976d2ea2c7927e5b5183d7f63fef70e41db7f07`; it compiles and runs the registry tests in the isolated paper-only CI.
+- Frozen contract: `docs/architecture/AI_CALIBRATION_REGISTRY_MANIFEST_CONTRACT.md`, blob `5ab39f31933a0626d674abb1530a3509c56ef29a`. Exact 37-field manifest v1, envelope v1, JCS bytes, domain-separated signature statement and external trust-config field set are frozen for read-only verification only.
+- Evidence report updated: `docs/evidence/AI_CALIBRATION_MANIFEST_AND_KEY_LIFECYCLE_DESIGN_2026-11-11.md`, blob `119e4a9863490fa2ee3fbba24582211075927560`.
+
+Exact CI evidence:
+- Workflow run `43065112950`, job `130677863812`, source SHA `ee5a649cdd5b24adc25ff2083b6dee820f5717af`: compile PASS; calibrated confidence/provenance 13 tests PASS; decision regression 15 tests PASS; registry verifier 12 tests PASS.
+- Same run's full AI/dual-strategy contract: 52 tests, 12 failures and 6 errors. Outstanding failures/errors are leverage mapping, account-equity readiness/sizing, instrument lot/tick/minimum rules, Kill Switch and API/AI-ledger routing. Full AI contract remains NOT PASS.
+- Artifact ID `13875776318`, name `ai-strategy-contract-red-ee5a649cdd5b24adc25ff2083b6dee820f5717af`, upload ZIP SHA-256 `02491d09b1aa41e24b4140999030aa4e977819677f09ab25539408da79c914e1`.
+- Dual Ledger workflow run `43065112813`, job `130677863091`, same source SHA `ee5a649cdd5b24adc25ff2083b6dee820f5717af`: 238 tests, 3 failures and 170 errors; regression suite BLOCKED. This was not used as proof of a verifier regression or PASS.
+- Freqtrade 2026.9 smoke run `43065113040` was queued/pending when inspected; no success claim is made.
+
+Verifier security boundary:
+- Requires exact canonical UTF-8 JCS bytes, no BOM/duplicate keys/JSON numbers/unknown fields, exact artifact SHA-256 and byte length, strict Ed25519 envelope, and independently pinned raw public key fingerprint plus key ID, signer role, publisher ID, namespace and allowed record type.
+- The only success result is `SIGNATURE_VERIFIED_ONLY`. It does not establish predecessor/event-chain integrity, approval/active/revocation state, trusted time, evaluation-record content, dataset lineage, OOS quality, or per-inference confidence computed from the transform.
+- Test-only RFC 8032 private seed is confined to unit-test fixture; no production key, key ceremony, trust-root enrollment or signature publication was performed.
+- `pipeline/api.py::decide` remains without a trusted calibration provider and the production decision path fails closed to WAIT. No production registry provider, manifest/artifact, model/calibrator training, numerical threshold, DB/schema migration, runtime activation or live execution was introduced.
+
+**Disposition:** RFC8785/Ed25519 verifier v1 and focused verifier tests PASS. Overall Calibrated confidence/provenance completion remains BLOCKED / NOT VERIFIED. Outstanding material gates: externally provisioned real public-key pin and key authorization lifecycle; immutable approved/active/revoked registry event chain; evaluation-record byte verification and dataset lineage/horizon embargo; approved calibration transform/evaluation protocol; per-inference confidence generated by applying the exact transform and cryptographically/structurally bound to the manifest; explicit numerical policy values (never infer C_min/sample/period/age defaults). Keep API fail-closed until those gates are closed.
