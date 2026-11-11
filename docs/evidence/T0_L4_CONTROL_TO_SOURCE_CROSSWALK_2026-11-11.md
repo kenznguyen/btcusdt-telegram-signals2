@@ -100,3 +100,25 @@ The owner-approved amendment supersedes the former requirement to demonstrate re
 - Signature statement, trust policy, anchor and negative-verification cases remain contract/design only. No cryptographic implementation, keys, signatures, anchor instances, runtime readback or offline verification exist from this work.
 - Aggregate L4-Minimum remains **BLOCKED / NOT VERIFIED**. L4M-09 remains OWNER-WAIVED for the general L4 baseline; the separate requested architecture review for this signature extension has not been performed by a qualifying independent reviewer.
 - Next gate: freeze the exact contract/A1/test-matrix candidate for review and obtain a qualifying reviewer. Do not implement before review and separate owner implementation approval.
+
+
+## GitHub artifact exact-readback increment — run 42937191664 (2026-11-11)
+
+A separately owner-approved read-only exact-readback pass downloaded the three output artifacts from [workflow run 42937191664](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42937191664), checked ZIP integrity/member paths, and independently recomputed SHA-256 over each complete ZIP. All three computed digests matched GitHub artifact metadata and the workflow upload digest:
+
+| Output artifact | ID | ZIP bytes | Independently verified SHA-256 | Result |
+|---|---:|---:|---|---|
+| `t0-l4-artifact-manifest-42937191664` | `13819680374` | 3,267 | `3509f2ce14aa174a45e4200ab44d13c7ae532841a74886256e9f6fe20ea55f71` | PASS |
+| `t0-l4-minimum-lineage-42937191664` | `13818967476` | 1,150 | `155986f0f35d875fad02b6c50d0aab7aa43afdcd9191391f9ee0b832e975b67e` | PASS |
+| `t0-l4-repository-file-inventory-42937191664` | `13818163804` | 4,483 | `98fc7fca7123ae0a9e72bcf1f209032a57c24d97aa898aaa075eb7212f04c0fa` | PASS |
+
+The manifest and repository-inventory JSON payload SHA-256 values independently matched their sidecars. The repository inventory contains 40 unique paths and reconciles to 559,566 declared bytes. The lineage output binds to exact source SHA `8bda3c987e2145a636bbcc9d8609c5ea15a492b9`; workflow jobs passed 12/12 lineage, 19/19 manifest and 10/10 repository inventory tests (41/41 total).
+
+**Classification:** these are three current-run GitHub Actions output artifacts, not additions to the six-item source-artifact allowlist and not owner custody copies. Their exact-readback is PASS for the three named artifacts only. The result strengthens GitHub-side artifact integrity/readback evidence but does not prove owner custody, VPS copy, signed canonical T0 checkpoint, authenticated latest-head anchor, freshness or recovery from GitHub unavailability.
+
+- L4M-01 remains **PARTIAL / NOT VERIFIED**.
+- L4M-03 remains **PARTIAL — SYNTHETIC/DESIGN ONLY**.
+- Aggregate L4-Minimum remains **BLOCKED / NOT VERIFIED**.
+- Detailed evidence report: `docs/evidence/T0_L4_GITHUB_ARTIFACT_EXACT_READBACK_2026-11-11.md`, report commit `a42a45060718d7c4bbce63f4c2756687a8231c6a`.
+
+No VPS/SSH, T0 API/SQLite, canonical data/runtime, signing/key operation, workflow dispatch, cleanup/deletion or trading action occurred. T0 remains unchanged; paper-only and `AI_EXECUTION_ENABLED=false` remain.
