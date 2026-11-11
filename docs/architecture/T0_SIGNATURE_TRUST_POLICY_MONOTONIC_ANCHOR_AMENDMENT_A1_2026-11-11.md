@@ -40,7 +40,7 @@ The approved bounded arrangement permits exact two-location readback and retaine
 
 Required limits:
 
-1. The current anchor record and its signed predecessor chain SHOULD be retained/readable at both the approved VPS custody location and the GitHub evidence location, using exact-byte copies.
+1. The current anchor record and its signed predecessor chain MUST be retained/readable at both the approved VPS custody location and the GitHub evidence location, using exact-byte copies.
 2. A verifier MUST compare the available copies and MUST report a conflict if their anchor sequence, digest or predecessor linkage differs.
 3. If either required copy is unavailable, incomplete or cannot be authenticated, freshness/custody MUST be UNKNOWN or BLOCKED according to the failed dimension; the verifier MUST NOT silently accept the remaining copy as proof of latestness.
 4. Even if both copies agree, this arrangement cannot prove that both have not been jointly rolled back, deleted or replaced. It therefore supports **cross-copy consistency and retained-chain verification**, not absolute anti-rollback against simultaneous compromise/loss of both custody domains.
@@ -283,7 +283,7 @@ The exact anchor object digest is computed after the signed object exists and MU
 
 ### 6.4 VPS + GitHub publication and freshness verdict
 
-Within the accepted custody boundary, the exact signed anchor bytes and predecessor records SHOULD be published to both the approved VPS custody location and GitHub evidence location. A verifier MUST:
+Within the accepted custody boundary, the exact signed anchor bytes and predecessor records MUST be published to both the approved VPS custody location and GitHub evidence location. A verifier MUST:
 
 - authenticate the anchor signature and policy authorization;
 - validate the entire available predecessor chain to the pinned genesis/accepted checkpoint;
