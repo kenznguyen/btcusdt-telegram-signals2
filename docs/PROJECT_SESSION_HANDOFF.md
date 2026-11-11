@@ -1320,3 +1320,18 @@ Next: review and prioritize the 23 RED assertions, freeze remaining AI API contr
 - Disposition: RED triage PASS — analysis/documentation only. API proposal pending owner review. GREEN NOT AUTHORIZED. No production source, test source, DB/schema, migration, T0/T1/T2 runtime, VPS, credentials, deployment or exchange state changed.
 
 Next: owner review the API proposal and resolve open design decisions. Only then, seek separate approval for test-only refinement; GREEN implementation remains a separate approval gate.
+
+
+## AI Strategy API Contract owner approval — 2026-11-11
+
+- Owner explicitly approved `docs/architecture/AI_STRATEGY_API_CONTRACT_PROPOSAL.md` as the design basis for the next RED test-refinement gate.
+- Approval/documentation commit for proposal: `a7f8ca579ff7990eca3f640e1d496608c0ad36f4`; approved proposal blob: `65c3e5a6102cde6f7d51784fd9638f14aec3269e`.
+- Evidence record commit: `e15671302bed4a4c142ee2439c21ed6c6236673c`; evidence blob: `e5b95d6eb93abdcd31e66b97524699c78daa2d2b`.
+- **Gate A — API Contract design: APPROVED.**
+- **Gate B — TDD RED refinement: AUTHORIZED, TEST-ONLY.** Replace brittle signature-introspection sentinels with behavioral API/provider-boundary tests and add missing deterministic cases. Preserve intentional RED failures where production behavior is absent. No production-source edits.
+- Do not select numerical `C_min` or invent calibration sample/period/age thresholds, registry/provider choices, instrument-rule source, AI DCA v1 eligibility or snapshot persistence policy. Test fixtures must be labeled as fixtures, not production defaults; unresolved mandatory policy/provider inputs remain fail-closed.
+- **GREEN implementation: NOT AUTHORIZED.** No production changes, schema/database work, migration/cutover, calibration training or OOS acceptance, model changes, backtest acceptance, feature activation, VPS/T0/T1/T2 runtime, deployment, exchange connectivity or live orders.
+- Existing RED baseline remains run [42989566675](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42989566675), exact source SHA `aa7897520b5435ff4c981b3f2ab8a6710f811eea`: 36 tests, 23 assertion failures, 0 runtime errors. This approval record does not claim a new test run or CI result.
+- No T0 canonical data, T1 activation, T2 runtime, credentials, deployment or exchange state changed.
+
+Next: perform only the approved test-source refinement on this existing branch, run the existing AI RED GitHub Actions workflow against the resulting exact SHA, record all tests/artifacts, then stop before GREEN and seek separate approval.
