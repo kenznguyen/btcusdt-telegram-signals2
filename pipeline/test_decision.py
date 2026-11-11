@@ -67,15 +67,23 @@ class DecisionTest(unittest.TestCase):
         self.intelligence["snapshotId"] = identity("intelligence:", payload)
 
     def admission_context(self):
-        return {"ai_policy": {
-            "policyVersion": "decision-test-v1",
-            "confidenceMin": "0.6",
-            "minCalibrationSamples": 100,
-            "minCalibrationPeriodMs": 100,
-            "maxCalibrationAgeMs": 60000,
-            "labelDefinition": "direction_correct_at_horizon",
-            "forecastHorizonMs": 900000,
-        }}
+        calibration = self.prediction["calibration"]
+        return {
+            "ai_policy": {
+                "policyVersion": "decision-test-v1",
+                "confidenceMin": "0.6",
+                "minCalibrationSamples": 100,
+                "minCalibrationPeriodMs": 100,
+                "maxCalibrationAgeMs": 60000,
+                "labelDefinition": "direction_correct_at_horizon",
+                "forecastHorizonMs": 900000,
+            },
+            "calibration_evidence": {
+                "verificationStatus": "SIGNATURE_VERIFIED_ONLY",
+                "manifestDigest": "sha256:" + "d" * 64,
+                **calibration,
+            },
+        }
 
     def evaluate(self, **changes):
         values = dict(candle_window=self.window, intelligence=self.intelligence,
