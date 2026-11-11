@@ -46,6 +46,8 @@ Required limits:
 4. Even if both copies agree, this arrangement cannot prove that both have not been jointly rolled back, deleted or replaced. It therefore supports **cross-copy consistency and retained-chain verification**, not absolute anti-rollback against simultaneous compromise/loss of both custody domains.
 5. Any claim requiring an independently protected monotonic anchor outside both VPS and GitHub remains **NOT ESTABLISHED / NOT VERIFIED** until the owner separately approves and qualifies such a mechanism.
 6. No WORM, immutable-storage, independent-backup, disaster-recovery or guaranteed-availability claim is made.
+7. Readback qualification MUST demonstrate exact readback from the VPS copy while GitHub is unavailable and from the GitHub copy while VPS is unavailable, or equivalent controlled isolation tests. The bounded design makes no claim of readback/recovery while both locations are simultaneously unavailable. If either required copy is inaccessible during a verification that requires the exact two-copy comparison, the custody/freshness verdict is BLOCKED/UNKNOWN; the remaining copy alone is not proof of agreement.
+
 
 The owner-approved addendum resolves the former normative location conflict for the bounded VPS + GitHub scope. This does not promote any L4 custody or freshness control to PASS: actual owner custody, exact-object descriptors, per-location receipts/readback, authenticated anchor history and offline verification remain NOT VERIFIED until evidenced. Any claim requiring an independently protected third failure domain remains NOT ESTABLISHED.
 
