@@ -667,3 +667,15 @@ Reconcile the four-artifact Actions allowlist with all eligible source artifacts
 - No keys, signatures, root enrollment, verifier configuration, policy/anchor instance, executable cryptographic tests, CI/workflow, VPS/SSH/runtime, SQLite/canonical T0 data or destructive operation was changed or exercised. Paper-only posture and `AI_EXECUTION_ENABLED=false` remain unchanged.
 - CI/workflow NOT RUN; no run/artifact claimed.
 - This waiver supersedes the earlier handoff next-step instruction to submit A2.2 for qualifying independent review. Do not schedule or treat independent review as a mandatory gate unless the owner later reinstates it.
+
+
+### A2.2 waiver consistency cleanup — latest override
+
+- A post-update scan found residual mandatory-independent-review wording in A2.2 overview and acceptance-gate clauses. These normative A2.2 references have now been corrected; historical A1/A2/A2.1 review-history references were retained.
+- Latest A2.2 correction commit: `b04734858792831d2b19c90e204a11aa0aae8d6f`; current A2.2 blob: `41d41cd23f73a6e552b9ceca5ebbb39c46934e7d`.
+- Latest self-review evidence update commit: `3db05538fc4fd84dd20fa64b87115cf886ef898c`; current report blob: `ab2b56376c01e4ef45b28d3dcd647feadd829b60`.
+- Current owner waiver record blob (re-fetched): `f437dbf319b7a9570092c8cafb4bf354409e651c`.
+- A2.2 mandatory independent-review gate: **WAIVED**. Independent review: **NOT PERFORMED**. Independent assurance/G3: **NOT ESTABLISHED**.
+- Self-review evidence is the full technical review of prior A2.2 blob `2090112370e3b4a9925e78cf1ab0e2bb8428640c), plus targeted same-session delta checks for governance-only changes. It must not be described as a full fresh review of every byte of the latest blob or as independent review.
+- Implementation remains **NOT APPROVED** and requires separate explicit owner approval. Path A/Path B remain NOT_ENABLED; bootstrap remains BLOCKED. All other safety and custody limits remain unchanged.
+- No code, tests, CI/workflow, keys/signatures, trust roots, bootstrap, policy/anchor instances, VPS/runtime, SQLite/canonical T0 data or destructive operations changed. CI/workflow NOT RUN.
