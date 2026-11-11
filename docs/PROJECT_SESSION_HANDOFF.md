@@ -14,7 +14,7 @@ Updated: 2026-11-11 (Asia/Ho_Chi_Minh)
 - Repository: `kenznguyen/btcusdt-telegram-signals2`.
 - Active branch: `feature/t0-centralized-data-feeder-p1-20261101`.
 - Default branch: `main`. Do not switch branches or create a parallel PR without a task-specific reason and approval.
-- Latest repository HEAD before this handoff update: `c6d2266670275222dcb966169667d0077e08d274` (A2.2 disposition reconciled and evidence report synchronized; see current A2.2 workstream below).
+- Latest repository HEAD before this handoff update: `f58bf6a203e8dd663003eeff97ad7580dcbb9c57` (post-amendment self-review and evidence link recorded; see current A2.2 workstream below).
 - Full previous handoff preserved verbatim in `docs/archive/PROJECT_SESSION_HANDOFF_HISTORY_2026-11-10.md`; archive commit: `2fcad94aef8b15002cdba58aafe62ad208dc818b`.
 - PR #139 is OPEN / DRAFT / NOT MERGED. It concerns SSH passphrase handling and targets this active branch. Do not merge or alter it as part of unrelated work.
 
@@ -784,3 +784,7 @@ The prior A2.2 Stage I status/proposal notes above are historical snapshots. Thi
 
 - Follow-up contract wording consistency: A2.2 §19 now explicitly recognizes the separately owner-approved synthetic Stage I implementation while keeping production cryptography and all excluded scopes unauthorized. Current contract blob `d9f93bf390d107381b7135c3073aeca0d14894d4`, commit `96caa617ef1f5bb16b1c631ef164f4d34959592c`.
 - Latest Stage I evidence report blob: `14c67c9d602546c28c25d7adef650ac6358b94ea`, commit `c6d2266670275222dcb966169667d0077e08d274`.
+
+
+- Post-amendment self-review: `docs/evidence/T0_SIGNATURE_A2_2_STAGE_I_POST_AMENDMENT_SELF_REVIEW_2026-11-11.md`, blob `e44273248ef7ee68898a90e1fdfb1cd6a0a6c6dc`, commit `58a56660e50ff618d15bbea20665ce556b4378f1`; result **SELF-REVIEW PASS WITH VERIFICATION BLOCKER**. No source-level defect identified, but exact 34-test suite and compile check are NOT RUN. Independent review remains waived/not performed; G3 not established.
+- Updated Stage I evidence report blob: `3c77a5043756de54d4ccc8545b0ae5329f0aacfd`, commit `f58bf6a203e8dd663003eeff97ad7580dcbb9c57`.
