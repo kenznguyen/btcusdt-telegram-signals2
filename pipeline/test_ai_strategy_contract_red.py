@@ -39,9 +39,6 @@ class AIStrategyContractRedTest(unittest.TestCase):
             "modelVersion": prediction["modelVersion"],
             "strategyVersion": prediction["strategyVersion"],
             "trainingDatasetVersion": prediction["trainingDatasetVersion"],
-            "modelVersion": prediction["modelVersion"],
-            "strategyVersion": prediction["strategyVersion"],
-            "trainingDatasetVersion": prediction["trainingDatasetVersion"],
         }
         prediction["calibration"].update(changes)
         return prediction
@@ -58,8 +55,6 @@ class AIStrategyContractRedTest(unittest.TestCase):
                 "leverageMappingVersion": "linear-confidence-v1",
                 "minimumLeverage": "1",
                 "maximumLeverage": "3",
-                "labelDefinition": "direction_correct_at_horizon",
-                "forecastHorizonMs": 900000,
                 "labelDefinition": "direction_correct_at_horizon",
                 "forecastHorizonMs": 900000,
             },
@@ -161,6 +156,8 @@ class AIStrategyContractRedTest(unittest.TestCase):
         self.assertEqual(result["intent"]["calibrationVersion"], "cal-fixture-v1")
         self.assertEqual(result["intent"]["calibrationArtifactHash"],
                          "sha256:" + "b" * 64)
+        self.assertEqual(result["intent"]["calibrationManifestDigest"],
+                         "sha256:" + "d" * 64)
         self.assertEqual(result["intent"]["calibrationDatasetVersion"],
                          "sha256:" + "c" * 64)
         self.assertEqual(result["intent"]["calibrationPolicyVersion"],
