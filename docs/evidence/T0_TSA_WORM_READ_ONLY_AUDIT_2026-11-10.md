@@ -155,3 +155,10 @@ This is a governance protection, **not technical WORM enforcement**. P1.8.152 re
 - Option C — No Destructive Authority — remains in force.
 
 **Final verdict: BOUNDED READ-ONLY AUDIT COMPLETE — TSA PRODUCTION BLOCKED — WORM NOT IMPLEMENTED/NOT QUALIFIED FOR T0 — NO RUNTIME OR DESTRUCTIVE ACTION.**
+
+
+## Superseding owner decision — Option C revoked (2026-11-11)
+
+The project owner explicitly revoked **Option C — No Destructive Authority** on 2026-11-11. This dated owner decision supersedes the earlier approval/rule in this historical record wherever it states that Option C remains in force, is the current default, or prohibits all destructive authority. Current governance status: **Option C REVOKED**.
+
+The revocation removes Option C as a blanket prohibition; it does not itself authorize a particular deletion, archive, cleanup, expiry, vacuum, compaction, replica removal, export mutation, provider operation or other destructive transition. Each concrete operation remains subject to a separate explicit approval with exact target/data class, scope, preconditions, expected effect, verification, dependencies and recovery/rollback plan. T0 canonical SQLite/candles, lease/fencing state, CORE_LEDGER, AI_LEDGER, audit/reconstruction/recovery evidence, owner custody records and trust evidence are not presumed disposable. Paper-only status and `AI_EXECUTION_ENABLED=false` remain unchanged. This governance change does not establish technical enforcement, L4 control PASS, independent assurance, or permission to change runtime/provider credentials.
