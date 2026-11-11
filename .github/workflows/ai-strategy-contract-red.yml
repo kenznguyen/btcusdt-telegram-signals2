@@ -6,6 +6,7 @@ on:
       - feature/t0-centralized-data-feeder-p1-20261101
     paths:
       - "pipeline/test_ai_strategy_contract_red.py"
+      - "pipeline/test_decision.py"
       - "paper_execution/test_dual_strategy_api_red.py"
       - "pipeline/decision.py"
       - "pipeline/api.py"
@@ -79,8 +80,15 @@ jobs:
       - name: Compile focused RED test modules
         run: |
           set -euo pipefail
-          python -m py_compile pipeline/test_ai_strategy_contract_red.py paper_execution/test_dual_strategy_api_red.py
+          python -m py_compile pipeline/test_ai_strategy_contract_red.py pipeline/test_decision.py paper_execution/test_dual_strategy_api_red.py
           echo "AI_STRATEGY_RED_COMPILE=PASS" | tee ai-strategy-compile.log
+
+      - name: Execute calibrated confidence and provenance tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest pipeline.test_ai_strategy_contract_red -k calibration -k confidence -v 2>&1 | tee ai-calibration-contract-tests.log
+          python -m unittest pipeline.test_decision -v 2>&1 | tee ai-decision-regression-tests.log
 
       - name: Execute focused AI Strategy RED tests
         shell: bash
@@ -99,3 +107,5 @@ jobs:
             ai-strategy-preflight.log
             ai-strategy-compile.log
             ai-strategy-red-tests.log
+            ai-calibration-contract-tests.log
+            ai-decision-regression-tests.log
