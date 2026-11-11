@@ -258,8 +258,8 @@ class T0SSHPreflightContractTests(unittest.TestCase):
 
     def test_verdict_requires_successful_ssh_exit_code(self):
         workflow = WORKFLOW.read_text()
-        classifier = workflow.split("      - name: Classify preflight evidence\\n", 1)[1].split(
-            "      - name: Upload sanitized preflight evidence\\n", 1
+        classifier = workflow.split("      - name: Classify preflight evidence\n", 1)[1].split(
+            "      - name: Upload sanitized preflight evidence\n", 1
         )[0]
         self.assertIn("preflight-ssh-exit-code.txt", classifier)
         self.assertIn("grep -Fxq '0' preflight-ssh-exit-code.txt", classifier)
@@ -270,8 +270,8 @@ class T0SSHPreflightContractTests(unittest.TestCase):
 
     def test_verdict_requires_complete_framed_probe_evidence(self):
         workflow = WORKFLOW.read_text()
-        classifier = workflow.split("      - name: Classify preflight evidence\\n", 1)[1].split(
-            "      - name: Upload sanitized preflight evidence\\n", 1
+        classifier = workflow.split("      - name: Classify preflight evidence\n", 1)[1].split(
+            "      - name: Upload sanitized preflight evidence\n", 1
         )[0]
         for required in (
             "P1_SSH_PREFLIGHT_VERSION=1",
@@ -288,7 +288,7 @@ class T0SSHPreflightContractTests(unittest.TestCase):
 
     def test_verdict_artifact_includes_sanitized_ssh_diagnostics(self):
         workflow = WORKFLOW.read_text()
-        artifact = workflow.split("      - name: Upload sanitized preflight evidence\\n", 1)[1]
+        artifact = workflow.split("      - name: Upload sanitized preflight evidence\n", 1)[1]
         for required in ("preflight-ssh-diagnostic.txt", "preflight-ssh-exit-code.txt"):
             self.assertIn(required, artifact)
 
