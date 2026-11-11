@@ -1,4 +1,4 @@
-"""Isolated end-to-end T0 sync -> SQLite -> read-only API -> T2 HTTP consumer tests."""
+"""Isolated end-to-end T0 sync -> SQLite -> read-only API -> T2 M15/H1 consumer tests."""
 
 import os
 import tempfile
@@ -18,7 +18,6 @@ from market_data.sync import sync_window
 from market_data.write_gateway import SQLiteWriteGateway
 
 
-STEP = INTERVAL_MS["15m"]
 TOKEN = "g3-isolated-read-only-token"
 
 
@@ -55,25 +54,7 @@ class SQLiteT0ToT2DataFlowTest(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.db_path = Path(self.temp.name) / "isolated-market-data.sqlite3"
-
-        # Keep the requested two-bar window safely behind wall-clock time so
-        # the local API's generatedAtMs and the consumer clock are monotonic.
-        wall_now = time.time_ns() // 1_000_000
-        self.end_ms = ((wall_now - 180_000) // STEP) * STEP
-        self.start_ms = self.end_ms - 2 * STEP
-        self.as_of_ms = self.end_ms + 60_000
-        self.observed_at_ms = self.end_ms + 30_000
-
         CandleStore(self.db_path)
-        leases = LeaseStore(str(self.db_path))
-        lease = leases.acquire("g3-isolated-test", self.start_ms, ttl_seconds=3600)
-        self.gateway = SQLiteWriteGateway(
-            store=CandleStore(self.db_path),
-            lease_store=leases,
-            owner_id="g3-isolated-test",
-            generation_provider=lambda: lease.generation,
-            clock=lambda: self.observed_at_ms,
-        )
 
         self.server = make_server("127.0.0.1", 0, application)
         self.server_thread = Thread(target=self.server.serve_forever, daemon=True)
@@ -82,18 +63,31 @@ class SQLiteT0ToT2DataFlowTest(unittest.TestCase):
         self.addCleanup(self.server.shutdown)
         self.base_url = f"http://127.0.0.1:{self.server.server_port}"
 
-    def _consume(self, rows):
+    def _consume(self, rows, timeframe="15m"):
+        interval = INTERVAL_MS[timeframe]
+        wall_now = time.time_ns() // 1_000_000
+        self.end_ms = ((wall_now - 180_000) // interval) * interval
+        self.start_ms = self.end_ms - 2 * interval
+        self.as_of_ms = self.end_ms + 60_000
+        self.observed_at_ms = self.end_ms + 30_000
+
+        leases = LeaseStore(str(self.db_path))
+        owner_id = "g3-isolated-test-" + timeframe
+        lease = leases.acquire(owner_id, self.start_ms, ttl_seconds=3600)
+        gateway = SQLiteWriteGateway(
+            store=CandleStore(self.db_path),
+            lease_store=leases,
+            owner_id=owner_id,
+            generation_provider=lambda: lease.generation,
+            clock=lambda: self.observed_at_ms,
+        )
         exchange = SyntheticBinanceUsdM(rows, self.as_of_ms)
         inserted = sync_window(
-            exchange, self.gateway, "15m", self.start_ms, self.end_ms,
+            exchange, gateway, timeframe, self.start_ms, self.end_ms,
             now_ms=lambda: self.observed_at_ms,
         )
         client = CandleHttpClient(
-            CandleHttpConfig(
-                base_url=self.base_url,
-                token=TOKEN,
-                max_lag_ms=120_000,
-            ),
+            CandleHttpConfig(base_url=self.base_url, token=TOKEN, max_lag_ms=120_000),
             clock_ms=lambda: time.time_ns() // 1_000_000,
         )
         with patch.dict(os.environ, {
@@ -104,23 +98,18 @@ class SQLiteT0ToT2DataFlowTest(unittest.TestCase):
             result = canonical_context(
                 now_ms=self.as_of_ms,
                 bars=2,
+                timeframe=timeframe,
                 client=client,
             )
         return inserted, exchange, result
 
-    def test_sync_sqlite_api_and_t2_http_consumer_preserve_canonical_data(self):
-        inserted, exchange, result = self._consume([
-            candle_row(self.start_ms),
-            candle_row(self.start_ms + STEP),
-        ])
-
-        self.assertEqual(inserted, 2)
-        self.assertEqual(len(exchange.calls), 1)
+    def _assert_complete_result(self, result, timeframe):
+        interval = INTERVAL_MS[timeframe]
         self.assertEqual(result["contractVersion"], "1.0.0")
         self.assertEqual(result["exchange"], "binance")
         self.assertEqual(result["marketType"], "USDT_PERPETUAL")
         self.assertEqual(result["symbol"], "BTCUSDT")
-        self.assertEqual(result["timeframe"], "15m")
+        self.assertEqual(result["timeframe"], timeframe)
         self.assertEqual(result["startMs"], self.start_ms)
         self.assertEqual(result["endMs"], self.end_ms)
         self.assertEqual(result["asOfMs"], self.as_of_ms)
@@ -129,18 +118,45 @@ class SQLiteT0ToT2DataFlowTest(unittest.TestCase):
         })
         self.assertEqual(len(result["candles"]), 2)
         self.assertEqual(result["candles"][0]["open"], "100.01")
-        self.assertEqual(result["candles"][1]["openTimeMs"], self.start_ms + STEP)
+        self.assertEqual(result["candles"][1]["openTimeMs"], self.start_ms + interval)
         self.assertTrue(all(row["isClosed"] and row["quality"] == "VALIDATED"
                             for row in result["candles"]))
         self.assertTrue(all(row["availabilityKind"] == "FIRST_OBSERVED"
+                            for row in result["candles"]))
+        self.assertTrue(all(row["closeTimeMs"] == row["openTimeMs"] + interval
                             for row in result["candles"]))
         self.assertEqual(result["candles"][0]["availableAtMs"], self.observed_at_ms)
         self.assertRegex(result["datasetVersion"], r"^sha256:[0-9a-f]{64}$")
         self.assertTrue(result["freshness"]["evaluable"])
 
-    def test_t2_http_consumer_fails_closed_when_sqlite_coverage_has_a_gap(self):
+    def test_sync_sqlite_api_and_t2_http_consumer_preserve_canonical_m15_data(self):
+        inserted, exchange, result = self._consume([
+            candle_row(self.start_ms),
+            candle_row(self.start_ms + INTERVAL_MS["15m"]),
+        ], "15m")
+        self.assertEqual(inserted, 2)
+        self.assertEqual(len(exchange.calls), 1)
+        self.assertEqual(exchange.calls[0][1], "15m")
+        self._assert_complete_result(result, "15m")
+
+    def test_sync_sqlite_api_and_t2_http_consumer_preserve_canonical_h1_data(self):
+        inserted, exchange, result = self._consume([
+            candle_row(self.start_ms),
+            candle_row(self.start_ms + INTERVAL_MS["1h"]),
+        ], "1h")
+        self.assertEqual(inserted, 2)
+        self.assertEqual(len(exchange.calls), 1)
+        self.assertEqual(exchange.calls[0][1], "1h")
+        self._assert_complete_result(result, "1h")
+
+    def test_t2_http_consumer_fails_closed_when_m15_sqlite_coverage_has_a_gap(self):
         with self.assertRaises(CandleHttpError) as caught:
-            self._consume([candle_row(self.start_ms)])
+            self._consume([candle_row(self.start_ms)], "15m")
+        self.assertEqual(caught.exception.reason, "COVERAGE_INCOMPLETE")
+
+    def test_t2_http_consumer_fails_closed_when_h1_sqlite_coverage_has_a_gap(self):
+        with self.assertRaises(CandleHttpError) as caught:
+            self._consume([candle_row(self.start_ms)], "1h")
         self.assertEqual(caught.exception.reason, "COVERAGE_INCOMPLETE")
 
 
