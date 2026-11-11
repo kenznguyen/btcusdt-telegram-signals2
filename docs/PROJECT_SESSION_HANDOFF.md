@@ -1491,3 +1491,18 @@ Design limits: manifest schema/canonicalization, signature statement/domain byte
 Verification: documentation changes only; no tests/workflow; no key generation/import, signing/verification, registry/provider, CI secrets, VPS/runtime, DB/T0/T1/T2, exchange request, calibration/model change or AI activation. No artifact/run produced. G0-01/02/03 remain BLOCKED; G0-05 BLOCKED; G0-07 DEFERRED; GREEN-1..5 NOT AUTHORIZED. Paper-only and `AI_EXECUTION_ENABLED=false` remain unchanged.
 
 Next gate: owner review/approval of the manifest schema/canonicalization proposal and key hierarchy/recovery topology. Any key ceremony or implementation requires separate explicit approval.
+
+
+## AI Strategy Research Gate R0 — owner-approved scope recorded (2026-11-11)
+
+Owner approved a bounded research/evaluation workstream for an independent AI Strategy LONG/SHORT producer, including signals emitted while Strategy Core is WAIT. Approval covers protocol design and documentation only.
+
+- Research contract: `docs/architecture/AI_STRATEGY_RESEARCH_EVALUATION_CONTRACT.md`, commit `cc64603fe944d1f7a7aa63ce70e03d6899000b2a`.
+- Evidence report: `docs/evidence/AI_STRATEGY_RESEARCH_GATE_R0_2026-11-11.md`, commit `70e725a2b0a60a6ed0640525119276bc6c79f339`.
+- R0 records point-in-time data rules, read-only T0 boundary, independent signal semantics, label/horizon contract, chronological train/validation/calibration/untouched-holdout protocol, purge/embargo, baselines, per-direction/Core-WAIT slices, calibration separation, economic-cost metrics and invalidation conditions.
+- Strategy Core RSI + ADX + Smart DCA remains unchanged. AI DCA remains disabled in v1. AI signal generation must not depend on Core position/order/ledger state.
+- R0 is RECORDED. R1 (owner review/freeze of exact dataset bundle, feature inventory, label/horizon, split schedule, execution-cost/fill assumptions and pre-registered thresholds) is PENDING. R2 offline experiment is NOT AUTHORIZED until R1 is frozen and a separate bounded execution approval is granted.
+- No model training, calibration training, backtest, data export, code/test/workflow, DB/schema/migration, T0/T1/T2 runtime, VPS, deployment, exchange connectivity, feature activation, order or destructive data operation occurred. No tests/workflow/artifacts were produced.
+- GREEN-1..5 remain NOT AUTHORIZED; numerical `C_min` and calibration thresholds remain unset. Paper-only and `AI_EXECUTION_ENABLED=false` remain unchanged.
+
+Next: owner review of R1 research choices. Do not execute experiments until those choices are frozen and separately authorized.
