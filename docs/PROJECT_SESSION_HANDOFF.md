@@ -2826,3 +2826,17 @@ Critical limits:
 - Existing CI evidence remains unchanged: source SHA `0a3f73801cc5f1f5225658673b447ec658ac454d`, workflow run `43073542645`, job `130707512877`; OOS validator tests 13/13 PASS. Overall workflow FAILURE from separate AI/Dual Strategy RED suite (12 failures, 6 errors). Artifact ID `13878273616`, SHA-256 `sha256:76407ecdb6311a186967fa8ac6e187cac43fd9cec9a31b1499ca3353d685e28d`.
 - **Disposition: F6 DESIGN APPROVED WITH QUALIFICATIONS; PROVIDER/REAL OOS IMPLEMENTATION NOT AUTHORIZED; OOS NOT VERIFIED; AI ADMISSION FAIL-CLOSED.**
 - Next: preserve this approved baseline. If proceeding, prepare a narrowly scoped implementation proposal and request separate approval before any provider or real OOS work.
+
+
+## OOS lineage + chronological holdout implementation scope prepared (2026-11-12)
+
+- Owner approved preparation of the next bounded implementation scope; this is approval to prepare the proposal only, not approval to modify code.
+- Created `docs/architecture/AI_CALIBRATION_OOS_LINEAGE_CHRONOLOGICAL_HOLDOUT_IMPLEMENTATION_SCOPE.md`; commit `a9668257606be867d46aad958aa38f0332d85dcc`.
+- Scope is divided into WP0 read-only inventory of the exact existing `T0_M15_H1_DATASET_BUNDLE_V1` contract; WP1 freeze of minimum read-only lineage-verification contract; WP2 freeze of deterministic fixed chronological holdout/embargo semantics; WP3 pure offline verifier with test-first deterministic tests; WP4 CI and exact evidence capture.
+- Important sequencing: WP0 must inspect existing bundle contract before any new schema or code is proposed. If sample identity, timestamp semantics, feature windows, label horizons, exclusions, canonical bytes/digest or independent source derivation are missing/ambiguous, stop and request Owner decisions. Do not invent or reinterpret bundle schema.
+- Proposed test coverage includes exact bytes/digest, malformed/noncanonical bundle, sample identity/disjointness, chronological ordering, label horizon and feature-window embargo, missing source coverage, exclusions, bounded parser ceilings, NOT_VERIFIED behavior when source evidence is absent, and deterministic output.
+- Candidate source scope is a pure `pipeline/` verifier + tests + narrowly scoped CI; no change to `market_data/`, T0 API/feeder/storage, `freqai_bridge/context.py`, registry/decision contracts, databases or runtime absent separate approval.
+- No source code, tests, workflow, dependency, dataset/bundle, provider, model training/calibration, real OOS evaluation, key/trust/time, S2, VPS/runtime, T0/T1/T2, DB, ledger/risk/kill-switch or trading path changed. Documentation-only increment; no tests run.
+- Existing evidence unchanged: offline OOS validator tests 13/13 PASS at source SHA `0a3f73801cc5f1f5225658673b447ec658ac454d`, workflow run `43073542645`, job `130707512877`; overall workflow FAILURE due separate AI/Dual Strategy RED suite (12 failures, 6 errors).
+- **Disposition: IMPLEMENTATION SCOPE PREPARED; CODE IMPLEMENTATION NOT AUTHORIZED; OOS NOT VERIFIED; AI ADMISSION FAIL-CLOSED.**
+- Next: Owner reviews WP0–WP4 and approves the exact inventory and contract freeze gates before any code/test/workflow changes.
