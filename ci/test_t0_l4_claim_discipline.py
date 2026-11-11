@@ -32,7 +32,8 @@ def make_crosswalk(statuses=None, aggregate="AGGREGATE BLOCKED"):
             1: "No complete owner-controlled package.",
             7: "No WORM/immutability claim is made.",
         }.get(number, "source")
-        lines.append(f"| **L4M-{number:02d} {label}** | {evidence} | CI | **{status}** |")
+        suffix = "; integrity/custody controls remain mandatory" if number == 9 else ""
+        lines.append(f"| **L4M-{number:02d} {label}** | {evidence} | CI | **{status}**{suffix} |")
     lines.extend([
         "",
         "L4M-07: No WORM/immutability claim is made.",
