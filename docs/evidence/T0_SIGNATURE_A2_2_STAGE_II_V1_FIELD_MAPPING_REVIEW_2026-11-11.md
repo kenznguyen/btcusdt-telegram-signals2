@@ -81,3 +81,15 @@ Neither option is selected by this review. Do not invent field names, object sch
 - Code implementation, tests, dependency installation, CI dispatch, key operations, trust-root/bootstrap, policy/anchor state, VPS/T0/runtime, trading and destructive operations: **NOT AUTHORIZED / NOT PERFORMED**.
 
 No tests were run because this increment is documentation-only.
+
+
+## 6. Owner decision addendum (2026-11-11)
+
+The owner has selected **Option B + E2**:
+- The three provenance/authorization items are to be carried by a separately signed Authorization Evidence Object.
+- The main Signature Statement binds that object through an immutable descriptor.
+- Envelope identity uses a detached descriptor; the descriptor ID is independent of the descriptor bytes and is not self-derived from bytes containing itself.
+
+This resolves the representation-level choice only. It does not define or freeze the Authorization Evidence Object schema, its signature domain/signer trust chain, descriptor schema/ID allocation, or Verification Record schema. Those remain open blockers for full contract freeze.
+
+The exact-byte Ed25519 primitive boundary remains unchanged and stateless. This addendum is documentation-only; no tests were run and no implementation authority is granted.
