@@ -1607,3 +1607,21 @@ Owner approved documentation-only baseline capture on the existing branch `featu
 - G0 reconciliation remains **BLOCKED** pending G0.3 read-only semantic classification of the 76 main-only commits and a separate owner decision.
 
 Next: perform G0.3 read-only classification only. Do not merge, rebase, cherry-pick, reset, force-push, recreate branches, or alter PR #139/T1 PR #1. Preserve paper-only posture and `AI_EXECUTION_ENABLED=false`.
+
+
+## G0.4 — G0.3 classification evidence recorded (2026-11-11)
+
+Owner approved G0.4 documentation-only update on the existing T0/T2 branch `feature/t0-centralized-data-feeder-p1-20261101`.
+
+- G0.3 inspection source HEAD: `b06111235f8830676433b3a1279de65bc09b3c75`.
+- `main` HEAD at inspection: `063f7a2eacd724f965a9723d0ae66cf95418c0fb`.
+- Merge base: `f5b74affb8777953fa66d241784965fbb0e577ba`.
+- Compare orientation: active branch as base, `main` as head. Result: `diverged`, `main) ahead by 76 commits and active branch behind by 3,019 commits; 76 commits total unique to `main`.
+- Classification evidence: `docs/evidence/G0_3_MAIN_ONLY_76_COMMITS_CLASSIFICATION_2026-11-11.md`, commit `261019ec13e94fd80fa0116576c8de770d09f30f`.
+- G0.3 classification: 48 SSH preflight / PR #140 commits; 17 SSH preflight / PR #144 commits; 3 P1.8 traceability-history commits; 2 T0 Signature A1 commits; 2 T0 Signature Stage I commits; 2 governance-documentation commits; 1 T1 review commit; 1 T0/T2 parity-evidence commit.
+- Critical findings: A1 on `main) lacks the same owner-approval record as the active-branch version; SSH preflight script/test contracts differ; Stage I workflow is identical by blob SHA `5fa94939181af5f1f33686c3444bc6f8a0326962`. Do not replace A1 or copy SSH implementation wholesale.
+- G0.3: inventory and classification PASS; integration readiness BLOCKED; source tests NOT RUN (read-only task); exact-HEAD CI NOT VERIFIED; no artifacts.
+- G0.4: documentation-only evidence/handoff update. No source, test, workflow, CI, T0 data, database, VPS/runtime, deployment, training, exchange or trading changes. No workflow was dispatched.
+- Evidence commit: `261019ec13e94fd80fa0116576c8de770d09f30f`. Handoff update commit is recorded in the completion message and is the active branch HEAD after G0.4.
+
+Next: no automatic integration. Any adoption from `main) requires a separately approved, narrowly scoped change with exact source SHA, contract mapping, regression tests and evidence. Do not merge/rebase/cherry-pick/reset/force-push or recreate branches. Do not alter PR #139 or T1 PR #1. Preserve paper-only posture and `AI_EXECUTION_ENABLED=false`.
