@@ -1761,3 +1761,16 @@ Next: if owner wants to proceed beyond planning, first approve a bounded provisi
 - No source/test/fixture/schema/API/registry/adapter/runner/oracle/workflow/scheduler/service/permission/credential/database/storage/VPS/data/model/ledger/runtime changes. No test, compile, dry-run, fault injection, dispatch, inventory, provider/runtime probe, archive, quarantine, cleanup, expiry, compaction, vacuum or deletion. T0 independent; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
 - Next bounded documentary task: freeze field-level decision table and reason-code catalogue for PROTECTED / RETAIN / BLOCKED / REVIEWABLE / COPY_SPECIFIC outcomes. A separate exact-scope approval is required before pure evaluator implementation and in-memory synthetic unit tests. CI, broader TEST-01–07 harness and destructive operations remain separate gates.
 
+
+
+## G0.12 — Lifecycle Disposition Decision Table and Reason-Code Catalogue (2026-11-11)
+
+- Evidence report: `docs/evidence/G0_12_LIFECYCLE_DISPOSITION_DECISION_TABLE_REASON_CODES_2026-11-11.md`, created in commit `13c6c991a15ba1b0387c3b2d8f129558fabfddbe`.
+- Scope: documentation-only decision precedence, field-level semantics, stable reason-code catalogue and mapping to G0.10 SYN-DRY-001–026. No implementation or execution.
+- Frozen precedence: (1) verified protected class/active binding preservation hold → PROTECTED; (2) absent verified protection but unknown/stale/contradictory required facts → BLOCKED_UNKNOWN; (3) known open dependency/operational obligation → RETAIN_UNTIL_OBLIGATIONS_CLOSE; (4) exact copy with complete copy-specific evidence → COPY_SPECIFIC_REVIEW; (5) exact object in one of four ratified noncanonical groups with every applicable predicate proven → REVIEWABLE_NONCANONICAL; otherwise BLOCKED_UNKNOWN.
+- Clarifies protected-vs-unknown identity, binding hold vs ordinary obligation, unknown registry vs known active dependency, exact-copy scope and reviewability conditions. No TTL, freshness, grace, retention, alert or pressure threshold invented.
+- Adds stable PROT_*, UNK_*, RET_*, COPY_* and REV_* reason codes. Informational storage-pressure/ACK/heartbeat codes cannot satisfy eligibility predicates.
+- G0.12 verdict: decision table and reason codes PASS at documentary level; physical schema/canonicalization NOT ESTABLISHED; implementation paths/fixtures NOT APPROVED; evaluator NOT IMPLEMENTED; tests NOT RUN; Actions NOT DISPATCHED; no run/artifact; TEST-01–07 technical closure NOT ESTABLISHED; 0/87 vectors executed, 87/87 NOT RUN; TEST-08 NOT GRANTED.
+- No source/test/fixture/schema/API/registry/adapter/runner/oracle/workflow/scheduler/permission/credential/database/storage/VPS/data/model/ledger/runtime changes. No compile, tests, dry-run, dispatch, inventory, provider/runtime probe, archive, quarantine, cleanup, expiry, compaction, vacuum or deletion. T0 remains independent; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
+- Next gate: separate bounded approval for pure evaluator implementation and in-memory synthetic unit tests, with exact code/test paths and command. CI dispatch, broader TEST-01–07 harness and destructive operations remain separate approvals.
+
