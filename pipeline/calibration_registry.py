@@ -460,9 +460,11 @@ def calibrate_verified_prediction(
     }[manifest["forecast_horizon_unit"]]
 
     def epoch_ms(value):
-        return int(datetime.strptime(value, "%Y-%m-%dT%H:%M:%SZ").replace(
+        parsed = datetime.strptime(value, "%Y-%m-%dT%H:%M:%SZ").replace(
             tzinfo=timezone.utc
-        ).timestamp() * 1000)
+        )
+        delta = parsed - datetime(1970, 1, 1, tzinfo=timezone.utc)
+        return delta.days * 86_400_000 + delta.seconds * 1_000 + delta.microseconds // 1_000
 
     confidence = apply_calibration_transform(artifact_bytes, raw_direction_score)
     return {
