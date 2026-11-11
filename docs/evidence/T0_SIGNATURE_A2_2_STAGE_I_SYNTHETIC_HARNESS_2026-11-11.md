@@ -137,3 +137,18 @@ No production cryptography, real keys, trust-root enrollment, Path A/B activatio
 - Review record: `docs/evidence/T0_SIGNATURE_A2_2_STAGE_I_POST_AMENDMENT_SELF_REVIEW_2026-11-11.md`.
 - Review blob: `e44273248ef7ee68898a90e1fdfb1cd6a0a6c6dc`; commit: `58a56660e50ff618d15bbea20665ce556b4378f1`.
 - Result: **SELF-REVIEW PASS WITH VERIFICATION BLOCKER**. No source-level correctness/security defect identified in the reviewed delta; exact repository tests and compile check remain NOT RUN. This is not independent review and does not establish G3.
+
+
+
+## Verification addendum — successful exact-branch CI run (2026-11-11)
+
+This addendum supersedes the earlier NOT RUN / NOT VERIFIED execution statements above for the exact source revision identified below. Earlier entries are retained as historical snapshots and are not rewritten.
+
+- Workflow: [run 42955676103](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42955676103), manual `workflow_dispatch`, branch `feature/t0-centralized-data-feeder-p1-20261101`, run conclusion SUCCESS.
+- Exact checkout/source SHA: `cadcfcf66503c0a0750adcfc6646d6fa2944f03e`.
+- Job `130310067517`, `Stage I isolated contract tests`: SUCCESS. CPython `3.12.16`; compile PASS; repository suite 34/34 PASS (`Ran 34 tests in 0.085s / OK)); parser accepted the plural timed unittest summary; artifact upload PASS.
+- Preflight remained synthetic-only: `AI_EXECUTION_ENABLED=false`; no database/exchange credentials; runtime integration not authorized.
+- Artifact ID `13826832203`, name `t0-signature-a2-2-stage-i-cadcfcf66503c0a0750adcfc6646d6fa2944f03e`, 1,810 bytes, expires `2026-11-18T03:53:32Z`; GitHub digest and independently computed ZIP SHA-256 both equal `fbd311592772e3da4dda726d0a25fb768561df6ebad0667a7d607247983ed845`. ZIP payload was downloaded and checked; its five evidence files and embedded source SHA agree with the run.
+- **Updated disposition: STAGE I SYNTHETIC CI/TEST GATE = PASS** for this exact checkout SHA and CPython 3.12.16. Compile/test/parser/artifact verification blocker is resolved.
+- This PASS is not production cryptographic assurance, not independent review, and not G3. Production keys/signatures, root bootstrap, durable Trust Policy/Monotonic Anchor state, custody publication, VPS/T0 runtime, canonical data, trading and destructive operations remain untested and unauthorized. `AI_EXECUTION_ENABLED=false` remains.
+- Durable run/commit record is in `docs/PROJECT_SESSION_HANDOFF.md`; evidence-record update commit is recorded there after this append-only update.
