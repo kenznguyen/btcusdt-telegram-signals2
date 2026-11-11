@@ -1444,3 +1444,12 @@ Commits: calibration contract `65b22d179f037a6f595467bccea2425897189c9c`; instru
 Current blockers: G0-01/02/03 calibration provider/provenance/policy; G0-05 authoritative instrument provider/filter/freshness policy; G0-07 reservation snapshot choice. G0-04 reuse and G0-06 AI DCA disabled v1 remain approved. GREEN-1..5 NOT AUTHORIZED.
 
 No production code/test edits, tests, workflow, network/exchange calls, schema/DB/migration, calibration/model, T0/T1/T2 runtime, VPS, deployment or live orders occurred. Paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
+
+
+## Latest GREEN-0 verification — calibration trust and Binance filter semantics (2026-11-11)
+
+- Calibration architecture reviewed. Recommended low-cost candidate for owner review: repository-backed append-only manifest/artifact registry, offline Ed25519 signing, pinned public key in verifier configuration, and explicit promotion/revocation. Keep private signing key outside repository, CI, VPS and runtime. Separate digest integrity, signer authorization and statistical/OOS validity. Calibration artifact holds score-to-probability transform/evaluation evidence; each prediction's calibrated confidence must reference exact artifact digest/version. No provider or key lifecycle selected.
+- Official Binance USDⓈ-M documentation reviewed. Corrected instrument contract: zero in PRICE_FILTER fields disables the corresponding rule; LOT_SIZE arithmetic is `(quantity - minQty) % stepSize == 0`; MARKET_LOT_SIZE is market-order specific; PERCENT_PRICE requires fresh mark-price data; USDⓈ-M MIN_NOTIONAL schema is not to be conflated with Spot NOTIONAL; MAX_NUM_ORDERS/MAX_NUM_ALGO_ORDERS are account/open-order constraints.
+- No live `/fapi/v1/exchangeInfo` request, no current BTCUSDT filter values, no adapter and no exchange connection. Documentation semantics VERIFIED; endpoint response/provider runtime NOT VERIFIED.
+- G0-01/02/03 remain BLOCKED on registry/key/schema/OOS policy and numeric thresholds. G0-05 remains BLOCKED on owner source choice, live endpoint/response verification, dynamic mark-price dependency and freshness policy. G0-07 deferred. G0-04 reuse and G0-06 AI DCA disabled v1 remain approved.
+- No production code/tests/workflow, schema/database/migration, calibration/model, T0/T1/T2 runtime, VPS, deployment or live orders changed. GREEN-1..5 NOT AUTHORIZED; paper-only and `AI_EXECUTION_ENABLED=false` remain.
