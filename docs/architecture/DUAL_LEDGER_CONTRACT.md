@@ -160,3 +160,40 @@ one-time immutable account cutover record. Both are additive and tested only on
 temporary SQLite in CI. No persistent account DB migration, backtest, merge,
 deployment, exchange connectivity or live execution is implied. The user-approved
 scope remains PAPER-only and ai_execution_enabled=false.
+
+
+
+## 11. Current implementation status reconciliation — 2026-11-11 (append-only)
+
+This section is a current-status addendum. It does not rewrite or erase the
+historical design-time authorization statements, RED-1 notes, or prior test
+evidence above.
+
+- Owner approval was subsequently granted for the bounded DS-01 / DS-02
+  PAPER-only API and strategy-scope implementation increment. That approval
+  supersedes the earlier blanket "implementation not started / not authorized"
+  statement only for that bounded increment.
+- Current exact implementation/test source SHA:
+  `8d9eee6cd503237f8b8a398fcaf1e055dfa9d644`.
+- Current exact CI: run
+  [42971136555](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42971136555),
+  compile and focused contracts PASS, full `paper_execution` regression
+  **300 tests PASS**; artifact ID `13833202840`, SHA-256
+  `0eb0bbb6ad5bfbca27c9665e06548a11dba37e2d25d4939ea891301a6054f506`.
+- The implementation increment covers strategy-scoped API submission and
+  cancellation, Core strategy-scoped snapshot selection, account-wide mark /
+  equity reconciliation, and associated isolated regression coverage.
+- This result is **PASS — DS-01 / DS-02 source and isolated CI scope only**.
+  It is not a claim that every acceptance gate in Section 8 or every schema
+  migration item in the broader Dual Ledger contract is complete.
+- The old statement that RED 1 is the only coexistence test remains historical;
+  current tests and their exact scope are documented in the evidence report.
+- Persistent account database migration, account cutover, funding provenance
+  verification, runtime activation, deployment, backtests and live execution
+  remain NOT AUTHORIZED / NOT PERFORMED / NOT VERIFIED. Risk admission remains
+  fail-closed until separately approved account cutover evidence exists.
+- DS-03 Core sizing/leverage remains BLOCKED. DS-04 documentation reconciliation
+  remains tracked separately until the evidence report and handoff are updated.
+
+No prior migration checksum, schema version, design decision, or historical
+evidence is changed by this addendum.
