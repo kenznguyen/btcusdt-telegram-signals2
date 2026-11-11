@@ -14,7 +14,7 @@ Updated: 2026-11-11 (Asia/Ho_Chi_Minh)
 - Repository: `kenznguyen/btcusdt-telegram-signals2`.
 - Active branch: `feature/t0-centralized-data-feeder-p1-20261101`.
 - Default branch: `main`. Do not switch branches or create a parallel PR without a task-specific reason and approval.
-- Latest repository HEAD before this handoff update: `3384e751d6bf4af79d443f6d314a33f4a538af60` (A2.2 Stage I synthetic harness evidence recorded; see current A2.2 workstream below).
+- Latest repository HEAD before this handoff update: `d5695ed7ac752d8e5570354a1389ef9c8403033c` (A2.2 Stage I contract ambiguity proposal recorded; see current A2.2 workstream below).
 - Full previous handoff preserved verbatim in `docs/archive/PROJECT_SESSION_HANDOFF_HISTORY_2026-11-10.md`; archive commit: `2fcad94aef8b15002cdba58aafe62ad208dc818b`.
 - PR #139 is OPEN / DRAFT / NOT MERGED. It concerns SSH passphrase handling and targets this active branch. Do not merge or alter it as part of unrelated work.
 
@@ -739,3 +739,11 @@ Reconcile the four-artifact Actions allowlist with all eligible source artifacts
 **Next permitted step**
 - Prepare an exact contract-only correction proposal that fixes the domain-separator byte strings and clarifies the T0-JCS-1 numeric subset. Obtain explicit owner approval of that amendment before changing the digest helpers or claiming full Stage I acceptance.
 - After the contract correction, update the exact tests and helpers, rerun local focused tests, then request separate explicit authorization before dispatching the manual GitHub Actions workflow. Do not dispatch while this blocker remains.
+
+
+### A2.2 Stage I — follow-up proposal (2026-11-11)
+
+- Contract ambiguity proposal: `docs/evidence/T0_SIGNATURE_A2_2_STAGE_I_CONTRACT_AMBIGUITY_PROPOSAL_2026-11-11.md`.
+- Proposal blob: `37bff74053ddc1034e09f40d9cc3bf558588e897`; commit: `d5695ed7ac752d8e5570354a1389ef9c8403033c`.
+- Proposal recommends exact NUL-terminated domain byte vectors for Evidence Object, Trust Policy body, Monotonic Anchor object and Signature Envelope object, plus a restricted T0-JCS-1 numeric grammar.
+- Proposal is **NOT OWNER-APPROVED** and does not amend A2.2. The three digest helpers remain fail-closed. Await explicit owner decision before changing the governing contract or implementing the ambiguous helpers.
