@@ -133,3 +133,15 @@ No VPS/SSH, T0 API/SQLite, canonical data/runtime, signing/key operation, workfl
 - Other workflow artifacts: lineage ID `13885468780`, digest `dbaed9f7b729871444d3ef8663817f8262c9c22e228b85a2c16bd837522a36c4`; repository inventory ID `13885328510`, digest `6154d6be8c1039b1b5b956916beb533a2a3083a76f228d91331439b2fe5dd641`; artifact manifest ID `13886396112`, digest `d101885d228a04429dab44805f58f561bff7c52c26428e451c90796c90ccfbb4`.
 - Scope limitation: this is a deterministic audit of the current control-to-source crosswalk only, not a repository-wide scan of every report/handoff, not owner custody evidence, not a signed checkpoint/anchor verification, not owner-run offline verification and not final L4 acceptance.
 - Disposition: **L4M-08 automated crosswalk subcheck PASS; L4M-08 overall remains DOCUMENTARY PASS ONLY; L4M-01–07 and L4M-10 are not promoted; aggregate L4-Minimum remains BLOCKED / NOT VERIFIED.**
+
+
+## L4M-06 / L4M-07 — Synthetic trust lifecycle and history CI verification (2026-11-12)
+
+- Exact tested source SHA: `c24159128a6b227e2407997e16b416384a820d64`.
+- Workflow run [43085631073](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43085631073): all five jobs SUCCESS, including the dedicated synthetic trust/history job and the existing lineage, artifact-manifest, repository-inventory and claim-discipline jobs.
+- L4M-06 synthetic trust lifecycle: **19/19 tests PASS**. Coverage includes snapshot digest/sequence/predecessor validation, rotation detection, stale/future timestamps, offline revocation limits and retention-manifest integrity.
+- L4M-07 synthetic history: **11/11 tests PASS**. Coverage includes event/checkpoint crash recovery, persisted-byte corruption detection, idempotent checkpoint ACK, append-chain predecessor/sequence checks and archive-job source ancestry guard.
+- Synthetic evidence artifact ID `13885878853`, ZIP SHA-256 `08db5e871df1bf0dd452b80a12a43156169f2324910758d098535a223b9b2fe1`; downloaded exact ZIP and independently re-hashed, matching GitHub's digest. Embedded source marker matches `c24159128a6b227e2407997e16b416384a820d64`; both test logs and PASS markers were read back.
+- L4M-08 remained green at the same source SHA: claim-discipline artifact ID `13886576408`, GitHub ZIP digest `eb85325845c275baa2e004da17d587562dba2fb225edd5aacc395705da82bafe`; focused crosswalk audit and 11/11 tests PASS.
+- Scope limitation: these are synthetic model/CI subchecks. They do not establish actual owner key custody, current trust-root authorization, a signed canonical T0 checkpoint, authenticated latest-head anchor, real-world revocation truth, WORM/absolute immutability or owner-run offline verification.
+- Disposition: **L4M-06 synthetic trust lifecycle subcheck PASS; L4M-07 synthetic history subcheck PASS. Both overall controls remain PARTIAL — SYNTHETIC ONLY. L4M-08 remains DOCUMENTARY PASS ONLY with automated crosswalk subcheck PASS. L4M-01–05 and L4M-10 are not promoted; aggregate L4-Minimum remains BLOCKED / NOT VERIFIED.**
