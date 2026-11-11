@@ -1,0 +1,160 @@
+name: G0.41 S1 Single In-Memory Measurement
+
+on:
+  push:
+    branches:
+      - feature/t0-centralized-data-feeder-p1-20261101
+    paths:
+      - .github/workflows/g041-s1-single-measurement.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: g041-s1-single-measurement-one-shot
+  cancel-in-progress: false
+
+jobs:
+  single-measurement:
+    if: ${{ github.event_name == 'push' && contains(github.event.head_commit.added, '.github/workflows/g041-s1-single-measurement.yml') && github.run_attempt == 1 }}
+    name: One approved S1 in-memory measurement
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - name: Checkout exact approved event source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Assert exact source, branch and runtime before measurement
+        id: identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$GITHUB_REF" = "refs/heads/feature/t0-centralized-data-feeder-p1-20261101"
+          test "$(python --version 2>&1)" = "Python 3.14.4"
+          test "$(git rev-parse HEAD:tools/s1_measurement_harness.py)" = "e8db71c11e0503ea6d9a2480d75470185c4d5100"
+          test "$(git rev-parse HEAD:tools/s1_measurement_runner.py)" = "23a35aab7f7aeacd8a3f63d630a875fe76b1ff6a"
+          test "$(git rev-parse HEAD:tools/test_s1_measurement_runner.py)" = "d06a5b533af14378ed284051e5b057cf57377876"
+          {
+            echo "checkout_sha=$(git rev-parse HEAD)"
+            echo "harness_blob=$(git rev-parse HEAD:tools/s1_measurement_harness.py)"
+            echo "runner_blob=$(git rev-parse HEAD:tools/s1_measurement_runner.py)"
+            echo "tests_blob=$(git rev-parse HEAD:tools/test_s1_measurement_runner.py)"
+            echo "workflow_blob=$(git rev-parse HEAD:.github/workflows/g041-s1-single-measurement.yml)"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Invoke the frozen measurement runner exactly once
+        shell: bash
+        env:
+          G0_SOURCE_COMMIT: ${{ steps.identity.outputs.checkout_sha }}
+          G0_HARNESS_GIT_BLOB: ${{ steps.identity.outputs.harness_blob }}
+          G0_RUNNER_GIT_BLOB: ${{ steps.identity.outputs.runner_blob }}
+          G0_TESTS_GIT_BLOB: ${{ steps.identity.outputs.tests_blob }}
+          G0_WORKFLOW_GIT_BLOB: ${{ steps.identity.outputs.workflow_blob }}
+          G0_RUN_ID: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib
+          import json
+          import os
+          import platform
+          import sys
+          from pathlib import Path
+
+          from tools.s1_measurement_runner import prepare_preflight
+
+          if sys.version_info[:3] != (3, 14, 4):
+              raise SystemExit("runtime version changed after preflight")
+
+          harness_bytes = Path("tools/s1_measurement_harness.py").read_bytes()
+          runner_bytes = Path("tools/s1_measurement_runner.py").read_bytes()
+          tests_bytes = Path("tools/test_s1_measurement_runner.py").read_bytes()
+
+          harness_sha256 = hashlib.sha256(harness_bytes).hexdigest()
+          runner_sha256 = hashlib.sha256(runner_bytes).hexdigest()
+          tests_sha256 = hashlib.sha256(tests_bytes).hexdigest()
+          source_commit = os.environ["G0_SOURCE_COMMIT"]
+
+          # This is the single and only call to prepare_preflight in this workflow.
+          result = prepare_preflight(
+              harness_source_bytes=harness_bytes,
+              frozen_harness_sha256=harness_sha256,
+              runner_source_bytes=runner_bytes,
+              frozen_runner_sha256=runner_sha256,
+              source_commit=source_commit,
+              expected_source_commit=source_commit,
+              command="python -",
+          )
+
+          expected_assertions = {f"A-{index:02d}" for index in range(1, 14)}
+          if set(result["assertions"]) != expected_assertions:
+              raise SystemExit("A-01..A-13 assertion inventory mismatch")
+          if any(value is not True for value in result["assertions"].values()):
+              raise SystemExit("one or more A-01..A-13 assertions failed")
+          if result["fixture_count"] != 22:
+              raise SystemExit("fixture count mismatch")
+          if result["report_readback_valid"] is not True:
+              raise SystemExit("report readback failed")
+          if result["measurement_pass_1"] != result["measurement_pass_2"]:
+              raise SystemExit("measurement passes differ")
+          if result["execution_trace"] != {
+              "payload_persistence_events": [],
+              "external_access_events": [],
+          }:
+              raise SystemExit("execution trace is not empty")
+
+          report = {
+              "report_schema": "G0.41-S1-MEASUREMENT-REPORT-V1",
+              "corpus_revision": result["corpus_revision"],
+              "synthetic_only": True,
+              "d11_numeric_limits_selected": False,
+              "provenance": {
+                  "source_commit": source_commit,
+                  "command": "python -",
+                  "python_version": sys.version,
+                  "platform": platform.platform(),
+                  "measurement_definition_revision": "S1-MEASUREMENTS-V1",
+                  "git_blobs": {
+                      "tools/s1_measurement_harness.py": os.environ["G0_HARNESS_GIT_BLOB"],
+                      "tools/s1_measurement_runner.py": os.environ["G0_RUNNER_GIT_BLOB"],
+                      "tools/test_s1_measurement_runner.py": os.environ["G0_TESTS_GIT_BLOB"],
+                      ".github/workflows/g041-s1-single-measurement.yml": os.environ["G0_WORKFLOW_GIT_BLOB"],
+                  },
+                  "source_sha256": {
+                      "tools/s1_measurement_harness.py": harness_sha256,
+                      "tools/s1_measurement_runner.py": runner_sha256,
+                      "tools/test_s1_measurement_runner.py": tests_sha256,
+                  },
+                  "workflow_run_id": os.environ["G0_RUN_ID"],
+                  "workflow_job": "single-measurement",
+              },
+              "fixture_count": result["fixture_count"],
+              "case_counts": result["case_counts"],
+              "parser_input_corpus_sha256": result["parser_input_digest"],
+              "measurement_pass_1": result["measurement_pass_1"],
+              "measurement_pass_2": result["measurement_pass_2"],
+              "assertions": result["assertions"],
+              "report_readback_valid": result["report_readback_valid"],
+              "execution_trace": result["execution_trace"],
+          }
+
+          Path("g041-s1-measurement-report.json").write_text(
+              json.dumps(report, sort_keys=True, separators=(",", ":")) + "\\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Upload the single bounded JSON report
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: g041-s1-single-measurement-report
+          path: g041-s1-measurement-report.json
+          if-no-files-found: error
+          retention-days: 7
