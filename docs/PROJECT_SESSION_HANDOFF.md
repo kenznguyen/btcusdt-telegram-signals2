@@ -1923,3 +1923,23 @@ Next: if owner wants to proceed beyond planning, first approve a bounded provisi
 - Workflow has `contents: read`, no configured secrets, no package installation and no DB/provider/exchange calls. No full CI or other workflow was dispatched by this step.
 - No schema/registry/API/adapter/runner/oracle/TEST-01–07/retention/runtime integration, VPS access, data/model/ledger mutation, archive, quarantine, cleanup, expiry, compaction, vacuum or deletion.
 - Next gate: separately bounded trust-boundary review for caller-asserted metadata/evidence refs and required authenticity/provenance controls before any registry or lifecycle-harness integration. Do not infer authority for schema/registry changes, TEST-01–07, runtime inventory or destructive execution from this PASS. T0 independent/protected; CORE_LEDGER and AI_LEDGER separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
+
+
+## G0.21 — Lifecycle Evaluator Trust-Boundary Review (2026-11-11)
+
+- Owner approved a documentation-only security/trust-boundary review of the pure lifecycle evaluator before registry or lifecycle-harness integration.
+- Review baseline / starting HEAD: `aa83cea155b4543ed8779583a212fb0b68f3f206`.
+- Exact evaluator source reviewed: `pipeline/lifecycle_disposition.py`, blob `cf22385a718c6b5b08cd50c2a45578b4180c2c4d`.
+- Exact tests reviewed as verification context: `pipeline/test_lifecycle_disposition.py`, blob `d54d0523d6388df448cbec7c2fb9e2e092f72920`.
+- G0.20 CI evidence remains run `43036222952`, job `130575627133`, 32/32 focused tests PASS; it proves the pinned source executed, not authenticity of runtime evidence/metadata.
+- Report: `docs/evidence/G0_21_LIFECYCLE_EVALUATOR_TRUST_BOUNDARY_REVIEW_2026-11-11.md`; report creation commit `1c06e8e58dcf3912488882fc31d66b182bac0afc`.
+- Main findings: caller-controlled identity/provenance booleans; digest syntax without payload recomputation/signature verification; caller-asserted hold/dependency/copy/lineage completeness; unverified sensitivity evidence and inherited labels; unauthenticated steward/policy claims; caller-asserted rebuildability/non-material-use; no downstream authorization enforcement; incomplete supported class vocabulary; generic Mapping input without a canonical authenticated envelope.
+- Evaluator remains a pure in-memory classifier and has no I/O/executor capability. Positive dispositions are not evidence verification, owner authorization or deletion approval.
+- Recommended design-only boundary: untrusted claimants/source adapters → authenticated evidence verifier → bounded/versioned verified-facts envelope → pure evaluator → separate exact-object owner authorization → separately approved guarded executor.
+- No signature algorithm, key hierarchy/trust root, canonical encoding, freshness window, revocation protocol, physical schema/registry or executor contract was selected.
+- G0.21 verdict: **CONDITIONAL PASS — trust gaps identified and target boundary specified; trust/authenticity NOT ESTABLISHED**.
+- Caller/issuer authentication, payload digest recomputation, signature verification, exact-version provenance, inventory completeness, sensitivity inheritance authentication, steward authority, rebuildability/non-material-use proof and downstream authorization remain NOT ESTABLISHED.
+- TEST-01–07 remain 0/87; runtime/VPS inventory NOT PERFORMED / NOT VERIFIED; destructive authority NOT GRANTED.
+- Documentation-only: no source/test/fixture/schema/API/registry/adapter/runner/oracle/workflow/scheduler/permission/credential/database/storage/market-data/model/ledger/VPS/runtime changes; no tests or workflow dispatch; no inventory/secret scan/network/provider/database/VPS access; no archive/quarantine/cleanup/expiry/compaction/vacuum/deletion.
+- Next gate proposed: G0.22 — Verified-facts Envelope and Verifier Contract. This requires separate approval before implementation. G0.23 synthetic verifier tests, G0.24 evaluator adapter, TEST-01–07, runtime inventory and any destructive executor remain separate gates.
+- T0 remains independent/protected; CORE_LEDGER and AI_LEDGER remain separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
