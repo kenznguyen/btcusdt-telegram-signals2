@@ -1453,3 +1453,18 @@ No production code/test edits, tests, workflow, network/exchange calls, schema/D
 - No live `/fapi/v1/exchangeInfo` request, no current BTCUSDT filter values, no adapter and no exchange connection. Documentation semantics VERIFIED; endpoint response/provider runtime NOT VERIFIED.
 - G0-01/02/03 remain BLOCKED on registry/key/schema/OOS policy and numeric thresholds. G0-05 remains BLOCKED on owner source choice, live endpoint/response verification, dynamic mark-price dependency and freshness policy. G0-07 deferred. G0-04 reuse and G0-06 AI DCA disabled v1 remain approved.
 - No production code/tests/workflow, schema/database/migration, calibration/model, T0/T1/T2 runtime, VPS, deployment or live orders changed. GREEN-1..5 NOT AUTHORIZED; paper-only and `AI_EXECUTION_ENABLED=false` remain.
+
+
+## Latest owner decision — calibration registry architecture (2026-11-11)
+
+Owner approved **GitHub append-only Registry + offline Ed25519 signing** as the selected architecture direction for calibration artifact trust.
+
+- Registry records: immutable versioned manifests, calibration transform artifacts and OOS evaluation evidence.
+- Signature: offline Ed25519 signing of the canonical manifest digest.
+- Verification: future read-only consumers pin and verify the trusted public key.
+- Governance: append-only approval/promotion, revocation, supersession and key lifecycle evidence.
+- Key isolation: private signing key remains offline; never place it in repository, GitHub Actions/CI, VPS or runtime.
+
+**Approval boundary:** architecture direction only. Registry path/schema, canonical serialization, key ceremony/rotation/revocation, verifier/CI/provider implementation, calibration method/OOS protocol, provenance compatibility and numeric thresholds are not yet frozen or authorized for implementation. No key or registry was created. G0-01/02/03 remain BLOCKED; GREEN-1..5 NOT AUTHORIZED.
+
+No source code/tests/workflow, network/exchange, database, T0/T1/T2 runtime, VPS, deployment or trading activity occurred. Paper-only and `AI_EXECUTION_ENABLED=false` remain.
