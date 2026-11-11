@@ -36,6 +36,9 @@ class AIStrategyContractRedTest(unittest.TestCase):
             "calibratedAtMs": self.fixture.prediction["availableAtMs"] - 1,
             "labelDefinition": "direction_correct_at_horizon",
             "forecastHorizonMs": 900000,
+            "modelVersion": prediction["modelVersion"],
+            "strategyVersion": prediction["strategyVersion"],
+            "trainingDatasetVersion": prediction["trainingDatasetVersion"],
         }
         prediction["calibration"].update(changes)
         return prediction
@@ -52,6 +55,8 @@ class AIStrategyContractRedTest(unittest.TestCase):
                 "leverageMappingVersion": "linear-confidence-v1",
                 "minimumLeverage": "1",
                 "maximumLeverage": "3",
+                "labelDefinition": "direction_correct_at_horizon",
+                "forecastHorizonMs": 900000,
             },
             "account_risk": {
                 "riskReady": True,
@@ -137,7 +142,8 @@ class AIStrategyContractRedTest(unittest.TestCase):
             "calibrationVersion", "calibrationMethod", "calibrationArtifactHash",
             "calibrationDatasetVersion", "calibrationSampleCount",
             "calibrationStartMs", "calibrationEndMs", "calibratedAtMs",
-            "labelDefinition", "forecastHorizonMs",
+            "labelDefinition", "forecastHorizonMs", "modelVersion",
+            "strategyVersion", "trainingDatasetVersion",
         ):
             prediction = self.calibrated_prediction()
             prediction["calibration"].pop(field)
@@ -180,6 +186,32 @@ class AIStrategyContractRedTest(unittest.TestCase):
                 self.assertEqual(result["action"], "BUY", result)
                 self.assertIsNotNone(result["intent"], result)
                 self.assertEqual(result["intent"]["leverage"], expected_leverage)
+
+    def test_calibration_provenance_must_match_prediction_model_and_training_dataset(self):
+        cases = (
+            {"modelVersion": "other-model"},
+            {"strategyVersion": "other-strategy"},
+            {"trainingDatasetVersion": "sha256:" + "d" * 64},
+            {"calibrationDatasetVersion": "sha256:" + "a" * 64},
+            {"labelDefinition": "other-label"},
+            {"forecastHorizonMs": 1800000},
+        )
+        for changes in cases:
+            prediction = self.calibrated_prediction(**changes)
+            with self.subTest(changes=changes):
+                self.assert_contract_wait(self.evaluate(prediction=prediction))
+
+    def test_calibration_label_horizon_must_match_explicit_policy(self):
+        for policy_changes in (
+            {"labelDefinition": "other-label"},
+            {"forecastHorizonMs": 1800000},
+        ):
+            context = self.admission_context(ai_policy=policy_changes)
+            with self.subTest(policy=policy_changes):
+                self.assert_contract_wait(self.evaluate(
+                    prediction=self.calibrated_prediction("0.8"),
+                    admission_context=context,
+                ))
 
     def test_malformed_calibration_artifact_hash_fails_closed(self):
         prediction = self.calibrated_prediction(
