@@ -147,6 +147,31 @@ A2.2 §3.1 is superseded as follows.
 4. A missing, unresolved, mismatched, invalidly signed, out-of-scope or untrusted AEO package MUST fail closed. The main checkpoint signature MUST NOT be considered trusted/authorized merely because its own Ed25519 signature is mathematically valid.
 5. Owner authorization fields remain separate and follow A2.2 §2.2. The AEO is signer provenance/authority evidence, not an Owner Authorization object.
 
+
+
+## 5.1 Profile and algorithm amendments — A2.2 §15
+
+A2.2 §15 is supplemented by the following exact profile rules. The existing checkpoint profile identifier remains unchanged; its algorithm is now fixed by the owner's Stage II Ed25519 decision.
+
+**Checkpoint issuer profile**
+- `signature_profile_id`: `T0-CHECKPOINT-ISSUER-SIGNATURE-PROFILE-V2`.
+- `signature_profile_version`: exact integer `2`.
+- `signature_algorithm_id`: exact string `Ed25519` (RFC 8032 PureEdDSA).
+- Public-key encoding: strict DER SubjectPublicKeyInfo, Ed25519 AlgorithmIdentifier parameters absent, 32-byte subjectPublicKey.
+- Signature encoding: exactly 64 raw octets.
+- Ed25519ph and Ed25519ctx are forbidden.
+
+**Authorization Evidence issuer profile**
+- `signature_profile_id`: `T0-AUTHORIZATION-EVIDENCE-ISSUER-SIGNATURE-PROFILE-V1`.
+- `signature_profile_version`: exact integer `1`.
+- `signature_algorithm_id`: exact string `Ed25519` (RFC 8032 PureEdDSA).
+- Public-key and signature encodings are identical to the checkpoint profile above.
+- Purpose MUST be `T0_AUTHORIZATION_EVIDENCE_ISSUER_ATTESTATION`; signer role MUST be `AUTHORIZATION_EVIDENCE_ISSUER`.
+
+Trust Policy MUST authorize each profile ID/version, algorithm, role, purpose, audience and scope explicitly. No profile may be inferred from the other. Both profiles use the same stateless Ed25519 verification primitive, but their signed statements and domain separators remain distinct. The FIPS-validated-module requirement remains NOT mandatory and MUST NOT be represented as FIPS certification or approved-mode operation.
+
+This section records the owner's already-approved Ed25519 algorithm/key/signature choices and defines the AEO purpose-specific profile proposal. The AEO profile's exact blob remains subject to independent review and owner freeze.
+
 ## 6. Detached envelope descriptor — E2
 
 A2.2 §3.3 is superseded in full.
