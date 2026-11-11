@@ -149,6 +149,19 @@ The AEO body descriptor is:
 
 The AEO package descriptor embedded in the main checkpoint Signature Statement contains exactly two nested descriptors: the AEO body descriptor above and the detached descriptor of the AEO signature envelope. Both nested descriptors MUST be checked independently and MUST refer to the same AEO object ID, purpose and audience.
 
+
+### 4.4 AEO domain known-answer vector (contract test vector)
+
+For the exact AEO statement domain and payload below:
+- domain hex: `54302d415554484f52495a4154494f4e2d45564944454e43452d5349474e41545552452d53544154454d454e542d563100`;
+- domain byte length: `49`;
+- payload ASCII: `A2.3-AEO-domain-KAT-v1`;
+- payload byte length: `22`;
+- U64BE length: `0000000000000016`;
+- expected SHA-256 of domain || U64BE(length) || payload: `64172accdaf1f2add08b201b25c8ea26b52e2c90e68674126bbef465f4e7acde`.
+
+This fixed byte/digest vector was independently calculated from the literal domain bytes, payload bytes and standard SHA-256 construction. It is a primitive known-answer vector only; it does not replace an independent implementation/vector conformance review or a valid Ed25519 signature test.
+
 ### 4.2 Signature profile
 
 - AEO issuer profile ID: `T0-AUTHORIZATION-EVIDENCE-ISSUER-SIGNATURE-PROFILE-V1`.
@@ -286,7 +299,7 @@ Every negative fixture MUST start from an independently verified clean synthetic
 ## 9. Resource ceilings and parsing limits — proposed bounded profile
 
 The following ceilings are proposed for Stage II offline verification and require explicit contract freeze:
-- exact signature preimage: maximum 1,048,576 octets (1 MiB);
+- canonical signature statement bytes: maximum 1,048,576 octets (1 MiB); maximum fully prefixed signature preimage: 1,048,640 octets (1 MiB + 64 octets), covering the longest approved domain separator plus 8-byte length prefix;
 - SPKI DER input: maximum 4,096 octets, with accepted Ed25519 SPKI expected to be the single canonical DER encoding;
 - signature: exactly 64 octets;
 - AEO canonical body: maximum 1,048,576 octets;
