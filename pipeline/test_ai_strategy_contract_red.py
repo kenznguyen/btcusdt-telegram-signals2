@@ -104,8 +104,6 @@ class AIStrategyContractRedTest(unittest.TestCase):
     def test_ai_ledger_rejects_leverage_outside_approved_one_to_three_range(self):
         from paper_execution.ledger import PaperLedger
 
-        self.fixture.setUp()
-        self.activate_ai_ledger_schema = None
         for leverage in ("0.99", "3.01", "13"):
             with self.subTest(leverage=leverage):
                 with tempfile.TemporaryDirectory() as directory:
