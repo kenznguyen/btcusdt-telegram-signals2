@@ -1648,7 +1648,7 @@ Next: use ordinary non-SSH T0 validation on the exact active branch SHA if workf
 
 ## G0.6 — T0/T2 deployment parity reconciliation (2026-11-11)
 
-- Evidence report: `docs/evidence/G0_6_T0_T2_DEPLOYMENT_PARITY_RECONCILIATION_2026-11-11.md`.
+- Evidence report: `docs/evidence/G0_6_T0_T2_DEPLOYMENT_PARITY_RECONCILIATION_2026-11-11.md`; final report commit `2c70190aaa921d25f776ed5e4f6309db654004ec`; report blob `3891c3c1a088043413d7fa8c19fbf4137274a926`.
 - T0/T2 parity reconciliation updated with a current-state addendum: historical 2026-11-09 bounded loopback test remains HISTORICAL PASS; current deployment parity is NOT VERIFIED.
 - The Scaleway VPS used for the historical test was fully deleted on 2026-11-11, per owner-provided project update. Do not treat the old host as available for probes or deployment.
 - No replacement VPS, runtime, T1 activation, PostgreSQL/TimescaleDB operation, FreqAI training, or live trading is authorized by G0.6.
