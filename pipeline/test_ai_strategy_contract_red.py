@@ -74,14 +74,13 @@ class AIStrategyContractRedTest(unittest.TestCase):
                 "PAPER_MAX_DRAWDOWN_PCT": "50",
                 "PAPER_MAX_DAILY_LOSS_USDT": "50",
                 "PAPER_MAX_EXPOSURE_USDT": "1000",
-                "AI_LEVERAGE": "2.25",
                 "LEVERAGE": "13",
             }
             from paper_execution import ledger as ledger_module
             with patch.dict(os.environ, environment, clear=True), \
                  patch.object(ledger_module, "dual_ledger_ready", return_value=True), \
                  patch.object(ledger_module, "PaperLedger") as constructor:
-                api.ledger(strategy_id="AI_FREQAI")
+                api.ledger(strategy_id="AI_FREQAI", admitted_leverage="2.25")
             self.assertEqual(constructor.call_args.kwargs["leverage"], "2.25")
 
     def test_ai_entry_is_sized_from_reconciled_equity_leverage_limit_price_and_lot_step(self):
