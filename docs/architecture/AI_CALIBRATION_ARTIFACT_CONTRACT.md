@@ -45,8 +45,8 @@ The following is a logical field inventory, not a frozen serialization format. E
 | `calibration_started_at` / `calibration_completed_at` | Calibration evidence interval |
 | `calibrated_at` | Artifact creation/approval time |
 | `sample_count` | Count of eligible calibration observations |
-| `calibrated_confidence` | Calibrated probability/confidence in [0,1] for the declared event |
-| `evaluation_summary_ref` | Immutable reference to OOS evaluation evidence |
+| `calibration_transform` / `transform_parameters` | The approved mapping from raw model score to event probability (for example, method-specific parameters or a versioned calibration table) |
+| `evaluation_summary_ref` | Immutable reference to OOS evaluation evidence, including reliability/calibration metrics and sample lineage |
 | `status` | Registry-controlled approved/revoked/superseded state |
 
 Fields may be represented in a signed manifest or registry record rather than duplicated in the artifact. The future adapter must preserve an auditable binding between the exact artifact digest and all compatibility metadata.
@@ -86,8 +86,8 @@ No numeric value for `C_min`, sample count, duration or maximum age is authorize
 
 ## 6. Runtime/admission output
 
-A future trusted provider may construct an immutable admission evidence object containing:
-- calibrated confidence and declared event semantics;
+A future trusted provider must bind two distinct objects: (a) the immutable calibration artifact, which defines the score-to-probability transform and its evaluation evidence; and (b) the per-inference prediction envelope, which contains the calibrated confidence produced by applying that exact transform to the raw score. The per-inference envelope must include the prediction/candle identity and calibration artifact ID, version and digest. The provider may construct an immutable admission evidence object containing:
+- per-inference calibrated confidence and declared event semantics;
 - artifact and registry IDs/versions/digests;
 - model/strategy/training/calibration dataset identities;
 - label/horizon compatibility;
@@ -115,3 +115,20 @@ Still unresolved:
 7. Artifact revocation and rollback policy.
 
 **Disposition:** design proposal only. G0-01/G0-02/G0-03 remain BLOCKED. Implementation, calibration training, model changes, OOS acceptance, feature activation and trading are not authorized.
+
+
+## 9. Recommended low-cost trust architecture — proposal only
+
+For this personal, paper-first system, prefer a repository-backed append-only registry over introducing a separate database or paid registry service at this stage. This is a design recommendation, not an owner-approved provider selection.
+
+1. **Registry record:** keep a versioned manifest and compact calibration artifact (transform parameters/table plus evaluation summary) in a dedicated repository path. Each promotion is a new immutable version/commit; do not overwrite a previously approved version. A manifest points to exact dataset/model/code identities and content digests.
+2. **Independent publisher trust:** sign the canonical manifest digest with an offline Ed25519 private key. Keep the corresponding public key/key ID in a pinned trust configuration. The private key must not be stored in the repository, GitHub Actions secrets, CI variables, the VPS or runtime. CI and runtime only verify signatures. This recommendation does not depend on the previously discussed adapter implementation.
+3. **Two checks, not one:** SHA-256 (or another explicitly versioned digest) verifies exact bytes; the signature verifies that an authorized key approved that manifest. Neither proves calibration quality or absence of leakage.
+4. **Promotion gate:** a manifest can be registered as candidate, but only an explicit owner-approved promotion record may make it eligible for AI admission. Revoke/supersede by appending a new registry record; never rewrite old evidence. Key rotation/revocation must be explicit and auditable.
+5. **Evidence lineage:** include exact model artifact digest, strategy/code commit, training dataset ID/hash and cutoff, calibration dataset ID/hash and time range, label definition, horizon, calibrator method/version, sample count, evaluation metrics, and OOS split boundaries. Calibration samples must be disjoint from training and must obey the forecast label horizon/embargo so labels cannot leak across the split.
+6. **Storage boundary:** keep small manifest/transform/evaluation artifacts in the registry. Reference canonical T0-derived dataset bundles by immutable ID/hash; do not copy, mutate or make T0 subordinate to the registry. Large raw datasets need not be duplicated into Git.
+7. **Verification path:** a future read-only provider resolves an approved manifest, verifies signature and digest, validates revocation and compatibility, loads only the exact referenced transform, then emits calibrated confidence bound to that artifact digest. It must not trust a confidence number supplied by an untrusted caller.
+
+**Important semantic correction:** the calibration artifact is not itself one fixed `calibrated_confidence` value. It contains a transformation/evidence model. Each prediction receives its own calibrated confidence at inference, and that value must be cryptographically and structurally bound to the exact calibration artifact version.
+
+**Remaining owner decisions:** confirm repository-backed registry; confirm offline Ed25519 signing/trust-root lifecycle; select manifest format/canonicalization; select calibration method and OOS evaluation protocol; select numerical `C_min`, sample, duration and freshness thresholds only after evidence. Until then G0-01/02/03 remain BLOCKED.
