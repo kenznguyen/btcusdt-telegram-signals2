@@ -58,7 +58,7 @@ def _negative_fixture(case_id: str, fixture_id: str, fixture_type: str, variant:
         raw = _encode(value)
         if variant == 0:
             needle = b'"fixture_id":"' + fixture_id.encode("ascii") + b'"'
-            return raw.replace(needle, needle + needle, 1), "PARSE_DUPLICATE_KEY"
+            return raw.replace(needle, needle + b"," + needle, 1), "PARSE_DUPLICATE_KEY"
         if variant == 1:
             return b'{"outer":{"duplicate":1,"duplicate":2}}', "PARSE_DUPLICATE_KEY"
         return b'{"unterminated":', "PARSE_INVALID_JSON"
@@ -262,7 +262,7 @@ def prepare_preflight(
         CORPUS_REVISION, source_commit, frozen_harness_sha256, command
     )
     trace = {"payload_persistence_events": [], "external_access_events": []}
-    provisional_assertions = {f"A-{index:02d}": True for index in range(1, 14)}
+    provisional_assertions = {f"A-{index:02d}": False for index in range(1, 14)}
     report_bytes = harness.build_report(
         CORPUS_REVISION, measurement_first, provisional_assertions, provenance
     )
@@ -282,6 +282,14 @@ def prepare_preflight(
         raise ValueError("assertion registry is incomplete")
     if not all(value is True for value in assertions.values()):
         raise ValueError("one or more executable harness assertions failed")
+
+    report_bytes = harness.build_report(
+        CORPUS_REVISION, measurement_first, assertions, provenance
+    )
+    evidence["report_bytes"] = report_bytes
+    assertions = harness.evaluate_assertions(evidence)
+    if not all(value is True for value in assertions.values()):
+        raise ValueError("final report/assertion readback failed")
     if not harness.validate_report_readback(report_bytes):
         raise ValueError("serialized report readback failed")
 
