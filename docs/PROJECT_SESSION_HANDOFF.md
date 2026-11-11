@@ -1071,3 +1071,17 @@ This is the current disposition and supersedes the earlier historical NOT RUN / 
 
 ### Next permitted step
 - Conduct a read-only code review of the exact DS-01/DS-02 source and reconcile the remaining DS-04 documentation status. Do not activate migrations, perform account cutover, deploy to VPS or change DS-03 without separate owner approval.
+
+
+### Final DS-01 / DS-02 source review and verification update — 2026-11-11
+
+- Final implementation/test source SHA: `8d9eee6cd503237f8b8a398fcaf1e055dfa9d644`.
+- Final Dual Ledger CI: [42971136555](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42971136555), exact SHA above; compile/focused/full regression PASS, **300 tests PASS**.
+- Artifact ID `13833202840`; SHA-256 `0eb0bbb6ad5bfbca27c9665e06548a11dba37e2d25d4939ea891301a6054f506`.
+- T0 Single Writer Gateway: run `42970832396`, SHA `e99daf3f491014aa302af52629d0598d6404dbaa`, all jobs PASS.
+- T2 Freqtrade 2026.9 strategy-load smoke: run `42970832365`, same SHA `e99daf3f491014aa302af52629d0598d6404dbaa`, PASS.
+- Code review covered correctness, readability, architecture, security and performance. Account mark logic was extracted to `paper_execution/account_equity.py`, with separate ledger-total and reservation-total helpers. No dependency added; no Critical/Required DS-01/DS-02 finding remains.
+- Final evidence report commit: `78676df074c49e8c1cca75f281300e195d06be8f`; report blob: `f824d34c09544b6b15f40695e6fe5ad7d320ce5c`.
+- DS-01/DS-02 remain **PASS — source/CI scope only**. Runtime migration, account cutover, funding proof, VPS activation/deployment and live execution remain **NOT AUTHORIZED / NOT PERFORMED / NOT VERIFIED**. Risk remains fail-closed until a separately approved account cutover.
+- DS-03 remains **BLOCKED**; DS-04 remains **OPEN**. Stage II A2.3 remains **PAUSED BY OWNER**.
+- Next step: preserve this evidence and proceed only with read-only DS-04 documentation reconciliation or a separately scoped owner proposal. Do not migrate/activate the runtime, alter T0, change Core sizing/leverage or enable live execution without separate approval.
