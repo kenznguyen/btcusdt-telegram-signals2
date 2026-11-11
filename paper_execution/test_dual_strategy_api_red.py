@@ -75,6 +75,7 @@ class DualStrategyApiScopeRedTest(unittest.TestCase):
              }):
             result = api.core_decide(1_800_000_000_000, book={})
 
+        self.assertNotEqual(result["reason"], "CORE_INPUTS_UNAVAILABLE", result)
         self.assertEqual(result["source"], "STRATEGY_CORE")
         read_snapshot.assert_called_once_with(str(self.db), strategy_id="STRATEGY_CORE")
 
@@ -94,7 +95,11 @@ class DualStrategyApiScopeRedTest(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertEqual(result["strategyId"], "STRATEGY_CORE")
         resolve_owner.assert_called_once_with(str(self.db), "core-order")
-        ledger_factory.assert_called_once_with(strategy_id="STRATEGY_CORE")
+        self.assertEqual(ledger_factory.call_count, 2)
+        self.assertEqual(
+            [call.kwargs for call in ledger_factory.call_args_list],
+            [{"strategy_id": "STRATEGY_CORE"}, {"strategy_id": "STRATEGY_CORE"}],
+        )
         ledger_factory.return_value.cancel.assert_called_once_with(
             "core-order", api.now_ms.return_value if hasattr(api.now_ms, "return_value") else unittest.mock.ANY
         )
