@@ -93,3 +93,26 @@ Before freeze, each fixture needs exact canonical bytes, one isolated mutation, 
 - This report is NOT an independent review and MUST NOT be labeled G3.
 
 **Final disposition: PARTIAL PASS WITH BLOCKERS. A2.3 IS A REVIEW CANDIDATE ONLY; NOT FROZEN; STAGE II IMPLEMENTATION NOT YET AUTHORIZED.**
+
+
+## 6. Follow-up review addendum — expanded A2.3 schema iteration
+
+**Reviewed A2.3 blob:** `41d6abfc9df20047af4668b80a6ce2edb7e07117`  
+**Review remains:** same-session author self-review only.
+
+Additional checks:
+- AEO body digest is explicitly bound to A2.2 §20.1 Evidence Object domain bytes, U64BE exact body length and exact canonical body bytes.
+- AEO signature statement now has a distinct type and exact domain separator; the 49-octet domain hex was independently checked from the literal ASCII bytes plus one NUL. The fixed SHA-256 KAT uses payload `A2.3-AEO-domain-KAT-v1`, length 22, U64BE `0000000000000016`, expected digest `64172accdaf1f2add08b201b25c8ea26b52e2c90e68674126bbef465f4e7acde`.
+- The AEO signature statement's required field set, body descriptor, package descriptor, request/decision/authority/custody descriptor shapes and Trust Policy issuer-entry mapping are now specified at draft level.
+- AEO and envelope descriptor identifiers use canonical UUIDv4 URNs, generated from a CSPRNG and checked against an append-only namespace; same-ID/different-bytes remains a hard conflict.
+- Resource limits now include a 16 MiB maximum frozen verification input-set size, 64 dependency descriptors and 1 MiB maximum per dependency, in addition to per-object/parser ceilings.
+- Stage II adapter contract has been aligned to the AEO caller-level preimage and `INPUT_LIMIT_EXCEEDED` result. It remains stateless and does not parse AEO/descriptor content.
+
+Updated findings:
+- A23-SR-02 is reduced but not closed: the AEO Trust Policy entry is described, but the complete Trust Policy schema and issuer status/revocation semantics still require exact crosswalk to A1/A2.2.
+- A23-SR-04 is reduced but not closed: logical descriptor shapes are described; exact canonical JSON schemas, namespace authority, evidence issuer model and revocation/status evidence semantics remain to be frozen.
+- A23-SR-05 remains open: ceilings are now more complete but remain proposed until owner freeze and independent review.
+- A23-SR-01 remains open: distinct AEO issuer principal/key is a new security constraint and has not yet received a separate explicit owner decision.
+- A23-SR-03, SR-06 and SR-07 remain open: independent security review, pinned PyCA/build provenance, and post-freeze implementation/test/CI authorization.
+
+No tests or implementation were run. The updated adapter contract blob is `1bdfc87949429cfd164892eab519971954f243eb`. This follow-up does not change the original disposition: **PARTIAL PASS WITH BLOCKERS / NOT INDEPENDENT REVIEW / NOT FROZEN / IMPLEMENTATION BLOCKED**.
