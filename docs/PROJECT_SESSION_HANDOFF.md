@@ -840,3 +840,14 @@ This is the current disposition and supersedes the earlier historical NOT RUN / 
 - The draft explicitly separates cryptographic validity from signer trust, Trust Policy authorization, Monotonic Anchor/replay checks and state transitions. It includes a preliminary negative-test checklist and required evidence, without selecting an algorithm or library.
 - **Stage II remains BLOCKED / NOT APPROVED.** Stage I approval and PASS do not authorize Stage II. No code, keys, trust-root/bootstrap, durable policy/anchor state, runtime, VPS, canonical T0, CI secrets, deployment or trading changes were made.
 - Next owner decision: confirm/reject the candidate purpose in §3 of the draft, then decide whether to authorize bounded option analysis for the unresolved §4 rows. No implementation request is implied.
+
+### A2.2 Stage II — cryptographic option analysis draft (2026-11-11)
+
+- Owner approved proceeding with Stages II–V as a program direction. This is not blanket implementation/runtime authority; each stage retains its own contract and bounded implementation approval gates.
+- Stage II option analysis created: `docs/evidence/T0_SIGNATURE_A2_2_STAGE_II_CRYPTO_OPTION_ANALYSIS_2026-11-11.md`.
+- Analysis commit: `61085c576d4ddfcffa00d2295a68569c1cbdb7f7`.
+- Status: **DRAFT / NON-NORMATIVE / OWNER DECISION REQUIRED / NO IMPLEMENTATION AUTHORITY**.
+- Candidate comparison: Ed25519 PureEdDSA, ECDSA P-256/SHA-256, RSA-PSS/SHA-256; candidate library PyCA `cryptography`; candidate key encodings raw 32-byte Ed25519 or DER/SPKI; signature encoding 64-byte Ed25519.
+- Preliminary recommendation: Ed25519 + PyCA `cryptography`, conditional on no mandatory external interoperability/FIPS-validated-module constraint. SPKI vs raw key encoding remains an owner decision. Exact signature input bytes must be reconciled against normative A2.2; no assumption is made about envelope serialization vs digest input.
+- No algorithm/library/profile is normatively selected. No code, dependencies, keys, trust root, durable state, CI workflow, VPS/runtime, T0, trading or destructive data operation changed.
+- Next owner decision: approve/reject the candidate for a **contract-only** Stage II specification and resolve key representation / FIPS requirement. Implementation remains separately gated. Stage III–V scope is not inferred from Stage II.
