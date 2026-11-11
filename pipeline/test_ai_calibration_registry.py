@@ -9,6 +9,8 @@ from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 
 from pipeline.calibration_registry import (
     CalibrationVerificationError,
+    apply_calibration_transform,
+    calibrate_verified_prediction,
     signature_message,
     verify_calibration_manifest,
 )
@@ -34,7 +36,24 @@ def canonical(value):
 
 class CalibrationRegistryVerifierTest(unittest.TestCase):
     def setUp(self):
-        self.artifact = b'{"method":"isotonic","parameters":["0.2","0.8"]}'
+        self.artifact_object = {
+            "artifact_schema": "ai-calibration-transform/v1",
+            "transform_schema": "score-probability-map/v1",
+            "calibration_method": "isotonic",
+            "method_version": "1",
+            "input_semantics": "absolute_predicted_return",
+            "output_semantics": "direction_correct_probability",
+            "label_definition_id": "direction-correct-at-horizon",
+            "forecast_horizon_value": "900000",
+            "forecast_horizon_unit": "ms",
+            "knots": [
+                {"score": "0", "probability": "0.5"},
+                {"score": "0.01", "probability": "0.6"},
+                {"score": "0.02", "probability": "0.8"},
+                {"score": "0.03", "probability": "0.9"},
+            ],
+        }
+        self.artifact = canonical(self.artifact_object)
         self.manifest = {
             "manifest_schema": "ai-calibration-manifest/v1",
             "manifest_id": "calibration-manifest-0001",
@@ -242,6 +261,44 @@ class CalibrationRegistryVerifierTest(unittest.TestCase):
         raw = canonical(invalid)
         with self.assertRaisesRegex(CalibrationVerificationError, "ARTIFACT_CREATED_BEFORE_CALIBRATION_END"):
             self.verify(manifest_bytes=raw, envelope=self.make_envelope(raw, invalid))
+
+    def test_verified_bundle_derives_and_binds_per_inference_confidence(self):
+        result = calibrate_verified_prediction(
+            self.manifest_bytes, self.envelope, self.artifact, self.trust, "0.015"
+        )
+        self.assertEqual(result["verificationStatus"], "SIGNATURE_VERIFIED_ONLY")
+        self.assertEqual(result["calibratedConfidence"], "0.7")
+        self.assertEqual(result["manifestDigest"], digest(self.manifest_bytes))
+        self.assertEqual(result["calibrationArtifactHash"], digest(self.artifact))
+        self.assertEqual(result["modelVersion"], self.manifest["model_version"])
+        self.assertEqual(result["strategyVersion"], self.manifest["strategy_version"])
+        self.assertEqual(result["trainingDatasetVersion"],
+                         self.manifest["training_dataset_digest"])
+        self.assertEqual(result["labelDefinition"], self.manifest["label_definition_id"])
+        self.assertEqual(result["forecastHorizonMs"], 900000)
+
+    def test_transform_rejects_out_of_range_scores_and_nonmonotonic_maps(self):
+        with self.assertRaisesRegex(CalibrationVerificationError, "RAW_DIRECTION_SCORE_OUTSIDE_CALIBRATION_RANGE"):
+            apply_calibration_transform(self.artifact, "0.04")
+        invalid = copy.deepcopy(self.artifact_object)
+        invalid["knots"][2]["probability"] = "0.55"
+        with self.assertRaisesRegex(CalibrationVerificationError, "CALIBRATION_TRANSFORM_NOT_MONOTONIC"):
+            apply_calibration_transform(canonical(invalid), "0.015")
+
+    def test_transform_schema_and_manifest_method_must_match(self):
+        invalid = copy.deepcopy(self.artifact_object)
+        invalid["calibration_method"] = "platt"
+        raw = canonical(invalid)
+        with self.assertRaisesRegex(CalibrationVerificationError, "CALIBRATION_TRANSFORM_MANIFEST_MISMATCH"):
+            calibrate_verified_prediction(
+                self.manifest_bytes, self.envelope, raw, self.trust, "0.015"
+            )
+
+    def test_transform_decimal_and_duplicate_knot_fields_are_rejected(self):
+        invalid = copy.deepcopy(self.artifact_object)
+        invalid["knots"][1]["score"] = "NaN"
+        with self.assertRaisesRegex(CalibrationVerificationError, "CALIBRATION_TRANSFORM_DECIMAL_INVALID"):
+            apply_calibration_transform(canonical(invalid), "0.015")
 
     def test_verifier_does_not_claim_registry_approval_or_admission(self):
         result = self.verify()
