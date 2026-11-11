@@ -226,8 +226,10 @@ def equity_snapshot(timestamp):
     # persistent equity observation; read_snapshot() is intentionally read-only
     # and cannot be used as an initialization prerequisite here.
     paper_ledger = ledger()
-    result = paper_ledger.record_equity(mark["close"], mark["closeTimeMs"], timestamp,
-        window["datasetVersion"], os.environ.get("PAPER_INITIAL_CAPITAL", "100"))
+    result = paper_ledger.record_account_mark(
+        mark["close"], mark["closeTimeMs"], timestamp, window["datasetVersion"],
+        os.environ.get("PAPER_INITIAL_CAPITAL", "100"),
+    )
     from paper_execution.equity import parse_limits
     limits = parse_limits(os.environ)
     result["initialCapital"] = os.environ.get("PAPER_INITIAL_CAPITAL", "100")
@@ -436,7 +438,7 @@ def application(environ, start_response):
                                               end-900_000,end,as_of_ms=timestamp)
                     if mark_window["candles"] and mark_window["coverage"]["complete"]:
                         mark = mark_window["candles"][-1]
-                        ledger().record_equity(mark["close"],mark["closeTimeMs"],timestamp,
+                        ledger().record_account_mark(mark["close"],mark["closeTimeMs"],timestamp,
                             mark_window["datasetVersion"],os.environ.get("PAPER_INITIAL_CAPITAL","100"))
                     source_id = "STRATEGY_CORE" if source == "CORE" else "AI_FREQAI"
                     reason = decision.get("reason")
