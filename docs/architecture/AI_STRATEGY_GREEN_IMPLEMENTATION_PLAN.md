@@ -176,3 +176,11 @@ Owner approved the next GREEN-0 step as documentation/design and source-contract
 These are design proposals, not implementation specifications frozen for coding. Open choices include registry/trust root and artifact schema; calibration method/OOS lineage and thresholds; exact supported exchange filter variants, order-type scope, canonical digest and freshness policy.
 
 **Status:** GREEN-0 design deliverables WRITTEN; calibration provider G0-01/02/03 BLOCKED; instrument provider G0-05 BLOCKED; no adapter implementation authorized. GREEN-1..5 remain NOT AUTHORIZED.
+
+
+## GREEN-0 source/design verification follow-up — 2026-11-11
+
+- Calibration trust recommendation: for this personal low-cost deployment, evaluate a repository-backed append-only manifest/artifact registry with offline Ed25519 signing, pinned public-key verification and explicit promotion/revocation. Separate byte integrity, publisher authority and statistical/OOS validity. The calibration artifact is a score-to-probability transform plus evaluation evidence; each inference carries its own calibrated confidence tied to that exact artifact. No provider/key/schema/method/threshold has been approved.
+- Binance USDⓈ-M official documentation review corrected the instrument proposal: PRICE_FILTER zero fields disable individual rules; LOT_SIZE uses `(quantity - minQty) % stepSize == 0`; MARKET_LOT_SIZE is market-only; PERCENT_PRICE needs fresh mark-price data; USDⓈ-M MIN_NOTIONAL uses its own documented `notional` field. Order-count filters are account/open-order-state constraints, not static sizing filters.
+- The official documentation was reviewed, but no live `/fapi/v1/exchangeInfo` call or BTCUSDT filter retrieval occurred. G0-05 remains BLOCKED; live source/response validation NOT VERIFIED.
+- GREEN-0 design review only; no adapter, calibration pipeline, code/tests/workflow, schema/DB, network/exchange, T0/T1/T2, VPS or deployment action. GREEN-1..5 remain NOT AUTHORIZED.
