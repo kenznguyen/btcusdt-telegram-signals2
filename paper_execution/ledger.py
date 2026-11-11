@@ -9,6 +9,7 @@ import sqlite3
 
 from pipeline.values import identity, number, stamp
 from paper_execution import risk_control, equity as equity_history
+from paper_execution.risk_policy import CORE_LEVERAGE, ORDER_MARGIN_BUDGET_PCT
 from paper_execution.account_history import (
     MIGRATION_VERSION as ACCOUNT_HISTORY_MIGRATION_VERSION,
     MIGRATION_CHECKSUM as ACCOUNT_HISTORY_MIGRATION_CHECKSUM,
@@ -1299,6 +1300,8 @@ class PaperLedger:
         self.source_sha = source_sha
         if self.leverage <= 0:
             raise ValueError("Invalid strategy leverage")
+        if self.strategy_id == "STRATEGY_CORE" and self.leverage != CORE_LEVERAGE:
+            raise ValueError("CORE_LEVERAGE_POLICY_MISMATCH")
         if self.maximum <= 0 or self.fee_rate > 1 or not 0 < self.spread <= 10_000:
             raise ValueError("Invalid paper risk configuration")
         self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -1622,7 +1625,7 @@ class PaperLedger:
                                 if projected_gross > Decimal(str(self.risk_limits["maxExposureUsdt"])):
                                     reason = "MAX_EXPOSURE_LIMIT"
                                 else:
-                                    admission_margin = equity * Decimal("0.01")
+                                    admission_margin = equity * ORDER_MARGIN_BUDGET_PCT
                                     admission_notional = admission_margin * self.leverage
                                     requested_notional = increase_quantity * limit
                                     if requested_notional > admission_notional:
@@ -1802,6 +1805,8 @@ class PaperLedger:
                     "limits": {key: str(value) for key, value in self.risk_limits.items()}
                     if self.risk_limits else None,
                     "leverage": text(self.leverage),
+                    "orderMarginBudgetPct": str(ORDER_MARGIN_BUDGET_PCT),
+                    "policyVersion": "shared-order-margin-v1",
                 })
                 connection.execute(
                     """INSERT INTO paper_risk_reservations

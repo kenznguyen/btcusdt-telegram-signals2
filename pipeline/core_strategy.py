@@ -4,10 +4,11 @@ Rules mirror the signal-only bot.py implementation. It consumes only validated,
 closed BTCUSDT candles and never accesses exchange trading endpoints.
 """
 import math
-import os
+from decimal import Decimal
+from paper_execution.risk_policy import CORE_LEVERAGE, ORDER_MARGIN_BUDGET_PCT
 from pipeline.values import identity, number, stamp
 
-LEVERAGE = float(os.environ.get("LEVERAGE", "13"))
+LEVERAGE = float(CORE_LEVERAGE)
 RSI_LEN = int(os.environ.get("RSI_LENGTH", "14"))
 DMI_LEN = int(os.environ.get("DMI_LENGTH", "14"))
 ADX_SMOOTH = int(os.environ.get("ADX_SMOOTHING", "14"))
@@ -24,8 +25,6 @@ LONG_DCA_RSI = float(os.environ.get("LONG_DCA_RSI", "20"))
 SOFT_SL_ROE = float(os.environ.get("SOFT_SL_ROE", "-35"))
 EMERGENCY_SL_ROE = float(os.environ.get("EMERGENCY_SL_ROE", "-90"))
 SOFT_SL_ADX = float(os.environ.get("SOFT_SL_ADX", "35"))
-ENTRY_MARGIN_PCT = float(os.environ.get("ENTRY_MARGIN_PCT", "0.50"))
-DCA_MARGIN_RATIO = float(os.environ.get("DCA_MARGIN_RATIO", "1.00"))
 
 
 def _rma(values, length):
@@ -117,8 +116,35 @@ def _threshold(side, average, abs_roe):
     return average * (1.0 - move) if side == "LONG" else average * (1.0 + move)
 
 
-def produce(m15_window, h1_window, paper, strategy_state, book, now_ms, *, initial_capital=100.0,
-            max_position_base=0.01):
+def _sizing_price(book, side, close):
+    try:
+        levels = book["asks"] if side == "LONG" else book["bids"]
+        return number(levels[0]["price"])
+    except (KeyError, IndexError, TypeError, ValueError):
+        return number(str(close))
+
+
+def _order_margin_and_quantity(account_equity_quote, sizing_price):
+    if account_equity_quote is None:
+        return None
+    try:
+        equity = number(str(account_equity_quote))
+        price = number(str(sizing_price))
+        if equity <= 0 or price <= 0:
+            return None
+        margin = equity * ORDER_MARGIN_BUDGET_PCT
+        # A tiny downward guard prevents float serialization from exceeding
+        # the exact Decimal admission budget enforced by the ledger.
+        quantity = margin * CORE_LEVERAGE / price * Decimal("0.999999999999")
+        if quantity <= 0:
+            return None
+        return float(margin), float(quantity)
+    except (TypeError, ValueError, ArithmeticError):
+        return None
+
+
+def produce(m15_window, h1_window, paper, strategy_state, book, now_ms, *,
+            account_equity_quote=None, max_position_base=0.01):
     now = stamp(now_ms)
     if not _valid_window(m15_window, "15m", now) or not _valid_window(h1_window, "1h", now):
         return {"action": "WAIT", "reason": "CORE_CANDLE_WINDOW_INCOMPLETE", "intent": None,
@@ -149,6 +175,7 @@ def produce(m15_window, h1_window, paper, strategy_state, book, now_ms, *, initi
     dca_used = strategy_state.get("dcaUsed") is True
     side = "LONG" if position > 0 else "SHORT" if position < 0 else None
     reason, action, target, initial_margin = "CORE_NO_ENTRY", "WAIT", position, None
+    intent_blocked = False
 
     if side and owner != "STRATEGY_CORE":
         long_signal = h1_plus > h1_minus and h1_adx > H1_ADX_ENTRY and prev_rsi <= LONG_RSI_ENTRY and rsi > LONG_RSI_ENTRY
@@ -178,11 +205,15 @@ def produce(m15_window, h1_window, paper, strategy_state, book, now_ms, *, initi
             dca_ok = (rsi > LONG_DCA_RSI and rsi > prev_rsi if side == "LONG"
                       else rsi < SHORT_DCA_RSI and rsi < prev_rsi)
             if dca_ok:
-                margin = float(number(strategy_state.get("initialMarginQuote", "0")))
-                if margin <= 0:
-                    reason = "CORE_INITIAL_MARGIN_UNAVAILABLE"
+                sized = _order_margin_and_quantity(
+                    account_equity_quote, _sizing_price(book, side, close)
+                )
+                if sized is None:
+                    action = "LONG" if side == "LONG" else "SHORT"
+                    reason = "CORE_ACCOUNT_EQUITY_UNAVAILABLE"
+                    intent_blocked = True
                 else:
-                    add_qty = margin * DCA_MARGIN_RATIO * LEVERAGE / close
+                    initial_margin, add_qty = sized
                     target = position + add_qty if side == "LONG" else position - add_qty
                     action, reason = ("LONG" if side == "LONG" else "SHORT"), "DCA"
             else:
@@ -193,20 +224,26 @@ def produce(m15_window, h1_window, paper, strategy_state, book, now_ms, *, initi
         long_signal = h1_plus > h1_minus and h1_adx > H1_ADX_ENTRY and prev_rsi <= LONG_RSI_ENTRY and rsi > LONG_RSI_ENTRY
         short_signal = h1_minus > h1_plus and h1_adx > H1_ADX_ENTRY and prev_rsi >= SHORT_RSI_ENTRY and rsi < SHORT_RSI_ENTRY
         if long_signal or short_signal:
-            account_equity = float(number(str(initial_capital))) + realized - fees
-            initial_margin = account_equity * ENTRY_MARGIN_PCT
-            qty = initial_margin * LEVERAGE / close
-            if qty > float(number(str(max_position_base))):
-                reason = "CORE_ENTRY_EXCEEDS_POSITION_LIMIT"
+            action = "LONG" if long_signal else "SHORT"
+            sized = _order_margin_and_quantity(
+                account_equity_quote, _sizing_price(book, action, close)
+            )
+            if sized is None:
+                reason = "CORE_ACCOUNT_EQUITY_UNAVAILABLE"
+                intent_blocked = True
             else:
-                action = "LONG" if long_signal else "SHORT"
-                target = qty if long_signal else -qty
-                reason = "RSI_ADX_ENTRY"
+                initial_margin, qty = sized
+                if qty > float(number(str(max_position_base))):
+                    action = "WAIT"
+                    reason = "CORE_ENTRY_EXCEEDS_POSITION_LIMIT"
+                else:
+                    target = qty if action == "LONG" else -qty
+                    reason = "RSI_ADX_ENTRY"
         else:
             reason = "CORE_NO_ENTRY"
 
     intent = None
-    if action != "WAIT":
+    if action != "WAIT" and not intent_blocked:
         if not isinstance(book, dict):
             return {"action": "BUY" if action=="LONG" else "SELL" if action=="SHORT" else "CLOSE",
                     "reason": "CORE_ORDER_BOOK_UNAVAILABLE", "intent": None,
@@ -224,7 +261,10 @@ def produce(m15_window, h1_window, paper, strategy_state, book, now_ms, *, initi
         dataset = m15_window["datasetVersion"]
         snapshot_id = identity("core-input:", {"m15": dataset, "h1": h1_window["datasetVersion"],
             "candleOpenTimeMs": current_open, "bookObservedAtMs": book.get("observedAtMs"),
-            "book": book, "owner": owner, "dcaUsed": dca_used})
+            "book": book, "owner": owner, "dcaUsed": dca_used,
+            "accountEquityQuote": str(account_equity_quote) if account_equity_quote is not None else None,
+            "coreLeverage": str(CORE_LEVERAGE),
+            "orderMarginBudgetPct": str(ORDER_MARGIN_BUDGET_PCT)})
         intent = {"schemaVersion": 1, "source": "STRATEGY_CORE", "exchange": "binance",
             "marketType": "USDT_PERPETUAL", "symbol": "BTCUSDT", "timeframe": "15m",
             "action": action, "reason": reason, "strategyVersion": "rsi-adx-smart-dca-v1",

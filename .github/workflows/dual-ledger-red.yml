@@ -68,7 +68,7 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          python -m unittest pipeline.test_api pipeline.test_core_sizing paper_execution.test_dual_ledger_red paper_execution.test_dual_ledger_migration_red paper_execution.test_account_history_replay_red paper_execution.test_daily_equity_reconciliation paper_execution.test_daily_baseline_persistence paper_execution.test_daily_baseline_v1_recovery paper_execution.test_dual_strategy_api_red -v 2>&1 | tee dual-ledger-red-tests.log
+          python -m unittest pipeline.test_api pipeline.test_core_sizing pipeline.test_core_strategy paper_execution.test_dual_ledger_red paper_execution.test_dual_ledger_migration_red paper_execution.test_account_history_replay_red paper_execution.test_daily_equity_reconciliation paper_execution.test_daily_baseline_persistence paper_execution.test_daily_baseline_v1_recovery paper_execution.test_dual_strategy_api_red -v 2>&1 | tee dual-ledger-red-tests.log
 
       - name: Execute full paper_execution regression
         shell: bash

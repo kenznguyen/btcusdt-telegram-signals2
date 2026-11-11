@@ -50,7 +50,7 @@ class CoreStrategyTest(unittest.TestCase):
         with patch("pipeline.core_strategy.indicators", side_effect=[m15_values,h1_values]):
             result=produce(window(m15rows,"15m"),window(h1rows,"1h"),
               {"positionBase":"0","averageEntryPrice":"0","realizedPnlQuote":"0","feesQuote":"0"},
-              {"owner":None,"dcaUsed":False},None,now,initial_capital="0.01",max_position_base="0.01")
+              {"owner":None,"dcaUsed":False},None,now,account_equity_quote="0.01",max_position_base="0.01")
         self.assertEqual(result["action"],"BUY")
         self.assertEqual(result["reason"],"CORE_ORDER_BOOK_UNAVAILABLE")
         self.assertIsNone(result["intent"])
@@ -74,7 +74,7 @@ class CoreStrategyTest(unittest.TestCase):
         with patch("pipeline.core_strategy.indicators",side_effect=[m15_values,h1_values]):
             result=produce(window(m15rows,"15m"),window(h1rows,"1h"),
                 {"positionBase":"0","averageEntryPrice":"0","realizedPnlQuote":"0","feesQuote":"0"},
-                {"owner":None,"dcaUsed":False},book,now,initial_capital="100",max_position_base="10")
+                {"owner":None,"dcaUsed":False},book,now,account_equity_quote="100",max_position_base="10")
         self.assertEqual(result["action"],"BUY")
         self.assertEqual(result["reason"],"RSI_ADX_ENTRY")
         self.assertIsNotNone(result["intent"])
@@ -100,7 +100,7 @@ class CoreStrategyTest(unittest.TestCase):
         with patch("pipeline.core_strategy.indicators",side_effect=[m15_values,h1_values]):
             result=produce(window(m15rows,"15m"),window(h1rows,"1h"),
                 {"positionBase":"0.01","averageEntryPrice":str(average),"realizedPnlQuote":"0","feesQuote":"0"},
-                {"owner":"STRATEGY_CORE","dcaUsed":False,"initialMarginQuote":"50"},book,now)
+                {"owner":"STRATEGY_CORE","dcaUsed":False,"initialMarginQuote":"50"},book,now,account_equity_quote="100")
         self.assertEqual(result["reason"],"DCA")
         self.assertEqual(result["action"],"BUY")
         self.assertGreater(float(result["intent"]["targetPositionBase"]),0.01)

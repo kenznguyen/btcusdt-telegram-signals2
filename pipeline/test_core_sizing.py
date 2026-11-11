@@ -1,7 +1,11 @@
 import unittest
 from unittest.mock import patch
+import os
+import tempfile
+from pathlib import Path
 
 from pipeline.core_strategy import LEVERAGE, produce
+from paper_execution.ledger import PaperLedger
 
 
 def candles(count, interval, start=1_700_000_000_000, trend=1.0):
@@ -68,11 +72,11 @@ class CoreSizingContractTest(unittest.TestCase):
             )
         self.assertEqual(result["reason"], "RSI_ADX_ENTRY")
         self.assertEqual(float(result["intent"]["initialMarginQuote"]), 1.0)
-        self.assertAlmostEqual(float(result["intent"]["targetPositionBase"]), 13.0 / close)
+        self.assertAlmostEqual(float(result["intent"]["targetPositionBase"]), 13.0 / (close + 0.01))
 
     def test_dca_uses_fresh_one_percent_budget_not_persisted_initial_margin(self):
         m15, h1, now, close, book, paper, state, m15_values, h1_values = scenario(
-            position="0.01", average=str(close if False else 0), initial_margin="50",
+            position="0.01", average="0", initial_margin="50",
         )
         paper["averageEntryPrice"] = str(close / 0.98)
         with patch("pipeline.core_strategy.indicators", side_effect=[m15_values, h1_values]):
@@ -83,9 +87,33 @@ class CoreSizingContractTest(unittest.TestCase):
         self.assertEqual(result["reason"], "DCA")
         self.assertAlmostEqual(
             float(result["intent"]["targetPositionBase"]) - 0.01,
-            13.0 / close,
+            13.0 / (close + 0.01),
         )
         self.assertEqual(float(result["intent"]["initialMarginQuote"]), 1.0)
+
+    def test_core_ledger_rejects_any_leverage_other_than_thirteen_x(self):
+        with tempfile.TemporaryDirectory() as directory:
+            with self.assertRaisesRegex(ValueError, "CORE_LEVERAGE_POLICY_MISMATCH"):
+                PaperLedger(
+                    Path(directory) / "paper.sqlite3",
+                    strategy_id="STRATEGY_CORE", leverage="12",
+                )
+
+    def test_api_factory_keeps_ai_leverage_config_separate_from_fixed_core_leverage(self):
+        from pipeline import api
+        limits = {
+            "maxDrawdownPct": "50", "maxDailyLossUsdt": "50",
+            "maxExposureUsdt": "1000",
+        }
+        with patch.dict(os.environ, {"MARKET_DATA_DB": "/tmp/core-sizing-paper.sqlite3",
+                                     "LEVERAGE": "2"}):
+            with patch("paper_execution.ledger.dual_ledger_ready", return_value=True), \
+                 patch("paper_execution.equity.parse_limits", return_value=limits), \
+                 patch("paper_execution.ledger.PaperLedger") as factory:
+                api.ledger("STRATEGY_CORE")
+                self.assertEqual(factory.call_args.kwargs["leverage"], "13")
+                api.ledger("AI_FREQAI")
+                self.assertEqual(factory.call_args.kwargs["leverage"], "2")
 
     def test_entry_without_reconciled_account_equity_never_emits_trade_intent(self):
         m15, h1, now, close, book, paper, state, m15_values, h1_values = scenario()

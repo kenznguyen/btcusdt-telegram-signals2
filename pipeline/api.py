@@ -81,11 +81,14 @@ def ledger(strategy_id="MANUAL"):
         from paper_execution.ledger import dual_ledger_ready
         if not dual_ledger_ready(path):
             raise sqlite3.DatabaseError("DUAL_LEDGER_MIGRATION_NOT_READY")
+    from paper_execution.risk_policy import CORE_LEVERAGE
+    configured_leverage = (str(CORE_LEVERAGE) if strategy_id == "STRATEGY_CORE"
+                           else os.environ.get("LEVERAGE", "13"))
     return PaperLedger(path, max_position_base=os.environ.get("PAPER_MAX_POSITION_BASE", "0.01"),
                        fee_rate=os.environ.get("PAPER_FEE_RATE", "0.0005"),
                        max_spread_bps=os.environ.get("PAPER_MAX_SPREAD_BPS", "50"),
                        risk_limits=limits, require_risk_limits=True,
-                       leverage=os.environ.get("LEVERAGE", "13"),
+                       leverage=configured_leverage,
                        strategy_id=strategy_id, apply_migrations=False)
 
 
@@ -184,17 +187,27 @@ def core_decide(timestamp, book=None):
                             book, timestamp,
                             initial_capital=os.environ.get("PAPER_INITIAL_CAPITAL", "100"),
                             max_position_base=os.environ.get("PAPER_MAX_POSITION_BASE", "0.01"))
-        from paper_execution.ledger import dual_ledger_ready, read_snapshot
+        from paper_execution.ledger import (
+            dual_ledger_ready, read_snapshot, read_account_risk_snapshot,
+        )
         db_path = os.environ.get("MARKET_DATA_DB", "")
+        dual_ready = dual_ledger_ready(db_path)
         paper = (
             read_snapshot(db_path, strategy_id="STRATEGY_CORE")
-            if dual_ledger_ready(db_path) else read_snapshot(db_path)
+            if dual_ready else read_snapshot(db_path)
         )
+        account_equity_quote = None
+        if dual_ready:
+            account_risk = read_account_risk_snapshot(db_path, now_ms=timestamp)
+            if account_risk.get("riskReady") is True:
+                account_equity_quote = account_risk["accountEquityQuote"]
         state = paper["strategyState"]
         book = book_snapshot(timestamp) if book is None else book
-        report = produce(m15, h1, paper, state, book, timestamp,
-                         initial_capital=os.environ.get("PAPER_INITIAL_CAPITAL", "100"),
-                         max_position_base=os.environ.get("PAPER_MAX_POSITION_BASE", "0.01"))
+        report = produce(
+            m15, h1, paper, state, book, timestamp,
+            account_equity_quote=account_equity_quote,
+            max_position_base=os.environ.get("PAPER_MAX_POSITION_BASE", "0.01"),
+        )
     except (ValueError, OSError, sqlite3.Error, TypeError, KeyError):
         return {"source":"STRATEGY_CORE","action":"WAIT","reason":"CORE_INPUTS_UNAVAILABLE","intent":None}
     if report.get("intent") is None:
