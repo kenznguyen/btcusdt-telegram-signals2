@@ -1734,3 +1734,16 @@ Next: if owner wants to proceed beyond planning, first approve a bounded provisi
 - No source/schema/API/registry/workflow/scheduler/service/permission/credential/database/storage/VPS/data change; no archive, quarantine, cleanup, expiry, compaction, vacuum or deletion. T0 remains independent; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
 - Next bounded task: prepare a synthetic-only dry-run contract and test implementation plan. Before implementation or workflow dispatch, separately bound exact synthetic fixture paths, test-only allowlist, proof of no production-data access and CI workflow scope. No destructive executor is included.
 
+
+
+## G0.10 — Synthetic-only Lifecycle Dry-run Contract and Test Plan (2026-11-11)
+
+- Evidence report: `docs/evidence/G0_10_SYNTHETIC_ONLY_LIFECYCLE_DRY_RUN_CONTRACT_2026-11-11.md`, created in commit `0946eaf1cab77afa67c36341cbe2a262750bef33`.
+- Scope: documentary contract for a pure, deterministic synthetic-fixture disposition evaluator. No implementation, fixtures, tests, CI workflow, storage adapter or executor added.
+- Proposed fixture namespace `tests/fixtures/lifecycle_dry_run/` and output namespace `build/test-artifacts/lifecycle-dry-run/` are proposals only; existence and allowlisting are NOT VERIFIED / NOT APPROVED.
+- Contract prohibits production paths, T0/T1/T2/T3/T4 runtime data, VPS/database/provider access, network credentials and any storage mutation capability. Output can only be a non-executable disposition report; no ARCHIVED/DELETED/EXECUTING/AUTHORIZED state.
+- Defines five protective dispositions and 26 synthetic acceptance cases covering T0/ledgers/T3 protection, unknown metadata, integrity, dependency/hold/copy/process blockers, T1/T2 constraints, determinism, input immutability, path isolation, no executor, audit failure and storage-pressure behavior.
+- G0.10 verdict: contract/test-plan documentation PASS; fixture allowlist NOT VERIFIED / NOT APPROVED; implementation NOT IMPLEMENTED; tests NOT RUN; Actions NOT DISPATCHED; no run/artifact; runtime isolation NOT VERIFIED; destructive executor NOT IMPLEMENTED / NOT AUTHORIZED.
+- No source, fixture, schema, API, registry, workflow, scheduler, service, permission, credential, database, storage, VPS, data, model, ledger or runtime change. No inventory read, test, dispatch, archive, quarantine, cleanup, expiry, compaction, vacuum, deletion or provider operation. T0 remains independent; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
+- Next gate: separate bounded approval must identify exact synthetic fixture files/provenance, exact test-only read/write allowlist and workspace, test implementation files/command, CI workflow/permissions, and evidence excluding production data/secrets/network/database/VPS/provider access. Then review a pure evaluator implementation plan. No destructive executor.
+
