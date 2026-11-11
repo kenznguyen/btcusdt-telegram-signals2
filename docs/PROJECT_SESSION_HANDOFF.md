@@ -2773,3 +2773,27 @@ Critical limits:
 - No production provider, authoritative lineage source, split algorithm, statistical threshold, trusted-time anchor, production key/trust, real OOS data/evaluation, model training/calibration, registry event, S2, VPS/runtime, T0/T1/T2, database migration or live trading change.
 - Review boundary: structural/local consistency only. F4 sample-level disjointness and horizon embargo remain unverified because no authoritative lineage evidence is accepted or inferred by this offline validator. F6 decisions remain open. Frozen manifest v1, transform v1, decision gate and F1-F5 contract unchanged.
 - **Disposition: IMPLEMENTED; CI/TESTS NOT VERIFIED; OOS NOT VERIFIED; AI ADMISSION FAIL-CLOSED.** Next: inspect GitHub Actions run for exact source SHA 26575235ffb230ddf0653eab94e29728bf65c638; correct any failures and record run/job/artifact evidence. Do not wire the validator into production admission or claim OOS VERIFIED.
+
+
+## OOS Evidence v1 validator — CI verification and review closure (2026-11-12)
+
+- Follow-up fixes on the same branch after exact-SHA CI feedback:
+  - `b36c5520a34d954475c24a9306f131aee400f8c6`: accept canonical fractional decimal strings including 0.2 and -0.2 while retaining no-exponent/no-trailing-zero representation.
+  - `6cc1845dfe23fbe3cd9a902e567e320ed9721b86`: repair mutated-fixture tests to recompute the test manifest digest; JSON boolean is used for scalar-type rejection because JSON numeric tokens are rejected earlier by contract.
+  - `196317638d5be7bc3e542aaa1a9249250c9cab6f` and `0a3f73801cc5f1f5225658673b447ec658ac454d`: distinguish digest equality against caller-supplied binding from signed-manifest authenticity. Validator reports `manifest_binding_status=DIGEST_MATCHED_TO_SUPPLIED_BINDING` and `manifest_authenticity_status=NOT_VERIFIED`; no signature/authenticity claim is made.
+- Latest exact-SHA CI: workflow run `43073542645` (#60), source SHA `0a3f73801cc5f1f5225658673b447ec658ac454d`, job `130707512877`.
+- Exact verification:
+  - Python compile step: PASS.
+  - Calibrated Confidence/Provenance focused tests: 14/14 PASS.
+  - Decision regression tests: 15/15 PASS.
+  - Calibration Registry verifier/transform tests: 21/21 PASS.
+  - OOS Evaluation Evidence v1 validator tests: **13/13 PASS**.
+  - Broader AI Strategy/dual-strategy RED suite: 54 tests, 12 failures and 6 errors; job/run overall FAILURE. Failures are in existing AI sizing/leverage/instrument rules, Kill Switch and AI ledger/API contracts, outside this OOS validator increment. The validator-specific step completed successfully before this separate RED suite.
+- Exact artifact: ID `13878273616`; name `ai-strategy-contract-red-0a3f73801cc5f1f5225658673b447ec658ac454d`; SHA-256 `sha256:76407ecdb6311a186967fa8ac6e187cac43fd9cec9a31b1499ca3353d685e28d`; expires 2026-11-18T18:00:14Z.
+- Earlier run `43073350688` at SHA `6cc1845dfe23fbe3cd9a902e567e320ed9721b86` also recorded OOS 13/13 PASS; run `43073542645` is the latest run covering the final manifest-authenticity status refinement.
+- Review findings addressed: decimal grammar now accepts ordinary fractional values; fixture mutations retain exact manifest digest binding; supplied binding is not mislabeled as authenticated manifest. The offline validator remains separate from production decision path and has no authority to set OOS VERIFIED.
+- F4 sample-level dataset disjointness, complete forecast horizon embargo, future-feature dependency and exclusion accountability remain **NOT VERIFIED** because no authoritative sample lineage/provider is part of this approved scope. Optional candidate-population arithmetic is only a local consistency check.
+- No F6 policy/provider choices were made: authoritative lineage source, split algorithm/reproducibility tolerance, approved metric catalogue, statistical thresholds/sample floor/freshness/calibration duration/C_min interaction, trusted-time anchor, detached signature requirement and resource limits remain open.
+- No real OOS record/provider, model training/calibration artifact, production key/trust, registry event, S2, VPS/runtime, T0/T1/T2, DB migration or live order path changed.
+- **Disposition: OOS OFFLINE VALIDATOR IMPLEMENTED; COMPILE PASS; OOS CONTRACT TESTS 13/13 PASS; FULL WORKFLOW FAILURE DUE TO SEPARATE AI/DUAL-STRATEGY RED CONTRACTS; OOS NOT VERIFIED; AI ADMISSION FAIL-CLOSED.**
+- Next eligible work: prepare a concise Owner decision package for the remaining F6 policy/provider choices before any provider or real OOS evaluation is implemented. No F6 value may be silently inferred from the structural freeze.
