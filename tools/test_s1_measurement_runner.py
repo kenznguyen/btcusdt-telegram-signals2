@@ -1,9 +1,8 @@
 """Focused tests for the deterministic, in-memory S1 preflight runner."""
-import copy
 import hashlib
 import unittest
 
-from tools.s1_measurement_harness import D10_TYPES, SCHEMA_VERSION, PURPOSE
+from tools.s1_measurement_harness import D10_TYPES, SCHEMA_VERSION, PURPOSE, measure_parser_input
 from tools.s1_measurement_runner import (
     CASE_IDS,
     EXPECTED_FIXTURE_COUNT,
@@ -59,12 +58,24 @@ class S1MeasurementRunnerTests(unittest.TestCase):
 
     def test_syn31_invalid_structural_probes_retain_nested_measurement_shape(self):
         recipe = build_recipe()
-        probes = [
-            raw for fid, raw in recipe["parser_inputs"].items()
+        probe_ids = [
+            fid for fid in recipe["ordered_ids"]
             if recipe["manifest"][fid]["case_id"] == "SYN-31"
         ]
-        self.assertEqual(len(probes), 3)
-        self.assertTrue(any(b'"probe_unknown_field"' in raw for raw in probes))
+        self.assertEqual(len(probe_ids), 3)
+        self.assertTrue(all(
+            recipe["oracle_records"][fid]["expected_reason_code"] == "SCHEMA_FIELD_UNKNOWN"
+            for fid in probe_ids
+        ))
+        measured = [measure_parser_input(recipe["parser_inputs"][fid]) for fid in probe_ids]
+        self.assertTrue(all(row["raw_bytes"] == len(recipe["parser_inputs"][fid])
+                            for row, fid in zip(measured, probe_ids)))
+        self.assertGreaterEqual(max(row["max_depth"] for row in measured), 6)
+        self.assertGreaterEqual(max(row["max_array_items"] for row in measured), 4)
+        self.assertGreaterEqual(max(row["max_object_members"] for row in measured), 3)
+        self.assertGreaterEqual(max(row["max_string_value_bytes"] for row in measured), 58)
+        self.assertGreaterEqual(max(row["max_string_key_bytes"] for row in measured), 16)
+        self.assertGreater(max(row["scalar_nodes"] for row in measured), 5)
 
     def test_oracle_is_separate_and_no_reserved_oracle_key_is_serialized(self):
         recipe = build_recipe()
