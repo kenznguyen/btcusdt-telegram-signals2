@@ -463,3 +463,16 @@ Reconcile the four-artifact Actions allowlist with all eligible source artifacts
 - Compared with `main`: GitHub compare reports **DIVERGED**, 2,708 commits ahead and 55 behind; merge base `f5b74affb8777953fa66d241784965fbb0e577ba`.
 - This divergence predates any merge/rebase action in this increment. No merge, rebase, force-push or branch switch was performed. Preserve the active branch and investigate divergence separately before any integration decision.
 - The handoff-only update after run `42937191664` is not itself CI-tested; that run tested crosswalk commit `8bda3c987e2145a636bbcc9d8609c5ea15a492b9`. Do not claim CI tested the final handoff-only HEAD.
+
+
+## Signature / negative-verification architecture review — 2026-11-11
+
+- Read-only review report: `docs/evidence/T0_SIGNATURE_NEGATIVE_VERIFICATION_ARCHITECTURE_REVIEW_2026-11-11.md`.
+- Review report commit: `805e4be31d741e76f21c6f2bdb367bdcc27197bd`.
+- Exact source baseline reviewed: branch HEAD `167b8afea5a0c290b9edc22e8eead92715c3c4ad`; checkpoint contract blob `5948dd904e1819b626aecc1a85e10c95735191a3`; synthetic oracle blob `9efd800189e15d35e231530d703499d40d9d7e5d`; tests blob `beffd8c4a6cb2682c9fe0acb09cd2b182c2fde7c`; G2 workflow blob `5e22648c38fd3c6e631f912010de1489bb78f9b5`; crosswalk blob `b1f4daac9624d8deedfaf14234e0b6bb79ff81ca`.
+- Findings: exact signature preimage missing; trust-policy/root bootstrap missing; replay/rollback protocol missing; object-ID uniqueness rule needs closure; historical signer trust needs trusted-time/revocation semantics; algorithm/profile negotiation not constrained; current G2 source/tests do not implement signatures or signature-negative cases; custody scope conflicts between checkpoint contract (outside VPS/GitHub) and accepted L4 crosswalk scope (VPS + GitHub only).
+- Proposed design: sign the exact canonical Checkpoint Manifest Evidence Object digest through a detached, domain-separated canonical signature statement binding object ID/type/schema/digest/length, purpose, audience, checkpoint sequence/predecessor, signer fingerprint/role, fixed algorithm profile and authenticated trust-policy version/digest. Use a separately authenticated monotonic anchor for latestness; signature validity alone never establishes freshness.
+- Proposed negative matrix: 26 cases covering signature corruption, wrong key, content mutation, digest/length/object-ID/type/schema substitution, purpose/audience confusion, algorithm downgrade, trust-policy bootstrap/rollback, key lifecycle, replay, anchor equivocation/rollback, local-clock backdating, offline missing trust material and verification-record overwrite.
+- Review disposition: **DESIGN BASELINE PARTIAL; IMPLEMENTATION BLOCKED**. This was an adversarial second-pass static review, not a qualifying external/independent L4M-09 review. Formal independent review remains NOT VERIFIED.
+- No code, test, workflow, runtime, VPS, SQLite, key, trust root, anchor, provider, TSA or retention operation was changed or executed. No implementation approval is requested or implied.
+- Next permitted work: contract-only amendment resolving S-01–S-04 and identity/trust-time details, followed by frozen test matrix and a qualifying independent review. Do not implement until a separate explicit owner approval after review.
