@@ -2431,10 +2431,13 @@ os._exit(0)
 
 
     def test_account_mark_reconciles_both_strategy_ledgers_under_one_account_transaction(self):
-        self.core.submit(
+        partial_book = self.book(self.now)
+        partial_book["asks"] = [{"price": "100.1", "quantity": "0.05"}]
+        core_order = self.core.submit(
             self.intent("mark-core-long", "0.1", "100.1", "mark-core-book"),
-            self.book(self.now), self.now,
+            partial_book, self.now,
         )
+        self.assertEqual(core_order["status"], "PARTIALLY_FILLED")
         self.ai.submit(
             self.intent("mark-ai-short", "-0.1", "100", "mark-ai-book"),
             self.book(self.now + 1), self.now + 1,
@@ -2443,7 +2446,7 @@ os._exit(0)
             self.path, max_position_base="1", strategy_id="MANUAL",
             source_sha="a" * 40,
         )
-        account.record_account_mark(
+        account_result = account.record_account_mark(
             mark_price="110", candle_close_ms=self.now-60_000,
             observed_at_ms=self.now, dataset_version="sha256:account-mark",
         )
@@ -2464,6 +2467,14 @@ os._exit(0)
             adjustments = connection.execute(
                 "SELECT adjustment_type,amount_quote FROM paper_account_adjustments WHERE account_id=1"
             ).fetchall()
+            active_reservations = connection.execute(
+                """SELECT remaining_notional_quote,remaining_margin_quote
+                   FROM paper_risk_reservations WHERE account_id=1
+                     AND status IN ('ACTIVE','PARTIAL')"""
+            ).fetchall()
+            audit_document = json.loads(connection.execute(
+                "SELECT document FROM paper_audit WHERE kind='ACCOUNT_MARK' ORDER BY id DESC LIMIT 1"
+            ).fetchone()[0])
         unrealized = sum(
             (Decimal(qty) * (Decimal("110") - Decimal(avg)) for qty, avg, *_ in ledgers),
             Decimal(0),
@@ -2477,6 +2488,13 @@ os._exit(0)
         self.assertEqual(risk[0], str(expected))
         self.assertEqual(risk[1:5], ("110", self.now, self.now-60_000, "sha256:account-mark"))
         self.assertEqual(risk[5], 1)
+        reserved_notional = sum((Decimal(row[0]) for row in active_reservations), Decimal(0))
+        reserved_margin = sum((Decimal(row[1]) for row in active_reservations), Decimal(0))
+        self.assertGreater(reserved_margin, Decimal(0))
+        self.assertEqual(account_result["reservedNotionalQuote"], str(reserved_notional))
+        self.assertEqual(account_result["reservedMarginQuote"], str(reserved_margin))
+        self.assertEqual(audit_document["reservedNotionalQuote"], str(reserved_notional))
+        self.assertEqual(audit_document["reservedMarginQuote"], str(reserved_margin))
 
 
 
