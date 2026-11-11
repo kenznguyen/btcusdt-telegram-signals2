@@ -1,9 +1,9 @@
-# A2.2 Stage II — Ed25519 verification adapter contract
+# Stage II — Ed25519 verification adapter contract (A2.3 alignment)
 
 **Status: DRAFT / OWNER-DECISIONS RECORDED / CONTRACT-ONLY / NOT FROZEN / NO IMPLEMENTATION AUTHORITY**  
 **Date:** 2026-11-11  
 **Branch:** `feature/t0-centralized-data-feeder-p1-20261101`  
-**Governing references:** A2.2 amendment §20; A1 §§3–4, 13.2–13.4; Stage II crypto option analysis.
+**Governing references:** A1 §4.3; A2.2 §20; A2.3 draft §§4–6 and 9; Stage II crypto option analysis.
 
 ## 1. Authority and scope
 
@@ -100,17 +100,19 @@ The adapter MUST return exactly one typed outcome:
 - `MALFORMED_SIGNATURE`
 - `UNSUPPORTED_KEY_TYPE`
 - `BACKEND_UNAVAILABLE`
+- `INPUT_LIMIT_EXCEEDED`
 - `INTERNAL_ERROR`
 
 The adapter MUST NOT collapse backend unavailability or unexpected internal errors into `INVALID_SIGNATURE`, and MUST NEVER convert an exception or unknown result into `VALID`.
 
-Input-size/resource-limit rejection may be represented by a separately agreed `INPUT_LIMIT_EXCEEDED` result once limits are frozen; until then resource ceilings remain an implementation-approval blocker and MUST NOT be guessed by an implementation.
+Input-size/resource-limit rejection returns `INPUT_LIMIT_EXCEEDED`. The proposed A2.3 ceilings are: preimage at most 1,048,640 octets; SPKI DER at most 4,096 octets; signature exactly 64 octets. These limits remain proposed until A2.3 is frozen; implementations MUST NOT silently choose different ceilings.
 
 ### 5.2 Error semantics
 
 - A mathematically incorrect signature for a well-formed Ed25519 key and message returns `INVALID_SIGNATURE`.
 - Invalid or noncanonical SPKI returns `MALFORMED_PUBLIC_KEY`.
 - Signature length other than 64 octets returns `MALFORMED_SIGNATURE`.
+- Preimage longer than 1,048,640 octets or SPKI DER longer than 4,096 octets returns `INPUT_LIMIT_EXCEEDED` before cryptographic parsing/verification, subject to final A2.3 freeze.
 - A valid SPKI object for a different key type returns `UNSUPPORTED_KEY_TYPE`.
 - Missing/unloadable cryptographic backend returns `BACKEND_UNAVAILABLE`.
 - Unexpected errors return `INTERNAL_ERROR`; diagnostics MUST be sanitized and MUST NOT expose key material or sensitive input bytes.
@@ -174,11 +176,10 @@ No package installation, lockfile change, VPS installation, CI secret, workflow 
 
 The owner-approved choices above resolve the algorithm, library candidate, key encoding, signature encoding and FIPS requirement. The following are intentionally not invented:
 
-1. Exact maximum preimage size and parser/resource ceilings.
+1. Owner freeze of the A2.3 resource ceilings and AEO/main-statement profile mapping.
 2. Exact pinned PyCA release and dependency hashes.
-3. Full mapping of every legacy v1 signature-envelope provenance field to the A1 Signature Statement schema, if not already satisfied by the controlling schema.
-4. Final consistency review against the complete A1/A2.2 contract and a qualifying independent security review.
-5. Stable public reason-code compatibility policy, if consumers beyond the current verifier will depend on these values.
+3. Final consistency review against the complete A1/A2.2/A2.3 contract and a qualifying independent security review.
+4. Stable public reason-code compatibility policy, if consumers beyond the current verifier will depend on these values.
 
 Until these blockers are resolved and the exact contract blob is approved/frozen, implementation remains BLOCKED.
 
@@ -275,3 +276,18 @@ The B + E2 architecture choice resolves the representation-level owner decision.
 8. Stable public reason-code compatibility policy, if externally consumed.
 
 **Updated disposition: B + E2 OWNER-APPROVED AS ARCHITECTURE PATTERN; DETAILED CONTRACT DRAFT / NOT FROZEN; IMPLEMENTATION BLOCKED / NOT AUTHORIZED.**
+
+
+## 11. A2.3 alignment — AEO and detached envelope are caller-level concerns
+
+The adapter remains a primitive and does not gain object parsing or trust behavior.
+
+- Main checkpoint Signature Statement callers construct the exact A1 §4.3 preimage.
+- AEO issuer callers construct the exact A2.3 §4.1 AEO-specific preimage, including the AEO domain separator and U64BE statement length.
+- Both caller paths pass their completed preimage bytes to this same Ed25519 PureEdDSA primitive. The adapter MUST NOT choose a domain, infer purpose, parse the statement, or select a profile.
+- AEO body digest uses A2.2 §20.1 Evidence Object domain bytes. Completed AEO and main signature envelopes use the A2.2 §20.1 Signature Envelope domain bytes and are identified by detached descriptors under A2.3.
+- AEO trust, issuer separation, dependency closure, descriptor validation, Trust Policy authorization and Verification Record behavior remain outside this adapter.
+
+The proposed A2.3 resource ceilings are repeated in §5.1 above for adapter input enforcement. They are not frozen until the A2.3 contract and its exact dependencies pass the required review gate.
+
+**Status remains DRAFT / NOT FROZEN / NO IMPLEMENTATION AUTHORITY.** The owner's instruction to continue Stage II work does not waive the independent security review required by this contract, nor does it enable bootstrap, real keys, trust state, VPS/T0 or runtime integration.
