@@ -99,16 +99,27 @@ class AIStrategyContractRedTest(unittest.TestCase):
         except TypeError as error:
             if "unexpected keyword argument 'admission_context'" not in str(error):
                 raise
-            return {
-                "action": "WAIT",
-                "reason": "ADMISSION_CONTEXT_UNSUPPORTED",
-                "intent": None,
-            }
+            self.skipTest(
+                "decision.evaluate has no admission_context API; "
+                "dependent calibration/equity/sizing behavior is not yet testable"
+            )
+
+    def test_decision_boundary_accepts_owner_approved_admission_context(self):
+        try:
+            self.fixture.evaluate(
+                prediction=self.calibrated_prediction("0.8"),
+                admission_context=self.admission_context(),
+            )
+        except TypeError as error:
+            if "unexpected keyword argument 'admission_context'" not in str(error):
+                raise
+            self.fail(
+                "decision.evaluate must accept the owner-approved admission_context"
+            )
 
     def assert_contract_wait(self, result):
         self.assertEqual(result["action"], "WAIT", result)
         self.assertIsNone(result["intent"], result)
-        self.assertNotEqual(result["reason"], "ADMISSION_CONTEXT_UNSUPPORTED", result)
 
     def test_missing_calibrated_confidence_blocks_an_otherwise_valid_ai_prediction(self):
         self.assert_contract_wait(self.evaluate())
@@ -277,21 +288,11 @@ class AIStrategyContractRedTest(unittest.TestCase):
                 with self.subTest(case=name):
                     bad_book = dict(self.fixture.book)
                     bad_book["asks"] = [{"price": "0", "quantity": "2"}]
-                    try:
-                        result = self.fixture.evaluate(
-                            prediction=self.calibrated_prediction("0.8"),
-                            book=bad_book,
-                            admission_context=context,
-                        )
-                    except TypeError as error:
-                        if "unexpected keyword argument 'admission_context'" not in str(error):
-                            raise
-                        result = {
-                            "action": "WAIT",
-                            "reason": "ADMISSION_CONTEXT_UNSUPPORTED",
-                            "intent": None,
-                        }
-                    self.assert_contract_wait(result)
+                    self.assert_contract_wait(self.evaluate(
+                        prediction=self.calibrated_prediction("0.8"),
+                        admission_context=context,
+                        book=bad_book,
+                    ))
             else:
                 with self.subTest(case=name):
                     self.assert_contract_wait(self.evaluate(
