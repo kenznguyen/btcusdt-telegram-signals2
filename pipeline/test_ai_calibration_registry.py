@@ -289,9 +289,14 @@ class CalibrationRegistryVerifierTest(unittest.TestCase):
         invalid = copy.deepcopy(self.artifact_object)
         invalid["calibration_method"] = "platt"
         raw = canonical(invalid)
+        manifest = copy.deepcopy(self.manifest)
+        manifest["artifact_digest"] = digest(raw)
+        manifest["artifact_size_bytes"] = str(len(raw))
+        manifest_bytes = canonical(manifest)
+        envelope = self.make_envelope(manifest_bytes, manifest)
         with self.assertRaisesRegex(CalibrationVerificationError, "CALIBRATION_TRANSFORM_MANIFEST_MISMATCH"):
             calibrate_verified_prediction(
-                self.manifest_bytes, self.envelope, raw, self.trust, "0.015"
+                manifest_bytes, envelope, raw, self.trust, "0.015"
             )
 
     def test_transform_decimal_and_duplicate_knot_fields_are_rejected(self):
