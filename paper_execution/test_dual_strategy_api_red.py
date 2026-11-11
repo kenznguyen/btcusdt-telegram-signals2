@@ -97,14 +97,19 @@ class DualStrategyApiScopeRedTest(unittest.TestCase):
                  "positionBase": "0", "averageEntryPrice": "0",
                  "realizedPnlQuote": "0", "feesQuote": "0",
              }) as read_snapshot, \
+             patch.object(ledger_module, "read_account_risk_snapshot", return_value={
+                 "riskReady": True, "accountEquityQuote": "123.45",
+             }) as account_risk, \
              patch.object(core_strategy, "produce", return_value={
                  "action": "WAIT", "reason": "CORE_NO_ENTRY", "intent": None,
-             }):
+             }) as producer:
             result = api.core_decide(1_800_000_000_000, book={})
 
         self.assertNotEqual(result["reason"], "CORE_INPUTS_UNAVAILABLE", result)
         self.assertEqual(result["source"], "STRATEGY_CORE")
         read_snapshot.assert_called_once_with(str(self.db), strategy_id="STRATEGY_CORE")
+        account_risk.assert_called_once_with(str(self.db), now_ms=1_800_000_000_000)
+        self.assertEqual(producer.call_args.kwargs["account_equity_quote"], "123.45")
 
     def test_cancel_resolves_owner_and_uses_the_matching_scoped_ledger(self):
         self.activate_dual_schema()
