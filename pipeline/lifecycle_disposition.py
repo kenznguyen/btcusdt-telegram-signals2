@@ -29,7 +29,8 @@ def _result(state, codes):
 def _unknowns(record, codes):
     if not _text(record.get("steward")):
         codes.add("UNK_STEWARD_OWNER")
-    if (record.get("policy_id"), record.get("policy_version")) not in POLICIES:
+    policy_id, policy_version = record.get("policy_id"), record.get("policy_version")
+    if not isinstance(policy_id, str) or not isinstance(policy_version, str) or (policy_id, policy_version) not in POLICIES:
         codes.add("UNK_POLICY_REFERENCE")
     integrity = record.get("integrity")
     if not isinstance(integrity, Mapping):
@@ -52,7 +53,7 @@ def evaluate_disposition(record):
     identity_ok = (record.get("identity_verified") is True and
                    all(_text(record.get(k)) for k in ("object_id", "version_id", "namespace")))
     kind = record.get("data_class")
-    if identity_ok and kind in PROTECTED:
+    if identity_ok and isinstance(kind, str) and kind in PROTECTED:
         codes.add(PROTECTED[kind])
 
     holds = record.get("holds")
@@ -64,7 +65,9 @@ def evaluate_disposition(record):
                 hold_unknown = True
             elif item.get("status") == "ACTIVE" and item.get("binding") is True and _text(item.get("hold_id")) and _text(item.get("owner")):
                 binding_hold = True
-            elif item.get("status") not in {"ACTIVE", "RELEASED", "CLOSED"} or item.get("binding") not in {True, False} or not _text(item.get("hold_id")):
+            elif (not isinstance(item.get("status"), str)
+                  or item.get("status") not in {"ACTIVE", "RELEASED", "CLOSED"}
+                  or type(item.get("binding")) is not bool or not _text(item.get("hold_id"))):
                 hold_unknown = True
     if binding_hold and identity_ok:
         codes.add("PROT_BINDING_HOLD_ACTIVE")
@@ -74,7 +77,7 @@ def evaluate_disposition(record):
 
     if not identity_ok:
         codes.add("UNK_OBJECT_IDENTITY")
-    if kind not in PROTECTED and kind not in REVIEW:
+    if not isinstance(kind, str) or (kind not in PROTECTED and kind not in REVIEW):
         codes.add("UNK_CLASSIFICATION")
     _unknowns(record, codes)
 
@@ -92,6 +95,8 @@ def evaluate_disposition(record):
         for item in deps["items"]:
             if not isinstance(item, Mapping) or not _text(item.get("dependency_id")):
                 codes.add("UNK_DEPENDENCY_REGISTRY")
+            elif not isinstance(item.get("state"), str):
+                codes.add("UNK_DEPENDENCY_REGISTRY")
             elif item.get("state") in {"ACTIVE", "OPEN"}:
                 active.append(item.get("obligation_type"))
             elif item.get("state") != "CLOSED":
@@ -108,15 +113,15 @@ def evaluate_disposition(record):
                 codes.add("UNK_COPY_LINEAGE")
 
     process = record.get("process_state")
-    if process not in {"ACTIVE", "INACTIVE"}:
+    if not isinstance(process, str) or process not in {"ACTIVE", "INACTIVE"}:
         codes.add("UNK_PROCESS_STATE")
     rebuild = record.get("rebuildability")
     if not isinstance(rebuild, Mapping) or type(rebuild.get("required")) is not bool or (
         rebuild.get("required") and (rebuild.get("proven") is not True or not _text(rebuild.get("evidence_ref")))
-    ) or rebuild.get("proven") not in {True, False}:
+    ) or type(rebuild.get("proven")) is not bool:
         codes.add("UNK_REBUILDABILITY_PROOF")
     material = record.get("material_decision_use")
-    if material not in {"YES", "NO"}:
+    if not isinstance(material, str) or material not in {"YES", "NO"}:
         codes.add("UNK_MATERIAL_USE_STATUS")
 
     if codes:
@@ -133,7 +138,7 @@ def evaluate_disposition(record):
         return _result("RETAIN_UNTIL_OBLIGATIONS_CLOSE", retained)
 
     group = record.get("review_group")
-    if group not in REVIEW or group != kind:
+    if not isinstance(group, str) or group not in REVIEW or group != kind:
         return _result("BLOCKED_UNKNOWN", {"UNK_CLASSIFICATION"})
     if group == "NONCANONICAL_COPY":
         copy = record.get("copy_lineage")
