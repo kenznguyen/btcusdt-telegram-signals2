@@ -30,7 +30,7 @@ Owner-selected architecture patterns already recorded:
 
 ### D1 — AEO issuer separation
 
-<badge>OWNER APPROVED — 2026-11-12</badge>
+**Status: OWNER APPROVED — 2026-11-12**
 
 **Decision: Option A — AEO issuer MUST be distinct from the subject checkpoint signer.**
 
