@@ -2440,3 +2440,16 @@ Next: if owner wants to proceed beyond planning, first approve a bounded provisi
 - Frozen Python blobs remain unchanged: harness `e8db71c11e0503ea6d9a2480d75470185c4d5100`; runner `23a35aab7f7aeacd8a3f63d630a875fe76b1ff6a`; tests `d06a5b533af14378ed284051e5b057cf57377876`.
 - D11 numeric ceilings remain OPEN / NOT RATIFIED. T0 remains independent/protected; ledgers separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
 - Current disposition: **G0.43 READY FOR OWNER DECISION — WAITING FOR EXPLICIT APPROVAL**.
+
+
+### G0.43 — G0.41 report serialization correction PASS (2026-11-11)
+
+- Implementation/measurement checkout: `93ac905a3b8afb5bebb7c841140c0bccb9f1a47c`; exact parent/event-before: `66a2f9fc70c09ffbe073dfc98acfb500df5aeb42`.
+- Workflow blob `dcfcb09f865ddfc280a4c7368f5ba68036ad9bac`; D14 blob `c9793430e8a92f66ad1fa3d783cade5ff5481104`.
+- Frozen Python blobs unchanged: harness `e8db71c11e0503ea6d9a2480d75470185c4d5100`; runner `23a35aab7f7aeacd8a3f63d630a875fe76b1ff6a`; tests `d06a5b533af14378ed284051e5b057cf57377876`.
+- GitHub Actions run [43053648998](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43053648998), job `130637223760`, attempt 1, SUCCESS. Exact parent/head/branch/runtime/source guards PASS. Frozen runner invoked exactly once.
+- Exactly one artifact `g041-s1-single-measurement-report`, ID `13870492247`, 1,661 bytes, expiry `2026-11-18T15:58:31Z`. GitHub SHA-256 `4cdefc2ed049bd49b1092fb8cf113f92b411c08281f9f7c8db0137e36a85fcca`; independently downloaded ZIP hash matched. ZIP contains exactly one JSON file; strict JSON parse and exact 13-key inventory PASS; persisted JSON has no literal suffix or trailing non-whitespace.
+- Measurement: 22 fixtures; 11 D10 types; SYN-01=11, SYN-29=3, SYN-30=2, SYN-31=3, SYN-32=3; A-01–A-13 all true; two passes equal; internal readback true; execution trace empty. Corpus SHA-256 `1c9a302d9df179322bfd7a00aa6db322a66b578a0609b9264481c3801b8a2d94`.
+- Observed diagnostic maxima: raw bytes 6,418; depth 6; object members 8; array items 4; key bytes 19; value bytes 100; scalar nodes 13. These are measured values only, not D11 limits.
+- Evidence report: `docs/evidence/G0_43_G041_REPORT_SERIALIZATION_CORRECTION_RESULTS_2026-11-11.md`. G0.43 PASS for the exact workflow correction, one measurement and artifact verification. D11 numeric ceilings remain OPEN / NOT RATIFIED. Next: build evidence-based D11 measured-limit proposal, document assumptions/headroom and failure modes, then apply standing authorization only within the established bounded G0 governance scope.
+- No T0/T1/T2, canonical data, model/training, ledgers, Shared Risk Engine, Kill Switch, PostgreSQL, VPS/runtime, provider/database/network/exchange or destructive lifecycle operations. T0 protected; ledgers separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
