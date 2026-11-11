@@ -2427,3 +2427,16 @@ Next: if owner wants to proceed beyond planning, first approve a bounded provisi
 - This failure does not authorize a D11 numeric ceiling proposal, ratification or enforcement. Observed maxima are recorded only as diagnostic measurement output. D11 numeric ceilings remain OPEN / NOT RATIFIED.
 - No T0/T1/T2, market/model data, CORE_LEDGER, AI_LEDGER, Shared Risk Engine, Kill Switch, PostgreSQL, VPS/runtime, provider/database/network/exchange or destructive lifecycle action occurred. T0 remains independent/protected; ledgers remain separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
 - Evidence report: `docs/evidence/G0_41_S1_MEASUREMENT_RESULT_ARTIFACT_INVALID_2026-11-11.md`. Next gate: prepare a new owner decision package for a separately authorized artifact-serialization correction/review; no correction or new measurement under the consumed authorization.
+
+
+### G0.43 — Report serialization correction owner package (2026-11-11)
+
+- G0.42 one-shot run [43052908975](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43052908975), job `130634571198`, completed SUCCESS. Frozen runner was invoked exactly once; 22 fixtures, A-01–A-13 true, two passes equal, internal report readback true, empty execution trace.
+- The sole artifact `13869458648` was downloaded and ZIP SHA-256 independently matched GitHub digest `14655e26eda4452f21e285ad27c7c3027538d4c796aaaa0c607e84bc8d018af2`. ZIP contains one JSON report file, but strict JSON parsing fails because its final two bytes are literal backslash+n (`5c 6e`), not a JSON newline. Artifact was preserved unmodified.
+- G0.41 overall: **FAILED / INCOMPLETE — artifact serialization failure after invocation**. G0.42 one-shot authorization consumed; no repair/rerun/second attempt allowed.
+- Evidence report: `docs/evidence/G0_41_S1_MEASUREMENT_RESULT_ARTIFACT_INVALID_2026-11-11.md`; commit `a3ceac0cd4558bd75a5987ab377a9e6e31e7dfc6`; blob `0f81d6ea245d4a02e2d4da8c6849c64560a31749`.
+- Prepared G0.43 docs-only owner package: `docs/evidence/G0_43_G041_REPORT_SERIALIZATION_CORRECTION_OWNER_PACKAGE_2026-11-11.md`. It requests a new explicit approval for one correction to the existing workflow, one narrow D14 amendment and one fresh one-shot measurement. Required serialization fix: write exact UTF-8 JSON bytes without literal suffix, parse those exact bytes before upload, require object equality and reject trailing data. The validation must not call the frozen runner again.
+- G0.43 exact implementation parent if approved: `a3ceac0cd4558bd75a5987ab377a9e6e31e7dfc6`. No workflow or source code changed in this milestone; no measurement performed.
+- Frozen Python blobs remain unchanged: harness `e8db71c11e0503ea6d9a2480d75470185c4d5100`; runner `23a35aab7f7aeacd8a3f63d630a875fe76b1ff6a`; tests `d06a5b533af14378ed284051e5b057cf57377876`.
+- D11 numeric ceilings remain OPEN / NOT RATIFIED. T0 remains independent/protected; ledgers separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
+- Current disposition: **G0.43 READY FOR OWNER DECISION — WAITING FOR EXPLICIT APPROVAL**.
