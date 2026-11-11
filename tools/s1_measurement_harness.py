@@ -228,24 +228,39 @@ def runtime_provenance(corpus_revision, source_commit, source_blob_sha256, comma
         "platform":platform.platform(),"measurement_definition_revision":MEASUREMENT_DEFINITION_REVISION}
 
 def validate_capability_boundary(source_bytes,boundary):
+    """Check a conservative static import/syntax policy, not runtime isolation."""
     if type(source_bytes) is not bytes or boundary not in {"persistence","external"}: return False
     try: tree=ast.parse(source_bytes.decode("utf-8"))
     except (UnicodeDecodeError,SyntaxError): return False
-    forbidden={"os","pathlib","tempfile","shutil","socket","requests","urllib","http","sqlite3",
-        "psycopg","ccxt","subprocess","ftplib","paramiko","boto3","importlib","ctypes","runpy",
-        "builtins","urllib3","httpx","aiohttp","websocket","websockets","redis","pymongo",
-        "sqlalchemy","psycopg2","mysql","asyncpg","aiosqlite","google","azure"}
-    builtin_calls={"open","exec","eval","compile","__import__"}
-    writes={"write_text","write_bytes","unlink","remove","rmtree","mkdir","makedirs","mkstemp",
-        "NamedTemporaryFile","TemporaryDirectory"}
+    allowed_imports={"ast","hashlib","json","math","platform","re","sys"}
+    allowed_from={
+        "__future__":{"annotations"},
+        "collections.abc":{"Mapping","Sequence"},
+        "dataclasses":{"dataclass"},
+        "typing":{"Any"},
+        "tools":{"s1_measurement_harness"},
+    }
+    blocked_calls={"open","exec","eval","compile","__import__","getattr","setattr",
+        "delattr","globals","locals","vars"}
+    blocked_attributes={"import_module","exec_module","open","extract","extractall",
+        "__getattribute__","__subclasses__","__globals__","__builtins__"}
+    persistence_calls={"write_text","write_bytes","unlink","remove","rmtree","mkdir",
+        "makedirs","mkstemp","NamedTemporaryFile","TemporaryDirectory"}
     for node in ast.walk(tree):
-        if isinstance(node,ast.Import) and {a.name.split(".")[0] for a in node.names}&forbidden: return False
-        if isinstance(node,ast.ImportFrom) and (node.module or "").split(".")[0] in forbidden: return False
-        if isinstance(node,ast.Call):
-            if isinstance(node.func,ast.Name) and node.func.id in builtin_calls: return False
+        if isinstance(node,ast.Import):
+            if any(alias.name not in allowed_imports for alias in node.names): return False
+        elif isinstance(node,ast.ImportFrom):
+            module=node.module or ""
+            names={alias.name for alias in node.names}
+            if module not in allowed_from or not names.issubset(allowed_from[module]): return False
+            if node.level: return False
+        elif isinstance(node,ast.Call):
+            if isinstance(node.func,ast.Name) and node.func.id in blocked_calls: return False
             attr=node.func.attr if isinstance(node.func,ast.Attribute) else ""
-            if attr in {"import_module","exec_module","open"}: return False
-            if boundary=="persistence" and attr in writes: return False
+            if attr in blocked_attributes: return False
+            if boundary=="persistence" and attr in persistence_calls: return False
+        elif isinstance(node,ast.Attribute) and node.attr in blocked_attributes:
+            return False
     return True
 
 def validate_execution_trace(trace):
@@ -259,7 +274,7 @@ REPORT_ROW_FIELDS = frozenset({
     "not_applicable_reason", "parse_reason_code", "duplicate_key_count",
 })
 
-def _safe_report_measurement(measurement):
+def _safe_report_shape(measurement):
     if not isinstance(measurement, Mapping) or set(measurement) != {"rows", "aggregates", "corpus_sha256"}:
         return False
     if not isinstance(measurement["rows"], list) or not SHA_RE.fullmatch(str(measurement["corpus_sha256"])):
@@ -276,9 +291,21 @@ def _safe_report_measurement(measurement):
     try: return recompute_aggregates(measurement["rows"]) == measurement["aggregates"]
     except (KeyError, TypeError, ValueError): return False
 
+def _safe_report_measurement(measurement, parser_inputs, ordered_ids):
+    if not _safe_report_shape(measurement): return False
+    if not isinstance(parser_inputs, Mapping) or type(ordered_ids) is not list: return False
+    if len(ordered_ids) != 22 or len(ordered_ids) != len(set(ordered_ids)): return False
+    if set(parser_inputs) != set(ordered_ids): return False
+    if any(type(parser_inputs[fixture_id]) is not bytes for fixture_id in ordered_ids): return False
+    try:
+        expected = measure_corpus(parser_inputs, ordered_ids)
+    except (KeyError, TypeError, ValueError):
+        return False
+    return measurement == expected
+
 def build_report(corpus_revision,measurement,assertions,provenance):
     if type(corpus_revision) is not str or not corpus_revision.strip(): raise ValueError("invalid corpus revision")
-    if not _safe_report_measurement(measurement): raise ValueError("invalid or unsafe measurement shape")
+    if not _safe_report_shape(measurement): raise ValueError("invalid or unsafe measurement shape")
     required_provenance={"corpus_revision","source_commit","source_blob_sha256","command","python_version","platform","measurement_definition_revision"}
     if not isinstance(provenance,Mapping) or set(provenance)!=required_provenance: raise ValueError("invalid provenance schema")
     ids={f"A-{i:02d}" for i in range(1,14)}
@@ -287,14 +314,14 @@ def build_report(corpus_revision,measurement,assertions,provenance):
     report={"report_schema":"S1-MEASUREMENT-REPORT-V1","corpus_revision":corpus_revision,
         "measurement":dict(measurement),"assertions":dict(assertions),"provenance":dict(provenance)}
     return json.dumps(report,sort_keys=True,separators=(",",":"),ensure_ascii=True).encode("utf-8")
-def validate_report_readback(report_bytes):
+def validate_report_readback(report_bytes, parser_inputs, ordered_ids):
     if type(report_bytes) is not bytes: return False
     parsed=parse_json_bytes(report_bytes)
     if parsed.value is None or parsed.reason_code is not None: return False
     report=_plain(parsed.value)
     if not isinstance(report,dict) or set(report)!={"report_schema","corpus_revision","measurement","assertions","provenance"}: return False
     if report["report_schema"]!="S1-MEASUREMENT-REPORT-V1": return False
-    if not _safe_report_measurement(report["measurement"]): return False
+    if not _safe_report_measurement(report["measurement"], parser_inputs, ordered_ids): return False
     ids={f"A-{i:02d}" for i in range(1,14)}
     provenance_fields={"corpus_revision","source_commit","source_blob_sha256","command","python_version","platform","measurement_definition_revision"}
     return isinstance(report["assertions"],dict) and set(report["assertions"])==ids and all(
@@ -311,7 +338,7 @@ def evaluate_assertions(e):
       "A-08":lambda:recompute_aggregates(e["measurement"]["rows"])==e["measurement"]["aggregates"],
       "A-09":lambda:e["measurement_pass_1"]==e["measurement_pass_2"],
       "A-10":lambda:validate_provenance(e["provenance"],e["harness_source_bytes"],e["frozen_source_sha256"]),
-      "A-11":lambda:validate_report_readback(e["report_bytes"]),
+      "A-11":lambda:validate_report_readback(e["report_bytes"],e["parser_inputs"],e["ordered_ids"]),
       "A-12":lambda:validate_execution_trace({"payload_persistence_events":e["execution_trace"]["payload_persistence_events"],"external_access_events":[]}) and validate_capability_boundary(e["harness_source_bytes"],"persistence"),
       "A-13":lambda:validate_execution_trace({"payload_persistence_events":[],"external_access_events":e["execution_trace"]["external_access_events"]}) and validate_capability_boundary(e["harness_source_bytes"],"external"),
     }
