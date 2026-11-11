@@ -214,9 +214,10 @@ def _parse_record(record_bytes):
 def validate_oos_evaluation_record(record_bytes, manifest_binding, candidate_population_count=None):
     """Validate frozen structure and local consistency; never assert OOS VERIFIED.
 
-    manifest_binding is an independently obtained mapping containing
-    evaluation_record_id and evaluation_record_digest. candidate_population_count
-    is optional external arithmetic input, not authoritative lineage evidence.
+    manifest_binding is a supplied mapping containing evaluation_record_id and
+    evaluation_record_digest. Its digest match is only against those supplied
+    values; this function does not authenticate the signed manifest. The optional
+    candidate_population_count is arithmetic input, not authoritative lineage.
     """
     payload = _parse_record(record_bytes)
     _exact_fields(payload, TOP_LEVEL_FIELDS, "TOP_LEVEL_FIELDS_MISMATCH")
@@ -295,7 +296,8 @@ def validate_oos_evaluation_record(record_bytes, manifest_binding, candidate_pop
 
     return {
         "record_status": "STRUCTURE_VALID",
-        "manifest_binding_status": "MATCHED",
+        "manifest_binding_status": "DIGEST_MATCHED_TO_SUPPLIED_BINDING",
+        "manifest_authenticity_status": "NOT_VERIFIED",
         "partition_declaration_status": "LOCALLY_CONSISTENT",
         "lineage_status": "NOT_VERIFIED",
         "sample_identity_status": "NOT_VERIFIED",
