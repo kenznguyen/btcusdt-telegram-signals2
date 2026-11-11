@@ -2453,7 +2453,7 @@ os._exit(0)
         with sqlite3.connect(self.path) as connection:
             risk = connection.execute(
                 """SELECT last_equity_quote,last_mark_price,mark_observed_at_ms,
-                          mark_candle_close_ms,dataset_version,risk_ready
+                          mark_candle_close_ms,dataset_version,risk_ready,unavailable_reason
                    FROM paper_account_risk_state WHERE account_id=1"""
             ).fetchone()
             capital = connection.execute(
@@ -2488,6 +2488,7 @@ os._exit(0)
         self.assertEqual(risk[0], str(expected))
         self.assertEqual(risk[1:5], ("110", self.now, self.now-60_000, "sha256:account-mark"))
         self.assertEqual(risk[5], 1)
+        self.assertIsNone(risk[6])
         reserved_notional = sum((Decimal(row[0]) for row in active_reservations), Decimal(0))
         reserved_margin = sum((Decimal(row[1]) for row in active_reservations), Decimal(0))
         self.assertGreater(reserved_margin, Decimal(0))
