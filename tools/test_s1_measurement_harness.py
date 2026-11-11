@@ -120,6 +120,10 @@ class MeasurementHarnessTests(unittest.TestCase):
   results=evaluate_assertions({})
   self.assertEqual(set(results),{f"A-{i:02d}" for i in range(1,14)})
   self.assertFalse(any(results.values()))
+ def test_assertions_fail_closed_when_required_evidence_is_missing(self):
+  results=evaluate_assertions({"parser_inputs":{},"oracle_records":{}})
+  self.assertEqual(set(results),{f"A-{i:02d}" for i in range(1,14)})
+  self.assertFalse(any(results.values()))
  def test_static_capability_boundary_rejects_file_and_network_io(self):
   safe=b"def pure(value):\n    return value + 1\n"
   file_code=b"def bad(path):\n    with open(path, 'wb') as handle: handle.write(b'x')\n"
