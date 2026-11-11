@@ -1629,3 +1629,12 @@ Next: use ordinary non-SSH T0 validation on the exact active branch SHA if workf
 - No replacement VPS, runtime, T1 activation, PostgreSQL/TimescaleDB operation, FreqAI training, or live trading is authorized by G0.6.
 - G0.6 scope was documentation-only. No source/workflow/test/runtime/database changes; tests NOT RUN; Actions CI NOT VERIFIED.
 - Evidence report and parity addendum commits are recorded in the G0.6 report. The next permitted step is a separately approved bounded VPS provisioning/deployment scope if runtime validation is desired.
+
+
+## G0.7 — SSH Preflight / G4 handoff reconciliation (2026-11-11)
+
+- Evidence report: `docs/evidence/G0_7_HANDOFF_SSH_G4_RETIREMENT_RECONCILIATION_2026-11-11.md`, created in commit `f9f5bebb1afd8faba50f5a444c7ceec8ad125c2a`.
+- Handoff correction commit: `66097c56e77feb67cbc232bc9f658d6d24210cae`; handoff blob at that commit: `acc4e09742554b94755568e7fc4a8f421f2bf7d6`.
+- PR #139 was confirmed CLOSED / NOT MERGED at `2026-11-11T13:02:13Z`; it is no longer an open/draft task.
+- Active G4 runtime instructions were replaced with a retired-workstream record. Historical run references remain only as historical evidence. Former Scaleway VPS was deleted; current deployment parity remains NOT VERIFIED.
+- G0.7 was documentation-only. Tests NOT RUN; Actions CI NOT VERIFIED; no VPS, SSH, runtime, T0 data, source, workflow, T1/T2 deployment or trading changes.
