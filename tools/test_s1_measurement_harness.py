@@ -93,7 +93,7 @@ class MeasurementHarnessTests(unittest.TestCase):
   self.assertEqual(recompute_aggregates(m["rows"]),m["aggregates"])
  def test_provenance_hash_is_computed_and_compared(self):
   source=b"frozen harness source"; digest=hashlib.sha256(source).hexdigest()
-  provenance=runtime_provenance("corpus-v1","a"*40,"b"*64,"python -m unittest")
+  provenance=runtime_provenance("corpus-v1","a"*40,hashlib.sha256(source).hexdigest(),"python -m unittest")
   self.assertTrue(validate_provenance(provenance,source,digest))
   self.assertFalse(validate_provenance(provenance,source+b"tampered",digest))
  def test_report_readback_checks_schema_aggregate_and_duplicate_keys(self):
@@ -122,7 +122,7 @@ class MeasurementHarnessTests(unittest.TestCase):
  def test_all_thirteen_assertions_pass_on_complete_evidence(self):
   inputs,oracle,ids,cases,kinds=valid_corpus(); m=measure_corpus(inputs,ids)
   source=inspect.getsource(__import__("tools.s1_measurement_harness",fromlist=["x"])).encode()
-  provenance=runtime_provenance("corpus-v1","a"*40,"b"*64,"python -m unittest")
+  provenance=runtime_provenance("corpus-v1","a"*40,hashlib.sha256(source).hexdigest(),"python -m unittest")
   report=build_report("corpus-v1",m,{f"A-{i:02d}":True for i in range(1,14)},provenance)
   e={"parser_inputs":inputs,"oracle_records":oracle,"expected_fixture_ids":ids,"expected_case_ids":cases,
    "expected_fixture_types":kinds,"measurement":m,"measurement_pass_1":m,"measurement_pass_2":m,
@@ -132,7 +132,7 @@ class MeasurementHarnessTests(unittest.TestCase):
  def test_each_assertion_fails_closed_when_its_evidence_is_broken(self):
   inputs,oracle,ids,cases,kinds=valid_corpus(); m=measure_corpus(inputs,ids)
   source=inspect.getsource(__import__("tools.s1_measurement_harness",fromlist=["x"])).encode()
-  provenance=runtime_provenance("corpus-v1","a"*40,"b"*64,"python -m unittest")
+  provenance=runtime_provenance("corpus-v1","a"*40,hashlib.sha256(source).hexdigest(),"python -m unittest")
   report=build_report("corpus-v1",m,{f"A-{i:02d}":True for i in range(1,14)},provenance)
   base={"parser_inputs":inputs,"oracle_records":oracle,"expected_fixture_ids":ids,"expected_case_ids":cases,
    "expected_fixture_types":kinds,"measurement":m,"measurement_pass_1":m,"measurement_pass_2":m,
