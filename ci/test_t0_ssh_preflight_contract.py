@@ -10,7 +10,7 @@ import unittest
 
 
 SCRIPT = Path(__file__).resolve().parents[1] / "ops" / "ssh" / "t0-readonly-preflight.sh"
-WORKFLOW = SCRIPT.parents[1] / ".github" / "workflows" / "t0-manual-validation.yml"
+WORKFLOW = SCRIPT.parents[2] / ".github" / "workflows" / "t0-manual-validation.yml"
 
 
 class T0SSHPreflightContractTests(unittest.TestCase):
