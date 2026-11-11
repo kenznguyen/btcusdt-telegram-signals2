@@ -417,3 +417,80 @@ No answer is inferred from prior provider discussions. Absence of a decision mea
 - Implementation: **BLOCKED — separate approval required after frozen-contract independent review**.
 
 No code, test, workflow, CI configuration, key, trust root, policy instance, anchor record, TSA/provider, VPS runtime, Feeder/API, SQLite database, canonical data, retention policy or destructive operation is changed or exercised by this amendment. No key was generated; no signature was produced; no anchor was published. Paper-only posture and `AI_EXECUTION_ENABLED=false` remain unchanged.
+
+
+## 13. Byte-level closure for Trust Policy and Anchor objects
+
+This section is normative and closes the exact-byte details for policy and anchor objects. It does not select a production signature algorithm.
+
+### 13.1 Trust Policy body digest
+
+Let `P` be the exact canonical T0-JCS-1 bytes of the Trust Policy body, excluding its detached policy signature envelope:
+
+```
+policy_body_digest =
+  SHA256(
+    UTF8("T0-TRUST-POLICY-BODY-V1\\0")
+    || U64BE(byte_length(P))
+    || P
+  )
+```
+
+The policy body MUST NOT contain its own digest or signature. The digest is carried by the detached Policy Signature Statement and envelope. The body MUST include policy ID, schema, sequence, predecessor policy digest, audience/namespace, allowed profiles, signer entries, verifier minimum and critical-feature requirements before its digest is computed.
+
+### 13.2 Policy Signature Statement and preimage
+
+The detached policy signature statement schema is `T0-TRUST-POLICY-STATEMENT-V1`. It MUST contain:
+
+- exact statement type and policy signature profile/algorithm;
+- policy ID, schema version and policy sequence;
+- predecessor policy digest or explicit genesis marker;
+- policy body digest algorithm, exact digest and exact byte length;
+- policy audience/namespace;
+- signer fingerprint and signer role;
+- root/rotation authority identifier and bootstrap/policy-chain reference.
+
+Let `PS` be the canonical T0-JCS-1 bytes of this statement:
+
+```
+policy_statement_bytes = T0_JCS_1(policy_statement)
+
+policy_signature_preimage =
+    UTF8("T0-TRUST-POLICY-STATEMENT-V1\\0")
+    || U64BE(byte_length(policy_statement_bytes))
+    || policy_statement_bytes
+
+policy_signature = Sign(authorized_policy_private_key, policy_signature_preimage)
+```
+
+The detached policy signature envelope schema is `T0-TRUST-POLICY-ENVELOPE-V1` and carries the exact policy body bytes, exact canonical policy statement bytes and signature bytes. Its envelope digest, if used as an object identity, is computed only after signature creation and is not self-referential. The verifier MUST recompute the body digest and reconstruct the exact policy signature preimage; producer-supplied digest values are never authoritative.
+
+For the genesis policy, predecessor is an explicit genesis marker and the policy signature MUST verify directly under the owner-pinned bootstrap root. Every later policy sequence MUST be exactly predecessor sequence + 1 and its predecessor digest MUST match the exact prior policy body digest. Same sequence/same digest is idempotent; same sequence/different digest is equivocation; lower sequence is rollback.
+
+### 13.3 Anchor object digest and detached envelope
+
+The anchor signature in §6.2 signs only the canonical anchor statement bytes, using the stated domain-separated preimage. After signature creation, the detached anchor envelope schema `T0-MONOTONIC-ANCHOR-ENVELOPE-V1` is formed from:
+
+- exact canonical anchor statement bytes;
+- exact signature algorithm/profile repeated for transport consistency;
+- exact signature bytes;
+- optional unsigned transport metadata clearly marked non-authoritative.
+
+The anchor object digest used as the successor's `predecessor_anchor_digest` is:
+
+```
+anchor_object_digest =
+  SHA256(
+    UTF8("T0-MONOTONIC-ANCHOR-OBJECT-V1\\0")
+    || U64BE(byte_length(anchor_envelope_bytes))
+    || anchor_envelope_bytes
+  )
+```
+
+`anchor_envelope_bytes` MUST be a canonical T0-JCS-1 serialization of the envelope and MUST exclude mutable transport metadata. The statement signature does not sign its own envelope digest; instead it signs all security-relevant anchor statement fields, and the envelope digest commits to the completed statement-plus-signature object. The verifier MUST recompute both the statement preimage/signature and the complete envelope digest.
+
+The anchor digest MUST be stable across the VPS and GitHub copies. Any byte difference in the canonical envelope is a different anchor object and MUST be treated as a custody conflict or invalid copy, not normalized silently.
+
+### 13.4 Object identity and digest algorithm constraints
+
+For the current draft, all three object-body digests (Evidence Object, Trust Policy body and Anchor envelope) use SHA-256 with the exact domain separators and U64BE byte-length prefixes defined in this amendment. A future algorithm change requires a new versioned profile and explicit Trust Policy authorization; it MUST NOT be negotiated by an untrusted envelope. The selected signature algorithm remains unresolved and requires an owner/security decision before implementation.
