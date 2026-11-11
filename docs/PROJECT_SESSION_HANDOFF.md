@@ -1720,3 +1720,17 @@ No VPS/volume/IP/payment, SSH/firewall, package, service, configuration, deploym
 
 Next: if owner wants to proceed beyond planning, first approve a bounded provisioning specification and confirm the exact Scaleway zone, account quota, final checkout quote, volume persistence policy and whether single-host failure-domain coupling is acceptable. A separate approval is required before resource creation or deployment.
 
+
+
+## G0.9 — VPS Data Lifecycle and Storage Governance Design (2026-11-11)
+
+- Evidence report: `docs/evidence/G0_9_VPS_DATA_LIFECYCLE_STORAGE_GOVERNANCE_2026-11-11.md`, created in commit `c37b6d4b684b12e60c0d78dddcf9cfbe71805e0a`.
+- Scope: documentation-only translation of the existing central lifecycle policy and owner-ratified RET-01 B / RET-02 B into the planned VPS storage domains. No implementation or runtime inventory.
+- G0.8-C storage planning envelope remains 500 GB split 80/20/300/100 GB; this is not provisioned. No replacement VPS exists after deletion of the former Scaleway host.
+- Earlier suggested 24-hour cache, 7-day scratch, 14–30-day log retention and 80% cleanup threshold are NOT approved policy values and are not adopted. RET-03 through RET-10 remain open/not verified; no numeric retention, TTL, grace, alert or evidence-freshness value is approved by G0.9.
+- T0 canonical data remains PROTECTED. T1 raw deletion review is BLOCKED by incomplete/unverifiable streams, producer SHA mismatch, unverified BTCUSDT-only runtime config and unmeasured growth. T2/T4 object eligibility, runtime logs, backups/copies and rebuildability remain NOT VERIFIED.
+- G0.9 defines a read-only inventory/classification/dependency/rebuildability/dry-run workflow and a fail-closed test matrix. The dry-run contract is not implemented; tests NOT RUN; GitHub Actions NOT DISPATCHED; no run/artifact.
+- G0.9 verdict: policy alignment PASS (documentary); static storage-domain mapping CONDITIONAL PASS; implementation, runtime inventory and cleanup eligibility NOT VERIFIED/BLOCKED.
+- No source/schema/API/registry/workflow/scheduler/service/permission/credential/database/storage/VPS/data change; no archive, quarantine, cleanup, expiry, compaction, vacuum or deletion. T0 remains independent; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
+- Next bounded task: prepare a synthetic-only dry-run contract and test implementation plan. Before implementation or workflow dispatch, separately bound exact synthetic fixture paths, test-only allowlist, proof of no production-data access and CI workflow scope. No destructive executor is included.
+
