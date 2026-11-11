@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   single-measurement:
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/feature/t0-centralized-data-feeder-p1-20261101' && github.event.before == '8f9f854cad4ec460ad10e850613af4d880d0c357' && github.event.head_commit.id == github.sha && github.run_attempt == 1 }}
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/feature/t0-centralized-data-feeder-p1-20261101' && github.event.before == '66a2f9fc70c09ffbe073dfc98acfb500df5aeb42' && github.event.head_commit.id == github.sha && github.run_attempt == 1 }}
     name: One approved S1 in-memory measurement
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -41,7 +41,7 @@ jobs:
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           test "$GITHUB_REF" = "refs/heads/feature/t0-centralized-data-feeder-p1-20261101"
-          test "$GITHUB_EVENT_BEFORE" = "8f9f854cad4ec460ad10e850613af4d880d0c357"
+          test "$GITHUB_EVENT_BEFORE" = "66a2f9fc70c09ffbe073dfc98acfb500df5aeb42"
           test "$GITHUB_EVENT_HEAD_SHA" = "$GITHUB_SHA"
           test "$GITHUB_RUN_ATTEMPT" = "1"
           test "$(python --version 2>&1)" = "Python 3.14.4"
@@ -152,10 +152,39 @@ jobs:
               "execution_trace": result["execution_trace"],
           }
 
-          Path("g041-s1-measurement-report.json").write_text(
-              json.dumps(report, sort_keys=True, separators=(",", ":")) + "\\n",
-              encoding="utf-8",
-          )
+          expected_report_keys = {
+              "report_schema",
+              "corpus_revision",
+              "synthetic_only",
+              "d11_numeric_limits_selected",
+              "provenance",
+              "fixture_count",
+              "case_counts",
+              "parser_input_corpus_sha256",
+              "measurement_pass_1",
+              "measurement_pass_2",
+              "assertions",
+              "report_readback_valid",
+              "execution_trace",
+          }
+          if set(report) != expected_report_keys:
+              raise SystemExit("report top-level field inventory mismatch")
+
+          report_bytes = json.dumps(
+              report, sort_keys=True, separators=(",", ":")
+          ).encode("utf-8")
+          parsed_report = json.loads(report_bytes)
+          if parsed_report != report:
+              raise SystemExit("serialized report readback mismatch")
+
+          report_path = Path("g041-s1-measurement-report.json")
+          report_path.write_bytes(report_bytes)
+          persisted_bytes = report_path.read_bytes()
+          if persisted_bytes != report_bytes:
+              raise SystemExit("persisted report bytes differ from serialized bytes")
+          persisted_report = json.loads(persisted_bytes)
+          if persisted_report != report:
+              raise SystemExit("persisted report JSON readback mismatch")
           PY
 
       - name: Upload the single bounded JSON report

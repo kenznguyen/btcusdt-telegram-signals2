@@ -184,3 +184,28 @@ Any pre-invocation guard failure means NOT RUN and requires a new owner decision
 This amendment authorizes only the existing workflow correction, this D14 record update and the single bounded measurement attempt. All prior exclusions remain, including no D11 numeric ceiling proposal/ratification/enforcement; no parser/verifier production implementation, cryptography, trust/key work or S2; no T0/T1/T2, market/model data, CORE_LEDGER, AI_LEDGER, Shared Risk Engine, Kill Switch, PostgreSQL, VPS/runtime, provider/database/network/exchange or destructive lifecycle operation.
 
 **D14 G0.42 verdict:** OWNER-APPROVED FOR THIS EXACT PARENT-BOUND CORRECTION AND ONE FRESH G0.41 ATTEMPT ONLY. D11 numeric ceilings remain OPEN / NOT RATIFIED.
+
+
+## 11. D14 narrow amendment — G0.43 report serialization correction and one fresh attempt
+
+Date: 2026-11-11 (Asia/Ho_Chi_Minh)  
+Owner authorization: standing bounded G0 authorization through D11 completion, applied to exact G0.43 owner package  
+Package: `docs/evidence/G0_43_G041_REPORT_SERIALIZATION_CORRECTION_OWNER_PACKAGE_2026-11-11.md`  
+Package commit: `66a2f9fc70c09ffbe073dfc98acfb500df5aeb42`  
+Exact implementation parent / approved `github.event.before`: `66a2f9fc70c09ffbe073dfc98acfb500df5aeb42`
+
+The owner has authorized this exact G0.43 correction and one fresh G0.41 one-shot attempt under the standing bounded authorization through D11. The existing `.github/workflows/g041-s1-single-measurement.yml` may be corrected only for report serialization and exact-parent binding; this D14 record may be amended; then exactly one frozen runner invocation may occur if all pre-invocation guards pass.
+
+The single implementation push must have exact parent SHA `66a2f9fc70c09ffbe073dfc98acfb500df5aeb42`. Job admission requires push event, exact branch `refs/heads/feature/t0-centralized-data-feeder-p1-20261101`, exact `github.event.before` equal to `66a2f9fc70c09ffbe073dfc98acfb500df5aeb42`, `github.event.head_commit.id == github.sha`, and `github.run_attempt == 1`. Existing exact workflow-path push trigger remains. Reruns must skip before any step.
+
+Serialization contract: create one canonical compact sorted UTF-8 JSON byte sequence from the already-produced report object; require the exact expected top-level field inventory; parse the exact bytes with `json.loads`; require parsed-object equality; write those exact bytes without any appended suffix; read the persisted file bytes back; require byte equality and parse/equality again before upload. JSON parsing must reject trailing non-whitespace data. This validation must not invoke `prepare_preflight` again, reconstruct fixtures, inspect parser input bytes, or create another artifact.
+
+If guards pass, invoke frozen `tools.s1_measurement_runner.prepare_preflight(...)` exactly once and upload exactly one validated JSON report artifact with seven-day retention. Preserve the existing report schema and evidence fields, read-only `contents: read`, pinned actions, exact SHA checkout, shallow clone, `persist-credentials: false`, Python 3.14.4, no secrets/packages/network/providers/databases/VPS/exchange, and five-minute timeout.
+
+Frozen Python blobs must remain unchanged: harness `e8db71c11e0503ea6d9a2480d75470185c4d5100`; runner `23a35aab7f7aeacd8a3f63d630a875fe76b1ff6a`; tests `d06a5b533af14378ed284051e5b057cf57377876`.
+
+Any pre-invocation guard failure means NOT RUN and requires a new owner decision; do not repair or repush under this authorization. Any failure after the runner invocation begins consumes this one-shot attempt and is FAILED/INCOMPLETE. No retry, rerun, repair-and-rerun, second invocation or replacement attempt.
+
+This amendment authorizes only this workflow correction, this D14 update and the one bounded G0.41 measurement attempt. It does not authorize any other workflow/CI changes, source/test/dependency changes, D11 numeric ceiling proposal/ratification/enforcement, parser/verifier production implementation, cryptography/trust/key changes, S2, T0/T1/T2, canonical market data, model/training, ledgers, Shared Risk Engine, Kill Switch, PostgreSQL, VPS/runtime, provider/database/network/exchange or destructive lifecycle operations. T0 remains independent/protected; CORE_LEDGER and AI_LEDGER remain separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
+
+**D14 G0.43 verdict:** OWNER-AUTHORIZED FOR THIS EXACT PARENT-BOUND SERIALIZATION CORRECTION AND ONE FRESH G0.41 ATTEMPT ONLY. D11 numeric ceilings remain OPEN / NOT RATIFIED.
