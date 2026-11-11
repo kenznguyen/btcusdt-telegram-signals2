@@ -1275,3 +1275,12 @@ Owner approved recording the independent AI Strategy contract and preparing test
 - No T0/T1/T2 runtime or canonical data changed.
 
 Next: execute focused RED tests in GitHub Actions against exact test SHA `d0f1b014463e6ad1eff36425a18411233c484ba2`; correct tests only, add the missing E2E RED test, then request separate approval before GREEN implementation.
+
+
+### AI Strategy TDD RED scope update — 2026-11-11
+
+- Added an API/ledger integration RED test in `paper_execution/test_dual_strategy_api_red.py`: AI BUY remains visible while Core is WAIT; the API routes the candidate to `AI_FREQAI`; Shared Risk Engine rejects it while account risk is unready; Core position/orders remain unchanged.
+- E2E test commit and exact source SHA: `550a529c2a726f82911602aee207f0df32c78eb9`.
+- Combined GitHub commit-status query for this SHA returned no checks. Test execution remains **NOT VERIFIED**; container could not resolve `github.com` to clone the repository. No RED result, workflow run or artifact is claimed.
+- Evidence report was updated in commit `fa5147e57b354c605aaa0c63c8f4aba7201dcabe`.
+- Next step remains: run the focused test files in GitHub Actions against exact SHA `550a529c2a726f82911602aee207f0df32c78eb9`, inspect/repair test-only issues, then seek separate approval before any GREEN implementation.
