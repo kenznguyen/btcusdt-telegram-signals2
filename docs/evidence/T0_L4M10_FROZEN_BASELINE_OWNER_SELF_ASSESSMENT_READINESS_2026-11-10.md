@@ -17,11 +17,11 @@ This is a readiness assessment, not an acceptance event, evidence freeze, audit,
 
 ## 2. Controlling requirements
 
-The controlling matrix is `docs/evidence/p1-8/L4-MINIMUM-PROVENANCE-ACCEPTANCE-MATRIX.md`, blob `75db0d98134fd656d91a8545bc307c56595aebf7`.
+The controlling matrix is `docs/evidence/p1-8/L4-MINIMUM-PROVENANCE-ACCEPTANCE-MATRIX.md`, blob `7c413504db397877b308345b21c9f6f58271c89a`.
 
 The owner waiver is `docs/decisions/D-2026-11-10-L4-INDEPENDENT-REVIEW-WAIVER.md`, blob `75e057ba482d81f6a9d896ace2b017807c9396d9`.
 
-The current acquisition register is `docs/evidence/T0_L4_MINIMUM_NINE_CONTROL_EVIDENCE_ACQUISITION_REGISTER_2026-11-10.md`, blob `e67a58591b5f6168ab3a0f3f403557292aca45d5`.
+The current acquisition register is `docs/evidence/T0_L4_MINIMUM_NINE_CONTROL_EVIDENCE_ACQUISITION_REGISTER_2026-11-10.md`, blob `6aa362731cbb9363b62bf6483a65f18d46853e00`.
 
 L4M-10 requires:
 - one identified frozen evidence baseline;
