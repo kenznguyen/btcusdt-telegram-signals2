@@ -1943,3 +1943,17 @@ Next: if owner wants to proceed beyond planning, first approve a bounded provisi
 - Documentation-only: no source/test/fixture/schema/API/registry/adapter/runner/oracle/workflow/scheduler/permission/credential/database/storage/market-data/model/ledger/VPS/runtime changes; no tests or workflow dispatch; no inventory/secret scan/network/provider/database/VPS access; no archive/quarantine/cleanup/expiry/compaction/vacuum/deletion.
 - Next gate proposed: G0.22 — Verified-facts Envelope and Verifier Contract. This requires separate approval before implementation. G0.23 synthetic verifier tests, G0.24 evaluator adapter, TEST-01–07, runtime inventory and any destructive executor remain separate gates.
 - T0 remains independent/protected; CORE_LEDGER and AI_LEDGER remain separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
+
+
+## G0.22 — Verified-Facts Envelope and Verifier Contract (2026-11-11)
+
+- Owner approved a documentation-only contract design following G0.21.
+- Baseline / starting HEAD: `80e2e7fe9718c008716c50e7905f5523ed1870c7`.
+- Report: `docs/evidence/G0_22_VERIFIED_FACTS_ENVELOPE_AND_VERIFIER_CONTRACT_2026-11-11.md`; report commit: `e7f457c9f6368599101a9a02cd4d12a05688ace3`.
+- Contract defines untrusted claimant/source adapters → evidence verifier → bounded immutable verified-facts envelope → pure lifecycle evaluator → separate exact-object owner authorization → separately approved guarded executor.
+- Required verifier controls: authenticated issuer and scoped authority; exact immutable subject/evidence binding; digest recomputation and approved authenticity proof; producer/build/input/output provenance; authoritative inventory scope/completeness closure; authenticated policy and G0.17 sensitivity inheritance; rebuildability/downstream-use evidence; freshness, expiry and revocation checks; bounded parsing and fail-closed outcomes.
+- No signature/hash/canonical-encoding profile, trust root/key hierarchy, revocation protocol, numeric freshness window, physical schema, evidence registry, API or executor was selected. These remain explicit owner/security decisions.
+- G0.22 verdict: **DESIGN PASS — contract specified; trust authenticity and operational enforcement NOT ESTABLISHED**.
+- G0.23 synthetic verifier tests/fixtures, owner/security ratification of open decisions, G0.24 evaluator adapter, implementation/CI, TEST-01–07, runtime inventory and any executor each remain separate gates and approvals.
+- Documentation-only. No source/test/fixture/schema/API/registry/adapter/runner/oracle/workflow/scheduler/permission/credential/database/storage/market-data/model/ledger/VPS/runtime changes; no tests or workflow dispatch; no key operation, network/provider/database/VPS access, inventory, archive, quarantine, cleanup, expiry, compaction, VACUUM or deletion.
+- T0 remains independent/protected; CORE_LEDGER and AI_LEDGER remain separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
