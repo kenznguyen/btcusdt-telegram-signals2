@@ -27,13 +27,14 @@
 
 - Working branch: `feature/t0-centralized-data-feeder-p1-20261101`.
 - Default branch: `main`.
-- G0.50 recorded baseline HEAD: `2b4e59a59faebb34b0d62a658d08fa95ece68ffa`. This is a historical workstream baseline, not asserted to be the current branch HEAD after subsequent commits.
-- The prior repository comparison against `main` reported substantial divergence (3,204 commits ahead / 81 behind at the time queried). Re-run an exact compare before any integration decision.
-- Numerous open Draft PRs and Issues exist. A complete PR-by-PR disposition has not yet been produced by this document.
-- PR #139 (SSH passphrase preflight) is CLOSED / NOT MERGED per the controlling handoff. Do not reopen or merge without separate approval.
-- Issue #138 / P1.42 remains a T1 review blocker (REQUEST CHANGES in the reviewed state).
+- G0.50 recorded baseline HEAD: `2b4e59a59faebb34b0d62a658d08fa95ece68ffa`; historical only.
+- Latest G0.4 exact compare baseline: active branch HEAD `ba8569e704fc256b7743abf0163116878e06e89c`; `main` HEAD `b9b938b4c78f143ca63330d047a8a799ef450a13`; merge base `f5b74affb8777953fa66d241784965fbb0e577ba`.
+- Compare orientation `base=main`, `head=feature/t0-centralized-data-feeder-p1-20261101`: **DIVERGED; active branch ahead 3,215 / behind 82**.
+- G0.3 classified 76 main-only commits at its earlier checkpoint. G0.4 classified the six additional commits from G0.3 `main` HEAD `063f7a2eacd724f965a9723d0ae66cf95418c0fb` to current `main` HEAD; they concern SSH Preflight retirement, its documentary closeout and G0.52.
+- Current GitHub snapshot: **39 open Draft PRs** and **2 open issues** (#138 T1 P1.42; #91 Dashboard). PR #139 is CLOSED / NOT MERGED; PR #144 is MERGED into `main`. Counts are a snapshot, not merge approvals or a full per-PR compatibility assessment.
+- G0.4 active-branch readback confirms SSH Preflight script/test paths are absent and the active manual workflow contains no Preflight references. Runtime/VPS behavior remains NOT VERIFIED.
 
-**Disposition:** integration is BLOCKED pending a read-only branch/PR/commit topology inventory and an Owner-approved integration strategy. Do not rebase, merge, force-push, delete branches, or bulk-close PRs as part of roadmap maintenance.
+**Disposition:** integration remains **BLOCKED**. Preserve the active branch; do not rebase, merge, cherry-pick, force-push, delete branches or bulk-close PRs. See `docs/evidence/G0_4_MAIN_ONLY_DELTA_AND_TOPOLOGY_REFRESH_2026-11-11.md` for the exact six-commit classification and readback evidence.
 
 ## 3. Five-layer architecture and status
 
@@ -300,6 +301,8 @@ Use these records as the starting evidence set; each result remains bounded to i
 - `docs/evidence/G0_8_C_SCALEWAY_VPS_CAPACITY_PLAN_2026-11-11.md` — capacity plan only.
 - `docs/evidence/G0_9_VPS_DATA_LIFECYCLE_STORAGE_GOVERNANCE_2026-11-11.md` — storage governance design only.
 - `docs/evidence/G0_49_D07_D08_D09_OWNER_DECISION_RECORD_2026-11-11.md` — D07/D08/D09 decisions.
+- `docs/evidence/G0_3_MAIN_ONLY_76_COMMITS_CLASSIFICATION_2026-11-11.md` — historical 76-commit main-only classification.
+- `docs/evidence/G0_4_MAIN_ONLY_DELTA_AND_TOPOLOGY_REFRESH_2026-11-11.md` — current topology and six-commit delta refresh.
 - `docs/evidence/G0_51_D12_D13_D14_OWNER_DECISION_RECORD_2026-11-11.md` — D12/D13/D14 decisions.
 - `docs/evidence/G0_52_D01_D14_S2_READINESS_AUDIT_RECORD_2026-11-11.md` — S2 readiness audit.
 - `docs/evidence/G0_53_S2_SYNTHETIC_VERIFIER_CONTRACT_OWNER_DECISION_PACKAGE_2026-11-11.md` — latest package referenced by the reviewed handoff.
