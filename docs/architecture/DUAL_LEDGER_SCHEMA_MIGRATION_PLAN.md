@@ -498,3 +498,38 @@ Migration v3 adds persisted expiry semantics without changing v1 or v2 checksums
   backtest, merge, deployment, exchange connection or live execution occurred.
 - T0 source/tests/workflows/provider policy remain unchanged; Option C remains the
   default provider policy; ai_execution_enabled=false.
+
+
+
+## 13. Current authorization and verification status — 2026-11-11 (append-only)
+
+This addendum supersedes earlier implementation-authorization wording only
+within the subsequently owner-approved DS-01 / DS-02 PAPER-only increment.
+All historical v1-v5 design and verification records above remain unchanged.
+
+- Bounded DS-01 / DS-02 source implementation is complete at exact source/test
+  SHA `8d9eee6cd503237f8b8a398fcaf1e055dfa9d644`.
+- Exact CI run:
+  [42971136555](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42971136555)
+  — compile PASS, focused contracts PASS, full `paper_execution` regression
+  **300 tests PASS**. Artifact ID `13833202840`, SHA-256
+  `0eb0bbb6ad5bfbca27c9665e06548a11dba37e2d25d4939ea891301a6054f506`.
+- Scope includes API strategy identity on writes, persisted owner lookup for
+  cancellation, Core-only snapshot selection, account mark/equity reconciliation
+  across strategy ledgers and legacy adjustments, and isolated regression tests.
+- Status is **PASS — DS-01 / DS-02 source and isolated CI scope only**. This does
+  not certify all v1-v5 migrations, all contract acceptance gates, production
+  account readiness, or operational execution.
+- No persistent account database was migrated or cut over. Funding coverage,
+  immutable account cutover, external statement reconciliation, runtime
+  activation, deployment, backtests and live execution remain
+  NOT AUTHORIZED / NOT PERFORMED / NOT VERIFIED.
+- Risk readiness must remain fail-closed until the separately approved account
+  cutover process has complete and independently reconciled evidence.
+- DS-03 Core sizing/leverage remains BLOCKED; DS-04 document reconciliation
+  remains open until its report and handoff are committed.
+
+The earlier "implementation and database changes remain unauthorized" header
+is a historical design-stage status; read it together with this dated addendum.
+This addendum does not alter migration checksums, schema versions, or prior
+historical approvals.
