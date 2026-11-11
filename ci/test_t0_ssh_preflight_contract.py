@@ -255,5 +255,42 @@ class T0SSHPreflightContractTests(unittest.TestCase):
         self.assertIn("github.event_name == 'workflow_dispatch' && inputs.gate == 'scaleway-ssh-preflight'", workflow)
         self.assertIn("SCW_SSH_KEY_PASSPHRASE", workflow)
 
+
+    def test_verdict_requires_successful_ssh_exit_code(self):
+        workflow = WORKFLOW.read_text()
+        classifier = workflow.split("      - name: Classify preflight evidence\\n", 1)[1].split(
+            "      - name: Upload sanitized preflight evidence\\n", 1
+        )[0]
+        self.assertIn("preflight-ssh-exit-code.txt", classifier)
+        self.assertIn("grep -Fxq '0' preflight-ssh-exit-code.txt", classifier)
+        self.assertLess(
+            classifier.index("grep -Fxq '0' preflight-ssh-exit-code.txt"),
+            classifier.index("P1_SSH_PREFLIGHT=PASS_READ_ONLY_PREFLIGHT"),
+        )
+
+    def test_verdict_requires_complete_framed_probe_evidence(self):
+        workflow = WORKFLOW.read_text()
+        classifier = workflow.split("      - name: Classify preflight evidence\\n", 1)[1].split(
+            "      - name: Upload sanitized preflight evidence\\n", 1
+        )[0]
+        for required in (
+            "P1_SSH_PREFLIGHT_VERSION=1",
+            "P1_SSH_PREFLIGHT_END=1",
+            "HOSTNAME=",
+            "SSH_USER=",
+            "SOURCE_SHA=",
+            "FEEDER_PIDS=",
+            "API_8788=",
+            "SQLITE_INTEGRITY=PASS",
+        ):
+            self.assertIn(required, classifier)
+        self.assertIn("P1_SSH_PREFLIGHT=PARTIAL_OR_BLOCKED_EVIDENCE", classifier)
+
+    def test_verdict_artifact_includes_sanitized_ssh_diagnostics(self):
+        workflow = WORKFLOW.read_text()
+        artifact = workflow.split("      - name: Upload sanitized preflight evidence\\n", 1)[1]
+        for required in ("preflight-ssh-diagnostic.txt", "preflight-ssh-exit-code.txt"):
+            self.assertIn(required, artifact)
+
 if __name__ == "__main__":
     unittest.main()
