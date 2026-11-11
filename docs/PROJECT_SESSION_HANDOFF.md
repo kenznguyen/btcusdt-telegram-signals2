@@ -830,3 +830,13 @@ This is the current disposition and supersedes the earlier historical NOT RUN / 
 - **Current gate: STAGE I SYNTHETIC CI/TEST = PASS.** Scope remains synthetic-only; independent review waived/not performed; G3 not established. No production crypto, key/root bootstrap, durable policy/anchor, custody, VPS/T0 runtime, canonical data, trading or destructive action is approved by this result.
 - Latest planned follow-up is **contract-only Stage II scoping**, not implementation: first identify the exact Stage II purpose, boundaries, prerequisites, trust assumptions, negative cases, acceptance evidence and approval gates from the governing A2.2 architecture. No Stage II code, production cryptography, key handling, bootstrap, durable state or runtime integration is authorized by this handoff.
 - Branch continuity preserved; evidence updates only. Current commit after this handoff append becomes the new branch HEAD.
+
+
+### A2.2 Stage II — non-normative scope-gap assessment (2026-11-11)
+
+- Draft: `docs/evidence/T0_SIGNATURE_A2_2_STAGE_II_SCOPE_GAP_ASSESSMENT_2026-11-11.md`, commit `0690e13ca01f89794bada1a71b929568d8133b6e`.
+- Status: **DRAFT / NON-NORMATIVE / NOT OWNER-APPROVED / NO IMPLEMENTATION AUTHORITY**.
+- Stage II concept carried forward from prior discussion: cryptographic adapter plus actual digital-signature verification. Algorithm/profile, public-key and signature formats, library/provider, trust binding, key lifecycle, error semantics and resource limits remain unresolved.
+- The draft explicitly separates cryptographic validity from signer trust, Trust Policy authorization, Monotonic Anchor/replay checks and state transitions. It includes a preliminary negative-test checklist and required evidence, without selecting an algorithm or library.
+- **Stage II remains BLOCKED / NOT APPROVED.** Stage I approval and PASS do not authorize Stage II. No code, keys, trust-root/bootstrap, durable policy/anchor state, runtime, VPS, canonical T0, CI secrets, deployment or trading changes were made.
+- Next owner decision: confirm/reject the candidate purpose in §3 of the draft, then decide whether to authorize bounded option analysis for the unresolved §4 rows. No implementation request is implied.
