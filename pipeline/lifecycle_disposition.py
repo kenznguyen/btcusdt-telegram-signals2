@@ -131,7 +131,8 @@ def evaluate_disposition(record):
     if process == "ACTIVE":
         retained.add("RET_PROCESS_ACTIVE")
     for obligation in active:
-        retained.add(OBLIGATIONS.get(obligation, "RET_DEPENDENCY_ACTIVE"))
+        code = OBLIGATIONS.get(obligation, "RET_DEPENDENCY_ACTIVE") if isinstance(obligation, str) else "RET_DEPENDENCY_ACTIVE"
+        retained.add(code)
     if material == "YES":
         retained.add("RET_MATERIAL_DECISION_USE")
     if retained:
