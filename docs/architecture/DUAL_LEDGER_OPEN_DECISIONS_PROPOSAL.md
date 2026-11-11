@@ -87,3 +87,27 @@ A user approval of this proposal would close the six **design decisions** and au
 ## Approval record — 2026-11-06
 
 The user explicitly approved all six decisions in this proposal. They are now normative design requirements for the schema/migration plan and test specifications. This approval authorizes documentation updates only. It does not authorize source implementation, database migration/data rewrite, feature activation, backtests, merge, deployment, exchange connectivity or live execution. A separate explicit approval is required before implementation.
+
+
+
+## Subsequent bounded implementation approval — 2026-11-11 (append-only)
+
+The 2026-11-06 approval above correctly records that approval of the six
+architecture decisions alone authorized documentation, not source implementation.
+A separate owner approval was subsequently given for the bounded DS-01 / DS-02
+PAPER-only source and test increment. This later approval does not retroactively
+expand the six design decisions or authorize persistent database migration,
+account cutover, deployment, backtests, exchange connectivity or live execution.
+
+Exact implementation/test source SHA:
+`8d9eee6cd503237f8b8a398fcaf1e055dfa9d644`.
+
+Verification: [GitHub Actions run 42971136555](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42971136555),
+compile and focused contracts PASS; full `paper_execution` regression 300 tests
+PASS; artifact ID `13833202840`, SHA-256
+`0eb0bbb6ad5bfbca27c9665e06548a11dba37e2d25d4939ea891301a6054f506`.
+
+Disposition remains DS-01 / DS-02 PASS for source and isolated CI only.
+Persistent account migration/cutover and funding readiness remain NOT AUTHORIZED /
+NOT PERFORMED / NOT VERIFIED; DS-03 remains BLOCKED. Historical approval records
+above are retained unchanged.
