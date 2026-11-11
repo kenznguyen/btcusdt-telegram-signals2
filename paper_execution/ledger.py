@@ -2051,12 +2051,17 @@ class PaperLedger:
             ).fetchone()
             if risk is None or account is None:
                 raise sqlite3.DatabaseError("ACCOUNT_RISK_STATE_MISSING_OR_CORRUPT")
-            if Decimal(account[0]) != Decimal(str(initial_capital)):
+            if number(account[0]) != number(str(initial_capital)):
                 raise ValueError("PAPER_INITIAL_CAPITAL_CHANGED; explicit account migration required")
-            if risk[4] is not None and observed_at < risk[4]:
+            previous_mark_at = stamp(risk[4]) if risk[4] is not None else None
+            if previous_mark_at is not None and observed_at < previous_mark_at:
                 raise ValueError("OUT_OF_ORDER_ACCOUNT_MARK")
+            if type(risk[5]) is not int or risk[5] not in (0, 1):
+                raise sqlite3.DatabaseError("ACCOUNT_RISK_STATE_MISSING_OR_CORRUPT")
             utc_day = observed_at // 86_400_000 * 86_400_000
-            if risk[1] is not None and risk[1] != utc_day:
+            if risk[1] is not None and (
+                type(risk[1]) is not int or risk[1] != utc_day
+            ):
                 raise ValueError("ACCOUNT_RISK_DAILY_BASELINE_UNAVAILABLE")
             if cutover and risk[1] is None:
                 raise sqlite3.DatabaseError("ACCOUNT_RISK_DAILY_BASELINE_UNAVAILABLE")
@@ -2072,11 +2077,14 @@ class PaperLedger:
             realized = fees = funding = unrealized = Decimal(0)
             positions = {}
             for strategy_id, raw_qty, raw_avg, raw_pnl, raw_fee, raw_funding in ledgers:
-                qty, avg, pnl, fee, fund = map(
-                    Decimal, (raw_qty, raw_avg, raw_pnl, raw_fee, raw_funding)
-                )
-                if any(not value.is_finite() for value in (qty, avg, pnl, fee, fund)):
-                    raise sqlite3.DatabaseError("ACCOUNT_RISK_LEDGER_VALUE_INVALID")
+                try:
+                    qty = number(raw_qty, signed=True)
+                    avg = number(raw_avg)
+                    pnl = number(raw_pnl, signed=True)
+                    fee = number(raw_fee)
+                    fund = number(raw_funding, signed=True)
+                except ValueError:
+                    raise sqlite3.DatabaseError("ACCOUNT_RISK_LEDGER_VALUE_INVALID") from None
                 if (qty == 0 and avg != 0) or (qty != 0 and avg <= 0) or fee < 0:
                     raise sqlite3.DatabaseError("ACCOUNT_RISK_POSITION_INCONSISTENT")
                 upnl = qty * (mark - avg) if qty else Decimal(0)
@@ -2096,9 +2104,10 @@ class PaperLedger:
                 """SELECT adjustment_type,amount_quote FROM paper_account_adjustments
                    WHERE account_id=1 AND strategy_id='LEGACY_UNATTRIBUTED'"""
             ):
-                amount = Decimal(raw_amount)
-                if not amount.is_finite():
-                    raise sqlite3.DatabaseError("ACCOUNT_RISK_LEGACY_ADJUSTMENT_INVALID")
+                try:
+                    amount = number(raw_amount, signed=True)
+                except ValueError:
+                    raise sqlite3.DatabaseError("ACCOUNT_RISK_LEGACY_ADJUSTMENT_INVALID") from None
                 if kind == "LEGACY_REALIZED_PNL":
                     legacy_pnl += amount
                 elif kind == "LEGACY_FEES" and amount >= 0:
@@ -2107,13 +2116,16 @@ class PaperLedger:
                     raise sqlite3.DatabaseError("ACCOUNT_RISK_LEGACY_ADJUSTMENT_INVALID")
 
             equity = (
-                Decimal(account[0]) + realized + legacy_pnl + unrealized
+                number(account[0]) + realized + legacy_pnl + unrealized
                 - fees - legacy_fees - funding
             )
             if not equity.is_finite() or equity <= 0:
                 raise sqlite3.DatabaseError("ACCOUNT_RISK_EQUITY_INVALID")
-            hwm = equity if risk[0] is None else Decimal(risk[0])
-            if not hwm.is_finite() or hwm <= 0:
+            try:
+                hwm = equity if risk[0] is None else number(risk[0])
+            except ValueError:
+                raise sqlite3.DatabaseError("ACCOUNT_RISK_EQUITY_INVALID") from None
+            if hwm <= 0:
                 raise sqlite3.DatabaseError("ACCOUNT_RISK_EQUITY_INVALID")
             funding_ready = bool(cutover) and _funding_provenance_ready(
                 connection, cutover[0], cutover[1], observed_at, observed_at
