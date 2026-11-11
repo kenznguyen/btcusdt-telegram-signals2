@@ -88,3 +88,26 @@ The documents are proposals, not frozen implementation contracts. Still open:
 ## 7. Next gate
 
 Review and approve/revise the manifest field contract, canonicalization approach, key-role topology and recovery authority. After those design choices are frozen, a separate owner decision is required before any key ceremony, production signing/verifying code, CI workflow, registry provider or AI admission integration.
+
+
+## 8. Frozen read-only verifier v1 implementation (2026-11-11)
+
+Owner approved RFC 8785 JCS, Ed25519 verification and an independently pinned public-key configuration. The following implementation was added on the existing active branch:
+
+- `pipeline/calibration_registry.py`: strict manifest v1 field/schema validation; duplicate-key and JSON-number rejection; exact UTF-8/JCS byte equality; SHA-256 exact artifact-byte digest and length; strict detached envelope bindings; raw Ed25519 public-key verification; independent key fingerprint, signer role, publisher, namespace and record-type scope pinning.
+- `pipeline/test_ai_calibration_registry.py`: 12 deterministic tests, including valid RFC 8032 test-only fixture verification and negative cases for noncanonical bytes, duplicate keys, JSON numbers, schema mismatch, manifest/signature tampering, artifact digest/size, wrong key pin, wrong signer/publisher scope and envelope binding. The test-only seed is not a production key and is not used outside tests.
+- `requirements-web.txt` and `requirements.txt`: added `cryptography>=42.0.0,<47` and `rfc8785>=0.1.4,<0.2`.
+- `.github/workflows/ai-strategy-contract-red.yml`: added compile and focused test execution for the verifier.
+
+Exact verification:
+- Workflow run: [43065112950](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43065112950), job `130677863812`, checked out source SHA `ee5a649cdd5b24adc25ff2083b6dee820f5717af`.
+- Compile: PASS.
+- Calibrated confidence/provenance tests: 13 PASS.
+- Existing AI decision regression: 15 PASS.
+- Registry verifier tests: 12 PASS.
+- Full AI/dual-strategy RED contract: 52 tests, 12 failures and 6 errors. Remaining failures concern leverage mapping, equity readiness/sizing, instrument lot/tick/minimum rules, Kill Switch and API/AI-ledger routing. They are not represented as verifier regressions or PASS.
+- Artifact ID `13875776318`, name `ai-strategy-contract-red-ee5a649cdd5b24adc25ff2083b6dee820f5717af`, upload ZIP SHA-256 `02491d09b1aa41e24b4140999030aa4e977819677f09ab25539408da79c914e1`.
+
+Verifier output is deliberately only `SIGNATURE_VERIFIED_ONLY`. It does not verify registry predecessor/event history, promotion/active/revocation state, trusted time, evaluation-record bytes/metrics, dataset lineage or OOS statistical quality. It does not generate a calibrated confidence from the transform artifact and is not wired as a production provider. The normal API path continues to fail closed; no production key/fingerprint, manifest, calibration artifact, Owner promotion, provider, model/training job, registry state, runtime or live execution was created.
+
+**Disposition:** verifier implementation and focused tests PASS; overall AI confidence/provenance completion BLOCKED pending a real independently pinned trust configuration, approved calibration transform/evidence lineage, promotion/revocation state and per-inference confidence binding. No production admission is enabled.
