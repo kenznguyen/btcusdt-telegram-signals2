@@ -49,7 +49,7 @@ The CI result proves exact identity of explicitly allowlisted repository files a
 
 Aggregate L4-Minimum remains **BLOCKED / NOT VERIFIED**. No control is promoted by file presence, test success, Git history or GitHub upload digest.
 
-Next: reconcile any additional eligible Actions artifacts against exact run/artifact/source SHA/expiry and verify source artifact bytes. Only after the evidence inventories are stable should exact-object signature/negative-verification design begin. No key generation/signing, VPS/SQLite access, trust-root change, cleanup, expiry, artifact deletion or destructive lifecycle action. Option C remains ACTIVE.
+Next: reconcile any additional eligible Actions artifacts against exact run/artifact/source SHA/expiry and verify source artifact bytes. Only after the evidence inventories are stable should exact-object signature/negative-verification design begin. No key generation/signing, VPS/SQLite access, trust-root change, cleanup, expiry, artifact deletion or destructive lifecycle action. Option C was REVOKED by owner decision on 2026-11-11; see the owner governance update below.
 
 
 ## Latest allowlist reconciliation
@@ -60,3 +60,10 @@ The six-item allowlist and current six-entry manifest are reconciled to the exac
 ## Latest allowlist and repository-source reconciliation
 
 The six-entry source allowlist and six-entry artifact manifest are validated on the current evidence-document source baseline. The exact-commit repository inventory has been rebound to the refreshed register, automation plan and supporting assessments; the latest 40-file inventory is from source SHA `b9c2ebff7337420194f5c36a9523df28dbc6d4fc`. Candidate selection rationale and payload verification are recorded in `T0_L4_LINEAGE_CANDIDATE_REVIEW_2026-11-11.md`. This derived crosswalk does not promote any control; aggregate L4-Minimum remains BLOCKED / NOT VERIFIED.
+
+
+## Owner governance update — Option C revoked (2026-11-11)
+
+The owner explicitly revoked **Option C — No Destructive Authority** on 2026-11-11. Its former ACTIVE status in this document is historical and is superseded by this decision. Option C is now **REVOKED**; do not apply it as a blanket prohibition.
+
+This governance revocation is not a blanket instruction to execute deletion or cleanup. Any specific destructive operation still requires a separately scoped plan identifying exact target/data class, operation, retention/impact, preconditions, verification, recovery/rollback and explicit approval. T0 canonical data, lease/fencing state, ledgers, audit/reconstruction/recovery evidence and owner custody records remain protected unless an exact operation is separately approved. Paper-only posture and `AI_EXECUTION_ENABLED=false` remain unchanged. Revocation does not promote any L4 control or establish custody/signature/offline-verification assurance.
