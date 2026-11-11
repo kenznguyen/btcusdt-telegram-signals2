@@ -85,3 +85,17 @@ However, GREEN-0 cannot freeze a complete AI admission context yet. Calibration 
 - This report does not certify runtime provider health, current account equity readiness, calibration quality, exchange filter accuracy or production readiness.
 
 **Disposition:** GREEN-0 source inventory **COMPLETE**; provider/policy freeze **PARTIAL / BLOCKED ON OWNER DECISIONS G0-01–G0-07**. GREEN-1 through GREEN-5 remain NOT AUTHORIZED.
+
+
+## 7. Owner decisions — GREEN-0 bounded disposition (2026-11-11)
+
+**Owner approval recorded:** the following provider/policy dispositions are approved as a design freeze only.
+
+- **G0-04 — account risk and Shared Risk Engine:** reuse `paper_execution.ledger::read_account_risk_snapshot` as the existing read-only account-risk source; reuse `PaperLedger._submit_scoped` as the final transaction-time Shared Risk Engine admission authority; preserve account-wide equity/exposure checks and the existing 1% margin budget. Do not introduce a second equity calculator or parallel risk engine. The inspected 30-minute mark-freshness behavior is a current implementation fact, **not** an owner-approved AI freshness policy threshold. AI-specific freshness semantics and immutable risk-policy version identity remain unresolved and must fail closed where required.
+- **G0-06 — AI DCA v1:** disabled. The independent AI strategy may produce LONG/SHORT ENTRY intents only. It must not produce or increase exposure through AI DCA in v1. Reopening AI DCA requires a separate trigger/eligibility contract and explicit approval.
+- **G0-01/G0-02/G0-03/G0-05 — calibration and instrument rules:** remain blocked. No AI trade intent may be admitted until a trusted calibration registry/manifest and digest verification, provenance compatibility rules, evidence-based calibration thresholds, and authoritative versioned BTCUSDT tick/lot/minimum-notional rules are defined and verified. No synthetic registry, C_min, thresholds or exchange filters may be invented.
+- **G0-07 — reservation evidence:** deferred. No choice between full immutable snapshots and versioned references is made here. No schema change or migration is authorized.
+
+**Scope boundary:** this approval resolves only the dispositions above. It does not authorize GREEN-1 through GREEN-5, production code/test edits, schema/database work, migration, calibration training, model changes, backtest/OOS acceptance, feature activation, T0/T1/T2 runtime, VPS, deployment, exchange connectivity or live orders. Paper-only posture and `AI_EXECUTION_ENABLED=false` remain unchanged.
+
+**Status:** G0-04 provider/engine reuse APPROVED with freshness/versioning caveat; G0-06 AI DCA v1 DISABLED; G0-01/02/03/05 BLOCKED; G0-07 DEFERRED. GREEN implementation NOT AUTHORIZED.
