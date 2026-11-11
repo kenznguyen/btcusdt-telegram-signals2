@@ -166,3 +166,19 @@ Next: obtain exact push-triggered AI RED workflow run for SHA `dd1b088a763276f55
 - This is the expected RED outcome, not a GREEN or full acceptance result. Do not edit production code. No C_min production value selected; fixture values remain test-only. GREEN, calibration/OOS acceptance, migration, backtest, activation, VPS/runtime and deployment remain unauthorized.
 
 Disposition: **Gate A APPROVED. Gate B initial behavioral RED suite executed at exact SHA; compile PASS; RED confirmed (45 tests / 52 assertion failures / 0 errors).** The current suite remains subject to test refinement for the precise missing behaviors and unresolved policy/provider boundaries. GREEN NOT AUTHORIZED.
+
+
+## RED assertion-quality refinement and rerun — 2026-11-11
+
+- Log review of run `42991140429` found that 52 assertion failures were inflated: dependent calibration/equity/sizing tests all received the same synthetic `ADMISSION_CONTEXT_UNSUPPORTED` fallback. This did not establish 52 independent behavioral defects.
+- Test-only correction commit `63ee390c17bf32ef8be2842aa2c9f183a4a37785`: make dependent admission-context tests skip when the API is absent; add one explicit behavioral API-boundary RED test that fails when `decision.evaluate` rejects the owner-approved context. This preserves downstream assertions for when the API exists without counting the missing interface repeatedly.
+- The first rerun exposed one test helper defect: `evaluate()` did not forward the `book` fixture. Corrected by test-only commit `d37c0d4b554bbdcb936c419ebc134c6a8ff28783`.
+- Verified workflow: [run 42991526067](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42991526067), push event, exact checkout SHA `d37c0d4b554bbdcb936c419ebc134c6a8ff28783`, job `130425336828`.
+- Setup, exact checkout, Python 3.12, paper-only preflight, dependencies, compile, and evidence artifact upload **PASS**. Compile marker `AI_STRATEGY_RED_COMPILE=PASS`.
+- Focused suite: **46 tests, 5 assertion failures, 48 skips, 0 errors**. The 5 RED assertions are: decision boundary rejects `admission_context` (1); AI ledger factory lacks explicit `admitted_leverage` (1); AI ledger accepts out-of-domain `0.99x`, `3.01x`, and `13x` (3). Skips are downstream calibration/equity/sizing/instrument tests whose contract entry point is not yet implemented; these are NOT counted as passing behavior.
+- Regression anchors: Core fixed-13x remains **PASS**; AI BUY while Core WAIT → AI-only ledger → Shared Risk Engine rejects unready risk → no reservation remains **PASS**.
+- Artifact ID `13842490278`; name `ai-strategy-contract-red-d37c0d4b554bbdcb936c419ebc134c6a8ff28783`; size 3,251 bytes; GitHub digest `sha256:e1f0c8e5c7a9aff58062d7b499b2b7133190c0db710bc3e5a0f6f16d9608b019`; expires `2026-11-18T09:00:26Z`. Artifact payload not independently downloaded/re-hashed.
+- Run `42991454332` at SHA `63ee390c17bf32ef8be2842aa2c9f183a4a37785` is superseded as an intermediate test-helper attempt; it reported one helper error and was not accepted as final evidence.
+- No production code changed. No C_min production value or calibration thresholds selected; fixture values remain test-only. GREEN, migration, backtest, VPS/runtime, deployment and live execution remain unauthorized.
+
+Disposition: **Gate A APPROVED. Gate B test suite refined; exact-SHA RED verified with 5 meaningful missing-contract assertions, 48 dependent skips, 0 errors.** Remaining skips are intentionally blocked on GREEN implementation/provider contracts; do not treat them as PASS. GREEN NOT AUTHORIZED.
