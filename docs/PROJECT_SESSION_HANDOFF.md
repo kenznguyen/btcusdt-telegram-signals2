@@ -1468,3 +1468,26 @@ Owner approved **GitHub append-only Registry + offline Ed25519 signing** as the 
 **Approval boundary:** architecture direction only. Registry path/schema, canonical serialization, key ceremony/rotation/revocation, verifier/CI/provider implementation, calibration method/OOS protocol, provenance compatibility and numeric thresholds are not yet frozen or authorized for implementation. No key or registry was created. G0-01/02/03 remain BLOCKED; GREEN-1..5 NOT AUTHORIZED.
 
 No source code/tests/workflow, network/exchange, database, T0/T1/T2 runtime, VPS, deployment or trading activity occurred. Paper-only and `AI_EXECUTION_ENABLED=false` remain.
+
+
+## AI Calibration Registry manifest and Ed25519 lifecycle design — 2026-11-11
+
+Owner-requested scope completed as **documentation only** on the existing branch `feature/t0-centralized-data-feeder-p1-20261101`.
+
+Added:
+- `docs/architecture/AI_CALIBRATION_REGISTRY_MANIFEST_CONTRACT.md`: proposed immutable manifest/evaluation/event/signature record model, provenance, canonicalization, Git object evidence and explicit separation from T0 A2.2.
+- `docs/architecture/AI_CALIBRATION_ED25519_KEY_LIFECYCLE_CONTRACT.md`: proposed offline ROOT/CALIBRATION_SIGNER/RECOVERY_AUTHORITY roles, key generation, custody/backup, public-key pinning, signing, rotation, revocation, compromise and recovery.
+- `docs/evidence/AI_CALIBRATION_MANIFEST_AND_KEY_LIFECYCLE_DESIGN_2026-11-11.md`: scope, decisions, blockers and verification record.
+- Linked both design contracts from `docs/architecture/AI_CALIBRATION_ARTIFACT_CONTRACT.md` and `docs/architecture/AI_STRATEGY_GREEN_IMPLEMENTATION_PLAN.md`.
+
+Commits in this increment:
+- Manifest contract: `90436bd56b577f39cccec6ee309ee69798218a88`.
+- Key lifecycle contract: `aa5a5f5c75d7e2efb5744aeef5572596957346ce`.
+- Evidence report: `5a5f9c709aa66ad2e918e4366d0c368ba17aff9f`.
+- Contract/plan/handoff reference updates follow this record in the commit chain.
+
+Design limits: manifest schema/canonicalization, signature statement/domain bytes, trust bootstrap, key tooling/custody, trusted-time and recovery topology remain NOT FROZEN. T0 A2.2 checkpoint-attestation policy/role/bootstrap is not inherited. GitHub history is not WORM or global freshness proof. SHA-256 integrity, signer authorization and statistical/OOS validity remain separate.
+
+Verification: documentation changes only; no tests/workflow; no key generation/import, signing/verification, registry/provider, CI secrets, VPS/runtime, DB/T0/T1/T2, exchange request, calibration/model change or AI activation. No artifact/run produced. G0-01/02/03 remain BLOCKED; G0-05 BLOCKED; G0-07 DEFERRED; GREEN-1..5 NOT AUTHORIZED. Paper-only and `AI_EXECUTION_ENABLED=false` remain unchanged.
+
+Next gate: owner review/approval of the manifest schema/canonicalization proposal and key hierarchy/recovery topology. Any key ceremony or implementation requires separate explicit approval.
