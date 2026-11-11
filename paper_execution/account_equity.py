@@ -8,6 +8,85 @@ from pipeline.values import number, stamp
 from paper_execution import equity as equity_history
 
 
+def _account_ledger_totals(connection, mark, text):
+    ledgers = connection.execute(
+        """SELECT strategy_id,position_base,average_entry_price,realized_pnl_quote,
+                  fees_quote,funding_quote FROM paper_strategy_ledgers
+           WHERE account_id=1"""
+    ).fetchall()
+    expected = {"STRATEGY_CORE", "AI_FREQAI", "LEGACY_UNATTRIBUTED"}
+    if {row[0] for row in ledgers} != expected:
+        raise sqlite3.DatabaseError("ACCOUNT_RISK_LEDGER_SET_INVALID")
+
+    realized = fees = funding = unrealized = Decimal(0)
+    positions = {}
+    for strategy_id, raw_qty, raw_avg, raw_pnl, raw_fee, raw_funding in ledgers:
+        try:
+            qty = number(raw_qty, signed=True)
+            average = number(raw_avg)
+            pnl = number(raw_pnl, signed=True)
+            fee = number(raw_fee)
+            fund = number(raw_funding, signed=True)
+        except ValueError:
+            raise sqlite3.DatabaseError("ACCOUNT_RISK_LEDGER_VALUE_INVALID") from None
+        if (qty == 0 and average != 0) or (qty != 0 and average <= 0) or fee < 0:
+            raise sqlite3.DatabaseError("ACCOUNT_RISK_POSITION_INCONSISTENT")
+        unrealized_pnl = qty * (mark - average) if qty else Decimal(0)
+        realized += pnl
+        fees += fee
+        funding += fund
+        unrealized += unrealized_pnl
+        positions[strategy_id] = {
+            "positionBase": text(qty), "averageEntryPrice": text(average),
+            "unrealizedPnlQuote": text(unrealized_pnl),
+        }
+        if strategy_id == "LEGACY_UNATTRIBUTED" and qty != 0:
+            raise ValueError("LEGACY_UNATTRIBUTED_EXPOSURE")
+
+    legacy_pnl = legacy_fees = Decimal(0)
+    for kind, raw_amount in connection.execute(
+        """SELECT adjustment_type,amount_quote FROM paper_account_adjustments
+           WHERE account_id=1 AND strategy_id='LEGACY_UNATTRIBUTED'"""
+    ):
+        try:
+            amount = number(raw_amount, signed=True)
+        except ValueError:
+            raise sqlite3.DatabaseError("ACCOUNT_RISK_LEGACY_ADJUSTMENT_INVALID") from None
+        if kind == "LEGACY_REALIZED_PNL":
+            legacy_pnl += amount
+        elif kind == "LEGACY_FEES" and amount >= 0:
+            legacy_fees += amount
+        else:
+            raise sqlite3.DatabaseError("ACCOUNT_RISK_LEGACY_ADJUSTMENT_INVALID")
+
+    return realized, fees, funding, unrealized, legacy_pnl, legacy_fees, positions
+
+
+def _active_reservation_totals(connection):
+    reserved_notional = reserved_margin = Decimal(0)
+    for row in connection.execute(
+        """SELECT status,remaining_notional_quote,remaining_margin_quote,
+                  reserved_notional_quote,reserved_margin_quote
+           FROM paper_risk_reservations WHERE account_id=1"""
+    ):
+        status, raw_notional, raw_margin, raw_original_notional, raw_original_margin = row
+        try:
+            remaining_notional = number(raw_notional)
+            remaining_margin = number(raw_margin)
+            original_notional = number(raw_original_notional)
+            original_margin = number(raw_original_margin)
+        except ValueError:
+            raise sqlite3.DatabaseError("ACCOUNT_RISK_RESERVATION_INVALID") from None
+        if remaining_notional > original_notional or remaining_margin > original_margin:
+            raise sqlite3.DatabaseError("ACCOUNT_RISK_RESERVATION_EXCEEDS_ORIGINAL")
+        if status in ("ACTIVE", "PARTIAL"):
+            reserved_notional += remaining_notional
+            reserved_margin += remaining_margin
+        elif status not in ("RELEASED", "CONSUMED", "EXPIRED"):
+            raise sqlite3.DatabaseError("ACCOUNT_RISK_RESERVATION_STATUS_INVALID")
+    return reserved_notional, reserved_margin
+
+
 def record_account_mark(
     ledger, mark_price, candle_close_ms, observed_at_ms, dataset_version,
     initial_capital="100",
@@ -69,77 +148,10 @@ def record_account_mark(
         if cutover and risk[1] is None:
             raise sqlite3.DatabaseError("ACCOUNT_RISK_DAILY_BASELINE_UNAVAILABLE")
 
-        ledgers = connection.execute(
-            """SELECT strategy_id,position_base,average_entry_price,realized_pnl_quote,
-                      fees_quote,funding_quote FROM paper_strategy_ledgers
-               WHERE account_id=1"""
-        ).fetchall()
-        expected = {"STRATEGY_CORE", "AI_FREQAI", "LEGACY_UNATTRIBUTED"}
-        if {row[0] for row in ledgers} != expected:
-            raise sqlite3.DatabaseError("ACCOUNT_RISK_LEDGER_SET_INVALID")
-        realized = fees = funding = unrealized = Decimal(0)
-        positions = {}
-        for strategy_id, raw_qty, raw_avg, raw_pnl, raw_fee, raw_funding in ledgers:
-            try:
-                qty = number(raw_qty, signed=True)
-                avg = number(raw_avg)
-                pnl = number(raw_pnl, signed=True)
-                fee = number(raw_fee)
-                fund = number(raw_funding, signed=True)
-            except ValueError:
-                raise sqlite3.DatabaseError("ACCOUNT_RISK_LEDGER_VALUE_INVALID") from None
-            if (qty == 0 and avg != 0) or (qty != 0 and avg <= 0) or fee < 0:
-                raise sqlite3.DatabaseError("ACCOUNT_RISK_POSITION_INCONSISTENT")
-            upnl = qty * (mark - avg) if qty else Decimal(0)
-            realized += pnl
-            fees += fee
-            funding += fund
-            unrealized += upnl
-            positions[strategy_id] = {
-                "positionBase": text(qty), "averageEntryPrice": text(avg),
-                "unrealizedPnlQuote": text(upnl),
-            }
-            if strategy_id == "LEGACY_UNATTRIBUTED" and qty != 0:
-                raise ValueError("LEGACY_UNATTRIBUTED_EXPOSURE")
-
-        legacy_pnl = legacy_fees = Decimal(0)
-        for kind, raw_amount in connection.execute(
-            """SELECT adjustment_type,amount_quote FROM paper_account_adjustments
-               WHERE account_id=1 AND strategy_id='LEGACY_UNATTRIBUTED'"""
-        ):
-            try:
-                amount = number(raw_amount, signed=True)
-            except ValueError:
-                raise sqlite3.DatabaseError("ACCOUNT_RISK_LEGACY_ADJUSTMENT_INVALID") from None
-            if kind == "LEGACY_REALIZED_PNL":
-                legacy_pnl += amount
-            elif kind == "LEGACY_FEES" and amount >= 0:
-                legacy_fees += amount
-            else:
-                raise sqlite3.DatabaseError("ACCOUNT_RISK_LEGACY_ADJUSTMENT_INVALID")
-
-        reserved_notional = reserved_margin = Decimal(0)
-        for row in connection.execute(
-            """SELECT status,remaining_notional_quote,remaining_margin_quote,
-                      reserved_notional_quote,reserved_margin_quote
-               FROM paper_risk_reservations WHERE account_id=1"""
-        ):
-            status, raw_notional, raw_margin, raw_original_notional, raw_original_margin = row
-            try:
-                remaining_notional = number(raw_notional)
-                remaining_margin = number(raw_margin)
-                original_notional = number(raw_original_notional)
-                original_margin = number(raw_original_margin)
-            except ValueError:
-                raise sqlite3.DatabaseError("ACCOUNT_RISK_RESERVATION_INVALID") from None
-            if remaining_notional > original_notional or remaining_margin > original_margin:
-                raise sqlite3.DatabaseError("ACCOUNT_RISK_RESERVATION_EXCEEDS_ORIGINAL")
-            if status in ("ACTIVE", "PARTIAL"):
-                reserved_notional += remaining_notional
-                reserved_margin += remaining_margin
-            elif status not in ("RELEASED", "CONSUMED", "EXPIRED"):
-                raise sqlite3.DatabaseError("ACCOUNT_RISK_RESERVATION_STATUS_INVALID")
-
+        (
+            realized, fees, funding, unrealized, legacy_pnl, legacy_fees, positions,
+        ) = _account_ledger_totals(connection, mark, text)
+        reserved_notional, reserved_margin = _active_reservation_totals(connection)
         equity = (
             number(account[0]) + realized + legacy_pnl + unrealized
             - fees - legacy_fees - funding
@@ -152,6 +164,7 @@ def record_account_mark(
             raise sqlite3.DatabaseError("ACCOUNT_RISK_EQUITY_INVALID") from None
         if hwm <= 0:
             raise sqlite3.DatabaseError("ACCOUNT_RISK_EQUITY_INVALID")
+
         funding_ready = bool(cutover) and _funding_provenance_ready(
             connection, cutover[0], cutover[1], observed_at, observed_at
         )
@@ -166,6 +179,7 @@ def record_account_mark(
             unavailable = "FUNDING_PROVENANCE_INCOMPLETE"
         elif not risk_ready and not unavailable:
             unavailable = "ACCOUNT_RISK_NOT_READY"
+
         connection.execute(
             """UPDATE paper_account_risk_state
                SET last_equity_quote=?,high_water_mark_quote=?,last_mark_price=?,
@@ -191,5 +205,3 @@ def record_account_mark(
                 "reservedMarginQuote": text(reserved_margin), "updatedAtMs": observed_at,
             }
     return read_account_risk_snapshot(ledger.path, now_ms=observed_at)
-
-
