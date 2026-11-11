@@ -647,3 +647,23 @@ Reconcile the four-artifact Actions allowlist with all eligible source artifacts
 - Status: **DRAFT / DOCUMENTATION ONLY / SELF-REVIEW PASS / INDEPENDENT REVIEW NOT VERIFIED / IMPLEMENTATION BLOCKED**. CI/workflow **NOT RUN**; no run or artifact claimed.
 - No code, executable tests, workflow/CI, keys/signatures/trust roots/bootstrap, policy/anchor instances, provider/TSA, VPS/SSH/runtime, SQLite/canonical T0 data or destructive operation was changed or exercised. Paper-only posture and `AI_EXECUTION_ENABLED=false` unchanged.
 - Next: submit exact A2.2 blob and pinned dependencies to a qualifying independent reviewer. Do not implement, generate keys/signatures, bootstrap trust, instantiate policy/anchor or exercise VPS/T0 without separate explicit approval.
+
+
+## Owner waiver: independent review no longer mandatory for A2.2 — 2026-11-11
+
+- Owner instruction: "thu hồi quyết định cần Independent review". Recorded as a governance waiver limited to A2.2 and its pinned review dependencies.
+- Decision record: `docs/evidence/OWNER_DECISION_WAIVE_INDEPENDENT_REVIEW_A2_2_2026-11-11.md`; commit `4a43ea7c0521b6670842df23e3ef8dad0c1f1b92`.
+- The waiver withdraws the prior requirement for a qualifying independent review before A2.2 may proceed to the next owner-controlled decision gate. Independent review is **WAIVED / NOT PERFORMED**; this is not independent assurance/G3.
+- A2.2 updated to remove the mandatory independent-review gate and point to the owner waiver:
+  - Update commit: `bd9736cc50b0944283bf1693e619ddb446138dff`.
+  - Current A2.2 blob: `f9138497e4b3d846260fef3c88c88d89e2ee1123`.
+  - Technical clauses, negative-test matrix, disabled bootstrap paths and implementation prohibitions were not changed by this governance-only delta.
+- A2.2 self-review report updated to record the waiver and the exact-blob delta check:
+  - Update commit: `d3a2b67db72798e6c0fda294e9be6256f1fd560f`.
+  - Current report blob: `c32173c7c9de734f5f807e61a649a1e461208f07`.
+  - The original full technical self-review was performed against prior A2.2 blob `2090112370e3b4a9925e78cf1ab0e2bb8428640c`; the subsequent change only adjusts the review gate/disposition and references the waiver. The delta check is same-session, not independent.
+- Updated status: **A2.2 SELF-REVIEW PASS WITH RESIDUAL GATES / INDEPENDENT REVIEW WAIVED (NOT PERFORMED) / INDEPENDENT ASSURANCE G3 NOT ESTABLISHED / IMPLEMENTATION NOT APPROVED**.
+- Gates unchanged: Path A and Path B remain NOT_ENABLED; bootstrap remains BLOCKED pending their separate contracts and trusted evidence. A separate explicit owner approval is still required for any implementation and must identify exact blobs and bounded scope.
+- No keys, signatures, root enrollment, verifier configuration, policy/anchor instance, executable cryptographic tests, CI/workflow, VPS/SSH/runtime, SQLite/canonical T0 data or destructive operation was changed or exercised. Paper-only posture and `AI_EXECUTION_ENABLED=false` remain unchanged.
+- CI/workflow NOT RUN; no run/artifact claimed.
+- This waiver supersedes the earlier handoff next-step instruction to submit A2.2 for qualifying independent review. Do not schedule or treat independent review as a mandatory gate unless the owner later reinstates it.
