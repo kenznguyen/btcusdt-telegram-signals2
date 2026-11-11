@@ -183,10 +183,11 @@ def core_decide(timestamp, book=None):
         h1 = market_window("BTCUSDT", "1h",
                          end1h-500*3_600_000, end1h, as_of_ms=timestamp)
         if not m15.get("coverage", {}).get("complete") or not h1.get("coverage", {}).get("complete"):
-            return produce(m15, h1, {}, {"owner":None,"dcaUsed":False,"initialMarginQuote":"0"},
-                            book, timestamp,
-                            initial_capital=os.environ.get("PAPER_INITIAL_CAPITAL", "100"),
-                            max_position_base=os.environ.get("PAPER_MAX_POSITION_BASE", "0.01"))
+            return produce(
+                m15, h1, {}, {"owner":None,"dcaUsed":False,"initialMarginQuote":"0"},
+                book, timestamp, account_equity_quote=None,
+                max_position_base=os.environ.get("PAPER_MAX_POSITION_BASE", "0.01"),
+            )
         from paper_execution.ledger import (
             dual_ledger_ready, read_snapshot, read_account_risk_snapshot,
         )
@@ -198,8 +199,11 @@ def core_decide(timestamp, book=None):
         )
         account_equity_quote = None
         if dual_ready:
-            account_risk = read_account_risk_snapshot(db_path, now_ms=timestamp)
-            if account_risk.get("riskReady") is True:
+            try:
+                account_risk = read_account_risk_snapshot(db_path, now_ms=timestamp)
+            except (ValueError, OSError, sqlite3.Error, TypeError, KeyError):
+                account_risk = None
+            if account_risk and account_risk.get("riskReady") is True:
                 account_equity_quote = account_risk["accountEquityQuote"]
         state = paper["strategyState"]
         book = book_snapshot(timestamp) if book is None else book
