@@ -165,3 +165,10 @@ Key evidence:
 3. Inspect deployment scripts and external integration boundaries; repository files cannot establish external account/runtime state.
 4. Trace every possible customer/account identity and authorization symbol across all source, tests, migrations and configuration before closing F01.
 5. Keep all six repository-wide absence claims NOT VERIFIED until the full content/dependency audit and coverage accounting are complete.
+
+
+## Superseding owner governance decision — Option C revoked (2026-11-11)
+
+The owner revoked **Option C — No Destructive Authority** on 2026-11-11. Any earlier statement in this historical record that Option C is ACTIVE, remains in force, is unchanged/current, or prohibits all destructive authority is superseded. Current status: **REVOKED**.
+
+This revocation removes Option C as a blanket prohibition but does not authorize any particular destructive operation. Deletion, archive, cleanup, expiry, vacuum, compaction, backup/replica removal, export mutation or provider operation still requires a separately explicit, scoped approval with exact target/data class, preconditions, expected effect, dependencies, verification and recovery/rollback plan. T0 canonical data, lease/fencing, ledgers, audit/reconstruction/recovery, custody and trust evidence remain protected unless separately approved. Paper-only and `AI_EXECUTION_ENABLED=false` remain unchanged. No L4 control or technical-enforcement status is promoted by this decision.
