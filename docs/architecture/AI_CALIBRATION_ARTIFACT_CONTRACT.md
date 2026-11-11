@@ -132,3 +132,19 @@ For this personal, paper-first system, prefer a repository-backed append-only re
 **Important semantic correction:** the calibration artifact is not itself one fixed `calibrated_confidence` value. It contains a transformation/evidence model. Each prediction receives its own calibrated confidence at inference, and that value must be cryptographically and structurally bound to the exact calibration artifact version.
 
 **Remaining owner decisions:** confirm repository-backed registry; confirm offline Ed25519 signing/trust-root lifecycle; select manifest format/canonicalization; select calibration method and OOS evaluation protocol; select numerical `C_min`, sample, duration and freshness thresholds only after evidence. Until then G0-01/02/03 remain BLOCKED.
+
+
+## 10. Owner-approved registry direction — 2026-11-11
+
+**Owner decision: APPROVED (architecture direction only).**
+
+The selected direction for the future calibration trust architecture is:
+- a GitHub-backed append-only registry of versioned manifests and compact calibration artifacts/evaluation evidence;
+- offline Ed25519 signing of the canonical manifest digest;
+- pinned public-key verification by future read-only consumers;
+- explicit append-only approval, revocation, supersession and key-lifecycle records;
+- private signing key remains offline and must not be placed in the repository, GitHub Actions, CI variables, VPS or runtime.
+
+This approval selects the architectural direction only. It does **not** approve registry path/schema, manifest canonicalization, key ceremony/rotation/revocation details, implementation, CI verification workflow, runtime provider, calibration training, numerical thresholds or AI activation. Those require separate design freeze and implementation gates.
+
+Digest integrity, signer authorization and statistical/OOS validity remain three independent checks. G0-01/02/03 remain BLOCKED until the remaining trust, schema, provenance and evidence thresholds are resolved.
