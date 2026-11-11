@@ -414,10 +414,10 @@ class DualStrategyApiScopeRedTest(unittest.TestCase):
         before_ai = read_snapshot(str(self.db), strategy_id="AI_FREQAI")
 
         with patch.object(api, "now_ms", return_value=timestamp), \
-             patch.object(api, "context", return_value={"book": book}), \\
-             patch.object(api, "decide", return_value=decision), \\
-             patch.object(api, "core_decide", return_value=core_wait), \\
-             patch.object(api, "control_permit", return_value=True), \\
+             patch.object(api, "context", return_value={"book": book}), \
+             patch.object(api, "decide", return_value=decision), \
+             patch.object(api, "core_decide", return_value=core_wait), \
+             patch.object(api, "control_permit", return_value=True), \
              patch.object(api, "market_window", return_value=empty_mark):
             signals = api.signal_snapshot(timestamp)
             status, response = self.request("/v1/paper/evaluate", {})
