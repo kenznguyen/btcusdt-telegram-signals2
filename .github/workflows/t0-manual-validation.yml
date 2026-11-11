@@ -327,16 +327,92 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [[ -f preflight-remote.log ]] && grep -q '^API_8788=NON_LOOPBACK_LISTENER$' preflight-remote.log; then
-            echo 'P1_SSH_PREFLIGHT=BLOCKED_NON_LOOPBACK_API_LISTENER' | tee preflight-verdict.txt
+          if [[ ! -f preflight-ssh-exit-code.txt ]] || ! grep -Fxq '0' preflight-ssh-exit-code.txt; then
+            echo 'P1_SSH_PREFLIGHT=BLOCKED_SSH_STEP_FAILED_OR_NOT_RUN' | tee preflight-verdict.txt
             exit 1
           fi
-          if [[ -f preflight-remote.log ]] && grep -Eq '^(FEEDER_PIDS|API_8788)=CHECK_(UNAVAILABLE|FAILED)$' preflight-remote.log; then
+          if [[ ! -f preflight-remote.log ]] \
+            || ! grep -Fxq 'P1_SSH_PREFLIGHT_VERSION=1' preflight-remote.log \
+            || ! grep -Fxq 'P1_SSH_PREFLIGHT_END=1' preflight-remote.log; then
+            echo 'P1_SSH_PREFLIGHT=PARTIAL_OR_BLOCKED_EVIDENCE' | tee preflight-verdict.txt
+            exit 1
+          fi
+          if grep -Eq '^(FEEDER_PIDS|API_8788)=CHECK_(UNAVAILABLE|FAILED)      - name: Upload sanitized preflight evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p1-scaleway-ssh-preflight-${{ github.run_id }}
+          if-no-files-found: warn
+          path: |
+            ci-source-sha.txt
+            preflight-remote.log
+            preflight-verdict.txt
+ preflight-remote.log; then
             echo 'P1_SSH_PREFLIGHT=PARTIAL_OR_BLOCKED_PROBE_UNAVAILABLE' | tee preflight-verdict.txt
             exit 1
           fi
-          if [[ ! -f preflight-remote.log ]] || ! grep -Eq '^SOURCE_SHA=[0-9a-f]{40}$' preflight-remote.log || ! grep -Fxq 'SQLITE_INTEGRITY=PASS' preflight-remote.log; then
+          if [[ ! -f preflight-remote.log ]] \
+            || ! grep -Eq '^HOSTNAME=.+      - name: Upload sanitized preflight evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p1-scaleway-ssh-preflight-${{ github.run_id }}
+          if-no-files-found: warn
+          path: |
+            ci-source-sha.txt
+            preflight-remote.log
+            preflight-verdict.txt
+ preflight-remote.log \
+            || ! grep -Eq '^SSH_USER=.+      - name: Upload sanitized preflight evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p1-scaleway-ssh-preflight-${{ github.run_id }}
+          if-no-files-found: warn
+          path: |
+            ci-source-sha.txt
+            preflight-remote.log
+            preflight-verdict.txt
+ preflight-remote.log \
+            || ! grep -Eq '^SOURCE_SHA=[0-9a-f]{40}      - name: Upload sanitized preflight evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p1-scaleway-ssh-preflight-${{ github.run_id }}
+          if-no-files-found: warn
+          path: |
+            ci-source-sha.txt
+            preflight-remote.log
+            preflight-verdict.txt
+ preflight-remote.log \
+            || ! grep -Eq '^FEEDER_PIDS=(NONE|[0-9]+(,[0-9]+)*)      - name: Upload sanitized preflight evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p1-scaleway-ssh-preflight-${{ github.run_id }}
+          if-no-files-found: warn
+          path: |
+            ci-source-sha.txt
+            preflight-remote.log
+            preflight-verdict.txt
+ preflight-remote.log \
+            || ! grep -Eq '^API_8788=(LOOPBACK_LISTENER|NOT_LISTENING|NON_LOOPBACK_LISTENER)      - name: Upload sanitized preflight evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p1-scaleway-ssh-preflight-${{ github.run_id }}
+          if-no-files-found: warn
+          path: |
+            ci-source-sha.txt
+            preflight-remote.log
+            preflight-verdict.txt
+ preflight-remote.log \
+            || ! grep -Fxq 'SQLITE_INTEGRITY=PASS' preflight-remote.log; then
             echo 'P1_SSH_PREFLIGHT=PARTIAL_OR_BLOCKED_EVIDENCE' | tee preflight-verdict.txt
+            exit 1
+          fi
+          if grep -Fxq 'API_8788=NON_LOOPBACK_LISTENER' preflight-remote.log; then
+            echo 'P1_SSH_PREFLIGHT=BLOCKED_NON_LOOPBACK_API_LISTENER' | tee preflight-verdict.txt
             exit 1
           fi
           if grep -Fxq 'FEEDER_PIDS=NONE' preflight-remote.log || grep -Fxq 'API_8788=NOT_LISTENING' preflight-remote.log; then
