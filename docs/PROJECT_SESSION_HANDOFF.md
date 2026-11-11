@@ -16,7 +16,7 @@ Updated: 2026-11-11 (Asia/Ho_Chi_Minh)
 - Default branch: `main`. Do not switch branches or create a parallel PR without a task-specific reason and approval.
 - G0.2 audit starting HEAD (2026-11-11): `d1978d3606536bb6da2471ed6c94eaf20ffa7b6d`. The final documentation commit that updates this handoff is recorded in the G0.2 completion section below. (post-amendment self-review and evidence link recorded; see current A2.2 workstream below).
 - Full previous handoff preserved verbatim in `docs/archive/PROJECT_SESSION_HANDOFF_HISTORY_2026-11-10.md`; archive commit: `2fcad94aef8b15002cdba58aafe62ad208dc818b`.
-- PR #139 is OPEN / DRAFT / NOT MERGED. It concerns SSH passphrase handling and targets this active branch. Do not merge or alter it as part of unrelated work.
+- PR #139 (SSH passphrase preflight) is CLOSED / NOT MERGED as of 2026-11-11 13:02:13Z; see the retired workstream section below. Do not reopen or merge without separate approval.
 
 ## 2. Project invariants
 
@@ -37,47 +37,22 @@ Updated: 2026-11-11 (Asia/Ho_Chi_Minh)
 - Use explicit states: PASS, CONDITIONAL PASS, BLOCKED, INTERRUPTED, NOT RUN, NOT VERIFIED, DEFERRED.
 - After each meaningful increment, update this file or the relevant evidence report and commit on the same active branch. Do not erase historical evidence.
 
-## 4. Current workstream — G4 read-only runtime acceptance
+## 4. Retired workstream — SSH Preflight / G4 VPS runtime acceptance
 
-**User-approved scope:** bounded read-only runtime inspection only. Do not restart Feeder/API, write or modify canonical SQLite, activate T1, or issue trades/orders.
+**Status as of 2026-11-11: RETIRED / CLOSED.**
 
-### Verified evidence
+- Owner approved repository-wide SSH Preflight retirement while preserving Git history and historical evidence. Active implementation, contract tests and workflow references were removed from the six recorded refs. See `docs/evidence/SSH_PREFLIGHT_RETIREMENT_2026-11-11.md`.
+- PR [#139](https://github.com/kenznguyen/btcusdt-telegram-signals2/pull/139), “Secure Scaleway SSH preflight passphrase handling”, is **CLOSED / NOT MERGED** (closed 2026-11-11 13:02:13Z). Its head was `e6080f7ad8a9bd8b89640f6646ff49215c326602`; base was this active branch. Do not reopen or merge it unless separately approved.
+- Historical G4 CI evidence remains historical: run [42824628084](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42824628084), source `a6d939252f1651c4f8f5478bf49581824cc67cc9`, reported 34/34 disposable contract tests PASS. This does not establish VPS runtime state.
+- Historical SSH preflight run [42814402445](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42814402445) is retained only as audit history. The workflow feature is retired; do not invoke or restore it.
+- The Scaleway VPS `btcquant-t0-t1-test-01` was fully deleted on 2026-11-11, per owner-provided project update. Its former SSH/ForceCommand, service, process, API and database state cannot be inspected. No replacement VPS is currently established by this handoff.
+- Old deployment-path and forced-command dispatcher reviews are historical design records only. They do not authorize implementation, installation, SSH access, remote commands, deployment or provisioning.
+- Current T0/T2 deployment parity: **NOT VERIFIED**. The bounded 2026-11-09 loopback observation remains **HISTORICAL PASS** only; see `docs/evidence/T0_T2_DEPLOYMENT_PARITY_EVIDENCE_RECONCILIATION_2026-11-10.md` and G0.6 evidence.
 
-1. **SSH preflight — point-in-time read-only snapshot**
-   - Workflow run: [42814402445](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42814402445), SUCCESS.
-   - Workflow checkout SHA: `8ad36cae8aa971a537a6f363902f86046aa32e5e`.
-   - Remote checkout SHA reported: `9ae2eeae4ece3d657781b68e96b6f4509cd95f24`.
-   - Host: `btcquant-t0-t1-test-01`; user: `ubuntu`.
-   - Feeder PIDs observed: `22045,22046` (point-in-time only).
-   - API 8788: `127.0.0.1:8788`, loopback-only.
-   - SQLite integrity: `PRAGMA integrity_check=ok`.
-   - Artifact ID: `13762564163`; SHA-256: `f6303919c69b05d412722492f05b8dd3aefa1a655043fa98029a94fee5ee8c28`; expires 2026-11-17.
-   - This is not continuous health, candle freshness, lease validity, or data-flow proof.
+### Current boundary
 
-2. **G4a/G4b disposable CI contracts**
-   - Run: [42824628084](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42824628084), SUCCESS.
-   - Exact source SHA: `a6d939252f1651c4f8f5478bf49581824cc67cc9`.
-   - G1, G2, G3 jobs: SUCCESS.
-   - G4 contract job: 34/34 tests PASS, including local WSGI + disposable SQLite integration.
-   - SSH preflight and manual VPS acceptance jobs: SKIPPED.
-   - G4 artifact ID: `13768391449`; SHA-256: `bafc77c273497e762860b7e39e8b341e5493aaae3e3cbba07e991d7a5179f910`; expires 2026-11-17.
-   - These results prove disposable GitHub-runner behavior only, not VPS runtime.
+No SSH Preflight restoration, SSH/ForceCommand change, probe installation, remote invocation, service restart, VPS provisioning, T0/T1/T2 deployment, T1 activation, model training, database mutation, or trading is authorized by the retired G4 scope. Any replacement-host work requires a separate bounded approval. Preserve `AI_EXECUTION_ENABLED=false` and paper-only posture.
 
-### Current blockers / limits
-
-- G4 VPS runtime: **NOT VERIFIED**.
-- Safe installation/invocation path for the new probes: **BLOCKED / NOT VERIFIED**.
-- Detailed Flask feeder-health listener and its loopback binding: **NOT VERIFIED**.
-- Secure remote source for `MARKET_DATA_TOKEN`: **NOT VERIFIED**. Never place the token in an SSH command, URL, shell history, log, or artifact.
-- Deployment-path review: `docs/evidence/G4_RUNTIME_DEPLOYMENT_PATH_REVIEW_2026-11-10.md`, commit `5db0c0acbc2a8e8014671db2cd3015577c083dcb`.
-- Existing SSH forced command is a fixed read-only preflight; current workflow has no approved SCP/rsync/installer path or second-probe dispatcher. Do not add general shell access or bypass the forced-command boundary.
-- Dispatcher design review: `docs/evidence/G4_FORCED_COMMAND_DISPATCHER_DESIGN_REVIEW_2026-11-10.md`, commit `50c99cf3c71e8d85dddaceeb4f8e604000a254c5`. Target contract documented; implementation NOT STARTED.
-
-### Next permitted step
-
-Obtain the bounded owner-supplied deployment evidence described in `docs/evidence/T0_OWNER_READONLY_DEPLOYMENT_EVIDENCE_PROTOCOL_2026-11-10.md`, especially the effective forced-command entry and root-owned update path, with secrets redacted. This is a documentary evidence step; it does not require probe installation or a new remote command.
-
-The dispatcher target design is recorded in `docs/evidence/G4_FORCED_COMMAND_DISPATCHER_DESIGN_REVIEW_2026-11-10.md`. Reassess implementation only after the installed command path, root-owned update mechanism, secure token source, and any claimed Flask listener are evidenced. Obtain separate approval for the exact implementation and risk boundary before any VPS installation or new remote invocation. Existing G4 scope approval does not authorize a new installation mechanism or wider SSH access.
 
 ## 5. Session procedure
 
