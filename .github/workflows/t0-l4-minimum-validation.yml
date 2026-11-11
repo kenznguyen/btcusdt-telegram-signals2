@@ -14,6 +14,8 @@ on:
       - ci/test_t0_l4_repository_file_inventory.py
       - ci/test_t0_l4_claim_discipline.py
       - ci/t0_l4_claim_discipline.py
+      - ci/test_t0_l4_aggregate_readiness.py
+      - ci/t0_l4_aggregate_readiness.py
       - synthetic_evidence/trust_lifecycle.py
       - synthetic_evidence/test_trust_lifecycle.py
       - synthetic_evidence/root_b_checkpoint_store.py
@@ -305,3 +307,50 @@ jobs:
             l4m06-trust-lifecycle-verdict.txt
             l4m07-history-tests.log
             l4m07-history-verdict.txt
+
+  l4m10-aggregate-readiness:
+    name: L4M-10 fail-closed aggregate readiness
+    needs: [l4-minimum-lineage-contract, l4-claim-discipline]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout exact source commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run L4M-10 fail-closed readiness contract tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest ci.test_t0_l4_aggregate_readiness -v 2>&1 | tee l4m10-aggregate-readiness-tests.log
+
+      - name: Evaluate current aggregate without owner disposition
+        shell: bash
+        env:
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          python ci/t0_l4_aggregate_readiness.py --crosswalk docs/evidence/T0_L4_CONTROL_TO_SOURCE_CROSSWALK_2026-11-11.md --output-dir l4m10-readiness
+          grep -q '"aggregate_verdict":"BLOCKED / NOT VERIFIED"' l4m10-readiness/aggregate-readiness-report.json
+          echo "L4M10_AGGREGATE_READINESS=BLOCKED_AS_REQUIRED" | tee l4m10-aggregate-readiness-verdict.txt
+
+      - name: Upload L4M-10 readiness evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: t0-l4m10-aggregate-readiness-${{ github.run_id }}
+          if-no-files-found: warn
+          path: |
+            l4m10-aggregate-readiness-tests.log
+            l4m10-aggregate-readiness-verdict.txt
+            l4m10-readiness/aggregate-readiness-report.json
+            l4m10-readiness/aggregate-readiness-report.sha256
