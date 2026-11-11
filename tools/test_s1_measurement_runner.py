@@ -279,6 +279,15 @@ class G040BRegressionTests(unittest.TestCase):
         report_bytes = build_report("synthetic-test", measurement, assertions, provenance)
         return json.loads(report_bytes), recipe
 
+    def test_report_readback_rejects_noncanonical_expected_inventory(self):
+        import json
+        from tools.s1_measurement_harness import validate_report_readback
+        report, recipe = self._valid_report()
+        wrong_ids = list(recipe["ordered_ids"])
+        wrong_ids[0] = "syn-fixture-999"
+        raw = json.dumps(report, separators=(",", ":")).encode()
+        self.assertFalse(validate_report_readback(raw, recipe["parser_inputs"], wrong_ids))
+
     def test_report_readback_rejects_duplicate_fixture_ids(self):
         import json
         from tools.s1_measurement_harness import validate_report_readback
