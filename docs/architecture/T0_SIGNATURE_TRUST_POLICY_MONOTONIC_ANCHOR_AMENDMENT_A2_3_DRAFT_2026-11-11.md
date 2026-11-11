@@ -46,7 +46,7 @@ A descriptor or ID is not itself proof of authority. All object bytes, digests, 
 - `schema_version`: exact integer discriminator `1`.
 - `canonicalization_profile`: exact identifier `T0-JCS-1`.
 - AEO body bytes are the exact canonical T0-JCS-1 UTF-8 serialization.
-- The body MUST NOT contain its own content digest, signature, signature envelope digest, or detached package descriptor.
+- The body MUST NOT contain its own content digest, signature, signature envelope digest, or detached package descriptor. Its body digest MUST use the A2.2 §20.1 Evidence Object domain bytes, U64BE exact canonical body byte length, and exact canonical body bytes.
 - Logical IDs and U64 values follow A1 §14.2 and A2.2 §20.2. Schema-version discriminators are fixed schema-defined integer tokens only where explicitly stated.
 
 ### 3.2 Required fields
@@ -95,19 +95,28 @@ The `scope` object MUST include exact `actions`, `audience`, `object_types`, `ch
 
 ## 4. AEO signature and package binding
 
-### 4.1 Reuse the existing exact-byte Signature Statement mechanism
+### 4.1 AEO-specific signature statement and domain
 
-The AEO issuer signs a canonical `T0-SIGNATURE-STATEMENT-V1` whose subject descriptor identifies the exact AEO body bytes. It uses the A1 §4.3 preimage unchanged:
+The AEO issuer signs a separate canonical `T0-AUTHORIZATION-EVIDENCE-SIGNATURE-STATEMENT-V1`. A1 §4.3 remains unchanged for the main checkpoint Signature Statement. The AEO-specific statement is required because the AEO is not a checkpoint and must not fabricate checkpoint ID, sequence or predecessor fields.
+
+The exact AEO statement domain is ASCII `T0-AUTHORIZATION-EVIDENCE-SIGNATURE-STATEMENT-V1` followed by exactly one NUL octet. Normative domain hex:
 
 ```
-UTF8("T0-SIGNATURE-STATEMENT-V1\\0")
-|| U64BE(byte_length(canonical_statement_bytes))
-|| canonical_statement_bytes
+54302d415554484f52495a4154494f4e2d45564944454e43452d5349474e41545552452d53544154454d454e542d563100
 ```
 
-The statement's `purpose` MUST be `T0_AUTHORIZATION_EVIDENCE_ISSUER_ATTESTATION`, its signer role MUST be `AUTHORIZATION_EVIDENCE_ISSUER`, and its subject object descriptor MUST identify the AEO body. The purpose, role, audience, profile and subject descriptor are inside the signed canonical statement.
+The exact preimage is:
 
-No new domain separator is introduced. Cross-purpose/object substitution is prevented by the signed statement type, exact purpose, role, subject type/schema/digest/length, audience and profile bindings. A verifier MUST reject any mismatch. A later need for a different signature-statement byte domain requires a separately versioned contract and must not be improvised by implementation.
+```
+ASCII("T0-AUTHORIZATION-EVIDENCE-SIGNATURE-STATEMENT-V1")
+|| 0x00
+|| U64BE(byte_length(canonical_AEO_signature_statement_bytes))
+|| canonical_AEO_signature_statement_bytes
+```
+
+The AEO Signature Statement MUST bind: exact statement type/schema; profile ID/version; Ed25519 algorithm ID; purpose `T0_AUTHORIZATION_EVIDENCE_ISSUER_ATTESTATION`; audience; AEO body object ID/type/schema/canonicalization/digest algorithm/digest/byte length; issuer SPKI fingerprint and role `AUTHORIZATION_EVIDENCE_ISSUER`; Trust Policy ID/sequence/digest. All logical U64 fields remain canonical decimal strings under A1 §14.2/A2.2 §20.2.
+
+The AEO statement MUST NOT contain checkpoint-specific fields or claim checkpoint attestation. The purpose, role, audience, profile and exact AEO subject descriptor are inside the signed canonical statement. The distinct domain prevents cross-protocol substitution with the A1 checkpoint statement. The domain is a proposed normative addition and requires independent review and exact known-answer vectors before freeze.
 
 ### 4.2 Signature profile
 
