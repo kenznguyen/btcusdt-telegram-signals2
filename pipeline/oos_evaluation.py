@@ -129,7 +129,7 @@ def _metric_set(value, field):
         _identifier(item["metric_id"], "metric_id")
         _identifier(item["unit"], "metric_unit")
         _identifier(item["aggregation"], "metric_aggregation")
-        if item["direction"] not in _DIRECTIONS:
+        if not isinstance(item["direction"], str) or item["direction"] not in _DIRECTIONS:
             _fail("METRIC_DIRECTION_INVALID")
         metric_value = _decimal(item["value"], "metric_value")
         sample_count = _uint(item["sample_count"], "metric_sample_count", positive=True)
