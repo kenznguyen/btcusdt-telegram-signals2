@@ -118,7 +118,7 @@ class FreqaiExporterTest(unittest.TestCase):
         self.assertNotEqual(first["datasetVersion"], later["datasetVersion"])
         self.assertEqual(first["candles"], later["candles"])
         with self.assertRaises(ValueError):
-            canonical_context(self.now, bars=33, client=WindowHttpClient(self.window))
+            canonical_context(self.now, bars=3001, client=WindowHttpClient(self.window))
 
 
 if __name__ == "__main__":
