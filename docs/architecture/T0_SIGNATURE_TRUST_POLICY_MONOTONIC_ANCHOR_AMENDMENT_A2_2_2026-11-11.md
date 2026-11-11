@@ -533,20 +533,20 @@ This section is normative and replaces A2.1 §12.3. The verifier evaluates condi
 | 2 | Selected path is Path A or B but that path is not enabled by its separately approved contract/configuration | Path unavailable | BLOCKED | `ROOT_BOOTSTRAP_PATH_NOT_ENABLED` |
 | 3 | Required evidence is absent and the configured source was successfully read | Evidence missing | BLOCKED | `ROOT_BOOTSTRAP_EVIDENCE_MISSING` |
 | 4 | Required trusted configuration, owner pin or authenticated channel cannot be reached/read, so absence cannot be established | Trust boundary unavailable | UNKNOWN | `ROOT_BOOTSTRAP_TRUST_BOUNDARY_UNAVAILABLE` |
-| 5 | Authorization object is present but fails its approved signature/issuer/delegation validation | Authorization invalid | INVALID | `ROOT_BOOTSTRAP_AUTHORIZATION_INVALID` |
-| 6 | Exact bootstrap record digest/length differs from the independently authorized subject | Subject binding invalid | INVALID | `ROOT_BOOTSTRAP_DIGEST_MISMATCH` |
-| 7 | Namespace differs | Namespace binding invalid | INVALID | `ROOT_BOOTSTRAP_NAMESPACE_MISMATCH` |
-| 8 | Audience differs | Audience binding invalid | INVALID | `ROOT_BOOTSTRAP_AUDIENCE_MISMATCH` |
-| 9 | Root SPKI fingerprint differs | Root binding invalid | INVALID | `ROOT_BOOTSTRAP_ROOT_FINGERPRINT_MISMATCH` |
-| 10 | Root role differs | Role binding invalid | INVALID | `ROOT_BOOTSTRAP_ROLE_MISMATCH` |
-| 11 | Profile ID/version differs | Profile binding invalid | INVALID | `ROOT_BOOTSTRAP_PROFILE_MISMATCH` |
-| 12 | Bootstrap sequence/genesis/predecessor differs | Sequence binding invalid | INVALID | `ROOT_BOOTSTRAP_SEQUENCE_MISMATCH` |
-| 13 | Recovery/rotation policy ID or digest differs | Recovery binding invalid | INVALID | `ROOT_BOOTSTRAP_RECOVERY_POLICY_MISMATCH` |
-| 14 | Readback source is reachable but bytes/digest differ from the authorized exact configuration | Readback integrity invalid | INVALID | `ROOT_BOOTSTRAP_READBACK_MISMATCH` |
-| 15 | Readback is required but temporarily/unexpectedly inaccessible after authorization and configuration | Readback unavailable | UNKNOWN | `ROOT_BOOTSTRAP_READBACK_UNAVAILABLE` |
-| 16 | Newly enrolled root is sole authority for initial enrollment | Self-authorization forbidden | BLOCKED | `ROOT_BOOTSTRAP_SELF_AUTHORIZATION_FORBIDDEN` |
-| 17 | Producer-supplied key, URL, record or co-published VPS/GitHub evidence is offered as independent trust anchor | Untrusted bootstrap input | BLOCKED | `ROOT_BOOTSTRAP_PRODUCER_INPUT_UNTRUSTED` |
-| 18 | Evidence from Path A and Path B is combined, or path identity changes mid-verification | Path substitution | BLOCKED | `ROOT_BOOTSTRAP_PATH_MIXING_FORBIDDEN` |
+| 5 | Newly enrolled root is sole authority for initial enrollment | Self-authorization forbidden | BLOCKED | `ROOT_BOOTSTRAP_SELF_AUTHORIZATION_FORBIDDEN` |
+| 6 | Producer-supplied key, URL, record or co-published VPS/GitHub evidence is offered as independent trust anchor | Untrusted bootstrap input | BLOCKED | `ROOT_BOOTSTRAP_PRODUCER_INPUT_UNTRUSTED` |
+| 7 | Evidence from Path A and Path B is combined, or path identity changes mid-verification | Path substitution | BLOCKED | `ROOT_BOOTSTRAP_PATH_MIXING_FORBIDDEN` |
+| 8 | Authorization object is present but fails its approved signature/issuer/delegation validation, excluding the self-authorization case in priority 5 | Authorization invalid | INVALID | `ROOT_BOOTSTRAP_AUTHORIZATION_INVALID` |
+| 9 | Exact bootstrap record digest/length differs from the independently authorized subject | Subject binding invalid | INVALID | `ROOT_BOOTSTRAP_DIGEST_MISMATCH` |
+| 10 | Namespace differs | Namespace binding invalid | INVALID | `ROOT_BOOTSTRAP_NAMESPACE_MISMATCH` |
+| 11 | Audience differs | Audience binding invalid | INVALID | `ROOT_BOOTSTRAP_AUDIENCE_MISMATCH` |
+| 12 | Root SPKI fingerprint differs | Root binding invalid | INVALID | `ROOT_BOOTSTRAP_ROOT_FINGERPRINT_MISMATCH` |
+| 13 | Root role differs | Role binding invalid | INVALID | `ROOT_BOOTSTRAP_ROLE_MISMATCH` |
+| 14 | Profile ID/version differs | Profile binding invalid | INVALID | `ROOT_BOOTSTRAP_PROFILE_MISMATCH` |
+| 15 | Bootstrap sequence/genesis/predecessor differs | Sequence binding invalid | INVALID | `ROOT_BOOTSTRAP_SEQUENCE_MISMATCH` |
+| 16 | Recovery/rotation policy ID or digest differs | Recovery binding invalid | INVALID | `ROOT_BOOTSTRAP_RECOVERY_POLICY_MISMATCH` |
+| 17 | Readback source is reachable but bytes/digest differ from the authorized exact configuration | Readback integrity invalid | INVALID | `ROOT_BOOTSTRAP_READBACK_MISMATCH` |
+| 18 | Readback is required but temporarily/unexpectedly inaccessible after authorization and configuration | Readback unavailable | UNKNOWN | `ROOT_BOOTSTRAP_READBACK_UNAVAILABLE` |
 
 ### 17.1 Precedence and state invariants
 
@@ -579,7 +579,7 @@ For each test, clone its named baseline (B0 or B-A; A2.2-NV-04 uses B0-PF) to a 
 
 | ID | Single mutation from B0 | Per-dimension expected result | Aggregate / primary reason | State and forbidden transitions |
 |---|---|---|---|---|
-| A2.2-NV-01 | Change only statement purpose to legacy `T0_CHECKPOINT_OWNER_ATTESTATION`, retaining otherwise valid signature bytes | Purpose/profile policy gate rejects the legacy value before signature verification; signature bytes are not accepted | INVALID / `PURPOSE_NOT_SUPPORTED_BY_PROFILE` | S1=S0; no root enrollment, policy/anchor/checkpoint advancement |
+| A2.2-NV-01 | Change only statement purpose to legacy `T0_CHECKPOINT_OWNER_ATTESTATION`, retaining otherwise valid signature bytes | Purpose/profile authorization is UNTRUSTED; signature bytes are not accepted | UNTRUSTED / `PURPOSE_NOT_SUPPORTED_BY_PROFILE` | S1=S0; no root enrollment, policy/anchor/checkpoint advancement |
 | A2.2-NV-02 | Remove only issuer purpose from the policy allowlist | Policy authorization BLOCKED; signature dimension not accepted | BLOCKED / `POLICY_PURPOSE_NOT_EXPLICIT` | S1=S0; no authorization or state advancement |
 | A2.2-NV-03 | Change only the A1 historical descriptor's profile to `T0-CHECKPOINT-ISSUER-SIGNATURE-PROFILE-V2` version `2` while retaining A1 type/version | Object/profile binding INVALID | INVALID / `PROFILE_VERSION_MISMATCH` | S1=S0; no historical relabel or A2.2 acceptance |
 | A2.2-NV-04 | Baseline B0-PF contains one fixed A2.2 profile-check failure; change only verifier configuration to enable automatic A1 fallback | Profile downgrade BLOCKED | BLOCKED / `PROFILE_DOWNGRADE_FORBIDDEN` | S1=S0; no second-profile attempt or state advancement |
