@@ -917,3 +917,21 @@ This is the current disposition and supersedes the earlier historical NOT RUN / 
 - Status: **SCHEMA DRAFT CREATED / NOT NORMATIVE / NOT FROZEN; A1-A2.2 CONSISTENCY BLOCKED ON EXPLICIT CONFLICT RESOLUTION; IMPLEMENTATION NOT AUTHORIZED**.
 - No tests run (documentation-only). No code, dependencies, keys, trust roots, policy/anchor/verification state, CI dispatch, VPS/T0/runtime, trading or destructive operations changed.
 - Next step: perform a focused consistency review of the draft against A1/A2.2, produce a bounded A2.3 amendment proposal for the explicit B/E2 conflicts, and preserve unresolved cryptographic-domain/trust-chain decisions as blockers. Do not implement or dispatch workflows.
+
+
+### Stage II — automatic continuation: A2.3 B/E2 contract draft and adapter alignment (2026-11-11)
+
+- Owner instruction: continue Stage II automatically until completion. Work remains on the existing branch `feature/t0-centralized-data-feeder-p1-20261101`; no new branch/PR was created.
+- Read the current handoff before work; this entry records the current bounded continuation.
+- Created A2.3 draft: `docs/architecture/T0_SIGNATURE_TRUST_POLICY_MONOTONIC_ANCHOR_AMENDMENT_A2_3_DRAFT_2026-11-11.md`.
+  - Final current document blob: `41d6abfc9df20047af4668b80a6ce2edb7e07117`.
+  - Initial creation commit: `d1faa3f952ccf6319d89f4de06ea09d6a498d954`; subsequent documentation-only refinements specify AEO body digest domain, AEO-specific statement/domain, field/descriptor mappings, purpose-specific profile IDs and Ed25519 bindings, fixed domain KAT, UUIDv4 descriptor identity and bounded parser/input limits.
+  - Explicitly supersedes A2.2 §3.1 provenance field placement and §3.3 E1 envelope-ID placement with B + E2. Preserves A2.2 §16–17 bootstrap disabled / NOT_ENABLED.
+  - Adds AEO issuer profile `T0-AUTHORIZATION-EVIDENCE-ISSUER-SIGNATURE-PROFILE-V1` and retains checkpoint profile `T0-CHECKPOINT-ISSUER-SIGNATURE-PROFILE-V2`; both use owner-approved Ed25519 PureEdDSA, strict SPKI DER and 64-byte raw signatures. Trust Policy must explicitly authorize exact profile/role/purpose/audience/scope.
+  - Proposes a distinct AEO signature-statement domain. Fixed SHA-256 KAT: domain hex `54302d415554484f52495a4154494f4e2d45564944454e43452d5349474e41545552452d53544154454d454e542d563100`, domain length 49; payload `A2.3-AEO-domain-KAT-v1`, length 22, U64BE `0000000000000016`; digest `64172accdaf1f2add08b201b25c8ea26b52e2c90e68674126bbef465f4e7acde`.
+  - Proposes limits: statement/AEO/dependency body <=1 MiB, preimage <=1 MiB+64 octets, SPKI <=4096 octets, signature exactly 64 octets, <=64 dependencies, <=16 MiB total frozen input set, descriptor <=64 KiB, bounded JSON nesting/member/array/string limits. These are proposed, not frozen.
+- A2.3 self-review: `docs/evidence/T0_SIGNATURE_A2_3_SELF_REVIEW_2026-11-11.md`; current blob `70a76561bc20747de45fd0956ba09b22dbc48bcf`; review is same-session author self-review only, **PARTIAL PASS WITH BLOCKERS**, not independent review/G3.
+- Stage II adapter contract aligned with A2.3: `docs/evidence/T0_SIGNATURE_A2_2_STAGE_II_ED25519_ADAPTER_CONTRACT_2026-11-11.md`; current blob `1bdfc87949429cfd164892eab519971954f243eb`. Adds `INPUT_LIMIT_EXCEEDED` and proposed adapter input ceilings; preserves exact-byte stateless primitive.
+- Open blockers: explicit owner freeze of exact A2.3 blob/resource ceilings and distinct AEO issuer principal/key constraint; complete Trust Policy field crosswalk and exact evidence descriptor schemas/status semantics; independent security review of exact A2.3 + adapter contract; pinned PyCA version/dependency hashes/wheel/build provenance. No Stage II implementation or CI test is authorized until the exact contract/review gate is closed.
+- No tests were run; documentation-only. No code/dependencies/keys/signatures/trust roots/policy/anchor/Verification Record state/CI dispatch/VPS/T0/runtime/trading/destructive operations changed.
+- Next: complete a final exact-blob consistency pass and review package, then obtain qualifying independent security review. If no independent reviewer is available, mark Stage II BLOCKED at that gate; do not substitute same-session self-review.
