@@ -800,3 +800,19 @@ The prior A2.2 Stage I status/proposal notes above are historical snapshots. Thi
 - Source package and tests remain on the active feature branch; no source/test/runtime/T0/VPS/trading changes were made.
 - **Dispatch status: NOT RUN.** This approval covered the workflow-only backport, not a new manual workflow dispatch. A fresh explicit dispatch authorization is still required. Previous run `42954924103` on `main` remains blocked because the Stage I package is intentionally absent from `main`.
 - Stage I status remains **NOT VERIFIED end-to-end** until a new manual run on this feature branch proves compile, all 34 tests, parser, and artifact upload on the exact checkout SHA. Independent review/G3 remains not established.
+
+
+
+### A2.2 Stage I — exact feature-branch workflow verification (2026-11-11)
+
+- Owner separately authorized manual dispatch; workflow was run by the owner on the existing feature branch.
+- Workflow run [42955676103](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42955676103): event `workflow_dispatch`, run number 5, branch `feature/t0-centralized-data-feeder-p1-20261101`, conclusion **SUCCESS**, created 2026-11-11T03:53:32Z.
+- Exact triggering/checked-out source SHA: `cadcfcf66503c0a0750adcfc6646d6fa2944f03e`. Checkout log confirms detached checkout at this exact SHA; it matches the recorded active branch HEAD at dispatch.
+- Workflow path: `.github/workflows/t0-signature-a2-2-stage-i.yml`; job `130310067517`, `Stage I isolated contract tests`: SUCCESS. All seven main steps completed successfully, including exact checkout, Python setup, preflight, compile, synthetic tests and artifact upload.
+- Runtime: CPython `3.12.16`. Preflight evidence: `SCOPE=STAGE_I_SYNTHETIC_ONLY`, `AI_EXECUTION_ENABLED=false`, database/exchange credentials empty, `RUNTIME_INTEGRATION=NOT_AUTHORIZED`.
+- Compile: `STAGE_I_COMPILE=PASS`.
+- Repository suite: **34/34 tests PASS**, exit code 0; unittest summary `Ran 34 tests in 0.085s / OK`. Workflow parser accepted the timed plural summary and its inline singular/plural regression assertions completed in the successful job.
+- Artifact: ID `13826832203`; name `t0-signature-a2-2-stage-i-cadcfcf66503c0a0750adcfc6646d6fa2944f03e`; size 1,810 bytes; expires `2026-11-18T03:53:32Z`. GitHub digest: `sha256:fbd311592772e3da4dda726d0a25fb768561df6ebad0667a7d607247983ed845`. Artifact ZIP was downloaded and independently hashed; local SHA-256 exactly matches GitHub's digest. ZIP contains five files: `compile.txt`, `preflight.txt`, `source-sha.txt`, `tests.log`, `verdict.txt`. Extracted verdict records `STAGE_I_TESTS=PASS`, `TEST_COUNT=34`, `EXIT_CODE=0`; embedded source SHA matches the workflow checkout.
+- Result: **STAGE I SYNTHETIC CI/TEST GATE PASS** for this exact source and Python 3.12 runtime. This resolves the prior repository-suite/compile/Python-3.12 verification blocker.
+- Limits remain: synthetic/mock-only, not production cryptographic assurance; independent review waived/not performed; G3 not established. No production keys/signatures, trust-root/bootstrap, policy/anchor instances, VPS/SSH/T0 runtime, SQLite/canonical data, custody publication, trading or destructive operations were exercised. `AI_EXECUTION_ENABLED=false` remains.
+- Next step: record the gate as PASS and retain the artifact/run evidence. Any later stage (production crypto, bootstrap, durable trust/anchor/custody, runtime integration or trading) requires its own contract and explicit approval; this run grants none of those permissions.
