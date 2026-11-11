@@ -122,3 +122,14 @@ The manifest and repository-inventory JSON payload SHA-256 values independently 
 - Detailed evidence report: `docs/evidence/T0_L4_GITHUB_ARTIFACT_EXACT_READBACK_2026-11-11.md`, report commit `a42a45060718d7c4bbce63f4c2756687a8231c6a`.
 
 No VPS/SSH, T0 API/SQLite, canonical data/runtime, signing/key operation, workflow dispatch, cleanup/deletion or trading action occurred. T0 remains unchanged; paper-only and `AI_EXECUTION_ENABLED=false` remain.
+
+
+## L4M-08 — Bounded claim-discipline CI verification (2026-11-12)
+
+- Existing workflow extended with a dedicated read-only claim-discipline job; no separate workflow, secrets, network provider, T0/VPS/runtime access or production data access was added.
+- Exact tested source SHA: `18dea2a9097f711466bb792d3722ad36d0a2720a`.
+- Workflow run [43085172937](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43085172937): all four jobs SUCCESS. The L4M-08 job ran 11/11 focused tests PASS and the current control-to-source crosswalk audit returned `L4M08_CLAIM_DISCIPLINE=PASS`.
+- Claim-discipline artifact ID `13885858302`, ZIP SHA-256 `153d9b1ec6310603b6b5e184f9039886a92a6db8e0e3d557550ec5e0235d9606`; exact artifact ZIP was downloaded and independently hashed, matching GitHub's digest. Its JSON report binds source SHA `18dea2a9097f711466bb792d3722ad36d0a2720a`, lists all ten current control dispositions, and explicitly retains aggregate `BLOCKED / NOT VERIFIED`.
+- Other workflow artifacts: lineage ID `13885468780`, digest `dbaed9f7b729871444d3ef8663817f8262c9c22e228b85a2c16bd837522a36c4`; repository inventory ID `13885328510`, digest `6154d6be8c1039b1b5b956916beb533a2a3083a76f228d91331439b2fe5dd641`; artifact manifest ID `13886396112`, digest `d101885d228a04429dab44805f58f561bff7c52c26428e451c90796c90ccfbb4`.
+- Scope limitation: this is a deterministic audit of the current control-to-source crosswalk only, not a repository-wide scan of every report/handoff, not owner custody evidence, not a signed checkpoint/anchor verification, not owner-run offline verification and not final L4 acceptance.
+- Disposition: **L4M-08 automated crosswalk subcheck PASS; L4M-08 overall remains DOCUMENTARY PASS ONLY; L4M-01–07 and L4M-10 are not promoted; aggregate L4-Minimum remains BLOCKED / NOT VERIFIED.**
