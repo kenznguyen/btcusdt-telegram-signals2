@@ -45,3 +45,10 @@ Exact-SHA GitHub Actions CI: **NOT VERIFIED** (no workflow run initiated).
 
 ## Next step
 If the owner wants to resume runtime validation, first approve a separate bounded VPS provisioning/deployment scope. Before that, a separately scoped handoff cleanup should reconcile the retired SSH-preflight/G4 instructions and current PR state.
+
+## GitHub write and verification record
+- Parity addendum commit: `15b9afd52e59969ac6d21bc74d418e1ac3e42bfa`; resulting parity blob: `f60953af5afdb1a0d10826580ad010e312603ee5`.
+- Initial G0.6 report commit: `c48d53dbb9bea5b08ae43418e50c1578d9d300f6`.
+- Handoff update commit: `337f19f356d2030fbbaeb1b436d6c22265c15a1e`; resulting handoff blob: `1bbbc749e17094561e5310c512fb841cf0f83ada`.
+- Post-write readback confirmed the report, parity addendum and handoff on the active branch. Branch HEAD at readback: `337f19f356d2030fbbaeb1b436d6c22265c15a1e`.
+- Exact-SHA Actions query for `337f19f356d2030fbbaeb1b436d6c22265c15a1e`: 0 workflow runs. CI: **NOT VERIFIED**.
