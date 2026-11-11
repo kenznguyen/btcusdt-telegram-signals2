@@ -375,5 +375,68 @@ class DualStrategyApiScopeRedTest(unittest.TestCase):
             ).fetchone()
         self.assertIsNone(migration_table)
 
+
+    def test_ai_buy_while_core_wait_routes_only_to_ai_ledger_and_shared_risk_rejects(self):
+        from paper_execution.ledger import PaperLedger, read_snapshot
+
+        self.activate_dual_schema()
+        PaperLedger(self.db, strategy_id="AI_FREQAI", source_sha="e" * 40)
+        timestamp = 1_800_000_000_000
+        book = {
+            "source": "hummingbot", "connector": "binance_perpetual",
+            "symbol": "BTCUSDT", "observedAtMs": timestamp,
+            "bids": [{"price": "100", "quantity": "1"}],
+            "asks": [{"price": "101", "quantity": "1"}],
+        }
+        decision = {
+            "source": "AI_FREQAI", "action": "BUY",
+            "reason": "ALIGNED_PAPER_SIGNAL",
+            "intent": {
+                "intentId": "ai-buy-while-core-waits",
+                "symbol": "BTCUSDT", "exchange": "binance",
+                "marketType": "USDT_PERPETUAL",
+                "strategyVersion": "ai-contract-red",
+                "modelVersion": "ai-contract-red",
+                "datasetVersion": "sha256:" + "a" * 64,
+                "targetPositionBase": "0.001", "limitPrice": "101",
+                "decisionAtMs": timestamp - 100,
+                "validUntilMs": timestamp + 30_000,
+                "inputSnapshotId": "sha256:" + "b" * 64,
+                "mode": "PAPER",
+            },
+        }
+        core_wait = {
+            "source": "STRATEGY_CORE", "action": "WAIT",
+            "reason": "CORE_NO_ENTRY", "intent": None,
+        }
+        empty_mark = {"candles": [], "coverage": {"complete": False}}
+        before_core = read_snapshot(str(self.db), strategy_id="STRATEGY_CORE")
+        before_ai = read_snapshot(str(self.db), strategy_id="AI_FREQAI")
+
+        with patch.object(api, "now_ms", return_value=timestamp), \\
+             patch.object(api, "context", return_value={"book": book}), \\
+             patch.object(api, "decide", return_value=decision), \\
+             patch.object(api, "core_decide", return_value=core_wait), \\
+             patch.object(api, "control_permit", return_value=True), \\
+             patch.object(api, "market_window", return_value=empty_mark):
+            signals = api.signal_snapshot(timestamp)
+            status, response = self.request("/v1/paper/evaluate", {})
+
+        self.assertEqual(signals["strategyCore"]["action"], "WAIT")
+        self.assertEqual(signals["aiStrategy"]["action"], "BUY")
+        self.assertEqual(status, 200, response)
+        self.assertEqual(response["decision"]["source"], "AI_FREQAI")
+        self.assertEqual(response["order"]["status"], "REJECTED", response)
+        self.assertEqual(response["order"]["reason"], "RISK_INPUTS_UNAVAILABLE")
+
+        after_core = read_snapshot(str(self.db), strategy_id="STRATEGY_CORE")
+        after_ai = read_snapshot(str(self.db), strategy_id="AI_FREQAI")
+        self.assertEqual(after_core["positionBase"], before_core["positionBase"])
+        self.assertEqual(after_core["orders"], before_core["orders"])
+        self.assertEqual(after_ai["positionBase"], before_ai["positionBase"])
+        self.assertEqual(len(after_ai["orders"]), len(before_ai["orders"]) + 1)
+        self.assertEqual(after_ai["orders"][0]["strategyId"], "AI_FREQAI")
+
+
 if __name__ == "__main__":
     unittest.main()
