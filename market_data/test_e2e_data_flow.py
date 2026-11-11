@@ -78,7 +78,7 @@ class SQLiteT0ToT2DataFlowTest(unittest.TestCase):
             self._prepare_window(timeframe)
         leases = LeaseStore(str(self.db_path))
         owner_id = "g3-isolated-test-" + timeframe
-        lease = leases.acquire(owner_id, self.start_ms, ttl_seconds=3600)
+        lease = leases.acquire(owner_id, self.observed_at_ms, ttl_seconds=3600)
         gateway = SQLiteWriteGateway(
             store=CandleStore(self.db_path),
             lease_store=leases,
