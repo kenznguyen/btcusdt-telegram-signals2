@@ -87,12 +87,12 @@ class FiveLayerApiTest(unittest.TestCase):
 
     def test_collector_to_canonical_prediction_to_paper_and_read_api(self):
         code, intelligence = self.request("/v1/intelligence")
-        self.assertEqual(code, 200, result)
+        self.assertEqual(code, 200, intelligence)
         self.assertEqual(intelligence["netTakerQuote"], "100")
         self.assertEqual(intelligence["collectorCommit"], "bc4f0ef633fbeee4a49defd72827f17162693805")
         self.assertEqual(len(intelligence["inputFiles"]["trades"][0]["sha256"]), 64)
         code, result = self.request("/v1/paper/evaluate", "POST", {})
-        self.assertEqual(code, 200)
+        self.assertEqual(code, 200, result)
         self.assertEqual(result["decision"]["action"], "BUY")
         self.assertEqual(result["order"]["status"], "FILLED")
         self.assertEqual(result["order"]["filledBase"], "0.001")
@@ -222,7 +222,7 @@ class FiveLayerApiTest(unittest.TestCase):
             self.assertEqual(signals["strategyCore"]["source"], "STRATEGY_CORE")
             self.assertEqual(signals["aiStrategy"]["source"], "AI_FREQAI")
             code, result = self.request("/v1/paper/evaluate", "POST", {"source": "CORE"})
-        self.assertEqual(code, 200)
+        self.assertEqual(code, 200, result)
         self.assertEqual(result["decision"]["source"], "STRATEGY_CORE")
         self.assertEqual(result["order"]["status"], "FILLED")
         self.assertEqual(self.request("/v1/paper/evaluate", "POST", {"source": "UNKNOWN"})[0], 400)
