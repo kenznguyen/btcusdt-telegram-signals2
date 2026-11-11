@@ -1985,3 +1985,17 @@ Next: if owner wants to proceed beyond planning, first approve a bounded provisi
 - Documentation-only. No source/test/fixture/schema/API/registry/adapter/runner/workflow/permission/credential/key/database/storage/market-data/model/ledger/VPS/runtime change; no tests or workflow dispatch; no network/provider/database/VPS access or inventory; no archive, quarantine, cleanup, expiry, compaction, VACUUM or deletion.
 - Next: owner/security review and explicit exact-scope decisions. Verifier/parser/schema/registry/adapter, real keys, evidence-source integration, CI permission changes, TEST-01–07, runtime inventory and any executor remain separate gates.
 - T0 remains independent/protected; CORE_LEDGER and AI_LEDGER remain separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
+
+
+## G0.25 — D01–D04 Crypto, Trust and Key-Lifecycle Assessment (2026-11-11)
+
+- Baseline HEAD: `dc75ab5ce6a4f5cc5db82fa9ebe48ff0a2825509`.
+- Report: `docs/evidence/G0_25_D01_D04_CRYPTO_TRUST_KEY_RECOMMENDATIONS_2026-11-11.md`.
+- Report commit: `721b069e390830d82498f5168633b252fbee7d68`.
+- Technical recommendations: D01 DSSE + Ed25519 + SHA-256; D02 RFC 8785 JCS over UTF-8 JSON with strict parsing/numeric/Unicode rules; D03 offline owner root + narrowly scoped delegated issuer keys + verifier-owned trust policy; D04 offline root and hardware-backed or managed isolated issuer signing, never plaintext private keys on VPS/CI.
+- All four are recommendations only; D01–D04 remain OPEN and NOT RATIFIED. D06–D09/D12 dependencies remain unresolved.
+- G0.25 verdict: TECHNICAL ASSESSMENT PASS — recommendations documented; trust profile NOT ESTABLISHED.
+- References consulted: DSSE protocol/PAE, RFC 8785, RFC 8032. No source implementation or test vectors were created.
+- Documentation-only. No source/test/fixture/schema/API/registry/adapter/workflow/permission/credential/key/database/storage/market-data/model/ledger/VPS/runtime changes; no tests or workflow dispatch; no network/provider/database/VPS access or inventory; no key operations or lifecycle mutation.
+- Next: owner reviews and explicitly ratifies/modifies/rejects D01–D04. No verifier implementation, real keys, trust registry, evidence-source adapters or runtime integration authorized.
+- T0 remains independent/protected; CORE_LEDGER and AI_LEDGER remain separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
