@@ -2737,3 +2737,13 @@ Critical limits:
 - Full AI/dual-strategy RED remains 54 tests, 12 failures, 6 errors in unrelated leverage mapping, equity/sizing, instrument constraints, Kill Switch and AI ledger/API scope. This run is not a full-system PASS.
 - Artifact: ID 13876519708; name ai-strategy-contract-red-2ccff7a55c8572125a9e8c50fd575f97e7082f70; ZIP SHA-256 8aace1904bb0c6ae9667f329876f4b7af793e12f8aa175a6274baa2768d3930a.
 - Focused verifier disposition: PASS at exact SHA above. Overall calibrated confidence/provenance remains BLOCKED / NOT VERIFIED due absent production trust pin/key lifecycle, active/revocation chain, trusted time, evaluation bytes/dataset lineage/OOS evidence, real calibration artifact and Owner-approved numeric policy.
+
+
+## OOS Evaluation Evidence v1 design proposal — 2026-11-12
+
+- Owner explicitly approved the bounded design step. Added `docs/architecture/AI_CALIBRATION_OOS_EVALUATION_EVIDENCE_V1_PROPOSAL.md` in commit `1528bb944a5710939cf86cba51f97cc75579891d`.
+- Scope is proposal only: immutable OOS evaluation record bound by existing manifest `evaluation_record_id` / `evaluation_record_digest`; proposed identity, dataset partition, temporal embargo, metric/uncertainty, evaluator reproducibility and provider-result requirements; deterministic contract-test matrix for a later frozen schema.
+- Frozen manifest v1 (37 fields), signature envelope v1, transform v1 and decision gate were not modified. No production provider, schema implementation, executable tests, real evaluation data, model training, calibration artifact, key, trust root, registry event, S2, VPS/runtime, T0/T1/T2 or live trading operation occurred.
+- Proposal explicitly leaves unresolved the exact field/metric schema, authoritative dataset lineage, split protocol, detached evaluation signature choice, statistical thresholds, trusted-time source and resource limits. These require Owner decisions before schema freeze.
+- Verification: source/document commit recorded; no CI workflow was run for this documentation-only proposal. Executable contract tests are NOT RUN because schema is not frozen.
+- **Disposition: DESIGN PROPOSAL RECORDED; NOT FROZEN; NOT IMPLEMENTED.** Next: Owner review of the open decisions in section 9 of the proposal. Do not implement provider/schema or assert OOS VERIFIED before those decisions and a separate implementation gate.
