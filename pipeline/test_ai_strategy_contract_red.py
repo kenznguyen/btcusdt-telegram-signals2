@@ -191,7 +191,7 @@ class AIStrategyContractRedTest(unittest.TestCase):
         for field, value in (
             ("registryStatus", "REVOKED"),
             ("trustedTimeStatus", "UNVERIFIED"),
-            ("oosEvidenceStatus", "UNVERVERIFIED"),
+            ("oosEvidenceStatus", "UNVERIFIED"),
         ):
             context = self.admission_context()
             context["calibration_evidence"] = self.calibration_evidence(prediction)
