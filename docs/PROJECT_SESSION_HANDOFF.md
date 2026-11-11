@@ -1537,3 +1537,20 @@ Recorded in R1 proposal commit `29139c86772320f52007dd1c2aed5487e2414f9c` and ev
 Decision scope is limited to the integrity/provenance policy. It does not verify `T0_M15_H1_DATASET_BUNDLE_V1`, authorize T0 data access/export/copy, or freeze exact bundle digest/coverage/quality. D1 is PARTIALLY DECIDED; R1 remains NOT FROZEN; R2 remains NOT AUTHORIZED. No T0 data/runtime was accessed or changed; no tests/workflow were run.
 
 Next: request a separately scoped approval for read-only verification of the candidate bundle's manifest, digest, coverage and quality. Do not begin feature extraction or R2 experiments.
+
+
+### AI Strategy D1 — bounded read-only bundle inventory (2026-11-11)
+
+Owner approved read-only verification of the candidate `T0_M15_H1_DATASET_BUNDLE_V1`. The completed pass was limited to GitHub repository metadata/tree and existing documentation; no T0 API, VPS/SSH, SQLite, runtime or dataset payload was accessed.
+
+- Inspected branch HEAD: `03b1ab3478bbba2b5880271462ea94412667c9a9`.
+- Recursive tree: 890 entries, not truncated.
+- No candidate bundle path, candidate manifest or market-data payload for the AI research bundle was found in the inspected tracked tree.
+- Existing P1.8 ZIPs are synthetic evidence artifacts and are not substitutes for the BTCUSDT M15/H1 research bundle.
+- Existing L4 artifact pilot explicitly excludes VPS/SSH and canonical T0 SQLite access; it does not prove this bundle exists.
+
+Evidence: `docs/evidence/AI_STRATEGY_D1_READ_ONLY_BUNDLE_VERIFICATION_2026-11-11.md`, commit `c17b26642253654bd684716f6db2069638c61d6b`.
+
+Disposition: D1 **BLOCKED / PARTIALLY DECIDED**; candidate bundle SHA/manifest, UTC coverage, counts and quality remain NOT VERIFIED. This bounded repository inventory does not prove the bundle is absent outside GitHub. A separate scoped read-only access method/location for the actual published T0 bundle must be established before further verification. Do not create/export a bundle under this authorization. R1 remains NOT FROZEN; R2 remains NOT AUTHORIZED. No tests/workflow, data export/copy, T0 access/mutation, feature computation, model training, backtest, VPS/runtime/deployment, exchange or trading action occurred.
+
+Next: identify the actual read-only publication/reference for the existing T0 bundle. If no bundle exists, request a separate owner decision before preparing one. Preserve T0 independence and all existing paper-only restrictions.
