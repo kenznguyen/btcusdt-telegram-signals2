@@ -32,11 +32,11 @@
     },
     {
       "path": "docs/evidence/T0_L4_MINIMUM_NINE_CONTROL_EVIDENCE_ACQUISITION_REGISTER_2026-11-10.md",
-      "git_blob_sha1": "6aa362731cbb9363b62bf6483a65f18d46853e00"
+      "git_blob_sha1": "7ee8b11b47bec4bbd983f35e8f4a4d0f012c03bc"
     },
     {
       "path": "docs/evidence/T0_L4_MINIMUM_AUTOMATION_PLAN_2026-11-10.md",
-      "git_blob_sha1": "7a944adf073ec73112af1e258cff91db98b3d8ed"
+      "git_blob_sha1": "90cd5cbb2f5cdbfa9b03bd1839bd45fc5ccaffbf"
     },
     {
       "path": "docs/evidence/T0_L4_MINIMUM_ADVERSARIAL_REVIEW_2026-11-10.md",
@@ -48,7 +48,7 @@
     },
     {
       "path": "docs/evidence/T0_L4_MINIMUM_POLICY_HISTORICAL_AUDIT_RECONCILIATION_2026-11-10.md",
-      "git_blob_sha1": "34f8dfce5af7fe414ef984b3c3b7db4bce3b9f12"
+      "git_blob_sha1": "3f7d2c9f8fd133a40eb11ba6be14d756cb842b67"
     },
     {
       "path": "docs/architecture/CENTRAL_DATA_LIFECYCLE_POLICY.md",
@@ -76,15 +76,15 @@
     },
     {
       "path": "docs/evidence/T0_L4M08_CLAIM_DISCIPLINE_DOCUMENTARY_ASSESSMENT_2026-11-10.md",
-      "git_blob_sha1": "600ddf989f895e00be264d828ed60d5e0e172314"
+      "git_blob_sha1": "3416c21b4b5a38468f62884210a9f970cdb5f798"
     },
     {
       "path": "docs/evidence/T0_L4M10_FROZEN_BASELINE_OWNER_SELF_ASSESSMENT_READINESS_2026-11-10.md",
-      "git_blob_sha1": "8f12215e31580378f76fcc579c33e993aa798bcb"
+      "git_blob_sha1": "c45816e882a1ecd823a5bd32d9bd2fdb35b5ae08"
     },
     {
       "path": "docs/evidence/T0_L4M02_SIGNER_SEPARATION_EXISTING_EVIDENCE_ASSESSMENT_2026-11-10.md",
-      "git_blob_sha1": "05db03c8a384a0e09e338b5d11b1692e1514fb1b"
+      "git_blob_sha1": "4a564773f8bf762007c372a2bd59b62f3d45b0f4"
     },
     {
       "path": "docs/evidence/p1-8/P1.8.146-retention-obligation-completeness-end-state-copy-graph-clarification.md",
