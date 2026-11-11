@@ -271,5 +271,30 @@ class DualStrategyApiScopeRedTest(unittest.TestCase):
             ).fetchone()
         self.assertEqual(stored, ("CANCELED", "STRATEGY_CORE"))
 
+
+    def test_reset_readiness_checks_pending_orders_from_both_ledgers_and_shared_risk(self):
+        self.activate_dual_schema()
+        order = {
+            "orderId": "ai-pending", "createdAtMs": 1,
+            "status": "OPEN", "filledBase": "0", "strategyId": "AI_FREQAI",
+        }
+        with sqlite3.connect(self.db) as connection:
+            connection.execute(
+                """INSERT INTO paper_orders
+                   (intent_id,payload_hash,order_id,status,document,account_id,
+                    strategy_id,strategy_event,reservation_id,created_schema_version)
+                   VALUES (?,?,?,?,?,1,'AI_FREQAI','ENTRY',NULL,1)""",
+                ("ai-pending-intent", "payload-hash-ai", order["orderId"], "OPEN",
+                 json.dumps(order)),
+            )
+        with patch.object(api, "context", return_value={
+            "candles": {"coverage": {"complete": True}}, "book": {},
+        }):
+            readiness = api.control_readiness(1_800_000_000_000)
+
+        self.assertFalse(readiness["ready"])
+        self.assertFalse(readiness["checks"]["noPendingPaperOrders"])
+        self.assertFalse(readiness["checks"]["accountRiskReady"])
+
 if __name__ == "__main__":
     unittest.main()
