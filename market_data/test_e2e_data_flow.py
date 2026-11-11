@@ -55,6 +55,7 @@ class SQLiteT0ToT2DataFlowTest(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.db_path = Path(self.temp.name) / "isolated-market-data.sqlite3"
         CandleStore(self.db_path)
+        self._prepare_window("15m")
 
         self.server = make_server("127.0.0.1", 0, application)
         self.server_thread = Thread(target=self.server.serve_forever, daemon=True)
@@ -63,14 +64,18 @@ class SQLiteT0ToT2DataFlowTest(unittest.TestCase):
         self.addCleanup(self.server.shutdown)
         self.base_url = f"http://127.0.0.1:{self.server.server_port}"
 
-    def _consume(self, rows, timeframe="15m"):
+    def _prepare_window(self, timeframe):
         interval = INTERVAL_MS[timeframe]
         wall_now = time.time_ns() // 1_000_000
+        self.timeframe = timeframe
         self.end_ms = ((wall_now - 180_000) // interval) * interval
         self.start_ms = self.end_ms - 2 * interval
         self.as_of_ms = self.end_ms + 60_000
         self.observed_at_ms = self.end_ms + 30_000
 
+    def _consume(self, rows, timeframe="15m"):
+        if self.timeframe != timeframe:
+            self._prepare_window(timeframe)
         leases = LeaseStore(str(self.db_path))
         owner_id = "g3-isolated-test-" + timeframe
         lease = leases.acquire(owner_id, self.start_ms, ttl_seconds=3600)
@@ -140,6 +145,7 @@ class SQLiteT0ToT2DataFlowTest(unittest.TestCase):
         self._assert_complete_result(result, "15m")
 
     def test_sync_sqlite_api_and_t2_http_consumer_preserve_canonical_h1_data(self):
+        self._prepare_window("1h")
         inserted, exchange, result = self._consume([
             candle_row(self.start_ms),
             candle_row(self.start_ms + INTERVAL_MS["1h"]),
@@ -155,6 +161,7 @@ class SQLiteT0ToT2DataFlowTest(unittest.TestCase):
         self.assertEqual(caught.exception.reason, "COVERAGE_INCOMPLETE")
 
     def test_t2_http_consumer_fails_closed_when_h1_sqlite_coverage_has_a_gap(self):
+        self._prepare_window("1h")
         with self.assertRaises(CandleHttpError) as caught:
             self._consume([candle_row(self.start_ms)], "1h")
         self.assertEqual(caught.exception.reason, "COVERAGE_INCOMPLETE")
