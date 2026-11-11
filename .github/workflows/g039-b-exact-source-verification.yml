@@ -1,0 +1,66 @@
+name: G0.39-B Exact Source Verification
+
+on:
+  push:
+    branches:
+      - feature/t0-centralized-data-feeder-p1-20261101
+    paths:
+      - .github/workflows/g039-b-exact-source-verification.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: g039-b-exact-source-verification
+  cancel-in-progress: false
+
+jobs:
+  focused-verification:
+    name: Verify frozen G0.39-A source
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact approved source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: 30fa54e6a24e95a275c4fbfd27170371e1d56d78
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Verify immutable source identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "30fa54e6a24e95a275c4fbfd27170371e1d56d78"
+          test "$(git rev-parse HEAD:tools/s1_measurement_harness.py)" = "0f713a1cc87f4c0c355d4488f1cf6af4d8f08d98"
+          test "$(git rev-parse HEAD:tools/test_s1_measurement_harness.py)" = "ff5e3c9d584e13948fc4265f9ca261e697fa9da6"
+          {
+            echo "checkout_sha=$(git rev-parse HEAD)"
+            echo "harness_blob=$(git rev-parse HEAD:tools/s1_measurement_harness.py)"
+            echo "tests_blob=$(git rev-parse HEAD:tools/test_s1_measurement_harness.py)"
+            python --version
+          } | tee verification-identity.txt
+
+      - name: Run focused unit tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest tools.test_s1_measurement_harness -v 2>&1 | tee unittest.log
+
+      - name: Run focused compile check
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile tools/s1_measurement_harness.py tools/test_s1_measurement_harness.py 2>&1 | tee py_compile.log
+
+      - name: Upload verification evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: g039-b-exact-source-verification
+          path: |
+            verification-identity.txt
+            unittest.log
+            py_compile.log
+          if-no-files-found: warn
+          retention-days: 30
