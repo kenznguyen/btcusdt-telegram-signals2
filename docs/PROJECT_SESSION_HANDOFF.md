@@ -1567,3 +1567,14 @@ Evidence: `docs/evidence/AI_STRATEGY_D1_T0_API_READONLY_PATH_ASSESSMENT_2026-11-
 No live API request, token use, SSH/VPS access, SQLite read, data export/copy, bundle creation, tests/workflow, or runtime action occurred. Existing owner deployment protocol and live endpoint verification plan require explicit access/operator/origin/credential/request-budget controls. Current live endpoint, deployed source/config parity, M15/H1 API response and bundle manifest remain NOT VERIFIED. D1 remains PARTIALLY DECIDED / BLOCKED; R1 NOT FROZEN; R2 NOT AUTHORIZED.
 
 Next: obtain sanitized owner/operator-supplied bounded API response metadata, or a separately scoped explicit authorization naming the operator, exact probe origin/endpoint, protected credential method and request budget. Do not create/export a bundle without separate approval. T0 remains independent and unchanged; paper-only and `AI_EXECUTION_ENABLED=false` remain.
+
+
+## T0 L4 — GitHub artifact exact-readback increment (2026-11-11)
+
+- Owner-approved read-only exact readback completed for the three artifacts produced by workflow run [42937191664](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42937191664), exact source SHA `8bda3c987e2145a636bbcc9d8609c5ea15a492b9` on `feature/t0-centralized-data-feeder-p1-20261101`.
+- Artifact ZIPs were downloaded and independently SHA-256 hashed. All three digests matched GitHub metadata: manifest ID `13819680374` = `3509f2ce14aa174a45e4200ab44d13c7ae532841a74886256e9f6fe20ea55f71`; lineage ID `13818967476` = `155986f0f35d875fad02b6c50d0aab7aa43afdcd9191391f9ee0b832e975b67e`; repository inventory ID `13818163804` = `98fc7fca7123ae0a9e72bcf1f209032a57c24d97aa898aaa075eb7212f04c0fa`. ZIP CRC checks passed; no duplicate or unsafe member paths found. Internal JSON sidecars independently matched their payload digests; inventory has 40 unique paths and its declared byte total reconciles.
+- Workflow jobs: lineage 12/12, artifact manifest 19/19, repository inventory 10/10; all SUCCESS (41/41 total).
+- Detailed evidence: `docs/evidence/T0_L4_GITHUB_ARTIFACT_EXACT_READBACK_2026-11-11.md`.
+- Disposition: GitHub exact-readback of these three artifacts **PASS**. L4M-01 remains PARTIAL / NOT VERIFIED because owner custody, complete package and VPS/copy assertions are absent. L4M-03 remains PARTIAL — SYNTHETIC/DESIGN ONLY because no signed canonical T0 checkpoint or authenticated latest-head anchor was verified. Aggregate L4-Minimum remains BLOCKED / NOT VERIFIED.
+- No VPS/SSH, T0 API/SQLite, canonical data/runtime, signing/key operation, workflow dispatch, cleanup/deletion, or trading action occurred. T0 unchanged; paper-only and `AI_EXECUTION_ENABLED=false` remain.
+- Next: reconcile this exact-readback result into the controlling L4 crosswalk/register, then continue only with separately authorized evidence acquisition. Do not infer owner custody or freshness from GitHub artifact integrity.
