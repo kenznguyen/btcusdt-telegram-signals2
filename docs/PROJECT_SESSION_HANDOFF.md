@@ -2809,3 +2809,20 @@ Critical limits:
 - CI is not applicable to this documentation-only decision package; no tests were run for it. Validator verification remains tied to exact source SHA 0a3f73801cc5f1f5225658673b447ec658ac454d, workflow run 43073542645, job 130707512877, OOS tests 13/13 PASS, artifact ID 13878273616, digest sha256:76407ecdb6311a186967fa8ac6e187cac43fd9cec9a31b1499ca3353d685e28d.
 - **Disposition: F6 OWNER DECISION PACKAGE PREPARED; F6 POLICY/PROVIDER IMPLEMENTATION BLOCKED PENDING OWNER DECISIONS; OOS NOT VERIFIED; AI ADMISSION FAIL-CLOSED.**
 - Next: Owner reviews and decides F6.1-F6.7. Do not implement a lineage provider, real OOS evaluation or admission threshold before explicit decisions and a separate exact implementation gate.
+
+
+## OOS Evaluation Evidence v1 — F6 Owner decisions approved (2026-11-12)
+
+- Owner explicitly approved the recommended design direction for all F6.1–F6.7 items. Durable decision record: `docs/architecture/AI_CALIBRATION_OOS_EVIDENCE_V1_F6_OWNER_DECISION_RECORD.md`; decision-record commit `14d622a150a0a792980264671a7f0ec54e261ef2`.
+- F6.1: A — read-only canonical bundle lineage; T0 remains canonical and unmodified.
+- F6.2: A — fixed chronological holdout; embargo covers maximum forecast/label horizon and overlapping feature windows. Exact split algorithm/version, seed and reproducibility tolerance must be specified before implementation.
+- F6.3: approved minimal metric categories: Brier, Log Loss, reliability-bin evidence, sample counts, uncertainty intervals and same-population baseline. Exact mathematical definitions, binning, missing/imbalance handling and aggregation remain to be frozen before real evaluation.
+- F6.4: A — descriptive evidence only; all admission thresholds, minimum effective sample count, calibration duration, freshness/age and C_min interaction remain deferred.
+- F6.5: A — trusted time deferred; freshness UNKNOWN; freshness-dependent admission remains fail-closed.
+- F6.6: A conditional — no detached evaluation signature only if provider independently verifies signed manifest authenticity and exact record bytes/digest binding; otherwise defer and keep OOS NOT_VERIFIED.
+- F6.7: provisional design ceilings approved for planning: record 256 KiB, JSON depth 8, 64 members/object, 128 metric/uncertainty/reliability items, identifier length 128 ASCII chars. These are not measured provider CPU/time/memory limits; validate and freeze enforcement details in a bounded implementation specification.
+- **Approval scope is policy/design only.** It does not authorize provider/adapter or split/metric implementation, real dataset inventory/lineage collection/OOS evaluation, model training/calibration, threshold tuning, key/trust/timestamp operations, registry events, S2, VPS/runtime, T0/T1/T2/database/ledger/risk/kill-switch changes or trading. Separate exact implementation approval is required.
+- Frozen F1–F5, manifest v1, transform v1 and decision gate remain unchanged. Offline validator's supplied-binding digest match is not authenticity. F4 sample-level disjointness, full horizon embargo, future-feature exclusion and exclusion accountability remain NOT VERIFIED until authoritative lineage verification.
+- Existing CI evidence remains unchanged: source SHA `0a3f73801cc5f1f5225658673b447ec658ac454d`, workflow run `43073542645`, job `130707512877`; OOS validator tests 13/13 PASS. Overall workflow FAILURE from separate AI/Dual Strategy RED suite (12 failures, 6 errors). Artifact ID `13878273616`, SHA-256 `sha256:76407ecdb6311a186967fa8ac6e187cac43fd9cec9a31b1499ca3353d685e28d`.
+- **Disposition: F6 DESIGN APPROVED WITH QUALIFICATIONS; PROVIDER/REAL OOS IMPLEMENTATION NOT AUTHORIZED; OOS NOT VERIFIED; AI ADMISSION FAIL-CLOSED.**
+- Next: preserve this approved baseline. If proceeding, prepare a narrowly scoped implementation proposal and request separate approval before any provider or real OOS work.
