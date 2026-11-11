@@ -157,7 +157,7 @@ Each implementation increment must be reviewed and tested before proceeding. Do 
 
 ### Six-artifact allowlist reconciliation — 2026-11-11
 
-- Current Evidence Register blob: `7ee8b11b47bec4bbd983f35e8f4a4d0f012c03bc`.
+- Current Evidence Register blob: `56f36428375527e5f421543b815177449435ce51`.
 - Current allowlist blob: `0280cd7751c9660baec237242ca7aadef09205a6`; six entries: two P1.8.14 synthetic artifacts and four L4 lineage CI artifacts.
 - Validation run [42922670634](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42922670634), exact source SHA `0251a8cc7995903d2516fc84cc0a33b73ec02777`: lineage 12/12, repository inventory 10/10, manifest 19/19; 41/41 total PASS.
 - All three current-run output ZIPs independently downloaded and re-hashed; manifest declares six inputs and excludes its own outputs. Aggregate L4-Minimum remains BLOCKED / NOT VERIFIED.
