@@ -1936,7 +1936,7 @@ class PaperLedger:
     def strategy_state(self):
         return self.snapshot().get("strategyState", {"owner": None, "dcaUsed": False, "initialMarginQuote": "0"})
 
-    def record_account_mark(self, mark_price, candle_close_ms, observed_at_ms, dataset_version):
+    def record_account_mark(self, mark_price, candle_close_ms, observed_at_ms, dataset_version, initial_capital="100"):
         """Atomically reconcile one account-wide mark across all strategy ledgers."""
         if self.strategy_id != "MANUAL":
             raise ValueError("ACCOUNT_MARK_REQUIRES_ACCOUNT_SCOPE")
@@ -1956,7 +1956,7 @@ class PaperLedger:
             if not migration:
                 position, average, realized, fees, _ = stored_state(connection)
                 return equity_history.record(
-                    connection, initial_capital="100", position=position, average=average,
+                    connection, initial_capital=initial_capital, position=position, average=average,
                     realized=realized, fees=fees, mark_price=mark,
                     candle_close_ms=candle_at, observed_at_ms=observed_at,
                     dataset_version=dataset_version,
@@ -1977,6 +1977,8 @@ class PaperLedger:
             ).fetchone()
             if risk is None or account is None:
                 raise sqlite3.DatabaseError("ACCOUNT_RISK_STATE_MISSING_OR_CORRUPT")
+            if Decimal(account[0]) != Decimal(str(initial_capital)):
+                raise ValueError("PAPER_INITIAL_CAPITAL_CHANGED; explicit account migration required")
             if observed_at < risk[3]:
                 raise ValueError("OUT_OF_ORDER_ACCOUNT_MARK")
             if risk[1] != observed_at // 86_400_000 * 86_400_000:
