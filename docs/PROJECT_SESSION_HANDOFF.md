@@ -608,3 +608,20 @@ Reconcile the four-artifact Actions allowlist with all eligible source artifacts
 - Status: **DRAFT / DOCUMENTATION ONLY / NOT IMPLEMENTATION-APPROVED**. CI/workflow **NOT RUN** for this increment; no workflow run or artifact claimed.
 - No code/tests/workflow/CI, keys/signatures/trust roots/policy/anchor instances, provider/TSA, VPS/SSH/runtime, SQLite/canonical T0 data or destructive operation was changed or exercised. Paper-only posture and `AI_EXECUTION_ENABLED=false` unchanged.
 - Next: designate a qualifying independent reviewer and provide the exact A2.1 blob plus pinned base documents. Do not implement, generate keys/signatures, instantiate trust policy/anchor or exercise VPS/T0 until separately approved.
+
+
+## A2.1 second adversarial self-review — 2026-11-11
+
+- User requested a second self-review of A2.1. Exact reviewed source remains `docs/architecture/T0_SIGNATURE_TRUST_POLICY_MONOTONIC_ANCHOR_AMENDMENT_A2_1_2026-11-11.md`, blob `73ba6fd9f6bb862121842f7a1347fffc06738451`.
+- Second review report: `docs/evidence/T0_SIGNATURE_CONTRACT_A2_1_SECOND_SELF_REVIEW_2026-11-11.md`; commit `ec0e34bb7acd260a34390f739dec1e1808087c5f`.
+- Disposition: **REQUEST CHANGES — NOT READY FOR INDEPENDENT REVIEW**. This is a same-session adversarial review, not independent assurance.
+- Findings:
+  - **A2.1-R2-01 HIGH:** status/gate references are stale or contradictory: §13 says self-review pending although prior report exists; §10 still refers to freezing/reviewing A2 rather than A2.1; §1.3 calls A2 the new candidate.
+  - **A2.1-R2-02 HIGH:** Path B lacks a fully specified independently verifiable owner/operator provisioning trust model. The ceremony record is not self-authenticating, but the verifier channel, operator authorization/authentication, and pre-existing verifier trust boundary are not fully defined.
+  - **A2.1-R2-03 HIGH:** §12.3 verdict/reason mapping is ambiguous across Path A and Path B; signature-specific rules do not directly fit unsigned Path B ceremony evidence, and BLOCKED vs UNKNOWN precedence is unclear.
+  - **A2.1-R2-04 HIGH:** A2.1-NV-01..09 do not consistently meet inherited §5.1 deterministic fixture assertions; NV-06 combines multiple independent mismatches and should be split.
+  - **A2.1-R2-05 MEDIUM:** “A2.1 profile” lacks an exact machine-readable profile ID/version bound consistently to signed descriptor, Signature Statement, Trust Policy and verifier request.
+- A2-SR-01 purpose rejection is substantially addressed. A2-SR-02 remains only partially addressed: Path A is unavailable pending a separate contract; Path B needs its trust boundary/owner authorization contract made explicit.
+- Historical A2/A1/Checkpoint Contract/crosswalk source blobs remain unchanged. No A2.1 correction was made in this review; only the review report and this Handoff were added.
+- Status: A2.1 **REQUEST CHANGES**; independent review **NOT PERFORMED / NOT VERIFIED**; implementation **BLOCKED**; CI/workflow **NOT RUN**.
+- Next step, if approved: prepare a new A2.2 documentation-only candidate addressing R2-01..R2-05, then run a fresh adversarial self-review. Do not implement or instantiate trust/bootstrap/anchor until independent review and separate explicit implementation approval.
