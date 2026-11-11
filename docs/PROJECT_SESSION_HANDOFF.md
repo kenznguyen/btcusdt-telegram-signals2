@@ -1644,3 +1644,13 @@ Owner approved repository-wide retirement of SSH Preflight while preserving Git 
 - Four SSH-specific branch refs were retained; no history rewrite, force-push, merge, rebase, cherry-pick, or branch deletion occurred.
 
 Next: use ordinary non-SSH T0 validation on the exact active branch SHA if workflow runtime verification is required. Do not restore SSH Preflight or alter VPS/SSH configuration without new explicit approval.
+
+
+## G0.6 — T0/T2 deployment parity reconciliation (2026-11-11)
+
+- Evidence report: `docs/evidence/G0_6_T0_T2_DEPLOYMENT_PARITY_RECONCILIATION_2026-11-11.md`.
+- T0/T2 parity reconciliation updated with a current-state addendum: historical 2026-11-09 bounded loopback test remains HISTORICAL PASS; current deployment parity is NOT VERIFIED.
+- The Scaleway VPS used for the historical test was fully deleted on 2026-11-11, per owner-provided project update. Do not treat the old host as available for probes or deployment.
+- No replacement VPS, runtime, T1 activation, PostgreSQL/TimescaleDB operation, FreqAI training, or live trading is authorized by G0.6.
+- G0.6 scope was documentation-only. No source/workflow/test/runtime/database changes; tests NOT RUN; Actions CI NOT VERIFIED.
+- Evidence report and parity addendum commits are recorded in the G0.6 report. The next permitted step is a separately approved bounded VPS provisioning/deployment scope if runtime validation is desired.
