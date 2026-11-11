@@ -116,7 +116,7 @@ def evaluate_disposition(record):
     if not isinstance(process, str) or process not in {"ACTIVE", "INACTIVE"}:
         codes.add("UNK_PROCESS_STATE")
     rebuild = record.get("rebuildability")
-    mandatory_rebuild = kind in {"T1_RAW_OBSERVATION", "T4_DETERMINISTIC_CACHE"}
+    mandatory_rebuild = isinstance(kind, str) and kind in {"T1_RAW_OBSERVATION", "T4_DETERMINISTIC_CACHE"}
     if (not isinstance(rebuild, Mapping)
         or type(rebuild.get("required")) is not bool
         or type(rebuild.get("proven")) is not bool
