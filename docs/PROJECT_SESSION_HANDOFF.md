@@ -1409,3 +1409,15 @@ Next: owner reviews the GREEN implementation sequence and resolves GREEN-0 provi
 - Latest RED evidence remains run `42991526067`, exact SHA `d37c0d4b554bbdcb936c419ebc134c6a8ff28783`: compile PASS; 46 tests, 5 assertion failures, 48 skipped, 0 errors. GREEN-1 through GREEN-5 remain NOT AUTHORIZED.
 - Current GitHub commits for this update sequence: evidence `db6bc89db41cda48c58d1abf889cc584abd8a998`; plan `59c4d983dc071b1d1d5f5862fdcafcf2603d87b1`. Handoff update follows.
 - Next: owner resolves G0-01–G0-07. Do not implement production code or schema until separate explicit approval names the GREEN gates.
+
+
+## Latest owner decision — GREEN-0 (2026-11-11)
+
+Owner approval recorded in the GREEN-0 evidence report and implementation plan:
+
+- G0-04: reuse `read_account_risk_snapshot` and `PaperLedger._submit_scoped`; no parallel equity calculator or Shared Risk Engine. The existing 30-minute mark freshness is observed source behavior, not an approved AI freshness threshold. AI freshness semantics and immutable risk-policy version identity remain unresolved.
+- G0-06: AI DCA is disabled in v1. AI Strategy is limited to independent LONG/SHORT ENTRY intents; any DCA capability requires a separately approved trigger/eligibility contract.
+- G0-01/G0-02/G0-03/G0-05: AI trade admission remains BLOCKED pending trusted calibration registry/digest, provenance compatibility, evidence-based thresholds and authoritative versioned BTCUSDT instrument rules.
+- G0-07: reservation snapshot design deferred; no schema/migration authorized.
+
+This approval is design/documentation only. GREEN-1 through GREEN-5 remain NOT AUTHORIZED. No code, tests, schema, DB, migration, calibration, backtest, feature activation, runtime, VPS, deployment, exchange or live-trading action is authorized. Paper-only and `AI_EXECUTION_ENABLED=false` remain unchanged.
