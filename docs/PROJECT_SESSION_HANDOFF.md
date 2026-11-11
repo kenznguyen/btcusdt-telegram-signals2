@@ -694,3 +694,15 @@ Reconcile the four-artifact Actions allowlist with all eligible source artifacts
 - Status: assessment **COMPLETE / DOCUMENTATION ONLY**; Stage I **PROPOSED / NOT APPROVED**; implementation remains **NOT APPROVED**; CI/workflow **NOT RUN**.
 - No code/tests/runtime/VPS/SSH/SQLite/canonical T0 data/keys/trust state/destructive operation changed. Paper-only posture and `AI_EXECUTION_ENABLED=false` unchanged.
 - Next decision required from owner: explicitly approve or reject Stage I, identifying the exact A2.2 blob and accepting the synthetic-only/mock-verifier boundary. Do not begin code changes before that approval.
+
+
+## A2.2 Stage I owner approval — 2026-11-11
+
+- Owner explicitly approved Stage I only, bound to A2.2 source blob `41d41cd23f73a6e552b9ceca5ebbb39c46934e7d`.
+- Approval record: `docs/decisions/OWNER_APPROVAL_T0_SIGNATURE_A2_2_STAGE_I_2026-11-11.md`; commit `b79424ad86b5f4d78da610da3c81c9e90e92fee6`.
+- Scope: isolated package/test directory separate from existing `synthetic_evidence`; T0-JCS-1 strict parse/canonicalization, canonical unsigned integer/U64BE, canonical unpadded base64url, domain-separated SHA-256, profile ID/version binding, deterministic verdict/reason precedence, 27 A2.2 negative fixtures, in-memory state snapshots and no-state-mutation assertions. Any verifier test double must be labelled `MOCK / NOT CRYPTOGRAPHIC`.
+- Explicit exclusions: production crypto/profile/library selection, real keys/signatures, trust-root enrollment, Path A/B activation, verifier trust-store changes, Trust Policy/Anchor instances, durable anchor/custody publication, VPS/SSH/T0/SQLite/Feeder/API/runtime integration, CI secrets/deployment, trading changes and destructive operations.
+- Scope assessment updated to record owner approval: blob `6d2a167ac0cfe4128c82c1532929014ac0dda8b8`; commit `cec6b26879b29632d753a4a4b6f8a32ed6307de3`.
+- **Execution status: BLOCKED / NOT STARTED.** The available execution environment cannot resolve `github.com` for a local clone (clone attempt failed with DNS resolution error). GitHub content APIs can read/write repository documents but do not provide a local Python test runtime; no untested source was committed. A local isolated checkout/test runtime is required before starting TDD.
+- No source code, tests, workflow, keys, signatures, trust roots, policy/anchor state, VPS/runtime, SQLite/canonical T0 data or trading behavior changed. No CI/workflow run or artifact exists.
+- Next step: obtain an isolated local working tree for this exact branch/head, inspect the project test conventions, write the Stage I failing tests first, then implement the smallest passing code and run focused plus full relevant test suites. Keep all changes on this existing branch.
