@@ -103,3 +103,22 @@ Run both focused RED test files in the repository's GitHub Actions test environm
 - T0 canonical data, T1 activation, T2 runtime, database state, credentials, exchange state and deployment state were not changed.
 
 Next: review and prioritize the 23 RED assertions, freeze any remaining AI API contract details, and request separate owner approval before GREEN implementation.
+
+
+## RED failure triage and API boundary proposal — 2026-11-11
+
+- Added proposal-only document: `docs/architecture/AI_STRATEGY_API_CONTRACT_PROPOSAL.md`.
+- Proposal commit: `b62f0c3de6e72c5f8419f1cb7da062389a8af80b`.
+- Proposal status: **OWNER REVIEW REQUIRED**. It does not amend the owner-approved contract or authorize implementation/test changes.
+- Reviewed the exact 23 assertions from run `42989566675` at SHA `aa7897520b5435ff4c981b3f2ab8a6710f811eea`:
+  - P0 calibration fail-closed: 17 assertions (missing confidence 1; invalid/non-finite/bool confidence 6; missing provenance fields 10).
+  - P0 AI leverage isolation/bounds: 4 assertions (AI ledger factory lacks explicit admitted leverage 1; AI ledger accepts 0.99x, 3.01x and 13x 3).
+  - P0 account equity sizing/readiness: 2 assertions (decision function lacks equity/sizing interface; missing/stale equity behavior cannot yet be exercised).
+- All 23 are assertion failures; 0 runtime errors. The run is RED by design, not a passing AI contract.
+- Existing test's two function-signature checks for sizing/equity are marked as brittle RED sentinels. Proposal recommends replacing them with behavioral tests through a server-created immutable admission context; no test source was changed in this step.
+- Proposal recommends keeping `decision.evaluate` pure, receiving a server-created immutable admission context containing versioned AI policy, reconciled account risk, instrument rules and AI-ledger position. The API must submit explicit admitted AI leverage to AI_FREQAI ledger; generic `LEVERAGE` must never be a fallback.
+- Additional test coverage still required before GREEN: C_min boundaries/mapping, artifact hash/registry trust, model/dataset/horizon match, temporal leakage/freshness/sample period, lot rounding/minimums, AI-only DCA sizing, Kill Switch/no-partial-reservation, idempotent snapshot replay and Core regression.
+- Owner decisions still open: numeric C_min, calibration sample/period/age thresholds, trusted artifact registry, account-risk snapshot provider/freshness contract, instrument-rule source, AI DCA v1 eligibility, and immutable snapshot persistence strategy.
+- No production code, RED test source, database, migration, T0/T1/T2 runtime, VPS, credentials, deployment or exchange state changed.
+
+Disposition: **RED triage PASS — analysis/documentation only**. API proposal and unresolved decisions are **PENDING OWNER REVIEW**. GREEN remains NOT AUTHORIZED.
