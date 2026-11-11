@@ -38,7 +38,7 @@ jobs:
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           test "$GITHUB_REF" = "refs/heads/feature/t0-centralized-data-feeder-p1-20261101"
-          test "$(git rev-parse HEAD:tools/s1_measurement_harness.py)" = "0643ff82d7f890ec7e63c49c5dd238152c051af6"
+          test "$(git rev-parse HEAD:tools/s1_measurement_harness.py)" = "e8db71c11e0503ea6d9a2480d75470185c4d5100"
           test "$(git rev-parse HEAD:tools/s1_measurement_runner.py)" = "23a35aab7f7aeacd8a3f63d630a875fe76b1ff6a"
           test "$(git rev-parse HEAD:tools/test_s1_measurement_runner.py)" = "216e1d263f65bff7593c5c00f885943b591ffbd2"
           {
