@@ -1,0 +1,101 @@
+name: AI Strategy Contract RED
+
+on:
+  push:
+    branches:
+      - feature/t0-centralized-data-feeder-p1-20261101
+    paths:
+      - "pipeline/test_ai_strategy_contract_red.py"
+      - "paper_execution/test_dual_strategy_api_red.py"
+      - "pipeline/decision.py"
+      - "pipeline/api.py"
+      - "freqai_bridge/exporter.py"
+      - "paper_execution/ledger.py"
+      - "risk_policy.py"
+      - ".github/workflows/ai-strategy-contract-red.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ai-strategy-contract-red-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  ai-strategy-contract-red:
+    name: Isolated AI Strategy RED contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      PAPER_DB: ""
+      MARKET_DATA_DB: ""
+      DATABASE_URL: ""
+      DATABASE_PATH: ""
+      SQLITE_PATH: ""
+      BINANCE_API_KEY: ""
+      BINANCE_API_SECRET: ""
+      OKX_API_KEY: ""
+      OKX_API_SECRET: ""
+      EXCHANGE_API_KEY: ""
+      EXCHANGE_API_SECRET: ""
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Enforce isolated paper-only environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "${PAPER_DB}"
+          test -z "${MARKET_DATA_DB}"
+          test -z "${DATABASE_URL}"
+          test -z "${DATABASE_PATH}"
+          test -z "${SQLITE_PATH}"
+          test -z "${BINANCE_API_KEY}"
+          test -z "${BINANCE_API_SECRET}"
+          test -z "${OKX_API_KEY}"
+          test -z "${OKX_API_SECRET}"
+          test -z "${EXCHANGE_API_KEY}"
+          test -z "${EXCHANGE_API_SECRET}"
+          {
+            echo "AI_STRATEGY_MODE=PAPER_ONLY"
+            echo "AI_STRATEGY_SOURCE_SHA=$(git rev-parse HEAD)"
+            echo "AI_STRATEGY_EXTERNAL_SERVICES=NONE"
+            echo "AI_STRATEGY_LIVE_EXECUTION=DISABLED"
+          } | tee ai-strategy-preflight.log
+
+      - name: Install test dependencies
+        run: |
+          python -m pip install --disable-pip-version-check -r requirements-web.txt
+
+      - name: Compile focused RED test modules
+        run: |
+          set -euo pipefail
+          python -m py_compile pipeline/test_ai_strategy_contract_red.py paper_execution/test_dual_strategy_api_red.py
+          echo "AI_STRATEGY_RED_COMPILE=PASS" | tee ai-strategy-compile.log
+
+      - name: Execute focused AI Strategy RED tests
+        shell: bash
+        run: |
+          set -o pipefail
+          python -m unittest pipeline.test_ai_strategy_contract_red paper_execution.test_dual_strategy_api_red -v 2>&1 | tee ai-strategy-red-tests.log
+
+      - name: Upload exact-SHA RED evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-strategy-contract-red-${{ github.sha }}
+          if-no-files-found: warn
+          retention-days: 14
+          path: |
+            ai-strategy-preflight.log
+            ai-strategy-compile.log
+            ai-strategy-red-tests.log
