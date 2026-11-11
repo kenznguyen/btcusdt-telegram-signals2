@@ -29,6 +29,18 @@ class DualStrategyApiScopeRedTest(unittest.TestCase):
         self.environment.start()
         self.addCleanup(self.environment.stop)
 
+    def activate_dual_schema(self):
+        from paper_execution.ledger import PaperLedger
+
+        legacy = PaperLedger(self.db)
+        legacy.record_equity(
+            "100", 1_799_999_940_000, 1_800_000_000_000,
+            "sha256:" + "c"*64, "100",
+        )
+        PaperLedger(
+            self.db, strategy_id="STRATEGY_CORE", source_sha="d"*40,
+        )
+
     def request(self, path, body):
         raw = json.dumps(body).encode()
         environ = {
@@ -48,16 +60,19 @@ class DualStrategyApiScopeRedTest(unittest.TestCase):
     def test_ledger_factory_constructs_the_requested_strategy_scope(self):
         from paper_execution import ledger as ledger_module
 
-        with patch.object(ledger_module, "PaperLedger") as constructor:
+        with patch.object(ledger_module, "dual_ledger_ready", return_value=True), \
+             patch.object(ledger_module, "PaperLedger") as constructor:
             instance = api.ledger(strategy_id="AI_FREQAI")
 
         self.assertIs(instance, constructor.return_value)
         self.assertEqual(constructor.call_args.kwargs["strategy_id"], "AI_FREQAI")
+        self.assertFalse(constructor.call_args.kwargs["apply_migrations"])
 
     def test_core_decision_reads_only_the_core_ledger(self):
         from paper_execution import ledger as ledger_module
         from pipeline import core_strategy
 
+        self.activate_dual_schema()
         complete = {
             "coverage": {"complete": True},
             "candles": [],
@@ -80,6 +95,7 @@ class DualStrategyApiScopeRedTest(unittest.TestCase):
         read_snapshot.assert_called_once_with(str(self.db), strategy_id="STRATEGY_CORE")
 
     def test_cancel_resolves_owner_and_uses_the_matching_scoped_ledger(self):
+        self.activate_dual_schema()
         with patch.object(api, "control_permit", return_value=True), \
              patch.object(api, "resolve_order_strategy", return_value="STRATEGY_CORE",
                           create=True) as resolve_owner, \
@@ -95,11 +111,7 @@ class DualStrategyApiScopeRedTest(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertEqual(result["strategyId"], "STRATEGY_CORE")
         resolve_owner.assert_called_once_with(str(self.db), "core-order")
-        self.assertEqual(ledger_factory.call_count, 2)
-        self.assertEqual(
-            [call.kwargs for call in ledger_factory.call_args_list],
-            [{"strategy_id": "STRATEGY_CORE"}, {"strategy_id": "STRATEGY_CORE"}],
-        )
+        ledger_factory.assert_called_once_with(strategy_id="STRATEGY_CORE")
         ledger_factory.return_value.cancel.assert_called_once_with(
             "core-order", api.now_ms.return_value if hasattr(api.now_ms, "return_value") else unittest.mock.ANY
         )
@@ -129,7 +141,7 @@ class DualStrategyApiScopeRedTest(unittest.TestCase):
 
 
     def test_first_dual_ledger_mark_is_persisted_but_risk_stays_blocked_without_cutover(self):
-        api.ledger(strategy_id="AI_FREQAI")
+        self.activate_dual_schema()
         account = api.ledger()
         observed = 1_800_000_000_000
         result = account.record_account_mark(
@@ -149,6 +161,36 @@ class DualStrategyApiScopeRedTest(unittest.TestCase):
                    FROM paper_account_risk_state WHERE account_id=1"""
             ).fetchone()
         self.assertEqual(risk, ("100", "100", "100", observed, 0, None))
+
+
+    def test_core_decision_does_not_activate_dual_ledger_migration(self):
+        from paper_execution import ledger as ledger_module
+        from pipeline import core_strategy
+
+        complete = {
+            "coverage": {"complete": True},
+            "candles": [],
+            "datasetVersion": "sha256:" + "a" * 64,
+        }
+        with patch.object(api, "market_window", side_effect=[complete, complete]), \
+             patch.object(ledger_module, "read_snapshot", return_value={
+                 "strategyState": {"owner": None, "dcaUsed": False,
+                                   "initialMarginQuote": "0"},
+                 "positionBase": "0", "averageEntryPrice": "0",
+                 "realizedPnlQuote": "0", "feesQuote": "0",
+             }) as read_snapshot, \
+             patch.object(core_strategy, "produce", return_value={
+                 "action": "WAIT", "reason": "CORE_NO_ENTRY", "intent": None,
+             }):
+            result = api.core_decide(1_800_000_000_000, book={})
+
+        self.assertEqual(result["reason"], "CORE_NO_ENTRY")
+        read_snapshot.assert_called_once_with(str(self.db))
+        with sqlite3.connect(self.db) as connection:
+            migration_table = connection.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='paper_schema_migrations'"
+            ).fetchone()
+        self.assertIsNone(migration_table)
 
 if __name__ == "__main__":
     unittest.main()
