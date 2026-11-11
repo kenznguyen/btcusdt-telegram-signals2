@@ -1257,3 +1257,21 @@ Prepare a separate AI contract/TDD proposal before implementation:
 No AI implementation, calibration change, DB migration, runtime activation,
 deployment, exchange connectivity or live execution is authorized by this
 read-only audit.
+
+
+## AI Strategy contract and TDD RED preparation — 2026-11-11
+
+Owner approved recording the independent AI Strategy contract and preparing test-only RED work. Contract: `docs/architecture/AI_STRATEGY_CONTRACT.md`. Evidence: `docs/evidence/AI_STRATEGY_CONTRACT_TDD_RED_PREPARATION_2026-11-11.md`.
+
+- Reviewed baseline source: `6ef0d7456b2791fae73bfea8855ee30482774673`.
+- Contract commit: `2f498b33953cb3ecf2c66c242000e9e0de2048ce`.
+- Test-only commit: `d0f1b014463e6ad1eff36425a18411233c484ba2`.
+- Evidence commit: `54a228d83c90488a144c2ecf01b4e310e808eb7d`.
+- Contract covers calibrated confidence/provenance, versioned `C_min`, AI leverage [1x,3x], 1%-equity margin sizing, execution-price/lot-step sizing, AI ledger isolation and Shared Risk Engine/Kill Switch authority.
+- Initial five RED test methods cover missing/invalid calibration, provenance, AI admitted leverage vs generic `LEVERAGE`, equity sizing and missing/non-positive equity.
+- RED test execution: **NOT VERIFIED**. Container could not resolve `github.com` to obtain a local checkout. GitHub commit status query returned no checks for the initial test commit; no workflow run/artifact verified for final test SHA.
+- E2E AI BUY while Core WAIT → AI ledger only → Shared Risk Engine denial is specified in the contract matrix but remains to be added as a RED test.
+- No GREEN implementation, numerical `C_min`, calibration training, DB migration/cutover, backtest/OOS acceptance, feature activation, VPS/runtime, deployment, exchange connectivity or live trading authorized/performed.
+- No T0/T1/T2 runtime or canonical data changed.
+
+Next: execute focused RED tests in GitHub Actions against exact test SHA `d0f1b014463e6ad1eff36425a18411233c484ba2`; correct tests only, add the missing E2E RED test, then request separate approval before GREEN implementation.
