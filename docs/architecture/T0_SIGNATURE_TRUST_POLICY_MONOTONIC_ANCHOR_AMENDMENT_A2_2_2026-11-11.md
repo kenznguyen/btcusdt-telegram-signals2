@@ -620,7 +620,7 @@ B-A is strictly a synthetic test baseline describing a hypothetical future Path 
 
 For every A2.2-NV case above, the test harness MUST:
 1. record the complete B0, B-A or B0-PF baseline fixture digest and schema version;
-2. record exactly one semantic mutation and prove no unrelated fixture field changed; when a signed field is intentionally changed for a policy/purpose test, regenerate only the dependent test-only signature/digest artifacts so the fixture remains internally valid, except where the case explicitly tests signature invalidity;
+2. record exactly one semantic mutation and prove no unrelated fixture field changed; when a signed field is intentionally changed for a policy/purpose test, regenerate the dependent test-only signature and enclosing digest artifacts so the fixture remains internally valid. For a signature-invalidity case, retain the intentionally invalid signature bytes but recompute the enclosing envelope/object digests so the verifier reaches the signature check rather than failing earlier on an outer digest;
 3. record per-dimension results for parsing/canonicalization, object binding, profile, purpose, signature, policy authorization, bootstrap authorization and custody/readback as applicable;
 4. emit exactly one aggregate verdict and exactly one primary reason code from the row;
 5. record state snapshot S0 and S1, proving S1 equals S0 for every failed case;
