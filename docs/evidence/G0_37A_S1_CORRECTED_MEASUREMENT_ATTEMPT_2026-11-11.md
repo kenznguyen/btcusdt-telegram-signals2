@@ -158,11 +158,11 @@ These values are intermediate observations from the attempted run only. Because 
 | A-08 | PASS (intermediate) | Aggregate totals/maxima reproducible from per-fixture rows |
 | A-09 | PASS | Two per-fixture measurement passes compared equal |
 | A-10 | NOT VERIFIED | Runtime captured, but exact harness source revision/hash was not captured; assertion was hard-coded |
-| A-11 | PENDING FINAL REPORT READBACK | Must be recorded after the final GitHub report is read back and validated |
+| A-11 | PASS (report readback) | GitHub fetch returned the complete report at blob `d3797c202b55402c2ba199231027f68392021cac`; title, final status section and terminal verdict were present. This readback validates the initial report version only; the final updated version is validated in the subsequent readback recorded in the handoff. |
 | A-12 | PASS | No payload/oracle files or caches persisted |
 | A-13 | PASS | No prohibited external, runtime, database, VPS, market-data, ledger or lifecycle access |
 
-Because A-02 and A-06 are NOT VERIFIED and A-10 is NOT VERIFIED, the acceptance contract fails. A-11 cannot promote the attempt to PASS.
+Because A-02 and A-06 are NOT VERIFIED and A-10 is NOT VERIFIED, the acceptance contract fails. A-11 report serialization and readback were verified. This does not promote the attempt to PASS.
 
 ## 9. One-attempt authorization disposition
 
@@ -191,3 +191,8 @@ A future measurement would require a new owner decision package and a new explic
 **G0.37-A verdict: FAILED / INCOMPLETE — one attempt consumed; no retry authorized. Intermediate measurements are preserved for transparency but are not accepted as D11 policy evidence.**
 
 T0 remains independent and protected. CORE_LEDGER and AI_LEDGER remain separate. Paper-only posture and `AI_EXECUTION_ENABLED=false` remain unchanged.
+
+
+### A-11 final report readback attestation
+
+The initial report version was fetched from GitHub and its complete content, opening title and terminal verdict were verified. This update records A-11 as PASS for report serialization/readback; the final updated blob is separately fetched and checked after this commit. This is evidence readback only, not a rerun of corpus generation or measurement.
