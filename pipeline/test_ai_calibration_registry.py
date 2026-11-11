@@ -224,6 +224,25 @@ class CalibrationRegistryVerifierTest(unittest.TestCase):
                 with self.assertRaises(CalibrationVerificationError):
                     self.verify(envelope=envelope)
 
+    def test_registry_sequence_requires_a_predecessor_after_genesis(self):
+        invalid = copy.deepcopy(self.manifest)
+        invalid["record_sequence"] = "2"
+        raw = canonical(invalid)
+        with self.assertRaisesRegex(CalibrationVerificationError, "PREVIOUS_RECORD_DIGEST_INVALID"):
+            self.verify(manifest_bytes=raw, envelope=self.make_envelope(raw, invalid))
+
+    def test_calibration_window_obeys_horizon_embargo_and_precedes_artifact_creation(self):
+        invalid = copy.deepcopy(self.manifest)
+        invalid["calibration_start"] = "2026-01-01T00:15:00Z"
+        raw = canonical(invalid)
+        with self.assertRaisesRegex(CalibrationVerificationError, "CALIBRATION_WINDOW_NOT_OUT_OF_SAMPLE"):
+            self.verify(manifest_bytes=raw, envelope=self.make_envelope(raw, invalid))
+        invalid = copy.deepcopy(self.manifest)
+        invalid["created_at"] = "2026-02-14T00:00:00Z"
+        raw = canonical(invalid)
+        with self.assertRaisesRegex(CalibrationVerificationError, "ARTIFACT_CREATED_BEFORE_CALIBRATION_END"):
+            self.verify(manifest_bytes=raw, envelope=self.make_envelope(raw, invalid))
+
     def test_verifier_does_not_claim_registry_approval_or_admission(self):
         result = self.verify()
         self.assertNotIn("approved", result)
