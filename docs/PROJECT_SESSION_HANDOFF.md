@@ -550,7 +550,7 @@ Reconcile the four-artifact Actions allowlist with all eligible source artifacts
 ## Signature contract review snapshot — final source pin refresh (2026-11-11)
 
 - The review candidate was tightened after final consistency inspection: A1 §2.1 and §6.4 now use MUST (not SHOULD) for retaining/publishing the exact anchor record and predecessor chain at both approved custody locations, matching the owner-approved base contract. No publication/readback was performed.
-- Final frozen source snapshot HEAD: `9250134f9caf73674c28fa02fa848f91d6cc2f76`.
+- Final frozen source snapshot HEAD: `838f912139562eb185ad6035e95fd08810071525` (the report-only commit `9250134f9caf73674c28fa02fa848f91d6cc2f76` records that exact snapshot and does not alter the three frozen source documents).
   - Checkpoint Contract blob: `a6825270d59bde274bfe765d5f942144b66a84de`.
   - Amendment A1 blob: `00fdad293e129562145ab930507a4e6b9c2bf23d`.
   - L4 Crosswalk blob: `e560f084642b5f81c78179ef673e5df116fc5f42`.
