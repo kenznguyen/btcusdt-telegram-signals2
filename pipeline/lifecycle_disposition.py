@@ -116,10 +116,16 @@ def evaluate_disposition(record):
     if not isinstance(process, str) or process not in {"ACTIVE", "INACTIVE"}:
         codes.add("UNK_PROCESS_STATE")
     rebuild = record.get("rebuildability")
-    if not isinstance(rebuild, Mapping) or type(rebuild.get("required")) is not bool or (
-        rebuild.get("required") and (rebuild.get("proven") is not True or not _text(rebuild.get("evidence_ref")))
-    ) or type(rebuild.get("proven")) is not bool:
+    mandatory_rebuild = kind in {"T1_RAW_OBSERVATION", "T4_DETERMINISTIC_CACHE"}
+    if (not isinstance(rebuild, Mapping)
+        or type(rebuild.get("required")) is not bool
+        or type(rebuild.get("proven")) is not bool
+        or (mandatory_rebuild and rebuild.get("required") is not True)
+        or ((rebuild.get("required") or mandatory_rebuild)
+            and (rebuild.get("proven") is not True or not _text(rebuild.get("evidence_ref"))))):
         codes.add("UNK_REBUILDABILITY_PROOF")
+    if kind == "T1_RAW_OBSERVATION" and record.get("producer_provenance_verified") is not True:
+        codes.add("UNK_SOURCE_LINEAGE")
     material = record.get("material_decision_use")
     if not isinstance(material, str) or material not in {"YES", "NO"}:
         codes.add("UNK_MATERIAL_USE_STATUS")
