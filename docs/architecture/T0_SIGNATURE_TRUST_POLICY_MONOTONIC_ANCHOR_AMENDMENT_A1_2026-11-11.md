@@ -34,9 +34,9 @@ A signature MUST NOT be interpreted as proof of source truth, data completeness,
 
 ### 2.1 Accepted custody boundary and supersession of conflicting v1 language
 
-The owner-accepted custody scope for this workstream is **VPS + GitHub only**. No external backup, third-party WORM service or independent external anchor is assumed.
+The L4 crosswalk records an owner-accepted operational evidence scope of **VPS + GitHub only**, with no external backup requirement. However, Checkpoint Contract v1 §§7 and 9 normatively require custody and the monotonic anchor outside both T0/VPS and GitHub failure domains. This amendment is a draft and cannot unilaterally supersede that v1 requirement.
 
-Accordingly, for signature/anchor design, any v1 wording that makes storage outside both VPS and GitHub an unconditional prerequisite is **superseded by this bounded design scope**. This is not a claim that VPS + GitHub provide independent custody or WORM protection.
+**Until an explicit owner decision formally amends the governing v1 custody requirement, v1 remains controlling for any claim that invokes L4-Minimum independent custody or independent latest-head assurance.** This A1 section proposes a bounded alternative for owner decision only; it does not make that alternative effective. No external backup, third-party WORM service or independent external anchor is assumed in the proposed bounded alternative.
 
 Required limits:
 
@@ -47,7 +47,7 @@ Required limits:
 5. Any claim requiring an independently protected monotonic anchor outside both VPS and GitHub remains **NOT ESTABLISHED / NOT VERIFIED** until the owner separately approves and qualifies such a mechanism.
 6. No WORM, immutable-storage, independent-backup, disaster-recovery or guaranteed-availability claim is made.
 
-This clause reconciles the design with the accepted custody boundary without promoting L4 custody or freshness controls to PASS.
+This proposal does not reconcile the normative contract conflict by itself. Owner ratification is a prerequisite to adopting the VPS + GitHub-only alternative for the affected contract claims. Until then, the custody/anchor claim remains BLOCKED or NOT VERIFIED; no L4 custody or freshness control is promoted to PASS.
 
 ## 3. Canonical byte and digest rules
 
@@ -163,7 +163,7 @@ The policy body schema is `T0-TRUST-POLICY-V1`. It MUST include:
 
 - `policy_id`, schema version and policy sequence;
 - predecessor policy digest, or explicit genesis marker;
-- digest algorithm and digest of the exact canonical policy body;
+- digest algorithm identifier; the policy body MUST NOT contain its own digest or signature (the exact body digest is carried by the detached policy signature statement/envelope and external descriptor);
 - root/rotation authority fingerprint and role reference;
 - allowed signature profile and algorithm identifiers;
 - signer key entries;
@@ -494,3 +494,57 @@ The anchor digest MUST be stable across the VPS and GitHub copies. Any byte diff
 ### 13.4 Object identity and digest algorithm constraints
 
 For the current draft, all three object-body digests (Evidence Object, Trust Policy body and Anchor envelope) use SHA-256 with the exact domain separators and U64BE byte-length prefixes defined in this amendment. A future algorithm change requires a new versioned profile and explicit Trust Policy authorization; it MUST NOT be negotiated by an untrusted envelope. The selected signature algorithm remains unresolved and requires an owner/security decision before implementation.
+
+## 14. Cross-contract consistency review and required owner disposition
+
+This section records a same-session static consistency review against Checkpoint Contract v1 and the L4 control crosswalk. It is not an independent review and does not authorize implementation.
+
+### 14.1 Governing-contract precedence
+
+Checkpoint Contract v1 §§7 and 9 require an independently retained custody copy and monotonic anchor outside both T0/VPS and GitHub failure domains. The L4 crosswalk records VPS + GitHub as the currently accepted evidence/custody scope. A1 §2.1 now treats VPS + GitHub-only custody as a **proposed alternative**, not an effective supersession.
+
+Until the owner explicitly approves a formal amendment to the governing v1 requirement, the outside-both requirement remains controlling for claims that require L4-Minimum independent custody/latest-head assurance. The bounded VPS + GitHub design may be specified and tested as a limited consistency mechanism, but MUST NOT be reported as satisfying that v1 control. If the owner does not approve a v1 amendment, the design must retain the independent outside-both custody requirement or leave the affected claims BLOCKED/NOT VERIFIED.
+
+### 14.2 T0-JCS-1 numeric wire representation
+
+All logical integer fields introduced by A1—including byte lengths, checkpoint/policy/anchor sequences, schema versions and observed timestamps—MUST be represented on canonical JSON wire as canonical unsigned base-10 strings under T0-JCS-1. Logical schemas may type them as unsigned integers for range checking before serialization. JSON numeric tokens are forbidden. U64BE length-prefix inputs are computed from the decoded logical unsigned integer value, not from the UTF-8 length of its decimal-string representation.
+
+### 14.3 Binary field encoding in detached envelopes
+
+All binary values carried inside canonical JSON envelopes MUST use unpadded base64url (RFC 4648 URL-safe alphabet, no `=` padding). This applies to signature bytes, DER SubjectPublicKeyInfo bytes when included, and canonical statement bytes carried by reference/value in an envelope.
+
+A verifier MUST reject standard Base64 alphabet characters, padding, whitespace, noncanonical encodings and decode/re-encode mismatches. Fingerprints remain lowercase hexadecimal SHA-256 over the exact DER SubjectPublicKeyInfo octets. The selected signature profile MUST still define the exact accepted public-key encoding and signature-byte format; this amendment does not select an algorithm.
+
+### 14.4 Preservation of v1 signature-envelope fields
+
+The v1 signature envelope fields remain required unless explicitly classified below:
+
+- `signature_envelope_id`, exact object binding, purpose/context, profile, signer fingerprint, algorithm and signature bytes are represented by the A1 statement/envelope fields.
+- Signing software/build identity, signing request/decision reference, and signer authority/custody evidence reference MUST be included in the signed Signature Statement or in a separately signed authorization-evidence object whose exact ID/digest is bound by the statement. They MUST NOT be mutable unsigned metadata.
+- Current trust-policy snapshot identity/digest is bound by the signed statement and authenticated policy chain.
+- Verification references are post-signing evidence. They MUST NOT be retroactively inserted into the signed statement or alter its digest. They belong in append-only Verification Records that reference the exact signature envelope digest.
+- Local signing observation remains explicitly untrusted and MUST NOT establish historical trust-at-time.
+
+Any implementation schema MUST provide an explicit field mapping for every v1 required field before implementation approval.
+
+### 14.5 Evidence Object and custody-receipt compatibility
+
+The anchor envelope is a signed logical object, but the base v1 requirements that the anchor be an Evidence Object with an external descriptor and custody receipt/readback remain applicable unless the owner formally amends them. The anchor envelope digest defined in §13.3 is the exact content digest input for that descriptor; the descriptor MUST bind object ID, object type, schema, media type, canonicalization profile, digest algorithm, digest and byte length. Custody receipt fields and readback evidence remain separate records and are not replaced by VPS/GitHub publication statements.
+
+The same descriptor discipline applies to Trust Policy bodies and detached signature envelopes. No object ID may be reused for changed bytes or changed descriptor tuple.
+
+### 14.6 Consistency-review findings and disposition
+
+| ID | Finding | Required disposition |
+|---|---|---|
+| CR-01 | A1 cannot unilaterally supersede v1's outside-both custody requirement | Owner must approve a formal v1 amendment or retain the independent custody requirement |
+| CR-02 | Trust Policy body digest was described inside the body while §13.1 excludes self-digest | Corrected: body excludes its own digest/signature; detached statement/descriptor carries digest |
+| CR-03 | Numeric wire encoding was not explicitly tied to T0-JCS-1 | Corrected: all logical integers serialize as canonical unsigned decimal strings |
+| CR-04 | Binary envelope field encoding was unspecified | Corrected at draft level: unpadded base64url with strict canonical decode/re-encode |
+| CR-05 | v1 signature-envelope provenance/authorization fields were not mapped | Corrected at draft level: security-relevant fields are signed or referenced by signed digest; verification references remain append-only post-signing records |
+| CR-06 | Anchor's v1 Evidence Object descriptor and custody receipt requirements were not explicitly preserved | Corrected: remain applicable unless formally amended by owner |
+| CR-07 | Production algorithm, root ceremony, anchor authority and trusted-time choices remain open | Owner/security decision required; implementation blocked |
+
+**Review disposition:** A1 is improved but remains **DRAFT / NOT FROZEN**. CR-01 requires owner disposition before the custody contract can be finalized. The other corrections are draft-level specification changes and still require independent review. This static consistency review is not a qualifying external/independent review.
+
+No code, tests, workflow, CI, key, trust root, policy instance, anchor, VPS runtime, SQLite database, canonical data or destructive operation was changed or exercised.
