@@ -14,7 +14,7 @@ Updated: 2026-11-11 (Asia/Ho_Chi_Minh)
 - Repository: `kenznguyen/btcusdt-telegram-signals2`.
 - Active branch: `feature/t0-centralized-data-feeder-p1-20261101`.
 - Default branch: `main`. Do not switch branches or create a parallel PR without a task-specific reason and approval.
-- Latest repository HEAD before this handoff update: `f58bf6a203e8dd663003eeff97ad7580dcbb9c57` (post-amendment self-review and evidence link recorded; see current A2.2 workstream below).
+- G0.2 audit starting HEAD (2026-11-11): `d1978d3606536bb6da2471ed6c94eaf20ffa7b6d`. The final documentation commit that updates this handoff is recorded in the G0.2 completion section below. (post-amendment self-review and evidence link recorded; see current A2.2 workstream below).
 - Full previous handoff preserved verbatim in `docs/archive/PROJECT_SESSION_HANDOFF_HISTORY_2026-11-10.md`; archive commit: `2fcad94aef8b15002cdba58aafe62ad208dc818b`.
 - PR #139 is OPEN / DRAFT / NOT MERGED. It concerns SSH passphrase handling and targets this active branch. Do not merge or alter it as part of unrelated work.
 
@@ -1589,3 +1589,21 @@ Next: obtain sanitized owner/operator-supplied bounded API response metadata, or
 - Three output artifacts were independently downloaded and ZIP-hashed; all matched GitHub digests. This is a GitHub-side exact-readback PASS for those three outputs only, not a new source-allowlist entry or owner custody proof.
 - L4M-01 remains PARTIAL / NOT VERIFIED; L4M-03 remains PARTIAL — SYNTHETIC/DESIGN ONLY; aggregate L4-Minimum remains BLOCKED / NOT VERIFIED. No control promoted.
 - No VPS/SSH, T0 API/SQLite, canonical data/runtime, signing/key operation, workflow dispatch, cleanup/deletion or trading action occurred. T0 unchanged; paper-only and `AI_EXECUTION_ENABLED=false` remain.
+
+
+## G0.2 — T0/T2 Git baseline and handoff freshness (2026-11-11)
+
+Owner approved documentation-only baseline capture on the existing branch `feature/t0-centralized-data-feeder-p1-20261101`.
+
+- Audit starting HEAD: `d1978d3606536bb6da2471ed6c94eaf20ffa7b6d`.
+- `main` HEAD: `063f7a2eacd724f965a9723d0ae66cf95418c0fb`.
+- Merge base: `f5b74affb8777953fa66d241784965fbb0e577ba`.
+- Branch comparison: active branch is 3,015 commits ahead and 76 commits behind `main`; status `diverged`. The 76 main-only commits affect 13 paths. Their semantic classification is pending G0.3.
+- PR #139 remains OPEN / DRAFT / NOT MERGED; head `7e635a6462c29456f1adb2e7ddcd01443909a5ac`, base `ff1f1768cab1b899494910df1b9ba0d98d35835f`, GitHub mergeable=false. Do not alter or merge it as part of this work.
+- Exact-SHA Actions query for audit starting HEAD returned 0 workflow runs. CI for this SHA: NOT VERIFIED.
+- Baseline evidence: `docs/evidence/G0_2_T0_T2_GIT_BASELINE_2026-11-11.md`, commit `b433573415c816215af84e4184b0c0fde2af5724`.
+- This handoff update commit: recorded in the G0.2 completion message; it is the new active branch HEAD after this update.
+- G0.2: **PASS — documentation-only baseline recorded**. No source/test/workflow, T0/T1/T2 data/runtime, VPS, deployment, training, exchange, or trading changes. No workflow or artifact produced.
+- G0 reconciliation remains **BLOCKED** pending G0.3 read-only semantic classification of the 76 main-only commits and a separate owner decision.
+
+Next: perform G0.3 read-only classification only. Do not merge, rebase, cherry-pick, reset, force-push, recreate branches, or alter PR #139/T1 PR #1. Preserve paper-only posture and `AI_EXECUTION_ENABLED=false`.
