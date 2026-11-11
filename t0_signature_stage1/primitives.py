@@ -1,9 +1,10 @@
 """Pure byte-level primitives for the synthetic-only A2.2 Stage I harness.
 
 No signing keys, cryptographic signature verification, network or filesystem I/O
-are implemented here. Floating-point JSON tokens are rejected because the
-current A2.2 Stage I schemas use strings for logical integers and do not define
-any floating-point field semantics.
+are implemented here. T0-JCS-1 accepts only finite integral JSON number tokens
+within the IEEE-754 safe-integer range; fractional/exponent forms and negative
+zero wire tokens are rejected by canonical byte comparison. Logical U64 values
+remain canonical decimal strings under their owning schemas.
 """
 
 from __future__ import annotations
@@ -18,6 +19,10 @@ from typing import Any
 
 U64_MAX = (1 << 64) - 1
 _JSON_SAFE_INTEGER_MAX = (1 << 53) - 1
+_DOMAIN_EVIDENCE_OBJECT = bytes.fromhex("54302d45564944454e43452d4f424a4543542d563100")
+_DOMAIN_TRUST_POLICY_BODY = bytes.fromhex("54302d54525553542d504f4c4943592d424f44592d563100")
+_DOMAIN_ANCHOR_OBJECT = bytes.fromhex("54302d4d4f4e4f544f4e49432d414e43484f522d4f424a4543542d563100")
+_DOMAIN_SIGNATURE_ENVELOPE = bytes.fromhex("54302d5349474e41545552452d454e56454c4f50452d4f424a4543542d563100")
 _B64URL_RE = re.compile(r"[A-Za-z0-9_-]*\Z")
 _U64_RE = re.compile(r"(?:0|[1-9][0-9]*)\Z")
 
@@ -176,19 +181,19 @@ def domain_separated_sha256(domain: bytes, payload: bytes) -> str:
 
 
 def evidence_object_digest(payload: bytes) -> str:
-    return domain_separated_sha256(b"T0-EVIDENCE-OBJECT-V1\x00", payload)
+    return domain_separated_sha256(_DOMAIN_EVIDENCE_OBJECT, payload)
 
 
 def trust_policy_body_digest(payload: bytes) -> str:
-    """Fail closed: the source contract's backslash/NUL encoding is ambiguous."""
-    raise StageIError("DOMAIN_SEPARATOR_ENCODING_UNRESOLVED")
+    """Digest exact canonical Trust Policy body bytes under the A1/A2.2 domain."""
+    return domain_separated_sha256(_DOMAIN_TRUST_POLICY_BODY, payload)
 
 
 def anchor_object_digest(payload: bytes) -> str:
-    """Fail closed: the source contract's backslash/NUL encoding is ambiguous."""
-    raise StageIError("DOMAIN_SEPARATOR_ENCODING_UNRESOLVED")
+    """Digest exact canonical Monotonic Anchor envelope bytes."""
+    return domain_separated_sha256(_DOMAIN_ANCHOR_OBJECT, payload)
 
 
 def signature_envelope_digest(payload: bytes) -> str:
-    """Fail closed: the A2.2 source's backslash/NUL encoding is ambiguous."""
-    raise StageIError("DOMAIN_SEPARATOR_ENCODING_UNRESOLVED")
+    """Digest exact canonical Signature Envelope bytes."""
+    return domain_separated_sha256(_DOMAIN_SIGNATURE_ENVELOPE, payload)
