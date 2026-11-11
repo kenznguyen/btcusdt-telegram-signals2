@@ -397,6 +397,10 @@ Bootstrap MUST use exactly one of the following documented paths. The selected p
 - The verifier MUST receive/pin the exact digest independently of the checkpoint producer and normal evidence stores. A copy of the ceremony record placed only beside the bootstrap record is not independent evidence.
 - The enrolled root MUST NOT be used as the sole authority to authenticate the ceremony or its own initial enrollment.
 
+**Path A qualification:** The owner-authority authorization format is not fully specified by this amendment. Path A MUST NOT be implemented or accepted until a separate owner-approved contract defines its canonical authorization-object schema, exact signed preimage/envelope, algorithm/profile, issuer-key identity and revocation/recovery rules. The owner-authority pin itself must already be provisioned independently; the authorization object or newly enrolled root cannot establish that pin. Until those prerequisites exist, Path A is unavailable and bootstrap remains BLOCKED unless Path B is fully evidenced.
+
+**Path B evidence mapping:** When Path B is selected, the bootstrap record's `owner_authorization_evidence_id` and `owner_authorization_evidence_digest` MUST identify the exact canonical provisioning-ceremony record and its digest/byte length. The verifier's independently pinned bootstrap digest and the ceremony record's readback MUST agree byte-for-byte with the canonical bootstrap record. The ceremony record is evidence of the owner-controlled provisioning action, not a self-authenticating signature; its authority comes from the independent verifier provisioning channel and recorded operator authorization.
+
 ### 12.3 Fail-closed and recovery rules
 
 1. If neither Path A nor Path B is fully evidenced and configured, initial bootstrap verdict is `BLOCKED` with primary reason `ROOT_BOOTSTRAP_AUTHORIZATION_UNVERIFIED`.
