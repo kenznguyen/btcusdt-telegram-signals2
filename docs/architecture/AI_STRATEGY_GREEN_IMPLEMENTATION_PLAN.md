@@ -154,3 +154,13 @@ The owner approved a bounded GREEN-0 design disposition:
 4. Defer reservation snapshot design. No schema or migration.
 
 This is a documentation/design decision only. GREEN-1..5, production code/tests, schema/database, migration, calibration/model work, backtest/OOS acceptance, feature activation, T0/T1/T2 runtime, VPS, deployment, exchange connectivity and live orders remain NOT AUTHORIZED. `AI_EXECUTION_ENABLED=false` remains in force.
+
+
+## Additional GREEN-0 inventory — 2026-11-11
+
+Read-only inspection at source HEAD `723570f845c0f52ef5776218cc5486f8864e72f8`:
+
+- Calibration: `freqai_bridge.exporter.make_prediction` and `pipeline.decision._prediction` carry raw prediction and training provenance only. No calibrated-confidence artifact, trusted registry/manifest or digest-verification provider was found in the inspected paths. Raw predicted return and `do_predict` cannot substitute for calibrated confidence. G0-01/02/03 remain BLOCKED.
+- Instrument rules: `market_data.binance_connectivity_probe.probe_rest` already queries Binance USD-M `/fapi/v1/exchangeInfo`, but `validate_exchange_info` checks only BTCUSDT contract/status/assets and does not parse trading filters. Hummingbot order-book data is not exchange filter metadata. No authoritative versioned tick/lot/minimum-notional provider was found. G0-05 remains BLOCKED.
+- Binance `/fapi/v1/exchangeInfo` is recorded only as a candidate upstream for a future read-only filter adapter, not as an existing provider or verified source in this system.
+- No tests/workflow, network request, source-code edit, DB/runtime/VPS action or exchange interaction occurred. GREEN implementation remains NOT AUTHORIZED.
