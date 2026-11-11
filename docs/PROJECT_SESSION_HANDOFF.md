@@ -1890,3 +1890,17 @@ Next: if owner wants to proceed beyond planning, first approve a bounded provisi
 - Trust limitation: sensitivity evidence references, identity/provenance and inherited labels are supplied assertions, not authenticated facts; payload digests are not recomputed. No claim of external evidence authentication.
 - No workflow, schema, registry, adapter, runner, oracle, fixture file, scheduler, service, permission, credential, database, storage, VPS, market data, model, ledger or runtime changes. No inventory, secret scan, network/provider/database/VPS access, archive, quarantine, cleanup, expiry, compaction, vacuum or deletion.
 - Next gate: run `python -m unittest pipeline.test_lifecycle_disposition -v` and `python -m py_compile pipeline/lifecycle_disposition.py pipeline/test_lifecycle_disposition.py` in a bounded test-capable local checkout; address any failures only within the two approved files. CI dispatch, schema/registry integration, TEST-01–07, evidence authentication, runtime inventory and destructive actions remain separate approvals. T0 independent/protected; CORE_LEDGER and AI_LEDGER separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
+
+
+## G0.20 — Local Verification Attempt and Code Review (2026-11-11)
+
+- Evidence report: `docs/evidence/G0_20_LOCAL_VERIFICATION_CODE_REVIEW_2026-11-11.md`; created in commit `ff505ebfb8da682615cdbf8c386f35d7b60e9c34`.
+- Exact reviewed evaluator blob: `cf22385a718c6b5b08cd50c2a45578b4180c2c4d`.
+- G0.19 test blob before correction: `c1ff994b22bfad6caeea6ee973aaf959b08759cf`.
+- Review found test helper `minimums.get(kind)` could raise `TypeError` for the existing unhashable `data_class=[]` malformed-input case. Corrected only the test helper with a string type guard.
+- Correction commit: `a22e189ee18ff7ad7a5d2efa8f6a895f8335843a`; final test blob `d54d0523d6388df448cbec7c2fb9e2e092f72920`. GitHub readback verified the exact one-line correction.
+- Attempted shallow clone of the exact branch to run `python -m unittest pipeline.test_lifecycle_disposition -v` and `python -m py_compile pipeline/lifecycle_disposition.py pipeline/test_lifecycle_disposition.py`; clone failed because the execution environment could not resolve `github.com`. Both commands therefore BLOCKED / NOT RUN; no test or compile PASS claim.
+- Five-axis source review: correctness CONDITIONAL / NOT VERIFIED; readability PASS; architecture PASS (pure boundary intact); security CONDITIONAL (caller-supplied sensitivity/provenance facts are unauthenticated); performance PASS (bounded in-memory lookups). One fixture-helper issue corrected. No further source changes.
+- GitHub Actions NOT DISPATCHED; no run/artifact. Repository-wide tests NOT RUN. TEST-01–07 unchanged, 0/87 executed. Runtime/VPS NOT VERIFIED. Destructive authority NOT GRANTED.
+- No schema/registry/API/adapter/runner/oracle/workflow/scheduler/service/permission/credential/database/storage/VPS/data/model/ledger/runtime changes; no inventory, secret scan, provider/network/database access, archive, quarantine, cleanup, expiry, compaction, vacuum or deletion.
+- Next gate: obtain a test-capable checkout/environment containing exact branch source, then run the two commands in the G0.20 report and record full output. Any remediation remains limited to `pipeline/lifecycle_disposition.py` and `pipeline/test_lifecycle_disposition.py` under the existing approval. T0 independent/protected; CORE_LEDGER and AI_LEDGER separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
