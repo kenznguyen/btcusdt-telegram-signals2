@@ -1260,6 +1260,23 @@ def _dual_ledger_migrations_ready(connection):
     return True
 
 
+def has_pending_orders(db_path):
+    """Read-only account-wide pending-order check, including unassigned legacy rows."""
+    path = Path(db_path).resolve()
+    if not path.is_file():
+        raise FileNotFoundError("Paper ledger is unavailable")
+    with closing(sqlite3.connect(path.as_uri() + "?mode=ro", uri=True, timeout=10)) as connection:
+        connection.execute("PRAGMA query_only=ON")
+        exists = connection.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='paper_orders'"
+        ).fetchone()
+        if not exists:
+            return False
+        return connection.execute(
+            "SELECT 1 FROM paper_orders WHERE status IN ('OPEN','PARTIALLY_FILLED') LIMIT 1"
+        ).fetchone() is not None
+
+
 def dual_ledger_ready(db_path):
     """Read-only readiness check; never applies schema changes or repairs evidence."""
     path = Path(db_path).resolve()
