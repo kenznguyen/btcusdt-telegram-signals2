@@ -1792,3 +1792,23 @@ Next: if owner wants to proceed beyond planning, first approve a bounded provisi
 - Branch remains `feature/t0-centralized-data-feeder-p1-20261101`; final source HEAD before evidence/handoff append: `8751c4505c600267559e402801ef37c689781824`.
 - Next step: code-level review and contract-gap assessment against G0.10/G0.12. Independent fact authentication, payload digest verification, Stage C TEST-01–07 harness, CI workflow, production inventory and destructive executor require separate bounded approvals.
 
+
+
+## G0.14 — Lifecycle Evaluator Code Review and Contract-Gap Assessment (2026-11-11)
+
+- Evidence report: `docs/evidence/G0_14_LIFECYCLE_EVALUATOR_CODE_REVIEW_2026-11-11.md`, created in commit `7f335b56f0349dcd11dfd4f8b631c68a28cd1850`.
+- Review target source HEAD: `7ddf48c83edffd76b339ca1be6e09b1e300eb73a`.
+- Reviewed evaluator blob: `a528861c342c7c20ae48a9042338fec4ee2afa24`; tests blob: `068a22f833ebe922da422df5fba520e36b77586a`; G0.12 contract blob: `fa4e595126fe0c59ed2f9d91f274d7707d636b51`.
+- Scope: source/spec review only. No source/test/schema/workflow/runtime change. G0.13 focused 20/20 tests and compile are referenced from its report, not rerun during G0.14.
+- Verdict: **REQUEST CHANGES — REQUIRED FINDINGS OPEN**.
+- R1 REQUIRED: malformed unhashable copy state can raise TypeError instead of fail-closed BLOCKED_UNKNOWN; add type guard and regression tests.
+- R2 REQUIRED: COPY_SPECIFIC_REVIEW does not require a matching exact copy/version in complete copies inventory or bind the copy identity to the evaluated object; define canonical relation and test empty/mismatched/duplicate inventory.
+- R3 REQUIRED: protected early return omits applicable UNK_* codes for missing hold/dependency/lineage/copy/process metadata; preserve PROTECTED while collecting required unknown codes.
+- R4 REQUIRED: no sensitivity-label field/validation and no class-to-policy/version mapping; policy allowlist is global rather than class-specific. Remediation must use exact owner-ratified values only; do not invent a vocabulary or mapping.
+- Additional limitations: identity/provenance booleans are caller assertions; evidence_revision is only checked non-empty; digest is not recomputed; completeness/freshness assertions are not authenticated. This remains a classifier over supplied facts, not an evidence verifier.
+- Five-axis review: correctness BLOCKED; readability CONDITIONAL PASS; architecture PASS within pure boundary; security CONDITIONAL; bounded in-memory performance PASS.
+- Repository-wide tests NOT RUN; GitHub Actions NOT DISPATCHED; no run/artifact; TEST-01–07 not implemented/not verified; 0/87 vectors executed; TEST-08 NOT GRANTED; runtime NOT VERIFIED.
+- No source/test/fixture/schema/API/registry/adapter/runner/oracle/workflow/scheduler/service/permission/credential/database/storage/VPS/data/model/ledger/runtime changes. No test, compile, dry-run, dispatch, inventory, network/provider/database access, archive, quarantine, cleanup, expiry, compaction, vacuum or deletion.
+- T0 remains independent/protected; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
+- Next bounded step: request owner approval for G0.15 remediation of R1–R4. R4 remains blocked if the ratified policy does not specify exact sensitivity vocabulary and class-policy mapping. CI dispatch, TEST-01–07, evidence authentication and destructive executor remain separate gates.
+
