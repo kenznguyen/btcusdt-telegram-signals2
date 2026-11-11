@@ -272,18 +272,18 @@ class DualStrategyApiScopeRedTest(unittest.TestCase):
         self.assertEqual(stored, ("CANCELED", "STRATEGY_CORE"))
 
 
-    def test_reset_readiness_checks_pending_orders_from_both_ledgers_and_shared_risk(self):
+    def test_reset_readiness_blocks_unassigned_pending_order_and_unready_shared_risk(self):
         self.activate_dual_schema()
         order = {
             "orderId": "ai-pending", "createdAtMs": 1,
-            "status": "OPEN", "filledBase": "0", "strategyId": "AI_FREQAI",
+            "status": "OPEN", "filledBase": "0", "strategyId": "LEGACY_UNATTRIBUTED",
         }
         with sqlite3.connect(self.db) as connection:
             connection.execute(
                 """INSERT INTO paper_orders
                    (intent_id,payload_hash,order_id,status,document,account_id,
                     strategy_id,strategy_event,reservation_id,created_schema_version)
-                   VALUES (?,?,?,?,?,1,'AI_FREQAI','ENTRY',NULL,1)""",
+                   VALUES (?,?,?,?,?,1,NULL,'ENTRY',NULL,1)""",
                 ("ai-pending-intent", "payload-hash-ai", order["orderId"], "OPEN",
                  json.dumps(order)),
             )
@@ -295,6 +295,25 @@ class DualStrategyApiScopeRedTest(unittest.TestCase):
         self.assertFalse(readiness["ready"])
         self.assertFalse(readiness["checks"]["noPendingPaperOrders"])
         self.assertFalse(readiness["checks"]["accountRiskReady"])
+
+
+    def test_scoped_api_ledger_construction_does_not_mutate_migration_or_audit_state(self):
+        self.activate_dual_schema()
+        with sqlite3.connect(self.db) as connection:
+            before = (
+                connection.execute("SELECT COUNT(*) FROM paper_schema_migrations").fetchone()[0],
+                connection.execute("SELECT COUNT(*) FROM paper_audit").fetchone()[0],
+            )
+
+        scoped = api.ledger(strategy_id="AI_FREQAI")
+        self.assertEqual(scoped.strategy_id, "AI_FREQAI")
+
+        with sqlite3.connect(self.db) as connection:
+            after = (
+                connection.execute("SELECT COUNT(*) FROM paper_schema_migrations").fetchone()[0],
+                connection.execute("SELECT COUNT(*) FROM paper_audit").fetchone()[0],
+            )
+        self.assertEqual(after, before)
 
 if __name__ == "__main__":
     unittest.main()
