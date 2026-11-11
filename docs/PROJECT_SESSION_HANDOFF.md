@@ -2747,3 +2747,14 @@ Critical limits:
 - Proposal explicitly leaves unresolved the exact field/metric schema, authoritative dataset lineage, split protocol, detached evaluation signature choice, statistical thresholds, trusted-time source and resource limits. These require Owner decisions before schema freeze.
 - Verification: source/document commit recorded; no CI workflow was run for this documentation-only proposal. Executable contract tests are NOT RUN because schema is not frozen.
 - **Disposition: DESIGN PROPOSAL RECORDED; NOT FROZEN; NOT IMPLEMENTED.** Next: Owner review of the open decisions in section 9 of the proposal. Do not implement provider/schema or assert OOS VERIFIED before those decisions and a separate implementation gate.
+
+
+## OOS Evaluation Evidence v1 structural contract freeze — 2026-11-12
+
+- Owner approved using the existing OOS Evaluation Evidence v1 proposal as the baseline for structural freeze.
+- Frozen the exact top-level field set, metric-set shape, uncertainty shape, digest/canonical-byte rules, data-partition invariants and provider verification boundary in `docs/architecture/AI_CALIBRATION_OOS_EVALUATION_EVIDENCE_V1_PROPOSAL.md`, section “Owner-approved OOS Evaluation Evidence v1 — structural contract freeze”.
+- Contract document commit: `70d5260691f16d986cebd31d09da3d133213fa17`; document blob: `69025272ff13d1a4ae5264bc701fd33f07845d6f`.
+- Explicitly not frozen: authoritative dataset-lineage source/method, concrete split protocol algorithm, approved metric catalogue, statistical thresholds/minimum sample count/C_min interaction, trusted-time source/freshness semantics, extra detached-signature requirement and resource limits. These require separate Owner decisions; no assumptions were silently selected.
+- Frozen manifest v1, signature envelope v1, transform v1 and decision gate unchanged. No code, provider, executable contract tests, real OOS evidence, model training, calibration artifact, production key/trust bootstrap, registry event, S2, VPS/runtime, T0/T1/T2 or AI admission created.
+- Verification: GitHub source/document commit recorded; no CI run for documentation-only freeze. Executable tests NOT RUN; validator NOT IMPLEMENTED.
+- **Disposition: STRUCTURAL CONTRACT FROZEN; IMPLEMENTATION NOT STARTED; OOS NOT VERIFIED.** Next eligible increment is a separately approved pure offline validator and deterministic contract tests for F1–F5. Production decision remains fail-closed.
