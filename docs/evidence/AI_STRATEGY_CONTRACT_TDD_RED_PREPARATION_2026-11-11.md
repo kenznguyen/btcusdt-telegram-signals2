@@ -133,3 +133,22 @@ Disposition: **RED triage PASS — analysis/documentation only**. API proposal a
 - Numerical `C_min`, calibration sample/period/age thresholds, registry/provider choices, instrument-rule source, AI DCA v1 eligibility and snapshot persistence remain unresolved. Tests may use labeled fixtures for boundary behavior but must not turn fixtures into production defaults or imply owner selection.
 - **GREEN: NOT AUTHORIZED.** No production changes, migration/cutover, calibration training/OOS acceptance, backtest acceptance, feature activation, VPS/runtime, deployment, exchange connectivity or live orders.
 - No RED test execution or new CI run is claimed by this approval record. The existing RED baseline remains run `42989566675`, exact SHA `aa7897520b5435ff4c981b3f2ab8a6710f811eea`.
+
+
+## Gate B — RED test-only refinement — 2026-11-11
+
+- Owner approval source: approved API Contract proposal blob `65c3e5a6102cde6f7d51784fd9638f14aec3269e`. Test-only refinement authorized; production changes remain prohibited.
+- Test-source commits on the existing branch:
+  - `eaf441c97835efba8d7c8d8f25bd01d77b5612d2` — replace signature-introspection checks with decision-boundary behavioral tests and explicit fixture admission context.
+  - `ae244d7544a14182ac21dc7853eb55e15a84679e` — exercise invalid execution price through the same decision boundary.
+  - `dd1b088a763276f5510f99166ba175c13f70e0d9` — assert Shared Risk Engine rejection leaves no risk reservation in the AI BUY/Core WAIT API integration test.
+- Latest test source SHA submitted to the existing branch: `dd1b088a763276f5510f99166ba175c13f70e0d9`.
+- Added RED coverage: behavioral admission-context boundary; missing/invalid calibrated confidence and provenance; explicit fixture-only confidence minimum validation and leverage mapping at 1x/3x/interior; malformed artifact hash; temporal ordering/training-cutoff violations; stale calibration and sample/period minimums; equity readiness/freshness/reconciliation; Kill Switch; invalid price and lot/tick/minimum rules; AI ledger admitted leverage isolation and [1x,3x] boundaries; Core fixed 13x regression; no partial risk reservation after Shared Risk Engine denial.
+- Fixture `confidenceMin=0.6`, sample minimum `100`, period minimum `100ms`, and calibration age `60000ms` exist only inside test fixtures to exercise boundary behavior. They are not production defaults and do not constitute owner selection of `C_min` or calibration policy.
+- Deliberately deferred from test assertions pending unresolved contract/provider decisions: trusted calibration artifact registry identity/lookup; exact model/strategy/training-dataset manifest fields; AI DCA v1 trigger/eligibility; immutable reservation snapshot persistence/idempotent replay contract. No behavior was invented for these unresolved decisions.
+- No production files were edited. No database/schema, migration, T0/T1/T2 runtime, VPS, deployment, credentials, exchange state or live-order changes.
+- CI status for exact SHA `dd1b088a763276f5510f99166ba175c13f70e0d9`: **NOT VERIFIED**. The GitHub combined commit-status query returned no statuses; available workflow-run lookup did not return push-triggered runs. No test count, workflow run ID or artifact is claimed for this SHA.
+- Existing verified RED baseline remains run [42989566675](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42989566675), SHA `aa7897520b5435ff4c981b3f2ab8a6710f811eea`, 36 tests / 23 assertion failures / 0 runtime errors. This is historical baseline only, not verification of the refined suite.
+
+Disposition: **Gate A APPROVED. Gate B TEST SOURCE REFINEMENT WRITTEN; CI NOT VERIFIED. GREEN NOT AUTHORIZED.**
+Next: obtain exact push-triggered AI RED workflow run for SHA `dd1b088a763276f5510f99166ba175c13f70e0d9`; inspect compile and test logs, correct only test-source defects, then record exact run/artifact. Stop before GREEN.
