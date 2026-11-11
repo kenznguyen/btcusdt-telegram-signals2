@@ -2882,3 +2882,14 @@ Critical limits:
 - The three ZIP digests above are upload-log digests; they have not yet been independently downloaded and re-hashed. The repository-file manifest JSON digest was emitted by the workflow, but the uploaded ZIP/payload still requires independent readback if promoted as custody evidence.
 - **Disposition: EXACT REPOSITORY-FILE INVENTORY — PASS (40 paths, exact commit/blob binding); L4 ARTIFACT MANIFEST PILOT — PASS at its scoped 19-test contract; L4-MINIMUM AGGREGATE — BLOCKED / NOT VERIFIED.** This does not prove owner custody, signer separation, trusted time, signature verification, offline verification or acceptance of any L4 control.
 - Next permitted step: independently download and re-hash the new inventory artifact and inspect its manifest payload against the exact 40-path set; then reconcile any remaining authoritative source references without promoting historical documents as current authority. Keep T0/VPS access, bundle export (currently paused), trust/key/time operations, destructive data operations, T1 activation, runtime and trading out of scope.
+
+
+### Independent repository-file inventory artifact readback (2026-11-11)
+
+- Downloaded artifact ID `13883615482` (`t0-l4-repository-file-inventory-43078011975`) and independently hashed the downloaded ZIP bytes.
+- Independent ZIP SHA-256: `204ae06603ce59696b874049f7db8edb88fbcd1916ea60da1e550ea5579c3ef0`; matches the GitHub artifact metadata and workflow upload log exactly.
+- ZIP contains exactly two members: `l4-repository-file-inventory.json` (9,757 bytes) and its SHA-256 sidecar (100 bytes); no extra members.
+- Independently computed JSON SHA-256: `1c29166df7acc6a69403f8ccceee0a358b6757c8e45a99e76efa493c47bba6d9`; matches the sidecar and the workflow log.
+- Parsed payload: schema `T0_L4_REPOSITORY_FILE_INVENTORY_V1`; branch `feature/t0-centralized-data-feeder-p1-20261101`; source commit `8efbcda80a64c5b84bbfb747f0e1f15bdec54149`; 40 entries, 40 unique paths, total source bytes 567,960. The payload source commit is the exact workflow checkout SHA.
+- **Disposition: INVENTORY ARTIFACT ZIP READBACK + SHA-256 — PASS; MANIFEST JSON + SIDECAR — PASS; 40-entry structure — PASS.** This proves integrity of the downloaded inventory artifact and its manifest, not independent custody of the 40 source documents outside GitHub, not signatures/trusted time/offline verification, and not L4 control acceptance.
+- Current next step: reconcile the inventory payload entries against the allowlist and retain the independent ZIP/JSON hash evidence; then continue the remaining bounded L4 evidence acquisition work. Aggregate L4-Minimum remains BLOCKED / NOT VERIFIED.
