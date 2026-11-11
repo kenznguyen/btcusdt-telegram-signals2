@@ -132,6 +132,31 @@ class AIStrategyContractRedTest(unittest.TestCase):
         self.assertEqual(result["action"], "WAIT", result)
         self.assertIsNone(result["intent"], result)
 
+    def test_production_api_blocks_without_a_trusted_calibration_provider(self):
+        data = {
+            "candles": self.fixture.window,
+            "intelligence": self.fixture.intelligence,
+            "prediction": self.calibrated_prediction("0.8"),
+            "book": self.fixture.book,
+        }
+        result = api.decide(data, self.fixture.now)
+        self.assert_contract_wait(result)
+
+    def test_valid_calibration_confidence_and_provenance_are_bound_to_intent(self):
+        result = self.evaluate(
+            prediction=self.calibrated_prediction("0.8"),
+            admission_context=self.admission_context(),
+        )
+        self.assertEqual(result["action"], "BUY", result)
+        self.assertEqual(result["intent"]["calibratedConfidence"], "0.8")
+        self.assertEqual(result["intent"]["calibrationVersion"], "cal-fixture-v1")
+        self.assertEqual(result["intent"]["calibrationArtifactHash"],
+                         "sha256:" + "b" * 64)
+        self.assertEqual(result["intent"]["calibrationDatasetVersion"],
+                         "sha256:" + "c" * 64)
+        self.assertEqual(result["intent"]["calibrationPolicyVersion"],
+                         "ai-policy-fixture-v1")
+
     def test_missing_calibrated_confidence_blocks_an_otherwise_valid_ai_prediction(self):
         self.assert_contract_wait(self.evaluate())
 
