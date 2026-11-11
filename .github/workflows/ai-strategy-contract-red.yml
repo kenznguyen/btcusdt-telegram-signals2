@@ -94,7 +94,7 @@ jobs:
         with:
           name: ai-strategy-contract-red-${{ github.sha }}
           if-no-files-found: warn
-          retention-days: 14
+          retention-days: 7
           path: |
             ai-strategy-preflight.log
             ai-strategy-compile.log
