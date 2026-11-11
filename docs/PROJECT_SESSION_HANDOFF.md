@@ -545,3 +545,15 @@ Reconcile the four-artifact Actions allowlist with all eligible source artifacts
 - No code/tests/workflow/CI, keys/signatures/trust-root/policy/anchor instances, provider/TSA, VPS/SSH/runtime, SQLite/canonical T0 data or destructive operation was changed or exercised. No implementation approval is implied.
 - Next: designate a qualifying independent reviewer (identity/channel) and send the frozen review packet. Do not edit the frozen source blobs during review; any required correction creates a new snapshot and restarts review. Implementation remains blocked pending review and separate explicit owner approval.
 - Branch hygiene: the first report-file create action landed on `main` because the optional branch was omitted; it was not reverted or treated as active-branch evidence. The same report was then created explicitly on this active branch in commit `cce3869098644cf35411e2fc98083f1c5f01444b`. No merge/rebase/force-push was performed.
+
+
+## Signature contract review snapshot — final source pin refresh (2026-11-11)
+
+- The review candidate was tightened after final consistency inspection: A1 §2.1 and §6.4 now use MUST (not SHOULD) for retaining/publishing the exact anchor record and predecessor chain at both approved custody locations, matching the owner-approved base contract. No publication/readback was performed.
+- Final frozen source snapshot HEAD: `9250134f9caf73674c28fa02fa848f91d6cc2f76`.
+  - Checkpoint Contract blob: `a6825270d59bde274bfe765d5f942144b66a84de`.
+  - Amendment A1 blob: `00fdad293e129562145ab930507a4e6b9c2bf23d`.
+  - L4 Crosswalk blob: `e560f084642b5f81c78179ef673e5df116fc5f42`.
+- Final consistency report updated: `docs/evidence/T0_SIGNATURE_CONTRACT_FINAL_CONSISTENCY_REVIEW_2026-11-11.md`, commit `9250134f9caf73674c28fa02fa848f91d6cc2f76`, blob `80d42aa9b2f51efa9037656f958c86d91eeebe6c`. It records FC-08 and the exact final source pins.
+- Exact-pin and rule checks: `{"reportPinsContract":true,"reportPinsAmendment":true,"reportPinsCrosswalk":true,"crosswalkPinsContract":true,"crosswalkPinsAmendment":true,"a1AnchorMustBoth":true,"a1NoPendingApproval":true,"a1NegativeCases":true,"contractReadbackBothUnavailableSuperseded":true,"aggregateBlocked":true}`.
+- Independent reviewer still not designated; review request remains NOT REQUESTED / NOT VERIFIED. Frozen source documents must not be edited during review; any required change creates a new snapshot.
