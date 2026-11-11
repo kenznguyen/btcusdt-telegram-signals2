@@ -216,7 +216,7 @@ def validate_provenance(provenance, source_bytes, frozen_sha):
     if not isinstance(provenance,Mapping) or set(provenance)!=required or type(source_bytes) is not bytes: return False
     if type(frozen_sha) is not str or not SHA_RE.fullmatch(frozen_sha): return False
     if hashlib.sha256(source_bytes).hexdigest()!=frozen_sha: return False
-    if not SHA_RE.fullmatch(str(provenance["source_blob_sha256"])): return False
+    if provenance.get("source_blob_sha256") != frozen_sha: return False
     if not re.fullmatch(r"[0-9a-f]{40,64}",str(provenance["source_commit"])): return False
     return all(type(provenance[k]) is str and bool(provenance[k].strip()) for k in required)
 
