@@ -174,3 +174,43 @@ These are source-level findings and proposed acceptance requirements only. No en
 - DS-03 Core sizing/leverage reconciliation: **BLOCKED**, unchanged.
 - DS-04 contract-document status reconciliation: **OPEN**.
 - No VPS process, T0 canonical DB, lease/fencing state, T1 activation, exchange credential, live order or deployment setting was changed. CI tests used isolated temporary paper databases only.
+
+
+## Final review and refactor verification — 2026-11-11
+
+### Final exact source
+- Final implementation/test source SHA: `8d9eee6cd503237f8b8a398fcaf1e055dfa9d644`
+- Relevant final blobs:
+  - `pipeline/api.py`: `bbca4617c7e4d51b358dd07c914308dfc392e6cd`
+  - `paper_execution/ledger.py`: `38f71f974068eb12c56dd2174a4200d07c4c98bf`
+  - `paper_execution/account_equity.py`: `9971dae4592f07fe7bd2315c0f1ec1daf97af8d1`
+  - `paper_execution/test_dual_strategy_api_red.py`: `66aec77ed281b16a2c44fa61176d5c5766afdfe8`
+  - `paper_execution/test_dual_ledger_red.py`: `2be7188537911615b7df387d33835c281878ecc7`
+  - `pipeline/test_api.py`: `11de4dd3b945554ae6c7d6354049331a3aeb96d9`
+  - `.github/workflows/dual-ledger-red.yml`: `f9a2ee5e38a633de5f6a45e5d9023bdd0c648c13`
+
+### Code review and structural adjustment
+- Reviewed correctness, readability, architecture, security and performance against the owner-approved DS-01/DS-02 scope.
+- Account equity/mark logic was extracted from the large ledger module into `paper_execution/account_equity.py`; ledger aggregation and active-reservation reconciliation are separate named helpers.
+- The API only accepts persisted order ownership, uses read-only migration/checksum checks and fails closed on missing/partial/mismatched evidence. SQL remains parameterized; persisted numeric inputs use bounded decimal validation. No dependency was added.
+- No Critical/Required review finding remains within the approved DS-01/DS-02 scope. DS-03 and DS-04 remain outside this implementation increment.
+
+### Final CI evidence
+- Dual Ledger workflow: [run 42971136555](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42971136555)
+  - Exact source SHA: `8d9eee6cd503237f8b8a398fcaf1e055dfa9d644`
+  - Compile: PASS
+  - Focused DS-01/DS-02 contract: PASS
+  - Full `paper_execution` regression: **300 tests PASS**
+  - Artifact ID: `13833202840`
+  - Artifact SHA-256: `0eb0bbb6ad5bfbca27c9665e06548a11dba37e2d25d4939ea891301a6054f506`
+- T0 Single Writer Gateway workflow: [run 42970832396](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42970832396), exact source SHA `e99daf3f491014aa302af52629d0598d6404dbaa`: all jobs PASS, including five-layer paper consumer regressions, Gateway contracts, T1 offline fixtures, restricted provider bootstrap and TimescaleDB integration.
+- T2 Freqtrade 2026.9 strategy-load smoke: [run 42970832365](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42970832365), exact source SHA `e99daf3f491014aa302af52629d0598d6404dbaa`: PASS.
+- T0/T2 runs are pinned to their actual source SHA; they are not claimed as runs against the later paper_execution-only refactor commits.
+
+### Final disposition
+- DS-01 and DS-02: **PASS — source and isolated CI scope**.
+- Legacy mode without migration remains intact; explicit Core/AI scope requires complete pre-existing migration evidence; API constructor is read-only; no automatic migration or account cutover.
+- Account equity/mark reconciles both strategy ledgers, legacy adjustments, funding and active reservations in one transaction. Without verified cutover/daily baseline, risk readiness stays false.
+- Runtime/VPS activation, database migration, account cutover/funding proof, deployment and live execution: **NOT AUTHORIZED / NOT PERFORMED / NOT VERIFIED**.
+- DS-03: **BLOCKED**. DS-04: **OPEN**.
+- No canonical T0 DB, leases/fencing, VPS process, T1 activation, credentials, exchange state or live orders were changed. All paper DB mutations were confined to disposable CI fixtures.
