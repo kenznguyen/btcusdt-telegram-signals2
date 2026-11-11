@@ -92,4 +92,4 @@ No production cryptography, real key generation/import, signing/verification, tr
 
 ## Next step
 
-Obtain an explicit owner-approved contract correction defining the exact domain-separator byte sequences and resolving the T0-JCS-1 numeric subset. Then implement the three blocked digest helpers and expand canonicalization vectors. Do not dispatch the workflow until this blocker is resolved and workflow execution is separately authorized.
+Contract-only correction proposal is now recorded at `docs/evidence/T0_SIGNATURE_A2_2_STAGE_I_CONTRACT_AMBIGUITY_PROPOSAL_2026-11-11.md` (blob `37bff74053ddc1034e09f40d9cc3bf558588e897`, commit `d5695ed7ac752d8e5570354a1389ef9c8403033c`). The proposal is NOT OWNER-APPROVED and does not amend A2.2. Obtain explicit owner approval or rejection of its exact domain bytes and T0-JCS-1 numeric grammar before changing the three blocked digest helpers. Do not dispatch the workflow until this blocker is resolved and workflow execution is separately authorized.
