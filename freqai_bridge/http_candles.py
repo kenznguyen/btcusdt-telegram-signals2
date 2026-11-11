@@ -1,7 +1,8 @@
-"""Strict read-only HTTP client for T0 Candle Contract v1 (BTCUSDT M15)."""
+"""Strict read-only HTTP client for T0 Candle Contract v1 (BTCUSDT M15/H1)."""
 
 from dataclasses import dataclass, field
 from decimal import Decimal, InvalidOperation
+import hashlib
 import json
 import re
 import time
@@ -11,7 +12,7 @@ import requests
 
 
 _ENDPOINT = "/v1/candles"
-_INTERVAL_MS = 900_000
+_INTERVAL_MS = {"15m": 900_000, "1h": 3_600_000}
 _MAX_BARS = 32
 _MAX_BODY_BYTES = 256 * 1024
 _CONNECT_TIMEOUT_S = 3
@@ -121,10 +122,10 @@ class CandleHttpClient:
             result[key] = value
         return result
 
-    def _request(self, start_ms, end_ms, as_of_ms):
+    def _request(self, start_ms, end_ms, as_of_ms, timeframe):
         params = {
             "symbol": "BTCUSDT",
-            "timeframe": "15m",
+            "timeframe": timeframe,
             "startMs": start_ms,
             "endMs": end_ms,
             "asOfMs": as_of_ms,
@@ -214,20 +215,58 @@ class CandleHttpClient:
                     response.close()
         raise CandleHttpError("HTTP_UNAVAILABLE")
 
-    def fetch(self, start_ms, end_ms, as_of_ms):
+    def fetch(self, start_ms, end_ms, as_of_ms, timeframe="15m"):
         if not all(self._timestamp(value) for value in (start_ms, end_ms, as_of_ms)):
             raise CandleHttpError("RANGE_MISMATCH")
-        if start_ms % _INTERVAL_MS or end_ms % _INTERVAL_MS:
+        if timeframe not in _INTERVAL_MS:
+            raise CandleHttpError("IDENTITY_MISMATCH")
+        interval = _INTERVAL_MS[timeframe]
+        if start_ms % interval or end_ms % interval:
             raise CandleHttpError("RANGE_MISMATCH")
-        slots = (end_ms - start_ms) // _INTERVAL_MS
-        if not 1 <= slots <= _MAX_BARS:
+        slots = (end_ms - start_ms) // interval
+        if not 1 <= slots <= 3000:
             raise CandleHttpError("RANGE_MISMATCH")
 
-        payload = self._request(start_ms, end_ms, as_of_ms)
-        self._validate(payload, start_ms, end_ms, as_of_ms, slots)
-        return payload
+        pages = []
+        cursor = start_ms
+        while cursor < end_ms:
+            page_end = min(end_ms, cursor + _MAX_BARS * interval)
+            page_slots = (page_end - cursor) // interval
+            payload = self._request(cursor, page_end, as_of_ms, timeframe)
+            self._validate(payload, cursor, page_end, as_of_ms, page_slots, timeframe)
+            pages.append(payload)
+            cursor = page_end
 
-    def _validate(self, payload, start_ms, end_ms, as_of_ms, slots):
+        candles = [candle for page in pages for candle in page["candles"]]
+        generated = max(page["generatedAtMs"] for page in pages)
+        latest = candles[-1]
+        identity = {
+            "exchange": "binance", "marketType": "USDT_PERPETUAL", "symbol": "BTCUSDT",
+            "timeframe": timeframe, "startMs": start_ms, "endMs": end_ms,
+            "asOfMs": as_of_ms, "candles": candles,
+        }
+        version = hashlib.sha256(
+            json.dumps(identity, sort_keys=True, separators=(",", ":")).encode()
+        ).hexdigest()
+        return {
+            **identity,
+            "contractVersion": "1.0.0", "schemaVersion": 1,
+            "datasetVersion": "sha256:" + version,
+            "coverage": {"expected": slots, "returned": len(candles), "complete": len(candles) == slots, "gaps": [] if len(candles) == slots else [{"startMs": start_ms, "endMs": end_ms}]},
+            "volumeUnit": "BTC_BASE_ASSET", "source": "ccxt.binanceusdm",
+            "generatedAtMs": generated,
+            "freshness": {
+                "latestExpectedOpenTimeMs": (generated // interval) * interval - interval,
+                "latestReturnedOpenTimeMs": latest["openTimeMs"],
+                "latestCloseTimeMs": latest["closeTimeMs"],
+                "latestAvailableAtMs": latest["availableAtMs"],
+                "observationAgeMs": generated - latest["availableAtMs"],
+                "closeLagMs": generated - latest["closeTimeMs"],
+                "evaluable": True,
+            },
+        }
+
+    def _validate(self, payload, start_ms, end_ms, as_of_ms, slots, timeframe):
         if set(payload) != _ENVELOPE_FIELDS:
             raise CandleHttpError("CONTRACT_UNSUPPORTED")
         if payload["contractVersion"] != "1.0.0" or type(payload["schemaVersion"]) is not int or payload["schemaVersion"] != 1:
@@ -237,7 +276,7 @@ class CandleHttpClient:
             "exchange": "binance",
             "marketType": "USDT_PERPETUAL",
             "symbol": "BTCUSDT",
-            "timeframe": "15m",
+            "timeframe": timeframe,
             "startMs": start_ms,
             "endMs": end_ms,
             "asOfMs": as_of_ms,
@@ -273,13 +312,14 @@ class CandleHttpClient:
         candles = payload["candles"]
         if not isinstance(candles, list) or len(candles) != slots:
             raise CandleHttpError("COVERAGE_INCOMPLETE")
-        expected_open_times = list(range(start_ms, end_ms, _INTERVAL_MS))
+        interval = _INTERVAL_MS[timeframe]
+        expected_open_times = list(range(start_ms, end_ms, interval))
         for candle, expected_open in zip(candles, expected_open_times):
             if not isinstance(candle, dict) or set(candle) != _CANDLE_FIELDS:
                 raise CandleHttpError("CANDLE_INVALID")
             candle_identity = {
                 "exchange": "binance", "marketType": "USDT_PERPETUAL",
-                "symbol": "BTCUSDT", "timeframe": "15m", "source": "ccxt.binanceusdm",
+                "symbol": "BTCUSDT", "timeframe": timeframe, "source": "ccxt.binanceusdm",
             }
             if any(candle.get(k) != v or type(candle.get(k)) is not str for k, v in candle_identity.items()):
                 raise CandleHttpError("CANDLE_INVALID")
@@ -288,7 +328,7 @@ class CandleHttpClient:
             available = candle["availableAtMs"]
             if (not self._timestamp(opened) or not self._timestamp(closed)
                     or not self._timestamp(available) or opened != expected_open
-                    or closed != opened + _INTERVAL_MS or candle["isClosed"] is not True
+                    or closed != opened + interval or candle["isClosed"] is not True
                     or candle["availabilityKind"] != "FIRST_OBSERVED"
                     or candle["quality"] != "VALIDATED"
                     or available < closed or available > as_of_ms or available > generated):

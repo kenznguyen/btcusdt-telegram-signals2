@@ -198,9 +198,9 @@ class T2HttpConsumerTest(unittest.TestCase):
         with self.assertRaises(Error):
             Config(base_url="http://remote.example.invalid", token="secret", max_lag_ms=120_000)
 
-    def test_requested_window_must_be_aligned_and_contain_one_to_32_bars(self):
+    def test_requested_window_must_be_aligned_and_contain_one_to_3000_bars(self):
         client, session = self._client()
-        for start, end in ((START, START), (START, START + 33 * STEP), (START + 1, END)):
+        for start, end in ((START, START), (START, START + 3001 * STEP), (START + 1, END)):
             with self.subTest(start=start, end=end), self.assertRaises(Exception):
                 client.fetch(start_ms=start, end_ms=end, as_of_ms=AS_OF)
         self.assertEqual(session.calls, [])

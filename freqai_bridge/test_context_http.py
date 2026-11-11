@@ -32,7 +32,7 @@ class T2HttpContextTest(unittest.TestCase):
 
     def test_context_rejects_invalid_bar_count_before_http_request(self):
         client = FakeClient()
-        for bars in (0, 33, True, 1.5):
+        for bars in (0, 3001, True, 1.5):
             with self.subTest(bars=bars), self.assertRaises(ValueError):
                 canonical_context(now_ms=NOW, bars=bars, client=client)
         self.assertEqual(client.calls, [])

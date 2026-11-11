@@ -10,7 +10,7 @@ from freqai_bridge.http_candles import CandleHttpClient, CandleHttpConfig, Candl
 from pipeline.values import stamp
 
 
-_M15_INTERVAL_MS = 900_000
+_INTERVAL_MS = {"15m": 900_000, "1h": 3_600_000}
 
 
 def _configured_client():
@@ -28,15 +28,20 @@ def _configured_client():
     return CandleHttpClient(config)
 
 
-def canonical_context(now_ms=None, bars=2, *, client=None):
-    """Fetch exactly the latest requested closed M15 window; fail closed on any error."""
+def canonical_context(now_ms=None, bars=2, *, timeframe="15m", client=None):
+    """Fetch a bounded closed M15/H1 window; fail closed on any error."""
     now = stamp(time.time_ns() // 1_000_000 if now_ms is None else now_ms)
-    if type(bars) is not int or not 1 <= bars <= 32:
-        raise ValueError("Canonical context must contain 1 to 32 bars")
+    if timeframe not in _INTERVAL_MS:
+        raise ValueError("Canonical context timeframe must be 15m or 1h")
+    if type(bars) is not int or not 1 <= bars <= 3000:
+        raise ValueError("Canonical context must contain 1 to 3000 bars")
     http_client = client if client is not None else _configured_client()
-    end = now // _M15_INTERVAL_MS * _M15_INTERVAL_MS
-    start = end - bars * _M15_INTERVAL_MS
-    return http_client.fetch(start_ms=start, end_ms=end, as_of_ms=now)
+    interval = _INTERVAL_MS[timeframe]
+    end = now // interval * interval
+    start = end - bars * interval
+    if timeframe == "15m":
+        return http_client.fetch(start_ms=start, end_ms=end, as_of_ms=now)
+    return http_client.fetch(start_ms=start, end_ms=end, as_of_ms=now, timeframe=timeframe)
 
 
 def main():

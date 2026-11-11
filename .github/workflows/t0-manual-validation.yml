@@ -308,7 +308,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python -m unittest market_data.test_e2e_data_flow market_data.test_sync market_data.test_api freqai_bridge.test_http_candles -v 2>&1 | tee sqlite-data-flow-tests.log
+          python -m unittest market_data.test_e2e_data_flow market_data.test_sync market_data.test_api freqai_bridge.test_http_candles freqai_bridge.test_context_http freqai_bridge.test_multi_timeframe freqai_bridge.test_context_multi_timeframe -v 2>&1 | tee sqlite-data-flow-tests.log
           echo "SQLITE_T0_TO_T2_DATA_FLOW=PASS" | tee sqlite-data-flow-verdict.txt
       - name: Upload automatic data-flow evidence
         if: always()
