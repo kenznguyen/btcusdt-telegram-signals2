@@ -70,7 +70,7 @@ def book_snapshot(timestamp):
         return result
 
 
-def ledger(strategy_id="MANUAL"):
+def ledger(strategy_id="MANUAL", *, admitted_leverage=None):
     from paper_execution.ledger import PaperLedger
     from paper_execution.equity import parse_limits
     path = os.environ.get("MARKET_DATA_DB")
@@ -82,8 +82,14 @@ def ledger(strategy_id="MANUAL"):
         if not dual_ledger_ready(path):
             raise sqlite3.DatabaseError("DUAL_LEDGER_MIGRATION_NOT_READY")
     from risk_policy import CORE_LEVERAGE
-    configured_leverage = (str(CORE_LEVERAGE) if strategy_id == "STRATEGY_CORE"
-                           else os.environ.get("LEVERAGE", "13"))
+    if strategy_id == "STRATEGY_CORE":
+        configured_leverage = str(CORE_LEVERAGE)
+    elif strategy_id == "AI_FREQAI":
+        if admitted_leverage is None:
+            raise ValueError("AI_ADMITTED_LEVERAGE_REQUIRED")
+        configured_leverage = str(admitted_leverage)
+    else:
+        configured_leverage = os.environ.get("LEVERAGE", "13")
     return PaperLedger(path, max_position_base=os.environ.get("PAPER_MAX_POSITION_BASE", "0.01"),
                        fee_rate=os.environ.get("PAPER_FEE_RATE", "0.0005"),
                        max_spread_bps=os.environ.get("PAPER_MAX_SPREAD_BPS", "50"),
