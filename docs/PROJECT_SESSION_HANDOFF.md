@@ -2398,3 +2398,16 @@ Next: if owner wants to proceed beyond planning, first approve a bounded provisi
 - D11 numeric ceilings remain **OPEN / NOT RATIFIED**. No harness/runner/tests/dependency changes, no production parser/verifier/crypto/trust work, no T0/T1/T2, market/model data, ledgers, Shared Risk Engine, Kill Switch, PostgreSQL, VPS/runtime, external provider/network/database or destructive lifecycle action.
 - T0 remains independent/protected; CORE_LEDGER and AI_LEDGER remain separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
 - Next gate: prepare a new owner decision package limited to diagnosing/correcting the exact workflow admission condition and requesting a fresh one-shot G0.41 attempt. No edits or execution until separately approved.
+
+
+### G0.42 — G0.41 workflow admission correction owner package (2026-11-11)
+
+- Prepared docs-only owner package: `docs/evidence/G0_42_G041_WORKFLOW_ADMISSION_CORRECTION_OWNER_PACKAGE_2026-11-11.md`.
+- Package commit: `91478d3382bdde22bcc9f251d72aff20f8d96a83`.
+- G0.41 workflow run [43052133091](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43052133091) was SKIPPED; job `130631821560` reported no steps; no artifact. Frozen runner `prepare_preflight(...)` was NOT INVOKED.
+- The workflow job condition included `contains(github.event.head_commit.added, '.github/workflows/g041-s1-single-measurement.yml')`. GitHub REST commit metadata labels the workflow file `added`, but run/job metadata does not expose expression evaluation. Exact false sub-expression and root cause remain **NOT VERIFIED**; the `contains(...)` clause is only a plausible fault, not a proven cause.
+- G0.42 requests explicit approval for one edit to the existing workflow path, one narrow D14 amendment, and one fresh one-shot G0.41 measurement attempt. Proposed gate uses exact branch, exact immediate parent SHA (the final handoff HEAD recorded below), `head_commit.id == github.sha`, and `run_attempt == 1`; existing branch/path trigger remains. No `contains(head_commit.added, ...)` check.
+- After this package and handoff commit are both recorded, the exact current branch HEAD becomes the required `github.event.before` value for the single authorized implementation push. That exact SHA is the next owner package's baseline and must be copied literally into the workflow condition; no wildcard/fallback.
+- Approval scope, if granted, permits only the existing workflow file and the D14 ratification record for this one correction; then exactly one `prepare_preflight(...)` invocation and one bounded JSON artifact if all pre-invocation guards pass. Frozen source blobs remain harness `e8db71c11e0503ea6d9a2480d75470185c4d5100`, runner `23a35aab7f7aeacd8a3f63d630a875fe76b1ff6a`, tests `d06a5b533af14378ed284051e5b057cf57377876`.
+- No workflow edit or measurement was performed in G0.42. D11 numeric ceilings remain OPEN / NOT RATIFIED. T0 remains independent/protected; ledgers remain separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
+- Current disposition: **G0.42 READY FOR OWNER DECISION — WAITING FOR EXPLICIT APPROVAL**. No further changes or execution until the owner approves this exact package.
