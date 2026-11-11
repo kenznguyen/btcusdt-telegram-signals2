@@ -13,7 +13,7 @@ Status: **DRAFT A2.2 — DOCUMENTATION ONLY — NOT APPROVED FOR IMPLEMENTATION*
 2. A1 remains preserved unchanged as historical design evidence. A2.2 supersedes A2.1, A2 and A1 only where this candidate explicitly replaces or supplements a rule below; all earlier versions remain historical inputs. All other A1 and Checkpoint Contract v1 requirements remain in force.
 3. The reviewed A1 snapshot and its source blobs are immutable review inputs. A2.2 is the current new candidate; A2 and A2.1 remain historical candidates and review inputs. This revision does not retroactively change any prior frozen snapshot or review result.
 4. This document defines contract semantics and test expectations only. It does not authorize code, schema migration, keys, signatures, trust-root installation, policy or anchor instances, provider/TSA use, VPS/SSH/runtime access, T0 database access, custody mutation or destructive operations.
-5. A2.2 does not satisfy independent review. It requires review against its own exact frozen blob set and separate implementation authorization.
+5. A2.2 is subject to exact-blob self-review and the owner-controlled review/approval decisions recorded in separate evidence. Independent review is not a mandatory gate following the owner's waiver; implementation still requires separate explicit owner authorization.
 6. The accepted custody boundary remains the owner-approved bounded VPS + GitHub arrangement. Joint rollback of both locations to the same older valid chain remains undetectable. No WORM, third failure domain, global latestness or absolute anti-rollback claim is made.
 7. The initial G1 A proof-of-existence evidence product remains unsigned. A2 governs only a separate future signature/trust extension; it does not retroactively add signer authenticity to G1 A.
 
@@ -311,7 +311,7 @@ The following terms MUST be used consistently:
 - **Byte-frozen review candidate:** exact source blobs/commit are fixed so a reviewer can reproduce the reviewed input. This does not mean the contract is approved.
 - **Draft contract:** normative proposal remains open to findings and owner/security decisions.
 - **Owner-approved contract decision:** only the specifically recorded owner-approved scope is approved; this does not imply implementation authority.
-- **Implementation-approved:** a separate explicit owner authorization after qualifying independent review, with exact scope and source snapshot.
+- **Implementation-approved:** a separate explicit owner authorization with exact source snapshot, bounded scope, permitted environment and prohibited operations. Independent review is not a prerequisite under the owner waiver.
 
 A2.2 is a **DRAFT CONTRACT / BYTE-FROZEN ONLY WHEN A SPECIFIC REVIEW SNAPSHOT IS DECLARED**. It is not implementation-approved. The prior A1, A2 and A2.1 snapshots remain historical review inputs. A same-session self-review MUST NOT be called independent review, external review or G3.
 
@@ -335,7 +335,7 @@ The owner-approved VPS + GitHub bounded custody decision remains resolved only f
 Before implementation can be considered:
 1. Freeze the exact A2.2 source blob and all dependency blob pins.
 2. Perform a fresh adversarial self-review of that exact A2.2 candidate.
-3. Obtain a qualifying independent review of the exact A2.2 blob set, including the revised field schema, state machine, byte vectors and test matrix.
+3. Record the owner's review-gate decision against the exact A2.2 blob set. Independent review may be commissioned voluntarily, but is not mandatory under the owner waiver.
 4. Resolve all blocking findings and owner/security decisions.
 5. Obtain a separate explicit owner implementation approval for a narrowly scoped synthetic-only implementation plan.
 6. Implement only after approval, with TDD, independent vector oracle, offline tests, exact-SHA CI evidence and rollback plan.
@@ -422,7 +422,7 @@ Bootstrap MUST use exactly one of the following documented paths. The selected p
 
 A2.2 is a documentation-only correction candidate. The original A2 blob remains preserved as historical review input. These additions address only A2-SR-01 and A2-SR-02 at contract-design level; they do not close implementation blockers listed in §9.
 
-The A2.2 source blob and each review disposition MUST be recorded in separate exact-blob evidence reports. Qualifying independent review of the exact source snapshot remains mandatory; this document does not encode mutable gate status. Implementation still requires a separate explicit owner approval. No algorithm, key, owner authority, bootstrap ceremony, trust root, policy/anchor instance, verifier, workflow, CI, VPS/runtime or canonical T0 operation is selected or exercised here.
+The A2.2 source blob and each review disposition MUST be recorded in separate exact-blob evidence reports. Independent review is waived as a mandatory gate by the owner decision; this document does not encode mutable gate status. Implementation still requires a separate explicit owner approval. No algorithm, key, owner authority, bootstrap ceremony, trust root, policy/anchor instance, verifier, workflow, CI, VPS/runtime or canonical T0 operation is selected or exercised here.
 
 **A2.2 disposition: DRAFT CORRECTION CANDIDATE — R2-01..R2-05 CORRECTIONS PROPOSED — REVIEW-GATE STATUS RECORDED IN SEPARATE EXACT-BLOB EVIDENCE — NOT IMPLEMENTATION-APPROVED.**
 
@@ -433,7 +433,7 @@ This section is normative and overrides inconsistent revision/status language in
 
 1. The current candidate defined by this document is **A2.2**. A2.1 (blob `73ba6fd9f6bb862121842f7a1347fffc06738451`) and A2 (blob `e15a90b779bd86b39729208db938e9de9471ef26`) are historical candidate/review inputs, not the current candidate.
 2. A2.1's prior self-review report and second self-review report remain separate historical records. The second review disposition for A2.1 is REQUEST CHANGES. Neither report is a review of A2.2.
-3. A2.2 review state is tracked only against its exact source blob and pinned dependency blobs. Drafting, static source checks, self-review, independent review and implementation approval are distinct gates; none implies a later gate.
+3. A2.2 review state is tracked only against its exact source blob and pinned dependency blobs. Drafting, static source checks, self-review, optional independent review and implementation approval are distinct records; none implies a later gate.
 4. The status vocabulary is exact:
    - `DRAFT`: proposed normative text, not owner-approved.
    - `BYTE_FROZEN`: exact source blob set is recorded; no claim of approval.
