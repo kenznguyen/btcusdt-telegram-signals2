@@ -164,6 +164,13 @@ class LifecycleDispositionTests(unittest.TestCase):
                 self.assertEqual(out["disposition"], "BLOCKED_UNKNOWN")
                 self.assertIn(code, out["reason_codes"])
 
+    def test_malformed_obligation_type_is_retained_conservatively(self):
+        out = evaluate_disposition(record(dependencies={"complete": True, "items": [
+            {"dependency_id": "d1", "state": "ACTIVE", "obligation_type": []}
+        ]}))
+        self.assertEqual(out["disposition"], "RETAIN_UNTIL_OBLIGATIONS_CLOSE")
+        self.assertIn("RET_DEPENDENCY_ACTIVE", out["reason_codes"])
+
     def test_unratified_group_and_malformed_input_block(self):
         out = evaluate_disposition(record(review_group="UNRATIFIED"))
         self.assertEqual(out["disposition"], "BLOCKED_UNKNOWN")
