@@ -2159,3 +2159,17 @@ Next: if owner wants to proceed beyond planning, first approve a bounded provisi
 - No source/tests/fixtures/workflows/dependencies/credentials/keys/runtime/database/network/VPS/market data/model/ledger/lifecycle changes; no tests, workflow dispatch, corpus generation or measurement run.
 - Next gate: prepare the G0.37-A owner authorization package for explicit review. Do not execute until separately approved.
 - T0 remains independent/protected; CORE_LEDGER and AI_LEDGER remain separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
+
+## G0.37 — S1 Corrected Measurement Owner Authorization Package (2026-11-11)
+
+- Baseline HEAD: `3a39e300400495adca078e9d1042b3613da21ad7`; baseline handoff blob: `0ab7143b30b722cb92f43cfd3dd79db3755700a9`.
+- User approval in this conversation authorized preparation of the G0.37 package only; it did not authorize measurement execution.
+- Report: `docs/evidence/G0_37_S1_CORRECTED_MEASUREMENT_OWNER_AUTHORIZATION_PACKAGE_2026-11-11.md`.
+- Report creation commit: `29747e22e2ad8e711e68a1d84feaa4a9ab031722`.
+- Package requests a separate explicit approval for exactly one in-memory attempt: SYN-01, SYN-29–32, all 11 D10 fixture types, separate parser-input/oracle structures, two measurement passes, A-01–A-13, and one validated evidence report without payload persistence.
+- Failure/incomplete output consumes the one-attempt authorization if approved; no retry or repair-and-rerun. No parser/tests/CI, benchmarks, external/runtime/VPS/database/network, T0/T1/T2, ledger, lifecycle or destructive operations.
+- G0.37 verdict: **PACKAGE READY — preparation approved; measurement execution PENDING EXPLICIT OWNER APPROVAL**.
+- G0.34 metrics remain NOT VERIFIED for D11 use; numeric ceilings OPEN/NOT RATIFIED.
+- No corpus generation, measurement, source/test/workflow/runtime changes or external access occurred.
+- Next gate: await explicit approval of the complete G0.37-A scope in the report. Do not execute before that approval.
+- T0 remains independent/protected; CORE_LEDGER and AI_LEDGER remain separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
