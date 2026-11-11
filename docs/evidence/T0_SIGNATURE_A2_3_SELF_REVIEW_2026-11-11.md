@@ -116,3 +116,14 @@ Updated findings:
 - A23-SR-03, SR-06 and SR-07 remain open: independent security review, pinned PyCA/build provenance, and post-freeze implementation/test/CI authorization.
 
 No tests or implementation were run. The updated adapter contract blob is `1bdfc87949429cfd164892eab519971954f243eb`. This follow-up does not change the original disposition: **PARTIAL PASS WITH BLOCKERS / NOT INDEPENDENT REVIEW / NOT FROZEN / IMPLEMENTATION BLOCKED**.
+
+
+## 7. Dependency candidate follow-up
+
+A separate documentation-only dependency candidate now records `cryptography==50.0.2`, a proposed CPython 3.11+ ABI3 / manylinux_2_34 x86-64 wheel and candidate hashes:
+- `docs/evidence/T0_SIGNATURE_A2_3_PYCA_DEPENDENCY_CANDIDATE_2026-11-11.md`;
+- creation commit `d633b478a4f158f48ccb43e379dbd14c023d9b87`.
+
+The wheel hash is not yet recomputed from the exact downloaded PyPI artifact in this repository. Transitive dependency closure, runner glibc, provenance-attestation verification and offline install remain unverified. The adapter contract was updated accordingly; current blob is `8ec916c152c51e75c5a3852e7977dd7f1239d8fe`.
+
+This reduces the version-selection ambiguity but does not close the supply-chain/build gate. No package was installed and no lockfile/CI file was changed.
