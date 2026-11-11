@@ -42,9 +42,9 @@ run-name: T0 manual gate - ${{ inputs.gate }} (${{ github.sha }})
       - freqai_bridge/context.py
       - freqai_bridge/http_candles.py
       - freqai_bridge/test_http_candles.py
-freqai_bridge/test_multi_timeframe.py
-freqai_bridge/test_context_multi_timeframe.py
-freqai_bridge/test_context_http.py
+      - freqai_bridge/test_multi_timeframe.py
+      - freqai_bridge/test_context_multi_timeframe.py
+      - freqai_bridge/test_context_http.py
 
 permissions:
   contents: read
@@ -150,10 +150,7 @@ jobs:
           git diff --name-only "$BASE_SHA" "$HEAD_SHA" > recovery-changed-files.txt
           cat recovery-changed-files.txt
           changed=false
-          for path in .github/workflows/t0-manual-validation.yml ci/t0_runtime_acceptance.py ci/test_t0_runtime_acceptance.py market_data/feeder.py market_data/feeder_service.py market_data/test_feeder_recovery.py market_data/test_feeder_scheduler.py market_data/test_feeder_lifecycle.py market_data/sync.py market_data/api.py market_data/storage.py market_data/test_sync.py market_data/test_api.py market_data/test_e2e_data_flow.py freqai_bridge/context.py freqai_bridge/http_candles.py freqai_bridge/test_http_candles.py
-freqai_bridge/test_multi_timeframe.py
-freqai_bridge/test_context_multi_timeframe.py
-freqai_bridge/test_context_http.py; do
+          for path in .github/workflows/t0-manual-validation.yml ci/t0_runtime_acceptance.py ci/test_t0_runtime_acceptance.py market_data/feeder.py market_data/feeder_service.py market_data/test_feeder_recovery.py market_data/test_feeder_scheduler.py market_data/test_feeder_lifecycle.py market_data/sync.py market_data/api.py market_data/storage.py market_data/test_sync.py market_data/test_api.py market_data/test_e2e_data_flow.py freqai_bridge/context.py freqai_bridge/http_candles.py freqai_bridge/test_http_candles.py freqai_bridge/test_multi_timeframe.py freqai_bridge/test_context_multi_timeframe.py freqai_bridge/test_context_http.py; do
             if grep -Fxq "$path" recovery-changed-files.txt; then changed=true; fi
           done
           echo "changed=$changed" >> "$GITHUB_OUTPUT"
@@ -254,10 +251,7 @@ freqai_bridge/test_context_http.py; do
           git diff --name-only "$BASE_SHA" "$HEAD_SHA" > data-flow-changed-files.txt
           cat data-flow-changed-files.txt
           changed=false
-          for path in .github/workflows/t0-manual-validation.yml ci/t0_runtime_acceptance.py ci/test_t0_runtime_acceptance.py market_data/sync.py market_data/store.py market_data/write_gateway.py market_data/feeder.py market_data/api.py market_data/storage.py market_data/test_sync.py market_data/test_api.py market_data/test_e2e_data_flow.py freqai_bridge/context.py freqai_bridge/http_candles.py freqai_bridge/test_http_candles.py
-freqai_bridge/test_multi_timeframe.py
-freqai_bridge/test_context_multi_timeframe.py
-freqai_bridge/test_context_http.py; do
+          for path in .github/workflows/t0-manual-validation.yml ci/t0_runtime_acceptance.py ci/test_t0_runtime_acceptance.py market_data/sync.py market_data/store.py market_data/write_gateway.py market_data/feeder.py market_data/api.py market_data/storage.py market_data/test_sync.py market_data/test_api.py market_data/test_e2e_data_flow.py freqai_bridge/context.py freqai_bridge/http_candles.py freqai_bridge/test_http_candles.py freqai_bridge/test_multi_timeframe.py freqai_bridge/test_context_multi_timeframe.py freqai_bridge/test_context_http.py; do
             if grep -Fxq "$path" data-flow-changed-files.txt; then changed=true; fi
           done
           echo "changed=$changed" >> "$GITHUB_OUTPUT"
