@@ -101,6 +101,7 @@ class S1MeasurementRunnerTests(unittest.TestCase):
            expected_source_commit=SOURCE_COMMIT,
             expected_source_commit=SOURCE_COMMIT,
             expected_source_commit=SOURCE_COMMIT,
+            expected_source_commit=SOURCE_COMMIT,
             command="python -m unittest tools.test_s1_measurement_runner -v",
         )
         self.assertEqual(set(result["assertions"]), {f"A-{i:02d}" for i in range(1, 14)})
@@ -118,6 +119,7 @@ class S1MeasurementRunnerTests(unittest.TestCase):
                 frozen_runner_sha256="0" * 64,
                 source_commit=SOURCE_COMMIT,
                 expected_source_commit=SOURCE_COMMIT,
+                expected_source_commit=SOURCE_COMMIT,
                 command="focused-tests",
             )
 
@@ -129,6 +131,7 @@ class S1MeasurementRunnerTests(unittest.TestCase):
                 runner_source_bytes=RUNNER_SOURCE,
                 frozen_runner_sha256=RUNNER_SHA,
                 source_commit=SOURCE_COMMIT,
+                expected_source_commit=SOURCE_COMMIT,
                 expected_source_commit=SOURCE_COMMIT,
                 command="focused-tests",
             )
@@ -181,6 +184,7 @@ class S1MeasurementRunnerTests(unittest.TestCase):
             frozen_runner_sha256=RUNNER_SHA,
             source_commit=SOURCE_COMMIT,
             expected_source_commit=SOURCE_COMMIT,
+            expected_source_commit=SOURCE_COMMIT,
             command="focused-tests",
         )
         self.assertEqual(result["measurement_pass_1"], result["measurement_pass_2"])
@@ -193,6 +197,7 @@ class S1MeasurementRunnerTests(unittest.TestCase):
             runner_source_bytes=RUNNER_SOURCE,
             frozen_runner_sha256=RUNNER_SHA,
             source_commit=SOURCE_COMMIT,
+            expected_source_commit=SOURCE_COMMIT,
             expected_source_commit=SOURCE_COMMIT,
             command="focused-tests",
         )
