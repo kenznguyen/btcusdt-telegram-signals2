@@ -99,3 +99,38 @@ However, GREEN-0 cannot freeze a complete AI admission context yet. Calibration 
 **Scope boundary:** this approval resolves only the dispositions above. It does not authorize GREEN-1 through GREEN-5, production code/test edits, schema/database work, migration, calibration training, model changes, backtest/OOS acceptance, feature activation, T0/T1/T2 runtime, VPS, deployment, exchange connectivity or live orders. Paper-only posture and `AI_EXECUTION_ENABLED=false` remain unchanged.
 
 **Status:** G0-04 provider/engine reuse APPROVED with freshness/versioning caveat; G0-06 AI DCA v1 DISABLED; G0-01/02/03/05 BLOCKED; G0-07 DEFERRED. GREEN implementation NOT AUTHORIZED.
+
+
+## 8. Additional read-only source inventory — calibration and instrument rules (2026-11-11)
+
+**Scope:** repository tree and selected source/documentation inspection at branch HEAD `723570f845c0f52ef5776218cc5486f8864e72f8`. No external exchange request was made; no provider was invoked.
+
+### Calibration source
+
+- `freqai_bridge/exporter.py::make_prediction` publishes raw prediction plus model/strategy versions, training dataset hash, training cutoff and training completion time.
+- `pipeline/decision.py::_prediction` validates those prediction/training provenance fields, but has no calibrated-confidence field or calibration artifact reference.
+- `freqai_bridge/README.md` requires a trainer-produced provenance sidecar; it explicitly does not certify training-job truthfulness. The inspected sidecar contract contains no calibration registry, calibration dataset, label/horizon calibration manifest, sample count, calibration period or calibrated-at timestamp.
+- No trusted calibration registry/manifest or digest-verification provider was found in the inspected FreqAI exporter, decision, API and repository paths.
+
+**Disposition:** G0-01/G0-02/G0-03 remain **BLOCKED**. Raw predicted return and FreqAI `do_predict` are not calibrated confidence and must not be substituted. No AI trade intent until a trusted calibration artifact/provider and compatible temporal OOS provenance are supplied. No C_min or threshold chosen.
+
+### BTCUSDT instrument metadata
+
+- `market_data/binance_connectivity_probe.py::probe_rest` already names the public Binance USD-M `/fapi/v1/exchangeInfo` endpoint.
+- Its current `validate_exchange_info` only verifies that BTCUSDT is TRADING, PERPETUAL, BTC/USDT margined/quoted in the expected assets. It does **not** extract or validate `PRICE_FILTER`, `LOT_SIZE`, `MARKET_LOT_SIZE`, `MIN_NOTIONAL`/notional constraints, precision, metadata version or freshness.
+- `integrations/hummingbot_bridge.py` supplies an observed order-book snapshot (bid/ask levels and retrieval timestamp); it is not a source of exchange trading filters.
+- The inspected AI decision path validates positive order-book prices/quantities only. Those observations cannot be treated as tick/lot/minimum-notional rules.
+- No existing authoritative, versioned instrument-rule provider was identified in the inspected paths.
+
+**Candidate source, not yet accepted as an implementation/provider:** Binance USD-M `/fapi/v1/exchangeInfo`, filtered to BTCUSDT and parsed from the exchange's actual symbol filters. A future read-only adapter would need strict filter presence/type/positivity checks, symbol/contract/status checks, deterministic canonical digest/version, observation time/freshness, and fail-closed handling of missing/unknown filter types. Do not infer rules from configured decimal precision or book depth.
+
+**Disposition:** G0-05 remains **BLOCKED**. The current connectivity probe is not an instrument-rule provider and has not been extended.
+
+### Verification and boundaries
+
+- Source inventory only; no tests run and no workflow dispatched.
+- No production source or test files changed.
+- No Binance network request, API credential, exchange connection, calibration training, model loading or backtest performed.
+- No database, T0/T1/T2 runtime, VPS, deployment, order or reservation accessed or changed.
+
+**Result:** calibration provider **NOT FOUND** in inspected paths; instrument provider **NOT FOUND**. Binance `exchangeInfo` is a plausible authoritative upstream candidate but remains unimplemented and unverified for filter completeness. G0-01/02/03/05 remain BLOCKED; GREEN-1..5 remain NOT AUTHORIZED.
