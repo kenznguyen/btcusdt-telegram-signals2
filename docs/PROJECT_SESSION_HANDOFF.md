@@ -497,8 +497,7 @@ Reconcile the four-artifact Actions allowlist with all eligible source artifacts
 - Signature amendment A1 §14.1 and disposition reconciled with owner decision: commit `6baed29b63ddaa31cd390ede3e690e2211d3e21a`; blob `22fb42ba201f9105c8e612ca9b4695f6a0519382`.
 - L4 control-to-source crosswalk updated to record the bounded custody scope and assurance limitation: commit `be003f35c79934833e3edbfd1af1a5da9eae0f2d`; blob `9781c299a8fd5536a9a1ff03b703ff6a5ff3dc49`.
 - This resolves CR-01 at owner-governance/contract level. It does not promote any L4 control. L4-Minimum remains BLOCKED / NOT VERIFIED pending actual per-location custody evidence/readback, signer/anchor separation, authenticated trust bootstrap, signed anchor-chain verification, offline verification and separate owner acceptance.
-- A1 remains DRAFT / NOT FROZEN pending final consistency verification and qualifying independent review. The prior static consistency review is not an independent review. Production algorithm/profile, root ceremony, signer/anchor identities, anchor concurrency and trusted-time/TSA decisions remain open.- No implementation, code/test/workflow/CI, key generation/signing, trust-root/policy/anchor instance, provider, VPS/SSH/runtime, SQLite or canonical T0 data operation was performed or authorized. No destructive action was authorized.
-- Next permitted step: re-read the amended contract, A1 and crosswalk for exact consistency; then request a qualifying independent review of the frozen contract and negative-verification test matrix. Implementation remains blocked pending that review and a separate explicit approval.
+- A1 remains DRAFT / NOT FROZEN pending final consistency verification and qualifying independent review. The prior static consistency review is not an independent review. Production algorithm/profile, root ceremony, signer/anchor identities, anchor concurrency and trusted-time/TSA decisions remain open.- No implementation, code/test/workflow/CI, key generation/signing, trust-root/policy/anchor instance, provider, VPS/SSH/runtime, SQLite or canonical T0 data operation was performed or authorized. No destructive action was authorized.- Next permitted step: re-read the amended contract, A1 and crosswalk for exact consistency; then request a qualifying independent review of the frozen contract and negative-verification test matrix. Implementation remains blocked pending that review and a separate explicit approval.
 
 
 ## Signature contract final consistency review — frozen review candidate (2026-11-11)
@@ -997,8 +996,7 @@ This is the current disposition and supersedes the earlier historical NOT RUN / 
 
 
 ### Dual-Strategy API/equity follow-up findings — 2026-11-11
-- Second static pass appended to the baseline report; latest report blob: `743a752e7b27cf67f0ac06b3dadd9a286fb642f1`; addendum commit: `d8b164d682c828d7a53c2051afc7ec487e2afae9`.
-- Expanded DS-01:
+- Second static pass appended to the baseline report; latest report blob: `743a752e7b27cf67f0ac06b3dadd9a286fb642f1`; addendum commit: `d8b164d682c828d7a53c2051afc7ec487e2afae9`.- Expanded DS-01:
   - `/v1/paper/cancel` uses the MANUAL ledger instance; the MANUAL compatibility path rejects cancellation of Core/AI-owned orders.
   - `/v1/equity` and the evaluate route use MANUAL `record_equity()`, which records legacy `paper_state` equity, not account-scoped dual-ledger mark/equity reconciliation.
   - A dedicated account-level mark/equity update and strategy-scoped cancellation path are required; account risk readiness must remain fail-closed until then.
@@ -1497,8 +1495,7 @@ Next: owner review D1-D6 in the R1 proposal. Do not freeze numerical values or r
 
 ### R1 owner decision — dataset integrity policy (2026-11-11)
 
-Owner approved in principle a minimal SHA-256 + manifest policy for AI Research dataset identity, integrity comparison and provenance:
-- Stable dataset ID and manifest for each immutable bundle.
+Owner approved in principle a minimal SHA-256 + manifest policy for AI Research dataset identity, integrity comparison and provenance:- Stable dataset ID and manifest for each immutable bundle.
 - SHA-256 per bundle file and manifest digest recorded with each experiment's source-code SHA/configuration.
 - Dataset changes produce a new immutable version; no silent overwrite.
 - SHA-256 alone does not prove source authenticity, correctness, completeness or statistical suitability.
@@ -1690,4 +1687,36 @@ Owner approved a read-only source-level mapping of implemented T0/T1/T2 data pat
 No source/config/test/workflow change, workflow dispatch, data read/export/copy, API request/token use, SQLite access, exchange connection, VPS provisioning, service start, AI training, strategy activation, order or destructive operation occurred. T0 remains independent; paper-only and `AI_EXECUTION_ENABLED=false` remain unchanged.
 
 Next: G0.8-C replacement VPS capacity planning may use BTCUSDT-only as a scenario, not an applied configuration. Separate budgets are required for T0 canonical candles, T1 raw streams, T2 model artifacts/logs and FreqAI training scratch. All disk-rate, RAM and training-time values remain estimates until separately approved bounded benchmarks. VPS provisioning/deployment remains unauthorized.
+
+## G0.8-C — Replacement Scaleway VPS capacity plan (2026-11-11)
+
+Owner approved capacity planning only for a BTCUSDT personal research host running T0, T1, T2 and scheduled FreqAI training. No resource provisioning or runtime action was included.
+
+- Evidence report: `docs/evidence/G0_8_C_SCALEWAY_VPS_CAPACITY_PLAN_2026-11-11.md`, created in commit `9221c1729cdb0a725337125c5a0f52026fe51232`.
+- Recommended initial budget-first profile: Scaleway GP1-S, 8 vCPU / 32 GB RAM / up to 800 Mbps public bandwidth, subject to current PAR-1 availability and final console quote.
+- Storage planning envelope: 500 GB total, split into separate volumes: 80 GB OS/apps/logs, 20 GB T0 canonical store, 300 GB T1 raw capture, 100 GB T2 model artifacts/FreqAI staging and scratch.
+- Current public price references: GP1-S about €139.24/month; 500 GB PAR-1 Performance Block Storage SSD at €0.000118/GB-hour × 730 hours = about €43.07/month; planning total **~€182.31/month before tax, flexible IP and ancillary charges**. Verify final price, quota and zone in Scaleway console.
+- T1 README states ~40 GB/day for the full ~500-symbol universe at 500 ms, not BTCUSDT-only. A provisional 0.5–2.0 GB/day BTCUSDT raw capture range was used for sizing only; it is NOT measured. 90 days at that range is 45–180 GB before safety headroom.
+- Proposed resource limits: T0 2–3 GB RAM; T1 2–4 GB; T2 runtime 4–6 GB; one FreqAI training job capped at 12–14 GB and 4 CPU cores; retain 2–4 GB safety headroom. These are planning limits, not configured cgroups/service limits.
+- Proposed training schedule: once daily at 03:00 Asia/Ho_Chi_Minh, one job, max 4 hours, bounded CPU/RAM, no model promotion on failure. Schedule is NOT enabled and remains conditional on immutable dataset bundle, estimator, labels/purge, calibration and artifact contract freeze.
+- GPU is NOT recommended initially. The selected FreqAI estimator/GPU dependency is not established; Scaleway L4 is about €0.79/hour (~€574.87/month) before storage/tax.
+- Single-host limitation: separate volumes and process identities preserve logical data boundaries, but all layers still share one physical host failure domain. T0 remains a separately owned canonical data asset, not fault-domain independent on a single VPS.
+- T1 BTCUSDT-only config, per-stream disk growth, FreqAI model footprint/training duration, live endpoint/runtime parity and final zone/quota/pricing remain NOT VERIFIED.
+- No retention deletion/cleanup policy was authorized or applied. The proposed 300 GB T1 volume does not grant permission to delete data when full or at a retention boundary.
+
+### G0.8-C disposition
+
+- Capacity design and initial profile: **CONDITIONAL PASS — planning only**.
+- Recommended initial compute: **GP1-S 8 vCPU / 32 GB RAM**.
+- Storage: **500 GB split 80/20/300/100 GB**.
+- Estimated compute + storage: **~€182.31/month before tax/IP/ancillary costs**.
+- BTCUSDT raw capture rate and retention fit: **NOT VERIFIED**.
+- FreqAI model/training performance fit: **NOT VERIFIED**.
+- GPU need: **NOT ESTABLISHED; not recommended initially**.
+- Tests/workflows: **NOT RUN**.
+- VPS provisioning/deployment: **NOT AUTHORIZED by G0.8-C**.
+
+No VPS/volume/IP/payment, SSH/firewall, package, service, configuration, deployment, exchange connection, T0 database access/mutation, T1 capture, AI training, signal publication, order or cleanup/deletion occurred. T0 remains independent; paper-only and `AI_EXECUTION_ENABLED=false` remain unchanged.
+
+Next: if owner wants to proceed beyond planning, first approve a bounded provisioning specification and confirm the exact Scaleway zone, account quota, final checkout quote, volume persistence policy and whether single-host failure-domain coupling is acceptable. A separate approval is required before resource creation or deployment.
 
