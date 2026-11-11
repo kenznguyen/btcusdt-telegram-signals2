@@ -104,7 +104,88 @@ def _prices(book, now_ms):
     return bid, ask
 
 
-def evaluate(candle_window, intelligence, prediction, book, now_ms, *, target_base="0.001",
+
+
+def _calibration(prediction, now_ms, policy):
+    """Validate an explicit calibrated-confidence and provenance envelope.
+
+    The policy is supplied by the server admission boundary. No production
+    defaults are inferred from test fixtures or from the prediction artifact.
+    """
+    _require(isinstance(policy, dict), "AI_CALIBRATION_POLICY_UNAVAILABLE")
+    _require(isinstance(policy.get("policyVersion"), str) and
+             1 <= len(policy["policyVersion"]) <= 128, "INVALID_AI_CALIBRATION_POLICY")
+    confidence_min = number(policy["confidenceMin"])
+    minimum_samples = policy["minCalibrationSamples"]
+    minimum_period = policy["minCalibrationPeriodMs"]
+    maximum_age = policy["maxCalibrationAgeMs"]
+    expected_label = policy["labelDefinition"]
+    expected_horizon = policy["forecastHorizonMs"]
+    _require(0 <= confidence_min < 1, "INVALID_AI_CONFIDENCE_MIN")
+    _require(type(minimum_samples) is int and minimum_samples >= 1 and
+             type(minimum_period) is int and minimum_period >= 1 and
+             type(maximum_age) is int and maximum_age >= 1,
+             "INVALID_AI_CALIBRATION_THRESHOLDS")
+    _require(isinstance(expected_label, str) and 1 <= len(expected_label) <= 128 and
+             type(expected_horizon) is int and expected_horizon > 0,
+             "INVALID_AI_CALIBRATION_COMPATIBILITY_POLICY")
+
+    calibration = prediction.get("calibration")
+    _require(isinstance(calibration, dict), "CALIBRATED_CONFIDENCE_UNAVAILABLE")
+    confidence = number(calibration["calibratedConfidence"])
+    _require(0 <= confidence <= 1, "INVALID_CALIBRATED_CONFIDENCE")
+    _require(confidence >= confidence_min, "CALIBRATED_CONFIDENCE_BELOW_MINIMUM")
+
+    for field in ("calibrationVersion", "calibrationMethod"):
+        value = calibration.get(field)
+        _require(isinstance(value, str) and 1 <= len(value) <= 128,
+                 "INVALID_CALIBRATION_PROVENANCE")
+    for field in ("calibrationArtifactHash", "calibrationDatasetVersion"):
+        value = calibration.get(field)
+        _require(isinstance(value, str) and
+                 re.fullmatch(r"sha256:[0-9a-f]{64}", value) is not None,
+                 "INVALID_CALIBRATION_DIGEST")
+    _require(calibration["calibrationDatasetVersion"] !=
+             prediction["trainingDatasetVersion"],
+             "CALIBRATION_DATASET_MUST_DIFFER_FROM_TRAINING")
+
+    for field in ("modelVersion", "strategyVersion", "trainingDatasetVersion"):
+        _require(calibration.get(field) == prediction.get(field),
+                 "CALIBRATION_PREDICTION_PROVENANCE_MISMATCH")
+    _require(calibration.get("labelDefinition") == expected_label and
+             calibration.get("forecastHorizonMs") == expected_horizon,
+             "CALIBRATION_LABEL_HORIZON_MISMATCH")
+
+    sample_count = calibration["calibrationSampleCount"]
+    _require(type(sample_count) is int and sample_count >= minimum_samples,
+             "INSUFFICIENT_CALIBRATION_SAMPLES")
+    start = stamp(calibration["calibrationStartMs"])
+    end = stamp(calibration["calibrationEndMs"])
+    calibrated_at = stamp(calibration["calibratedAtMs"])
+    trained_through = stamp(prediction["trainedThroughMs"])
+    prediction_open = stamp(prediction["candleOpenTimeMs"])
+    prediction_available = stamp(prediction["availableAtMs"])
+    _require(start > trained_through and end >= start and
+             end-start >= minimum_period,
+             "INVALID_CALIBRATION_WINDOW")
+    # Calibration labels must have fully matured before the admitted prediction
+    # candle opens; otherwise the forecast horizon can leak across the cutoff.
+    _require(end + expected_horizon <= prediction_open,
+             "CALIBRATION_HORIZON_LEAKAGE")
+    _require(end <= calibrated_at <= prediction_available <= now_ms,
+             "INVALID_CALIBRATION_TIMESTAMP_ORDER")
+    _require(now_ms-calibrated_at <= maximum_age,
+             "STALE_CALIBRATION_ARTIFACT")
+    return {"confidence": confidence, "calibrationVersion": calibration["calibrationVersion"],
+            "calibrationMethod": calibration["calibrationMethod"],
+            "calibrationArtifactHash": calibration["calibrationArtifactHash"],
+            "calibrationDatasetVersion": calibration["calibrationDatasetVersion"],
+            "calibrationSampleCount": sample_count, "calibrationStartMs": start,
+            "calibrationEndMs": end, "calibratedAtMs": calibrated_at,
+            "labelDefinition": expected_label, "forecastHorizonMs": expected_horizon}
+
+
+def evaluate(candle_window, intelligence, prediction, book, now_ms, *, admission_context=None, target_base="0.001",
              threshold="0.002", max_input_age_ms=60_000):
     """No order is proposed unless actual model output and observed flow agree.
 
@@ -129,6 +210,11 @@ def evaluate(candle_window, intelligence, prediction, book, now_ms, *, target_ba
             latest = _canonical(candle_window, now_ms)
             flow = _intelligence(intelligence, now_ms, max_input_age_ms)
             forecast = _prediction(prediction, candle_window, latest, now_ms)
+            if admission_context is None or not isinstance(admission_context, dict):
+                raise ValueError("AI_CALIBRATION_ADMISSION_CONTEXT_UNAVAILABLE")
+            calibration = _calibration(
+                prediction, now_ms, admission_context.get("ai_policy")
+            )
             bid, ask = _prices(book, now_ms)
             _require(abs(forecast) >= cutoff, "PREDICTION_BELOW_THRESHOLD")
             _require(forecast*flow > 0, "FLOW_DIRECTION_MISMATCH")
@@ -141,7 +227,12 @@ def evaluate(candle_window, intelligence, prediction, book, now_ms, *, target_ba
                       "strategyVersion": prediction["strategyVersion"], "modelVersion": prediction["modelVersion"],
                       "datasetVersion": candle_window["datasetVersion"], "targetPositionBase": str(target if buy else -target),
                       "limitPrice": str(ask if buy else bid), "decisionAtMs": decided, "validUntilMs": expiry,
-                      "inputSnapshotId": intelligence["snapshotId"], "mode": "PAPER"}
+                      "inputSnapshotId": intelligence["snapshotId"], "mode": "PAPER",
+                      "calibratedConfidence": str(calibration["confidence"]),
+                      "calibrationVersion": calibration["calibrationVersion"],
+                      "calibrationArtifactHash": calibration["calibrationArtifactHash"],
+                      "calibrationDatasetVersion": calibration["calibrationDatasetVersion"],
+                      "calibrationPolicyVersion": admission_context["ai_policy"]["policyVersion"]}
             intent["intentId"] = identity("paper-intent:", {**intent, "candleOpenTimeMs": latest["openTimeMs"]})
             return {"action": "BUY" if buy else "SELL", "reason": "ALIGNED_PAPER_SIGNAL", "intent": intent}
     except (KeyError, TypeError, ValueError, OverflowError, AttributeError) as error:
