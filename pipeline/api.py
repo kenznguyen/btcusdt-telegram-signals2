@@ -105,7 +105,9 @@ def resolve_order_strategy(db_path, order_id):
             ).fetchone()
             if row is None:
                 raise ValueError("Unknown paper order")
-            owner = row[0] or json.loads(row[1]).get("strategyId") or "MANUAL"
+            if row[0] is None:
+                raise ValueError("PAPER_ORDER_OWNER_UNVERIFIED")
+            owner = row[0]
         else:
             row = connection.execute(
                 "SELECT document FROM paper_orders WHERE order_id=?", (order_id,)
@@ -471,10 +473,28 @@ def application(environ, start_response):
             except (ValueError, OSError, sqlite3.Error):
                 return response("503 Service Unavailable", {"error": "STORE_UNAVAILABLE"})
         elif path == "/v1/paper":
-            from paper_execution.ledger import read_snapshot
-            if not os.environ.get("MARKET_DATA_DB"):
+            from paper_execution.ledger import (
+                dual_ledger_ready, read_account_risk_snapshot, read_snapshot,
+            )
+            db_path = os.environ.get("MARKET_DATA_DB", "")
+            if not db_path:
                 return response("503 Service Unavailable", {"error": "UNCONFIGURED"})
-            result = read_snapshot(os.environ["MARKET_DATA_DB"])
+            if dual_ledger_ready(db_path):
+                try:
+                    account = read_account_risk_snapshot(db_path, now_ms=timestamp)
+                except (ValueError, sqlite3.Error):
+                    account = {
+                        "available": False, "riskReady": False,
+                        "unavailableReason": "ACCOUNT_RISK_SNAPSHOT_UNAVAILABLE",
+                    }
+                result = {
+                    "mode": "PAPER", "liveTradingSupported": False,
+                    "account": account,
+                    "strategyCore": read_snapshot(db_path, strategy_id="STRATEGY_CORE"),
+                    "aiStrategy": read_snapshot(db_path, strategy_id="AI_FREQAI"),
+                }
+            else:
+                result = read_snapshot(db_path)
         elif path == "/v1/equity":
             try:
                 result = equity_snapshot(timestamp)
