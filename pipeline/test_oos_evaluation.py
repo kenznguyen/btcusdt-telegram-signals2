@@ -118,7 +118,8 @@ class OosEvaluationValidatorTest(unittest.TestCase):
     def test_valid_fixture_is_structural_only_and_never_admission_eligible(self):
         result = self.validate(candidate_population_count=105)
         self.assertEqual(result["record_status"], "STRUCTURE_VALID")
-        self.assertEqual(result["manifest_binding_status"], "MATCHED")
+        self.assertEqual(result["manifest_binding_status"], "DIGEST_MATCHED_TO_SUPPLIED_BINDING")
+        self.assertEqual(result["manifest_authenticity_status"], "NOT_VERIFIED")
         self.assertEqual(result["lineage_status"], "NOT_VERIFIED")
         self.assertEqual(result["horizon_embargo_status"], "NOT_VERIFIED")
         self.assertEqual(result["oos_evidence_status"], "NOT_VERIFIED")
