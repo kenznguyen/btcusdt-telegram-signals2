@@ -341,6 +341,26 @@ class LifecycleDispositionTests(unittest.TestCase):
             if code:
                 self.assertIn(code, out["reason_codes"])
 
+
+    def test_protected_class_stays_protected_when_label_is_below_minimum(self):
+        out = evaluate_disposition(record(data_class="T0_CANONICAL", sensitivity={
+            "state":"CLASSIFIED", "label":"INTERNAL",
+            "evidence_ref":"synthetic-ref", "evidence_revision":"r1"}))
+        self.assertEqual(out["disposition"], "PROTECTED")
+        self.assertIn("UNK_SENSITIVITY_BELOW_CLASS_MINIMUM", out["reason_codes"])
+
+    def test_unhashable_sensitivity_values_fail_closed_without_exceptions(self):
+        cases = [
+            {"state": [], "label":"INTERNAL", "evidence_ref":"x", "evidence_revision":"r1"},
+            {"state":"CLASSIFIED", "label":[], "evidence_ref":"x", "evidence_revision":"r1"},
+        ]
+        for sensitivity in cases:
+            with self.subTest(sensitivity=sensitivity):
+                out = evaluate_disposition(record(sensitivity=sensitivity))
+                self.assertEqual(out["disposition"], "BLOCKED_UNKNOWN")
+                self.assertTrue(any(code.startswith("UNK_SENSITIVITY_")
+                                    for code in out["reason_codes"]))
+
     def test_sensitivity_never_grants_mutation_or_execution_authority(self):
         out = evaluate_disposition(record())
         self.assertIs(out["mutation_performed"], False)
