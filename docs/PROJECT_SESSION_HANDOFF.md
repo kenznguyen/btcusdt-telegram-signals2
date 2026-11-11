@@ -1381,3 +1381,15 @@ Next: review test log for brittle/overbroad RED assertions, refine only test sou
 - Disposition: Gate A APPROVED; Gate B RED refined and verified for current exposed interfaces; downstream behavior tests BLOCKED/SKIPPED pending GREEN/provider interfaces; GREEN NOT AUTHORIZED.
 
 Next: inspect whether remaining RED test expectations can be made contract-level without implementing production behavior; otherwise freeze current test baseline and document skipped cases as deferred acceptance tests. Obtain separate owner approval before GREEN.
+
+
+## AI Strategy GREEN implementation plan prepared — 2026-11-11
+
+- Created `docs/architecture/AI_STRATEGY_GREEN_IMPLEMENTATION_PLAN.md`, commit `72f390f8536731def1605236dac56f0f1f9021fd`.
+- Status: PLAN ONLY / OWNER REVIEW REQUIRED. This records an ordered proposal: GREEN-0 provider/policy freeze; GREEN-1 pure decision admission boundary; GREEN-2 AI leverage isolation in API/Ledger; GREEN-3 existing Shared Risk Engine admission; GREEN-4 immutable reservation/replay evidence (separate schema gate if needed); GREEN-5 paper-only regression.
+- Explicit blockers remain unresolved: trusted calibration registry and manifest compatibility; numerical C_min and calibration sample/period/age policy; account-risk snapshot provider; instrument-rule source; AI DCA v1 eligibility; immutable reservation snapshot persistence strategy.
+- No production code, tests, workflow, database/schema, calibration/model, T0/T1/T2, VPS/runtime, deployment, exchange or live-order state changed in this planning step.
+- Latest verified RED remains run `42991526067`, exact source SHA `d37c0d4b554bbdcb936c419ebc134c6a8ff28783`: compile PASS; 46 tests, 5 assertion failures, 48 skipped, 0 errors. Artifact `13842490278`; GitHub digest `sha256:e1f0c8e5c7a9aff58062d7b499b2b7133190c0db710bc3e5a0f6f16d9608b019`; artifact bytes not independently re-hashed.
+- Current disposition: API Contract APPROVED; RED baseline VERIFIED with downstream tests SKIPPED/BLOCKED; GREEN plan WRITTEN; GREEN implementation NOT AUTHORIZED.
+
+Next: owner reviews the GREEN implementation sequence and resolves GREEN-0 provider/policy decisions. Plan approval alone does not authorize production edits; obtain separate explicit GREEN gate authorization.
