@@ -2797,3 +2797,15 @@ Critical limits:
 - No real OOS record/provider, model training/calibration artifact, production key/trust, registry event, S2, VPS/runtime, T0/T1/T2, DB migration or live order path changed.
 - **Disposition: OOS OFFLINE VALIDATOR IMPLEMENTED; COMPILE PASS; OOS CONTRACT TESTS 13/13 PASS; FULL WORKFLOW FAILURE DUE TO SEPARATE AI/DUAL-STRATEGY RED CONTRACTS; OOS NOT VERIFIED; AI ADMISSION FAIL-CLOSED.**
 - Next eligible work: prepare a concise Owner decision package for the remaining F6 policy/provider choices before any provider or real OOS evaluation is implemented. No F6 value may be silently inferred from the structural freeze.
+
+
+## OOS Evidence v1 F6 Owner decision package (2026-11-12)
+
+- Prepared docs/architecture/AI_CALIBRATION_OOS_EVIDENCE_V1_F6_OWNER_DECISION_PACKAGE.md as a documentation-only package for the seven F6 decisions still open after F1-F5 structural freeze.
+- Package commit: d16fd498a8d66f9104922e24531b52189fc55098.
+- Covers: (F6.1) authoritative dataset lineage; (F6.2) split protocol and reproducibility; (F6.3) metric catalogue/label suitability; (F6.4) statistical acceptance and C_min interaction; (F6.5) trusted time/freshness; (F6.6) detached evaluation signature; (F6.7) provider resource limits.
+- Each item contains explicit options and a recommended candidate, clearly marked as proposal only. No F6 choice is ratified or inferred. Recommended minimal path keeps evidence descriptive, freshness UNKNOWN and AI admission fail-closed until provider/policy gates close.
+- No source code, test, workflow, dependency, provider, real dataset/evaluation, key, trusted-time anchor, model training/calibration, S2, VPS/runtime, T0/T1/T2 or trading path changed in this documentation increment.
+- CI is not applicable to this documentation-only decision package; no tests were run for it. Validator verification remains tied to exact source SHA 0a3f73801cc5f1f5225658673b447ec658ac454d, workflow run 43073542645, job 130707512877, OOS tests 13/13 PASS, artifact ID 13878273616, digest sha256:76407ecdb6311a186967fa8ac6e187cac43fd9cec9a31b1499ca3353d685e28d.
+- **Disposition: F6 OWNER DECISION PACKAGE PREPARED; F6 POLICY/PROVIDER IMPLEMENTATION BLOCKED PENDING OWNER DECISIONS; OOS NOT VERIFIED; AI ADMISSION FAIL-CLOSED.**
+- Next: Owner reviews and decides F6.1-F6.7. Do not implement a lineage provider, real OOS evaluation or admission threshold before explicit decisions and a separate exact implementation gate.
