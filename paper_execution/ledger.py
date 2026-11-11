@@ -1302,6 +1302,8 @@ class PaperLedger:
             raise ValueError("Invalid strategy leverage")
         if self.strategy_id == "STRATEGY_CORE" and self.leverage != CORE_LEVERAGE:
             raise ValueError("CORE_LEVERAGE_POLICY_MISMATCH")
+        if self.strategy_id == "AI_FREQAI" and not Decimal("1") <= self.leverage <= Decimal("3"):
+            raise ValueError("AI_LEVERAGE_OUT_OF_RANGE")
         if self.maximum <= 0 or self.fee_rate > 1 or not 0 < self.spread <= 10_000:
             raise ValueError("Invalid paper risk configuration")
         self.path.parent.mkdir(parents=True, exist_ok=True)
