@@ -1020,3 +1020,14 @@ This is the current disposition and supersedes the earlier historical NOT RUN / 
 - Next permitted work: contract-level correction plan and test mapping for DS-01/DS-02; reconcile sizing for DS-03; append-only documentation status reconciliation for DS-04. Then request a bounded implementation approval. No code fix, workflow dispatch, VPS/runtime action, schema migration, T0 mutation, T1 activation or live trading was performed/authorized by this assessment.
 - Branch continuity preserved; report and handoff only. No tests or workflow runs are claimed for this documentation increment.
 
+
+
+### Dual-Strategy API/equity follow-up findings — 2026-11-11
+
+- Second static pass appended to the baseline report; latest report blob: `743a752e7b27cf67f0ac06b3dadd9a286fb642f1`; addendum commit: `d8b164d682c828d7a53c2051afc7ec487e2afae9`.
+- Expanded DS-01:
+  - `/v1/paper/cancel` uses the MANUAL ledger instance; the MANUAL compatibility path rejects cancellation of Core/AI-owned orders.
+  - `/v1/equity` and the evaluate route use MANUAL `record_equity()`, which records legacy `paper_state` equity, not account-scoped dual-ledger mark/equity reconciliation.
+  - A dedicated account-level mark/equity update and strategy-scoped cancellation path are required; account risk readiness must remain fail-closed until then.
+- Acceptance mapping now includes scoped ENTRY/DCA/EXIT, owner-scoped cancellation, explicit Core/AI read models, account aggregate equity/funding/reservation reconciliation, and atomic account-wide Kill Switch admission behavior.
+- Static-only; no endpoint/test execution, source code, workflow, VPS/runtime, DB or ledger mutation.
