@@ -28,7 +28,11 @@ def make_crosswalk(statuses=None, aggregate="AGGREGATE BLOCKED"):
     ]
     for number, status in statuses.items():
         label = "Independent reviewer" if number == 9 else "Control"
-        lines.append(f"| **L4M-{number:02d} {label}** | source | CI | **{status}** |")
+        evidence = {
+            1: "No complete owner-controlled package.",
+            7: "No WORM/immutability claim is made.",
+        }.get(number, "source")
+        lines.append(f"| **L4M-{number:02d} {label}** | {evidence} | CI | **{status}** |")
     lines.extend([
         "",
         "L4M-07: No WORM/immutability claim is made.",
