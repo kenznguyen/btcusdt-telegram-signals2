@@ -31,7 +31,7 @@ def record(**changes):
             "T1_RAW_OBSERVATION": "CONFIDENTIAL",
             "NONCANONICAL_COPY": "CONFIDENTIAL",
         }
-        label = minimums.get(kind, "PUBLIC")
+        label = minimums.get(kind, "PUBLIC") if isinstance(kind, str) else "PUBLIC"
         sensitivity = {
             "state": "CLASSIFIED", "label": label,
             "evidence_ref": "synthetic-sensitivity-evidence",
