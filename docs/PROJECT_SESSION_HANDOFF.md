@@ -1283,5 +1283,5 @@ Next: execute both focused RED test files in GitHub Actions against exact SHA `5
 - Added an API/ledger integration RED test in `paper_execution/test_dual_strategy_api_red.py`: AI BUY remains visible while Core is WAIT; the API routes the candidate to `AI_FREQAI`; Shared Risk Engine rejects it while account risk is unready; Core position/orders remain unchanged.
 - E2E test commit and exact source SHA: `550a529c2a726f82911602aee207f0df32c78eb9`.
 - Combined GitHub commit-status query for this SHA returned no checks. Test execution remains **NOT VERIFIED**; container could not resolve `github.com` to clone the repository. No RED result, workflow run or artifact is claimed.
-- Evidence report was updated in commit `fa5147e57b354c605aaa0c63c8f4aba7201dcabe`.
+- Evidence report final revision: `aa4eb61b86a80a51aa2eaa940778d63a334750b5`.
 - Next step remains: run the focused test files in GitHub Actions against exact SHA `550a529c2a726f82911602aee207f0df32c78eb9`, inspect/repair test-only issues, then seek separate approval before any GREEN implementation.
