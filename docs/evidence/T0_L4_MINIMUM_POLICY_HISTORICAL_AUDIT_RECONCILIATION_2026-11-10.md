@@ -8,7 +8,7 @@ Review type: documentary cross-reference reconciliation; updated to current owne
 ## Exact current inputs
 
 - Current acceptance matrix: `docs/evidence/p1-8/L4-MINIMUM-PROVENANCE-ACCEPTANCE-MATRIX.md`
-  - Current blob SHA: `75db0d98134fd656d91a8545bc307c56595aebf7`
+  - Current blob SHA: `7c413504db397877b308345b21c9f6f58271c89a`
 - Owner waiver decision: `docs/decisions/D-2026-11-10-L4-INDEPENDENT-REVIEW-WAIVER.md`
   - Decision: L4M-09 OWNER-WAIVED / NOT MANDATORY; nine active controls are L4M-01–08 and L4M-10.
 - Historical read-only audit: `docs/evidence/T0_L4_MINIMUM_READ_ONLY_AUDIT_2026-11-10.md`
