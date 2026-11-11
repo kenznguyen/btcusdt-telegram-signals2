@@ -676,6 +676,21 @@ Reconcile the four-artifact Actions allowlist with all eligible source artifacts
 - Latest self-review evidence update commit: `3db05538fc4fd84dd20fa64b87115cf886ef898c`; current report blob: `ab2b56376c01e4ef45b28d3dcd647feadd829b60`.
 - Current owner waiver record blob (re-fetched): `f437dbf319b7a9570092c8cafb4bf354409e651c`.
 - A2.2 mandatory independent-review gate: **WAIVED**. Independent review: **NOT PERFORMED**. Independent assurance/G3: **NOT ESTABLISHED**.
-- Self-review evidence is the full technical review of prior A2.2 blob `2090112370e3b4a9925e78cf1ab0e2bb8428640c), plus targeted same-session delta checks for governance-only changes. It must not be described as a full fresh review of every byte of the latest blob or as independent review.
+- Self-review evidence is the full technical review of prior A2.2 blob `2090112370e3b4a9925e78cf1ab0e2bb8428640c`, plus targeted same-session delta checks for governance-only changes. It must not be described as a full fresh review of every byte of the latest blob or as independent review.
 - Implementation remains **NOT APPROVED** and requires separate explicit owner approval. Path A/Path B remain NOT_ENABLED; bootstrap remains BLOCKED. All other safety and custody limits remain unchanged.
 - No code, tests, CI/workflow, keys/signatures, trust roots, bootstrap, policy/anchor instances, VPS/runtime, SQLite/canonical T0 data or destructive operations changed. CI/workflow NOT RUN.
+
+
+## A2.2 implementation-scope assessment — 2026-11-11
+
+- User requested to continue after the owner waived mandatory independent review. Work performed: **documentation-only implementation-scope assessment**; no implementation approval inferred.
+- Assessment: `docs/architecture/T0_SIGNATURE_A2_2_IMPLEMENTATION_SCOPE_ASSESSMENT_2026-11-11.md`.
+- Create commit: `f5dfd8a34c4f5016b0e68a6549803b55e06fb28e`; verified source blob: `443159b3cbbae39d27c0aa58669292de9998d463`.
+- Governing A2.2 source blob: `41d41cd23f73a6e552b9ceca5ebbb39c46934e7d`; owner waiver blob: `f437dbf319b7a9570092c8cafb4bf354409e651c`; current A2.2 self-review report blob: `ab2b56376c01e4ef45b28d3dcd647feadd829b60`.
+- Recommendation: if owner chooses to authorize code, begin with **Stage I synthetic contract-conformance harness only**: T0-JCS-1 parser/canonicalization, unsigned integer/U64BE, base64url, domain-separated SHA-256, profile binding, deterministic reason/verdict mapping, synthetic negative fixtures and in-memory no-state-change assertions.
+- Any signature-verifier stub in Stage I must be labelled `MOCK / NOT CRYPTOGRAPHIC`; it cannot prove signature authenticity or cryptographic conformance.
+- Explicitly excluded from Stage I: production crypto algorithm/library/key profile, real keys/signatures, root enrollment, Path A/B activation, verifier trust-store mutation, policy/anchor instances, durable anchor/CAS/two-copy publication, VPS/runtime/T0 integration, CI secrets/deployment and all trading execution paths.
+- Stages II–V (production cryptography, bootstrap, durable anchor/custody, runtime integration) remain BLOCKED pending separate contracts and explicit owner approvals.
+- Status: assessment **COMPLETE / DOCUMENTATION ONLY**; Stage I **PROPOSED / NOT APPROVED**; implementation remains **NOT APPROVED**; CI/workflow **NOT RUN**.
+- No code/tests/runtime/VPS/SSH/SQLite/canonical T0 data/keys/trust state/destructive operation changed. Paper-only posture and `AI_EXECUTION_ENABLED=false` unchanged.
+- Next decision required from owner: explicitly approve or reject Stage I, identifying the exact A2.2 blob and accepting the synthetic-only/mock-verifier boundary. Do not begin code changes before that approval.
