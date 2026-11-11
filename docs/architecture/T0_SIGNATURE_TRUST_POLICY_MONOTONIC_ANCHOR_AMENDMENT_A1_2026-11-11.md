@@ -501,9 +501,7 @@ This section records a same-session static consistency review against Checkpoint
 
 ### 14.1 Governing-contract precedence
 
-Checkpoint Contract v1 §§7 and 9 require an independently retained custody copy and monotonic anchor outside both T0/VPS and GitHub failure domains. The L4 crosswalk records VPS + GitHub as the currently accepted evidence/custody scope. A1 §2.1 now treats VPS + GitHub-only custody as a **proposed alternative**, not an effective supersession.
-
-Until the owner explicitly approves a formal amendment to the governing v1 requirement, the outside-both requirement remains controlling for claims that require L4-Minimum independent custody/latest-head assurance. The bounded VPS + GitHub design may be specified and tested as a limited consistency mechanism, but MUST NOT be reported as satisfying that v1 control. If the owner does not approve a v1 amendment, the design must retain the independent outside-both custody requirement or leave the affected claims BLOCKED/NOT VERIFIED.
+Checkpoint Contract v1 has been formally amended by the owner-approved dated addendum “Formal owner-approved amendment — bounded VPS + GitHub custody (2026-11-11)” appended to T0_EVIDENCE_OBJECT_CHECKPOINT_CONTRACT_V1.md. The amended §§7/9 custody boundary accepts the designated VPS location plus the designated GitHub evidence location as the bounded two-location scope. This is not external custody outside both failure domains. Joint rollback of both locations to the same older chain is undetectable by this design; no global latestness or absolute anti-rollback claim is permitted. Exact descriptors, authenticated anchor history, per-location custody receipts and independent readback from both locations remain required. The base contract's other requirements remain unchanged.
 
 ### 14.2 T0-JCS-1 numeric wire representation
 
@@ -545,6 +543,10 @@ The same descriptor discipline applies to Trust Policy bodies and detached signa
 | CR-06 | Anchor's v1 Evidence Object descriptor and custody receipt requirements were not explicitly preserved | Corrected: remain applicable unless formally amended by owner |
 | CR-07 | Production algorithm, root ceremony, anchor authority and trusted-time choices remain open | Owner/security decision required; implementation blocked |
 
-**Review disposition:** A1 is improved but remains **DRAFT / NOT FROZEN**. CR-01 requires owner disposition before the custody contract can be finalized. The other corrections are draft-level specification changes and still require independent review. This static consistency review is not a qualifying external/independent review.
+**Review disposition after owner decision (2026-11-11):** CR-01 is **RESOLVED AT GOVERNANCE/CONTRACT LEVEL** by the formal owner-approved addendum to Checkpoint Contract v1. The bounded VPS + GitHub custody scope is accepted with the explicit common-mode joint-rollback limitation. A1 remains **DRAFT / NOT FROZEN** pending final consistency verification and a qualifying independent review. Production algorithm/profile, root bootstrap/recovery ceremony, signer and anchor-authority identities, anchor concurrency mechanism and trusted-time/TSA decisions remain open. This static consistency review is not a qualifying external/independent review.
 
 No code, tests, workflow, CI, key, trust root, policy instance, anchor, VPS runtime, SQLite database, canonical data or destructive operation was changed or exercised.
+
+## Owner disposition — bounded VPS + GitHub custody approved (2026-11-11)
+
+The owner explicitly approved the formal amendment to Checkpoint Contract v1 §§7/9. VPS + GitHub is accepted as the bounded custody scope. Joint rollback of both locations to the same older valid chain cannot be detected by this design. No external custody, WORM, global latestness or absolute anti-rollback claim is permitted. Exact descriptors, custody receipts, readback from both locations, authenticated anchor history and fail-closed handling remain required. This is contract/documentation approval only; no implementation, key, trust-root, anchor, provider or runtime action is authorized.
