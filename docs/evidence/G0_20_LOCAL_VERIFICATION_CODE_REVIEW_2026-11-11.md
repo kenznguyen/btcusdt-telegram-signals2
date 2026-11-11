@@ -72,3 +72,41 @@ No CI dispatch, schema/registry integration, external evidence authentication, T
 Next step requires a test-capable checkout or approved environment with the exact branch source. Run the two commands in §2, preserve complete outputs, and update the handoff. If tests fail, remediate only within `pipeline/lifecycle_disposition.py` and `pipeline/test_lifecycle_disposition.py` under the existing bounded approval. Any broader scope requires separate approval.
 
 T0 remains independent and protected; CORE_LEDGER and AI_LEDGER remain separate; paper-only and `AI_EXECUTION_ENABLED=false` remain unchanged.
+
+
+## 8. GitHub Actions exact-source verification — completed
+
+A dedicated least-privilege workflow was added at `.github/workflows/g0-20-lifecycle-evaluator-verification.yml`. It is scoped to this branch and the workflow file path for the one-time push-triggered run; it also exposes a manual `workflow_dispatch` input for future owner-authorized reuse. The repository default branch is `main`, so the one-time run on this feature branch was triggered by the narrowly path-filtered push rather than a manual dispatch.
+
+- Workflow commit / run head SHA: `6db05c878873790d113e0a315a9be90923a9650c`.
+- Workflow file: `.github/workflows/g0-20-lifecycle-evaluator-verification.yml`.
+- Workflow run ID: `43036222952`; run number: `1`; event: `push`; final status: `completed`; conclusion: **SUCCESS**.
+- Run URL: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43036222952
+- Job ID: `130575627133`; job conclusion: **SUCCESS**.
+- Runner: GitHub-hosted Ubuntu 26.04.1; Python `3.12.16`.
+- Exact checkout commit verified in job: `6db05c878873790d113e0a315a9be90923a9650c`.
+- Evaluator blob verified in job: `cf22385a718c6b5b08cd50c2a45578b4180c2c4d`.
+- Test blob verified in job: `d54d0523d6388df448cbec7c2fb9e2e092f72920`.
+- `python -m py_compile pipeline/lifecycle_disposition.py pipeline/test_lifecycle_disposition.py`: **PASS**.
+- `python -m unittest pipeline.test_lifecycle_disposition -v`: **PASS**, 32 tests, 0 failures/errors.
+- Workflow job logs were fetched and inspected; source identity checks, compile, all 32 test methods and artifact upload succeeded.
+- Artifact: `g0-20-lifecycle-verification-6db05c878873790d113e0a315a9be90923a9650c`; artifact ID `13862633389`; size 1,587 bytes; SHA-256 `0eff7bb4c6fba66656841734b3a64f771872154d723c42eb326ebd57440f3d00`; expires 2026-11-18T14:12:21Z.
+- Artifact URL: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43036222952/artifacts/13862633389
+
+## 9. Updated G0.20 verdict
+
+- Focused exact-source compile and unit tests: **PASS**.
+- G0.20 dedicated workflow run and artifact: **PASS**.
+- G0.20 overall: **PASS for the approved pure evaluator verification scope**.
+- Repository-wide tests: **NOT RUN**.
+- Independent review beyond the documented five-axis source inspection: **NOT RUN**.
+- TEST-01–07: no status promotion; 0/87 executed remains.
+- Runtime/VPS inventory and real-data classification: **NOT PERFORMED / NOT VERIFIED**.
+- Evidence authenticity/identity/provenance verification outside the workflow's source-blob pinning: **NOT ESTABLISHED**.
+- Destructive authority: **NOT GRANTED**.
+
+The workflow has only `contents: read`, no configured secrets, no package installation, no database/provider/exchange calls, no live trading and no mutation-capable application code. The only test scope is the two approved Python files. The run was one-time and path-filtered. No repository-wide suite or other workflow was dispatched by this G0.20 step.
+
+## 10. Next gate
+
+G0.20 verification is closed for the approved evaluator/test blobs. The next work item should be a separately bounded review of whether the evaluator's caller-asserted metadata and evidence references can be trusted, and what authentication/provenance boundary is required before integrating it with any registry or lifecycle harness. Do not infer permission for schema/registry integration, TEST-01–07 implementation, runtime inventory, retention-floor changes or destructive execution from this PASS.
