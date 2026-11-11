@@ -315,5 +315,22 @@ class DualStrategyApiScopeRedTest(unittest.TestCase):
             )
         self.assertEqual(after, before)
 
+
+    def test_resolver_rejects_legacy_schema_without_persisted_strategy_column(self):
+        from pipeline.api import resolve_order_strategy
+
+        legacy_db = Path(self.temp.name) / "legacy-orders.sqlite3"
+        with sqlite3.connect(legacy_db) as connection:
+            connection.execute(
+                "CREATE TABLE paper_orders (order_id TEXT PRIMARY KEY, document TEXT)"
+            )
+            connection.execute(
+                "INSERT INTO paper_orders VALUES (?,?)",
+                ("legacy-order", json.dumps({"strategyId": "STRATEGY_CORE"})),
+            )
+
+        with self.assertRaisesRegex(ValueError, "PAPER_ORDER_OWNER_UNVERIFIED"):
+            resolve_order_strategy(str(legacy_db), "legacy-order")
+
 if __name__ == "__main__":
     unittest.main()
