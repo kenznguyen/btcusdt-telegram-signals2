@@ -212,11 +212,16 @@ def prepare_preflight(
     runner_source_bytes: bytes,
     frozen_runner_sha256: str,
     source_commit: str,
+    expected_source_commit: str,
     command: str,
 ) -> dict:
     """Build in-memory evidence for focused tests; no file/network/runtime access."""
     if type(source_commit) is not str or not _COMMIT_RE.fullmatch(source_commit):
         raise ValueError("invalid exact source commit")
+    if type(expected_source_commit) is not str or not _COMMIT_RE.fullmatch(expected_source_commit):
+        raise ValueError("invalid verified checkout commit")
+    if source_commit != expected_source_commit:
+        raise ValueError("source commit does not match verified checkout")
     if type(command) is not str or not command.strip():
         raise ValueError("exact command is required")
     if not validate_runner_source(runner_source_bytes, frozen_runner_sha256):
@@ -290,11 +295,12 @@ def prepare_preflight(
     assertions = harness.evaluate_assertions(evidence)
     if not all(value is True for value in assertions.values()):
         raise ValueError("final report/assertion readback failed")
-    if not harness.validate_report_readback(report_bytes):
+    if not harness.validate_report_readback(report_bytes, recipe_first["parser_inputs"], recipe_first["ordered_ids"]):
         raise ValueError("serialized report readback failed")
 
     return {
         "corpus_revision": CORPUS_REVISION,
+        "source_commit": source_commit,
         "fixture_count": len(recipe_first["ordered_ids"]),
         "case_counts": dict(EXPECTED_CASE_COUNTS),
         "parser_input_digest": measurement_first["corpus_sha256"],
