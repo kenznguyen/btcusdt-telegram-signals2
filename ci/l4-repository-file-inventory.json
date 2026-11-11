@@ -4,7 +4,7 @@
   "files": [
     {
       "path": "docs/decisions/D-2026-11-09-L4-PROVENANCE-PERSONAL-SCOPE.md",
-      "git_blob_sha1": "6b96c2c37a4989b7ceba291d027a3f8459eecb3b"
+      "git_blob_sha1": "95a29b7251d48e2f15f784f1462daa2074f32124"
     },
     {
       "path": "docs/decisions/D-2026-11-09-OPERATIONAL-FIRST-EMPIRICAL-VALIDATION.md",
@@ -12,23 +12,23 @@
     },
     {
       "path": "docs/decisions/D-2026-11-09-T0-PERSONAL-USE-SCOPE-AND-DECOMMERCIALIZATION.md",
-      "git_blob_sha1": "c7891def00458604158984a00634d131060a1737"
+      "git_blob_sha1": "880cc8fb930eb75dde9cb68a0d1ae843adeadb70"
     },
     {
       "path": "docs/decisions/D-2026-11-10-L4-EVIDENCE-CUSTODY-VPS-GITHUB-ONLY.md",
-      "git_blob_sha1": "2df5bdeb36ec53158c66871b740c43b859a5013c"
+      "git_blob_sha1": "527bf46a024cbad98ec74df8f85c70efc4dc0615"
     },
     {
       "path": "docs/decisions/D-2026-11-10-L4-INDEPENDENT-REVIEW-WAIVER.md",
-      "git_blob_sha1": "75e057ba482d81f6a9d896ace2b017807c9396d9"
+      "git_blob_sha1": "f3c91ae225d2c225b8ee7ac5073b607436b190f5"
     },
     {
       "path": "docs/decisions/D-2026-11-10-LIFECYCLE-INDEPENDENT-REVIEW-WAIVER.md",
-      "git_blob_sha1": "555951e36f6365012cb5b9e48ba24e455b775d16"
+      "git_blob_sha1": "2c8038ef0a00b1190f1a842011b1f1ce4c5ecb2b"
     },
     {
       "path": "docs/evidence/p1-8/L4-MINIMUM-PROVENANCE-ACCEPTANCE-MATRIX.md",
-      "git_blob_sha1": "75db0d98134fd656d91a8545bc307c56595aebf7"
+      "git_blob_sha1": "7c413504db397877b308345b21c9f6f58271c89a"
     },
     {
       "path": "docs/evidence/T0_L4_MINIMUM_NINE_CONTROL_EVIDENCE_ACQUISITION_REGISTER_2026-11-10.md",
@@ -40,11 +40,11 @@
     },
     {
       "path": "docs/evidence/T0_L4_MINIMUM_ADVERSARIAL_REVIEW_2026-11-10.md",
-      "git_blob_sha1": "a7aec29330d71cb4d34193d6db81b8e20eb295f1"
+      "git_blob_sha1": "ecb58858b470fff841256fcf306d4e5454402486"
     },
     {
       "path": "docs/evidence/T0_L4_MINIMUM_READ_ONLY_AUDIT_2026-11-10.md",
-      "git_blob_sha1": "cfecb7428508adf23e6b9e71dc0dfe1e0e38080c"
+      "git_blob_sha1": "d402199bcc299b3c81fb60a2c498cecf3a46543c"
     },
     {
       "path": "docs/evidence/T0_L4_MINIMUM_POLICY_HISTORICAL_AUDIT_RECONCILIATION_2026-11-10.md",
@@ -60,7 +60,7 @@
     },
     {
       "path": "docs/evidence/p1-8/P1.8.144-retention-floor-evidence-contract.md",
-      "git_blob_sha1": "f3002ba709f874936ca434c883ef855d2f11784a"
+      "git_blob_sha1": "3dfeeb82af4d75e9fcd8438a33878a570a55014f"
     },
     {
       "path": "docs/evidence/p1-8/P1.8.152-retention-and-lifecycle-residual-finding-reconciliation.md",
@@ -68,11 +68,11 @@
     },
     {
       "path": "docs/evidence/T0_L4_MINIMUM_EXTENDED_BRANCHING_ASSESSMENT_2026-11-10.md",
-      "git_blob_sha1": "8b11913830f25d347a7e7c6f3140adfe5c4cef78"
+      "git_blob_sha1": "0415f5cc3da39823a9d253ced33cdcf979390639"
     },
     {
       "path": "docs/evidence/T0_L4_MINIMUM_LINEAGE_GATE_EVIDENCE_2026-11-10.md",
-      "git_blob_sha1": "6cc2a2abb766948d2cd1d05e668a52a2a90484f1"
+      "git_blob_sha1": "46824bcbd04519c0c9d699c26660995b05c6acc5"
     },
     {
       "path": "docs/evidence/T0_L4M08_CLAIM_DISCIPLINE_DOCUMENTARY_ASSESSMENT_2026-11-10.md",
@@ -88,7 +88,7 @@
     },
     {
       "path": "docs/evidence/p1-8/P1.8.146-retention-obligation-completeness-end-state-copy-graph-clarification.md",
-      "git_blob_sha1": "5efb0ae86d88ede5627ed7b77322463c39fb737e"
+      "git_blob_sha1": "b22f93c3efaac3eb7aad8ab7a1e535d77a8b74eb"
     },
     {
       "path": "docs/evidence/p1-8/P1.8.147-independent-static-review-p1-8-146.md",
@@ -96,23 +96,23 @@
     },
     {
       "path": "docs/evidence/p1-8/P1.8.148-reviewer-independence-conflict-control-clarification.md",
-      "git_blob_sha1": "baea1eb363a06ea7e804fe986777b31e9b693513"
+      "git_blob_sha1": "6c84ef6c771e06ef692b864fd05b50c67e6f666b"
     },
     {
       "path": "docs/evidence/p1-8/P1.8.149-independent-static-review-p1-8-148.md",
-      "git_blob_sha1": "cce7aa0bf9c7b6048b61ef5c436433e3ac0c01c4"
+      "git_blob_sha1": "edb65757785b83241e3d5e1b2c29095670fe189c"
     },
     {
       "path": "docs/evidence/p1-8/P1.8.150-conflicted-contributor-independent-reviewer-clarification.md",
-      "git_blob_sha1": "f23fbcfdc85c82b95271d835a1e452e4a9863db2"
+      "git_blob_sha1": "32eaeb1ef286b520cb061ce7cd537fef7d724556"
     },
     {
       "path": "docs/evidence/p1-8/P1.8.151-independent-static-review-p1-8-150.md",
-      "git_blob_sha1": "64902f09d0f5576a47da44dbb194a56e18d727c2"
+      "git_blob_sha1": "0960ec9e0e9aedd42c4310300e6f6a783b167a0d"
     },
     {
       "path": "docs/evidence/T0_L4M01_L4M03_EXISTING_TRUST_EVIDENCE_NON_SUBSTITUTION_2026-11-10.md",
-      "git_blob_sha1": "1fea06d455e020fb3e87d7378c8f95bb127f9c4b"
+      "git_blob_sha1": "f64ebddfc5ee06d69835b433da530efa000ad64f"
     },
     {
       "path": "docs/architecture/P1.8.14_EXTERNAL_TRUST_ANCHOR_PROVENANCE_AUTHENTICITY_2026-11-07.md",
@@ -120,19 +120,19 @@
     },
     {
       "path": "docs/architecture/T0_EVIDENCE_OBJECT_CHECKPOINT_CONTRACT_V1.md",
-      "git_blob_sha1": "0d98a3dcbb0d403b213b5efcae0c882ac5461578"
+      "git_blob_sha1": "5948dd904e1819b626aecc1a85e10c95735191a3"
     },
     {
       "path": "docs/evidence/t0/T0_EVIDENCE_CHECKPOINT_G3_REVIEW_INPUTS_2026-11-10.md",
-      "git_blob_sha1": "c5ee25d46440bb391dd34b164a497aa64130b83d"
+      "git_blob_sha1": "c54a92d443481f71989258bf6f03e144060ab256"
     },
     {
       "path": "docs/evidence/T0_L4M01_L4M03_OWNER_EVIDENCE_INTAKE_CONTRACT_2026-11-10.md",
-      "git_blob_sha1": "914fb398bf6f0e4ef26ae6b706212c5f2969d1c1"
+      "git_blob_sha1": "d42204b82ac397b57c8d1fe4cee2e500f79510a7"
     },
     {
       "path": "docs/evidence/T0_COMPONENTS_OUTSIDE_L4_MINIMUM_AUDIT_2026-11-10.md",
-      "git_blob_sha1": "7bfc509b9eb918750b3a25acc18f8d4f989d387f"
+      "git_blob_sha1": "b898b9fead6583b7cc0cde30bf7bd8b3acc2c1b0"
     },
     {
       "path": "docs/evidence/p1-8/P1.8.142-owner-retention-and-data-class-disposition-decision-package.md",
@@ -140,11 +140,11 @@
     },
     {
       "path": "docs/evidence/COMMERCIAL_SCOPE_CONTENT_AUDIT_2026-11-09.md",
-      "git_blob_sha1": "dc313df4a9c11893751e43cec41042c58198cfff"
+      "git_blob_sha1": "8c9439982fe8b79036d6d72e6dd5a7789f9e3fd1"
     },
     {
       "path": "docs/evidence/T0_L4_REPOSITORY_FILE_INVENTORY_SCOPE_RECONCILIATION_2026-11-11.md",
-      "git_blob_sha1": "cd865b09c0340fa910412a9d469a7da980357e35"
+      "git_blob_sha1": "e9cb76b4cc5c78486c00756ff74b9bd44f7b88b2"
     },
     {
       "path": "docs/evidence/T0_TSA_WORM_READ_ONLY_AUDIT_2026-11-10.md",
