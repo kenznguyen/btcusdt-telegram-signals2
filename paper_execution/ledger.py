@@ -1228,7 +1228,7 @@ def reduce_legacy_unattributed(
 
 
 class PaperLedger:
-    def __init__(self, db_path, *, max_position_base="0.01", fee_rate="0.0005", max_spread_bps="50", risk_limits=None, require_risk_limits=False, leverage="13", strategy_id="MANUAL", source_sha=None):
+    def __init__(self, db_path, *, max_position_base="0.01", fee_rate="0.0005", max_spread_bps="50", risk_limits=None, require_risk_limits=False, leverage="13", strategy_id="MANUAL", source_sha=None, initial_capital="100"):
         self.path = Path(db_path)
         self.maximum, self.fee_rate, self.spread = number(max_position_base), number(fee_rate), number(max_spread_bps)
         self.risk_limits, self.require_risk_limits = risk_limits, bool(require_risk_limits)
@@ -1275,6 +1275,19 @@ class PaperLedger:
                                        ("LEGACY" if legacy_position else None, 0, "0"))
             equity_history.ensure(connection)
             if self.strategy_id in DUAL_STRATEGIES:
+                configured_capital = number(str(initial_capital))
+                if configured_capital <= 0:
+                    raise ValueError("DUAL_LEDGER_INITIAL_CAPITAL_INVALID")
+                capital_row = connection.execute(
+                    "SELECT initial_capital FROM paper_account_config WHERE id=1"
+                ).fetchone()
+                if capital_row is None:
+                    connection.execute(
+                        "INSERT INTO paper_account_config(id,initial_capital) VALUES (1,?)",
+                        (text(configured_capital),),
+                    )
+                elif Decimal(capital_row[0]) != configured_capital:
+                    raise ValueError("PAPER_INITIAL_CAPITAL_CHANGED; explicit account migration required")
                 migrate_dual_ledger(connection, self.source_sha)
                 migrate_legacy_book_depth(connection, self.source_sha)
                 migrate_reservation_expiry(connection, self.source_sha)
@@ -1969,7 +1982,8 @@ class PaperLedger:
 
             risk = connection.execute(
                 """SELECT high_water_mark_quote,daily_baseline_utc_day_ms,
-                          last_mark_price,mark_observed_at_ms,risk_ready,unavailable_reason
+                          daily_baseline_equity_quote,last_mark_price,mark_observed_at_ms,
+                          risk_ready,unavailable_reason
                    FROM paper_account_risk_state WHERE account_id=1"""
             ).fetchone()
             account = connection.execute(
@@ -1984,10 +1998,13 @@ class PaperLedger:
                 raise sqlite3.DatabaseError("ACCOUNT_RISK_STATE_MISSING_OR_CORRUPT")
             if Decimal(account[0]) != Decimal(str(initial_capital)):
                 raise ValueError("PAPER_INITIAL_CAPITAL_CHANGED; explicit account migration required")
-            if observed_at < risk[3]:
+            if risk[4] is not None and observed_at < risk[4]:
                 raise ValueError("OUT_OF_ORDER_ACCOUNT_MARK")
-            if risk[1] != observed_at // 86_400_000 * 86_400_000:
+            utc_day = observed_at // 86_400_000 * 86_400_000
+            if risk[1] is not None and risk[1] != utc_day:
                 raise ValueError("ACCOUNT_RISK_DAILY_BASELINE_UNAVAILABLE")
+            if cutover and risk[1] is None:
+                raise sqlite3.DatabaseError("ACCOUNT_RISK_DAILY_BASELINE_UNAVAILABLE")
 
             ledgers = connection.execute(
                 """SELECT strategy_id,position_base,average_entry_price,realized_pnl_quote,
@@ -1998,6 +2015,7 @@ class PaperLedger:
             if {row[0] for row in ledgers} != expected:
                 raise sqlite3.DatabaseError("ACCOUNT_RISK_LEDGER_SET_INVALID")
             realized = fees = funding = unrealized = Decimal(0)
+            positions = {}
             for strategy_id, raw_qty, raw_avg, raw_pnl, raw_fee, raw_funding in ledgers:
                 qty, avg, pnl, fee, fund = map(
                     Decimal, (raw_qty, raw_avg, raw_pnl, raw_fee, raw_funding)
@@ -2006,11 +2024,15 @@ class PaperLedger:
                     raise sqlite3.DatabaseError("ACCOUNT_RISK_LEDGER_VALUE_INVALID")
                 if (qty == 0 and avg != 0) or (qty != 0 and avg <= 0) or fee < 0:
                     raise sqlite3.DatabaseError("ACCOUNT_RISK_POSITION_INCONSISTENT")
+                upnl = qty * (mark - avg) if qty else Decimal(0)
                 realized += pnl
                 fees += fee
                 funding += fund
-                if qty:
-                    unrealized += qty * (mark - avg)
+                unrealized += upnl
+                positions[strategy_id] = {
+                    "positionBase": text(qty), "averageEntryPrice": text(avg),
+                    "unrealizedPnlQuote": text(upnl),
+                }
                 if strategy_id == "LEGACY_UNATTRIBUTED" and qty != 0:
                     raise ValueError("LEGACY_UNATTRIBUTED_EXPOSURE")
 
@@ -2033,14 +2055,19 @@ class PaperLedger:
                 Decimal(account[0]) + realized + legacy_pnl + unrealized
                 - fees - legacy_fees - funding
             )
-            hwm = Decimal(risk[0])
-            if not equity.is_finite() or equity <= 0 or not hwm.is_finite() or hwm <= 0:
+            if not equity.is_finite() or equity <= 0:
+                raise sqlite3.DatabaseError("ACCOUNT_RISK_EQUITY_INVALID")
+            hwm = equity if risk[0] is None else Decimal(risk[0])
+            if not hwm.is_finite() or hwm <= 0:
                 raise sqlite3.DatabaseError("ACCOUNT_RISK_EQUITY_INVALID")
             funding_ready = bool(cutover) and _funding_provenance_ready(
                 connection, cutover[0], cutover[1], observed_at, observed_at
             )
-            risk_ready = bool(risk[4]) and funding_ready and bool(cutover)
-            unavailable = risk[5]
+            risk_ready = (
+                bool(risk[5]) and funding_ready and bool(cutover)
+                and risk[1] == utc_day and risk[2] is not None
+            )
+            unavailable = risk[6]
             if not cutover:
                 unavailable = "ACCOUNT_EQUITY_CUTOVER_NOT_ESTABLISHED"
             elif not funding_ready:
@@ -2059,6 +2086,14 @@ class PaperLedger:
                 "datasetVersion": dataset_version, "accountEquityQuote": text(equity),
                 "riskReady": risk_ready,
             })
+            if not cutover or risk[1] is None:
+                return {
+                    "mode": "PAPER", "liveTradingSupported": False, "available": True,
+                    "riskReady": False, "unavailableReason": unavailable,
+                    "accountEquityQuote": text(equity), "markPrice": text(mark),
+                    "markObservedAtMs": observed_at, "datasetVersion": dataset_version,
+                    "positions": positions, "updatedAtMs": observed_at,
+                }
         return read_account_risk_snapshot(self.path, now_ms=observed_at)
 
     def record_equity(self, mark_price, candle_close_ms, observed_at_ms, dataset_version, initial_capital="100"):
