@@ -935,3 +935,13 @@ This is the current disposition and supersedes the earlier historical NOT RUN / 
 - Open blockers: explicit owner freeze of exact A2.3 blob/resource ceilings and distinct AEO issuer principal/key constraint; complete Trust Policy field crosswalk and exact evidence descriptor schemas/status semantics; independent security review of exact A2.3 + adapter contract; pinned PyCA version/dependency hashes/wheel/build provenance. No Stage II implementation or CI test is authorized until the exact contract/review gate is closed.
 - No tests were run; documentation-only. No code/dependencies/keys/signatures/trust roots/policy/anchor/Verification Record state/CI dispatch/VPS/T0/runtime/trading/destructive operations changed.
 - Next: complete a final exact-blob consistency pass and review package, then obtain qualifying independent security review. If no independent reviewer is available, mark Stage II BLOCKED at that gate; do not substitute same-session self-review.
+
+
+### Stage II — PyCA dependency candidate research (2026-11-11)
+
+- Current PyCA release research identified `cryptography==50.0.2` as a candidate; PyPI lists the release dated 2026-09-30, Python >=3.9 (excluding 3.9.0/3.9.1), and release artifacts with provenance. PyCA's published supported-platform list includes x86-64 Ubuntu 26.04 and the current CI's likely Linux/CPython lane must still be read back during build.
+- Proposed CPython 3.11+ ABI3 / manylinux_2_34 x86-64 wheel: `cryptography-50.0.2-cp311-abi3-manylinux_2_34_x86_64.whl`; candidate SHA-256 `9dab55f57c74c3cad24c323bacbbd04be4705ba6eb0d92e920b1fc4837ed5079`; candidate sdist SHA-256 `7b46165bb56eb4704e2eaaf86f3c940d19154535d9b0ca7d6d590b04060e00d5`.
+- Dependency note: `docs/evidence/T0_SIGNATURE_A2_3_PYCA_DEPENDENCY_CANDIDATE_2026-11-11.md`; commit `d633b478a4f158f48ccb43e379dbd14c023d9b87`.
+- Adapter contract updated with candidate: blob `8ec916c152c51e75c5a3852e7977dd7f1239d8fe`; current self-review report blob `038b17c9f2cc699b3db54f4ce06d517cf61fa665`.
+- Important: the wheel hash is corroborated by published lockfile records but was NOT recomputed from the downloaded PyPI artifact in this environment. The wheel itself was not installed. Transitive dependency closure, exact runner glibc, provenance attestation verification, license review and offline install remain NOT VERIFIED. No dependency file, lockfile, CI workflow or VPS package state changed.
+- Stage II remains **PARTIAL / BLOCKED AT INDEPENDENT SECURITY REVIEW AND CONTRACT FREEZE**. No tests or code implementation have been run.
