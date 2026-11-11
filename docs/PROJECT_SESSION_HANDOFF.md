@@ -1999,3 +1999,18 @@ Next: if owner wants to proceed beyond planning, first approve a bounded provisi
 - Documentation-only. No source/test/fixture/schema/API/registry/adapter/workflow/permission/credential/key/database/storage/market-data/model/ledger/VPS/runtime changes; no tests or workflow dispatch; no network/provider/database/VPS access or inventory; no key operations or lifecycle mutation.
 - Next: owner reviews and explicitly ratifies/modifies/rejects D01–D04. No verifier implementation, real keys, trust registry, evidence-source adapters or runtime integration authorized.
 - T0 remains independent/protected; CORE_LEDGER and AI_LEDGER remain separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
+
+
+## G0.26 — Minimal Signature Scope Reconciliation (2026-11-11)
+
+- Owner requested continuation of the documentation-only minimal-signature review after G0.25; no cryptographic decision was ratified.
+- Baseline handoff blob before G0.26: `d3fa7ab5d92517456832f08f072ec21b6a7767a6`.
+- Report: `docs/evidence/G0_26_MINIMAL_SIGNATURE_SCOPE_RECONCILIATION_2026-11-11.md`; report creation commit: `b85bbc57885c2113cec842919e6dce3297f299fa`.
+- G0.26 separates byte integrity, signer authenticity, owner authorization, freshness/anti-replay, evidence truth/completeness and custody. These claims are not interchangeable.
+- G1 A in T0 Checkpoint Contract v1 remains an unsigned proof-of-existence product. A1 is a separate signature/trust extension; do not retroactively impose signer-authenticity claims on G1 A.
+- Minimality framework: digest-only for byte-integrity claims; a detached, domain-separated signature binding exact subject/version, digest, purpose and audience only where signer authenticity is required; separate owner authorization for actions; separate anchor/freshness mechanism only where latestness is claimed.
+- G0.25 D01–D04 were assessed for complexity/justification but remain OPEN / NOT RATIFIED. D05–D14 remain OPEN; D06–D09/D12/D13 dependencies are unresolved. No option was approved or rejected by G0.26.
+- G0.26 verdict: **ANALYSIS PASS — minimality principles and cross-document boundaries recorded; signature profile NOT RATIFIED; implementation NOT AUTHORIZED**.
+- Documentation-only. No source/test/fixture/schema/API/registry/adapter/workflow/CI permission/credential/key/trust-root/provider/database/storage/market-data/model/ledger/VPS/runtime changes; no tests or workflow dispatch; no key operations, signing, anchor creation, inventory, provider/network/database/VPS access or lifecycle mutation.
+- Next owner decision: identify exact G0 evidence classes that require signer authenticity versus digest integrity only; then explicitly ratify/modify/reject D01–D04. Do not infer ratification from continuation requests. Synthetic verification, verifier implementation, real evidence adapters and runtime integration remain separate gates and approvals.
+- T0 remains independent/protected; CORE_LEDGER and AI_LEDGER remain separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
