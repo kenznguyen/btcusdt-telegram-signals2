@@ -166,3 +166,12 @@ A security review should explicitly assess:
 **Disposition: OPTIONS RECORDED / OWNER DECISION REQUIRED / CONTRACT FREEZE BLOCKED / IMPLEMENTATION NOT AUTHORIZED.**
 
 **Next step:** owner chooses A or B and E1 or E2, or requests a bounded revision. After that, revise the normative contract and obtain independent security review before seeking separate implementation authorization.
+
+
+## 9. Owner decision superseding the open choice (2026-11-11)
+
+The owner selected **Option B + E2**:
+- Option B: a separately signed Authorization Evidence Object, bound from the main Signature Statement by an immutable exact descriptor.
+- Option E2: detached envelope descriptor identity, with an independently assigned opaque ID that is not derived from a serialization containing itself.
+
+This decision supersedes the "no option selected" status in the original options analysis. It selects architecture patterns only; it does not freeze detailed schemas or authorize implementation. The controlling contract refinement is recorded in `T0_SIGNATURE_A2_2_STAGE_II_ED25519_ADAPTER_CONTRACT_2026-11-11.md`. Independent security review and separate implementation approval remain required.
