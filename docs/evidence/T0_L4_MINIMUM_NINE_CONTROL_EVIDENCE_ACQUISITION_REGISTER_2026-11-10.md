@@ -8,7 +8,7 @@ Status: **REGISTER RECONCILED — LINEAGE GATE PASS — SIX-ARTIFACT ACTIONS INV
 
 ## 1. Controlling policy and source baseline
 
-- Current L4-Minimum matrix: `docs/evidence/p1-8/L4-MINIMUM-PROVENANCE-ACCEPTANCE-MATRIX.md`, blob `75db0d98134fd656d91a8545bc307c56595aebf7`.
+- Current L4-Minimum matrix: `docs/evidence/p1-8/L4-MINIMUM-PROVENANCE-ACCEPTANCE-MATRIX.md`, blob `7c413504db397877b308345b21c9f6f58271c89a`.
 - Owner waiver: `docs/decisions/D-2026-11-10-L4-INDEPENDENT-REVIEW-WAIVER.md`; L4M-09 is OWNER-WAIVED / NOT MANDATORY.
 - Historical read-only audit: `docs/evidence/T0_L4_MINIMUM_READ_ONLY_AUDIT_2026-11-10.md`, blob `cfecb7428508adf23e6b9e71dc0dfe1e0e38080c`.
 - Historical adversarial review: `docs/evidence/T0_L4_MINIMUM_ADVERSARIAL_REVIEW_2026-11-10.md`, blob `a7aec29330d71cb4d34193d6db81b8e20eb295f1`.
