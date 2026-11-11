@@ -104,8 +104,14 @@ class OosEvaluationValidatorTest(unittest.TestCase):
         raw = record_bytes if record_bytes is not None else canonical(
             self.record if record is None else record
         )
+        effective_binding = binding
+        if effective_binding is None and record is not None and record_bytes is None:
+            effective_binding = {
+                "evaluation_record_id": record["evaluation_id"],
+                "evaluation_record_digest": digest(raw),
+            }
         with self.assertRaises(OosEvidenceValidationError) as raised:
-            self.validate(record_bytes=raw, binding=binding)
+            self.validate(record_bytes=raw, binding=effective_binding)
         if reason:
             self.assertEqual(str(raised.exception), reason)
 
@@ -197,7 +203,7 @@ class OosEvaluationValidatorTest(unittest.TestCase):
 
     def test_rejects_non_string_scalar_and_invalid_commit_digest(self):
         record = copy.deepcopy(self.record)
-        record["model_version"] = 1
+        record["model_version"] = True
         self.assert_rejected(record=record, reason="SCALAR_MUST_BE_STRING:model_version")
         record = copy.deepcopy(self.record)
         record["evaluation_code_commit"] = "z" * 40
