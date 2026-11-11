@@ -98,6 +98,7 @@ class S1MeasurementRunnerTests(unittest.TestCase):
             runner_source_bytes=RUNNER_SOURCE,
             frozen_runner_sha256=RUNNER_SHA,
             source_commit=SOURCE_COMMIT,
+            expected_source_commit=SOURCE_COMMIT,
             command="python -m unittest tools.test_s1_measurement_runner -v",
         )
         self.assertEqual(set(result["assertions"]), {f"A-{i:02d}" for i in range(1, 14)})
