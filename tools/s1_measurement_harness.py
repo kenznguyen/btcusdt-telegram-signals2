@@ -69,7 +69,8 @@ def parse_json_bytes(raw: bytes) -> ParseResult:
         _unicode(value)
     except ContractError as exc: return ParseResult(None,str(exc))
     except (json.JSONDecodeError, RecursionError, ValueError): return ParseResult(None,"PARSE_INVALID_JSON")
-    duplicates=tuple(_duplicates(value))
+    try: duplicates=tuple(_duplicates(value))
+    except RecursionError: return ParseResult(None,"PARSE_INVALID_JSON")
     return ParseResult(value,"PARSE_DUPLICATE_KEY" if duplicates else None,duplicates)
 
 def _dict(value): return {k:v for k,v in value}
@@ -138,6 +139,7 @@ def validate_manifest(inputs, oracle, manifest, expected_ids, expected_cases, ex
     if len(expected_cases) != 5 or set(expected_cases) != required_cases: return False
     observed_cases, observed_types = set(), set()
     for fixture_id, record in manifest.items():
+        if type(fixture_id) is not str or not FIXTURE_RE.fullmatch(fixture_id): return False
         if not isinstance(record, Mapping) or set(record) != {"case_id", "fixture_type"}: return False
         case_id, fixture_type = record["case_id"], record["fixture_type"]
         if type(case_id) is not str or type(fixture_type) is not str: return False
@@ -251,16 +253,37 @@ def validate_execution_trace(trace):
     return isinstance(trace,Mapping) and set(trace)==keys and all(
         isinstance(trace[k],(list,tuple)) and len(trace[k])==0 for k in keys)
 
+REPORT_ROW_FIELDS = frozenset({
+    "fixture_id", "raw_bytes", "max_depth", "max_object_members", "max_array_items",
+    "max_string_value_bytes", "max_string_key_bytes", "scalar_nodes",
+    "not_applicable_reason", "parse_reason_code", "duplicate_key_count",
+})
+
+def _safe_report_measurement(measurement):
+    if not isinstance(measurement, Mapping) or set(measurement) != {"rows", "aggregates", "corpus_sha256"}:
+        return False
+    if not isinstance(measurement["rows"], list) or not SHA_RE.fullmatch(str(measurement["corpus_sha256"])):
+        return False
+    for row in measurement["rows"]:
+        if not isinstance(row, Mapping) or set(row) != REPORT_ROW_FIELDS: return False
+        if type(row["fixture_id"]) is not str or not FIXTURE_RE.fullmatch(row["fixture_id"]): return False
+        if type(row["raw_bytes"]) is not int or row["raw_bytes"] < 0: return False
+        if type(row["duplicate_key_count"]) is not int or row["duplicate_key_count"] < 0: return False
+        for key in ("max_depth", "max_object_members", "max_array_items", "max_string_value_bytes", "max_string_key_bytes", "scalar_nodes"):
+            if row[key] is not None and (type(row[key]) is not int or row[key] < 0): return False
+        if row["not_applicable_reason"] is not None and type(row["not_applicable_reason"]) is not str: return False
+        if row["parse_reason_code"] is not None and type(row["parse_reason_code"]) is not str: return False
+    try: return recompute_aggregates(measurement["rows"]) == measurement["aggregates"]
+    except (KeyError, TypeError, ValueError): return False
+
 def build_report(corpus_revision,measurement,assertions,provenance):
-    if not isinstance(measurement,Mapping) or set(measurement)!={"rows","aggregates","corpus_sha256"}:
-        raise ValueError("invalid measurement shape")
+    if not _safe_report_measurement(measurement): raise ValueError("invalid or unsafe measurement shape")
     ids={f"A-{i:02d}" for i in range(1,14)}
     if not isinstance(assertions,Mapping) or set(assertions)!=ids or any(type(v) is not bool for v in assertions.values()):
         raise ValueError("all A-01..A-13 boolean assertions are required")
     report={"report_schema":"S1-MEASUREMENT-REPORT-V1","corpus_revision":corpus_revision,
         "measurement":dict(measurement),"assertions":dict(assertions),"provenance":dict(provenance)}
     return json.dumps(report,sort_keys=True,separators=(",",":"),ensure_ascii=True).encode("utf-8")
-
 def validate_report_readback(report_bytes):
     if type(report_bytes) is not bytes: return False
     parsed=parse_json_bytes(report_bytes)
@@ -268,13 +291,10 @@ def validate_report_readback(report_bytes):
     report=_plain(parsed.value)
     if not isinstance(report,dict) or set(report)!={"report_schema","corpus_revision","measurement","assertions","provenance"}: return False
     if report["report_schema"]!="S1-MEASUREMENT-REPORT-V1": return False
-    m=report["measurement"]
-    if not isinstance(m,dict) or set(m)!={"rows","aggregates","corpus_sha256"} or not isinstance(m["rows"],list): return False
-    if recompute_aggregates(m["rows"])!=m["aggregates"]: return False
+    if not _safe_report_measurement(report["measurement"]): return False
     ids={f"A-{i:02d}" for i in range(1,14)}
     return isinstance(report["assertions"],dict) and set(report["assertions"])==ids and all(
         type(v) is bool for v in report["assertions"].values()) and isinstance(report["provenance"],dict)
-
 def evaluate_assertions(e):
     checks={
       "A-01":lambda:validate_manifest(e["parser_inputs"],e["oracle_records"],e["manifest"],e["expected_fixture_ids"],e["expected_case_ids"],e["expected_fixture_types"]),
