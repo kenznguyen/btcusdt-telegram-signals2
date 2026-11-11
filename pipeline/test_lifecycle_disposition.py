@@ -302,8 +302,6 @@ class LifecycleDispositionTests(unittest.TestCase):
              "UNK_SENSITIVITY_EVIDENCE"),
             ({"state":"CLASSIFIED", "label":None, "evidence_ref":"x", "evidence_revision":"r1"},
              "UNK_SENSITIVITY_LABEL"),
-            ({"state":"CLASSIFIED", "label":"INTERNAL", "evidence_ref":"x", "evidence_revision":"r1",
-              "inherited_labels":"CONFIDENTIAL"}, "UNK_SENSITIVITY_INHERITANCE"),
         ]
         for sensitivity, code in cases:
             with self.subTest(sensitivity=sensitivity):
@@ -330,10 +328,12 @@ class LifecycleDispositionTests(unittest.TestCase):
                    "inherited_labels":["CONFIDENTIAL"], "evidence_ref":"synthetic-ref",
                    "evidence_revision":"r1"}
         valid = dict(too_low, label="RESTRICTED")
+        malformed_inheritance = dict(valid, inherited_labels="CONFIDENTIAL")
         for sensitivity, expected, code in (
             (too_low, "BLOCKED_UNKNOWN", "UNK_SENSITIVITY_BELOW_INHERITED"),
             (valid, "COPY_SPECIFIC_REVIEW", None),
             (dict(valid, inherited_labels=[]), "BLOCKED_UNKNOWN", "UNK_SENSITIVITY_INHERITANCE"),
+            (malformed_inheritance, "BLOCKED_UNKNOWN", "UNK_SENSITIVITY_INHERITANCE"),
         ):
             out = evaluate_disposition(record(**base, copy_lineage=lineage,
                 copies=inventory, sensitivity=sensitivity))
