@@ -2980,3 +2980,19 @@ Critical limits:
 - D2 applies only to parser/resource limits. It is not a retention/deletion/cleanup policy and does not authorize implementation, CI/dependency changes, package installation, key/trust operations or real evidence verification.
 - **Disposition: D1 APPROVED; D2 APPROVED; D3–D4 PENDING; A2.3 CONTRACT NOT FROZEN; STAGE II IMPLEMENTATION NOT AUTHORIZED; L4-MINIMUM BLOCKED / NOT VERIFIED.**
 - Next: request/record D3 independently; do not infer approval of D3/D4 from D1/D2.
+
+
+## T0 → T2 M15/H1 consumer completion increment (2026-11-12)
+
+- Final tested source commit: `625441535a7fcf76cfcb47ebd48eef87240cee41`; active branch remains `feature/t0-centralized-data-feeder-p1-20261101`. No new branch or PR.
+- T2 `CandleHttpClient` now accepts M15/H1, validates interval alignment and timeframe identity, pages bounded 32-candle requests across windows up to 3,000 candles, rejects any incomplete/stale/identity-invalid page, and combines coverage/freshness. A single-page response preserves T0's `datasetVersion`; multi-page responses recompute the same T0 canonical hash over the full combined read-window identity and candles.
+- T2 `canonical_context` accepts `timeframe="15m"|"1h"`; CLI exposes `--timeframe`. T0 API, storage, feeder, lease/writer and canonical data were not changed.
+- Independent fixture coverage: M15/H1 pagination, timeframe identity, coverage, freshness thresholds, aggregate hash, unsupported timeframe, oversized windows and fail-closed page errors. Isolated SQLite + loopback T0 API + T2 integration now exercises complete and gapped M15 and H1 paths using synthetic exchange rows only.
+- T0 manual validation run [43082340629](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43082340629), exact checkout/source SHA `625441535a7fcf76cfcb47ebd48eef87240cee41`, overall SUCCESS:
+  - SQLite lease/fencing: 55/55 PASS; artifact `13884362952`, ZIP SHA-256 `f9abdfe9d946304bd75f0f950f8af48b14093aa08a2b8764a05d77b933ea1a4a`.
+  - SQLite recovery: 64/64 PASS; artifact `13884233076`, ZIP SHA-256 `a9818675a5085050e3e92387bda19ec3604eb0557ac2ecddd2afdfda8ab3fab2`.
+  - Isolated T0 → T2 data flow: 87/87 PASS, verdict `SQLITE_T0_TO_T2_DATA_FLOW=PASS`; artifact `13884602890`, ZIP SHA-256 `71d6e5f349807f760f627e5c0d05411e827225540526afc672b1ecfe69bab966`.
+  - Manual runtime acceptance and G4 probe jobs were skipped; this is fixture/loopback CI evidence, not VPS or canonical-runtime acceptance.
+- T2 HTTP consumer workflow [43081968562](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43081968562), source SHA `6697ad6d5f081e62ffd7e877a8d3ff6805e714f0`: adapter 45/45, context/migration 11/11, exporter 6/6 PASS; artifact `13883923321`, ZIP SHA-256 `ab3e7a051602d6a2013249fb9afd18cbb101d175d3c63c19d07da694e83f9917`. Freqtrade 2026.9 strategy-load smoke [43082340809](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43082340809) also PASS at final tested source SHA.
+- A separate T0 Single Writer Gateway workflow [43082340853](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43082340853) has an unrelated five-layer paper-consumer regression failure; its static Gateway contract verification and TimescaleDB read-only integration jobs passed. Do not attribute that failure to the M15/H1 consumer change or promote the overall workflow to PASS.
+- **Disposition:** T2 M15/H1 client/context + independent fixture and isolated SQLite/API loopback path **PASS**. Actual canonical T0 API read, T0 runtime acceptance, bundle creation/export and VPS deployment remain **NOT VERIFIED / NOT PERFORMED**. No live orders; paper-only guards unchanged.
