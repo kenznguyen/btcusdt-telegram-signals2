@@ -108,3 +108,10 @@ Register/evidence update. GitHub-hosted lineage and three-artifact inventory/man
 - All three current-run output ZIPs were independently downloaded and re-hashed. These outputs remain outputs, not source evidence.
 - Remaining historical lineage outputs are not bulk-selected. Their metadata places them in the same generated lineage CI class; all remaining historical ZIPs have not been independently payload-rehashed.
 - No control disposition is promoted. L4M-01 remains PARTIAL; L4M-02 NOT VERIFIED; L4M-03–07 remain partial synthetic/design states; L4M-08 documentary pass only; L4M-09 owner-waived; L4M-10 not verified. Aggregate L4-Minimum remains BLOCKED / NOT VERIFIED.
+
+
+## Owner governance update — Option C revoked (2026-11-11)
+
+The owner explicitly revoked **Option C — No Destructive Authority** on 2026-11-11. Its former ACTIVE status in this document is historical and is superseded by this decision. Option C is now **REVOKED**; do not apply it as a blanket prohibition.
+
+This governance revocation is not a blanket instruction to execute deletion or cleanup. Any specific destructive operation still requires a separately scoped plan identifying exact target/data class, operation, retention/impact, preconditions, verification, recovery/rollback and explicit approval. T0 canonical data, lease/fencing state, ledgers, audit/reconstruction/recovery evidence and owner custody records remain protected unless an exact operation is separately approved. Paper-only posture and `AI_EXECUTION_ENABLED=false` remain unchanged. Revocation does not promote any L4 control or establish custody/signature/offline-verification assurance.
