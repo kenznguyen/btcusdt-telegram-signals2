@@ -118,6 +118,37 @@ The AEO Signature Statement MUST bind: exact statement type/schema; profile ID/v
 
 The AEO statement MUST NOT contain checkpoint-specific fields or claim checkpoint attestation. The purpose, role, audience, profile and exact AEO subject descriptor are inside the signed canonical statement. The distinct domain prevents cross-protocol substitution with the A1 checkpoint statement. The domain is a proposed normative addition and requires independent review and exact known-answer vectors before freeze.
 
+The AEO Signature Statement has exactly these required logical fields (the final canonical JSON schema and enum registry are part of the freeze gate):
+
+| Field | Requirement |
+|---|---|
+| `statement_type` | Exact `T0-AUTHORIZATION-EVIDENCE-SIGNATURE-STATEMENT-V1` |
+| `signature_profile_id` / `signature_profile_version` | Exact AEO issuer profile ID and version from §5.1 |
+| `signature_algorithm_id` | Exact `Ed25519` |
+| `purpose` | Exact `T0_AUTHORIZATION_EVIDENCE_ISSUER_ATTESTATION` |
+| `audience` | Exact relying verifier namespace |
+| `subject_object_descriptor` | Exact AEO body descriptor from §4.3 |
+| `signer_key_fingerprint` | SHA-256 of exact DER SPKI octets |
+| `signer_role` | Exact `AUTHORIZATION_EVIDENCE_ISSUER` |
+| `trust_policy_id` / `trust_policy_sequence` / `trust_policy_digest` | Exact accepted policy snapshot authorizing this AEO issuer |
+| `signing_time_observed_ms` | Optional local observation only; MUST NOT establish historical validity |
+
+The AEO body descriptor is:
+
+| Field | Requirement |
+|---|---|
+| `object_id` | Exact AEO `authorization_evidence_id` |
+| `object_type` | Exact `T0-AUTHORIZATION-EVIDENCE-V1` |
+| `schema_version` | Exact integer `1` |
+| `canonicalization_profile` | Exact `T0-JCS-1` |
+| `digest_algorithm` | Exact `SHA-256` |
+| `content_digest` | SHA-256 using A2.2 §20.1 Evidence Object domain, U64BE length and exact canonical AEO body bytes |
+| `byte_length` | Exact canonical AEO body byte length as canonical U64 decimal string |
+| `purpose` | Exact `T0_CHECKPOINT_SIGNING_PROVENANCE` |
+| `audience` | Exact verifier namespace |
+
+The AEO package descriptor embedded in the main checkpoint Signature Statement contains exactly two nested descriptors: the AEO body descriptor above and the detached descriptor of the AEO signature envelope. Both nested descriptors MUST be checked independently and MUST refer to the same AEO object ID, purpose and audience.
+
 ### 4.2 Signature profile
 
 - AEO issuer profile ID: `T0-AUTHORIZATION-EVIDENCE-ISSUER-SIGNATURE-PROFILE-V1`.
