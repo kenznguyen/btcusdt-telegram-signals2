@@ -1651,3 +1651,20 @@ This section supersedes the earlier PR #140 next-step note that requested implem
 - No VPS connection, authenticated SSH preflight, deployment, secret/credential mutation, runtime/service/database/data change, Feeder activation, exchange connection, market-data sync, or trading action occurred.
 - VPS-installed script provenance/hash and live VPS behavior remain **NOT VERIFIED**.
 - Next permitted step: reconcile the merged `main` workflow/script/test state and decide whether an isolated contract-only post-merge check is needed. Authenticated SSH remains **NOT AUTHORIZED** absent separate explicit approval. No runtime or VPS action is implied.
+
+
+
+## 2026-11-11 — Post-merge contract-only verification (run #43013387740)
+
+- Workflow run: [#43013387740](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43013387740), workflow `.github/workflows/t0-manual-validation.yml`, run number 98, event `workflow_dispatch`, selected gate `scaleway-ssh-contract-only`.
+- Run conclusion: **SUCCESS**; started `2026-11-11T11:36:47Z`, completed `2026-11-11T11:36:55Z`.
+- Exact checked-out source SHA: `9b49cd70af18f7cc734c718be016b85aecd047c4`; checkout log confirms the requested ref and `git log -1 --format=%H` returns the same SHA.
+- Contract job `P1 SSH preflight contract checks`, job ID `130498319975`: **SUCCESS**.
+- `bash -n ops/ssh/t0-readonly-preflight.sh`: PASS.
+- `python -m unittest ci.test_t0_ssh_preflight_contract -v`: **29/29 PASS** (`Ran 29 tests`, `OK`).
+- `T0 manual isolated acceptance`, job ID `130498322314`: **SKIPPED**.
+- `P1 authenticated Scaleway read-only preflight`, job ID `130498370610`: **SKIPPED**. No authenticated SSH or VPS connection occurred.
+- Artifacts: **NONE**; GitHub returned an empty artifact list.
+- Verdict: post-merge `main` contract-only verification **PASS** at exact source SHA `9b49cd70af18f7cc734c718be016b85aecd047c4`. This proves shell syntax and 29 source/workflow contract tests only; it does not prove deployed VPS script identity, live Feeder/API/SQLite state, or VPS operational behavior.
+- No secrets/credentials, VPS/runtime/services, database/data, deployment, exchange connection, market-data sync, or trading action occurred.
+- Next: keep VPS-installed Preflight provenance and runtime state **NOT VERIFIED**. Authenticated SSH remains **NOT AUTHORIZED** unless separately approved. No further contract-only rerun is needed absent source changes or a specific evidence gap.
