@@ -199,5 +199,127 @@ class S1MeasurementRunnerTests(unittest.TestCase):
         self.assertEqual(len(D10_TYPES), 11)
 
 
+class G040BRegressionTests(unittest.TestCase):
+    def _actual_sources(self):
+        from pathlib import Path
+        root = Path(__file__).resolve().parent
+        return (
+            (root / "s1_measurement_harness.py").read_bytes(),
+            (root / "s1_measurement_runner.py").read_bytes(),
+        )
+
+    def test_preflight_uses_actual_checked_out_source_bytes_and_commit(self):
+        import os
+        harness_bytes, runner_bytes = self._actual_sources()
+        checkout = os.environ.get("G0_SOURCE_COMMIT", SOURCE_COMMIT)
+        result = prepare_preflight(
+            harness_source_bytes=harness_bytes,
+            frozen_harness_sha256=hashlib.sha256(harness_bytes).hexdigest(),
+            runner_source_bytes=runner_bytes,
+            frozen_runner_sha256=hashlib.sha256(runner_bytes).hexdigest(),
+            source_commit=checkout,
+            expected_source_commit=checkout,
+            command="python -m unittest tools.test_s1_measurement_runner -v",
+        )
+        self.assertEqual(result["harness_source_sha256"], hashlib.sha256(harness_bytes).hexdigest())
+        self.assertEqual(result["runner_source_sha256"], hashlib.sha256(runner_bytes).hexdigest())
+        self.assertEqual(result["source_commit"], checkout)
+
+    def test_preflight_rejects_source_commit_not_equal_to_verified_checkout(self):
+        harness_bytes, runner_bytes = self._actual_sources()
+        with self.assertRaises(ValueError):
+            prepare_preflight(
+                harness_source_bytes=harness_bytes,
+                frozen_harness_sha256=hashlib.sha256(harness_bytes).hexdigest(),
+                runner_source_bytes=runner_bytes,
+                frozen_runner_sha256=hashlib.sha256(runner_bytes).hexdigest(),
+                source_commit="a" * 40,
+                expected_source_commit="b" * 40,
+                command="focused-tests",
+            )
+
+    def test_capability_policy_rejects_aliased_io_open(self):
+        from tools.s1_measurement_harness import validate_capability_boundary
+        source = b"from io import open as file_open\ndef f(path): return file_open(path)\n"
+        self.assertFalse(validate_capability_boundary(source, "persistence"))
+
+    def test_capability_policy_rejects_archive_extraction(self):
+        from tools.s1_measurement_harness import validate_capability_boundary
+        for source in (
+            b"import zipfile\ndef f(z, p): z.extractall(p)\n",
+            b"import tarfile\ndef f(t, p): t.extractall(p)\n",
+        ):
+            self.assertFalse(validate_capability_boundary(source, "persistence"))
+
+    def test_capability_policy_rejects_smtplib_external_access(self):
+        from tools.s1_measurement_harness import validate_capability_boundary
+        source = b"import smtplib\ndef f(): return smtplib.SMTP('example.invalid')\n"
+        self.assertFalse(validate_capability_boundary(source, "external"))
+
+    def _valid_report(self):
+        import json
+        from tools.s1_measurement_harness import measure_corpus, build_report
+        recipe = build_recipe()
+        measurement = measure_corpus(recipe["parser_inputs"], recipe["ordered_ids"])
+        assertions = {f"A-{i:02d}": True for i in range(1, 14)}
+        provenance = {
+            "corpus_revision": "synthetic-test",
+            "source_commit": SOURCE_COMMIT,
+            "source_blob_sha256": HARNESS_SHA,
+            "command": "focused-tests",
+            "python_version": "test",
+            "platform": "test",
+            "measurement_definition_revision": "S1-MEASUREMENTS-V1",
+        }
+        report_bytes = build_report("synthetic-test", measurement, assertions, provenance)
+        return json.loads(report_bytes), recipe
+
+    def test_report_readback_rejects_duplicate_fixture_ids(self):
+        import json
+        from tools.s1_measurement_harness import validate_report_readback
+        report, recipe = self._valid_report()
+        report["measurement"]["rows"][1]["fixture_id"] = report["measurement"]["rows"][0]["fixture_id"]
+        raw = json.dumps(report, separators=(",", ":")).encode()
+        self.assertFalse(validate_report_readback(raw, recipe["parser_inputs"], recipe["ordered_ids"]))
+
+    def test_report_readback_rejects_reordered_fixture_rows(self):
+        import json
+        from tools.s1_measurement_harness import validate_report_readback
+        report, recipe = self._valid_report()
+        report["measurement"]["rows"].reverse()
+        raw = json.dumps(report, separators=(",", ":")).encode()
+        self.assertFalse(validate_report_readback(raw, recipe["parser_inputs"], recipe["ordered_ids"]))
+
+    def test_report_readback_rejects_missing_or_extra_rows(self):
+        import json
+        from tools.s1_measurement_harness import validate_report_readback
+        for operation in ("missing", "extra"):
+            report, recipe = self._valid_report()
+            if operation == "missing":
+                report["measurement"]["rows"].pop()
+            else:
+                report["measurement"]["rows"].append(dict(report["measurement"]["rows"][0]))
+                report["measurement"]["aggregates"]["fixture_count"] += 1
+            raw = json.dumps(report, separators=(",", ":")).encode()
+            self.assertFalse(validate_report_readback(raw, recipe["parser_inputs"], recipe["ordered_ids"]))
+
+    def test_report_readback_rejects_modified_raw_byte_count(self):
+        import json
+        from tools.s1_measurement_harness import validate_report_readback
+        report, recipe = self._valid_report()
+        report["measurement"]["rows"][0]["raw_bytes"] += 1
+        report["measurement"]["aggregates"]["total_raw_bytes"] += 1
+        raw = json.dumps(report, separators=(",", ":")).encode()
+        self.assertFalse(validate_report_readback(raw, recipe["parser_inputs"], recipe["ordered_ids"]))
+
+    def test_report_readback_rejects_altered_corpus_digest(self):
+        import json
+        from tools.s1_measurement_harness import validate_report_readback
+        report, recipe = self._valid_report()
+        report["measurement"]["corpus_sha256"] = "0" * 64
+        raw = json.dumps(report, separators=(",", ":")).encode()
+        self.assertFalse(validate_report_readback(raw, recipe["parser_inputs"], recipe["ordered_ids"]))
+
+
 if __name__ == "__main__":
     unittest.main()
