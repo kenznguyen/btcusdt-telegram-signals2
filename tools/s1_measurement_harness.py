@@ -268,6 +268,8 @@ def validate_execution_trace(trace):
     return isinstance(trace,Mapping) and set(trace)==keys and all(
         isinstance(trace[k],(list,tuple)) and len(trace[k])==0 for k in keys)
 
+EXPECTED_S1_FIXTURE_IDS = tuple(f"syn-fixture-{index:03d}" for index in range(1, 23))
+
 REPORT_ROW_FIELDS = frozenset({
     "fixture_id", "raw_bytes", "max_depth", "max_object_members", "max_array_items",
     "max_string_value_bytes", "max_string_key_bytes", "scalar_nodes",
@@ -294,8 +296,8 @@ def _safe_report_shape(measurement):
 def _safe_report_measurement(measurement, parser_inputs, ordered_ids):
     if not _safe_report_shape(measurement): return False
     if not isinstance(parser_inputs, Mapping) or type(ordered_ids) is not list: return False
-    if len(ordered_ids) != 22 or len(ordered_ids) != len(set(ordered_ids)): return False
-    if set(parser_inputs) != set(ordered_ids): return False
+    if ordered_ids != list(EXPECTED_S1_FIXTURE_IDS): return False
+    if set(parser_inputs) != set(EXPECTED_S1_FIXTURE_IDS): return False
     if any(type(parser_inputs[fixture_id]) is not bytes for fixture_id in ordered_ids): return False
     try:
         expected = measure_corpus(parser_inputs, ordered_ids)
