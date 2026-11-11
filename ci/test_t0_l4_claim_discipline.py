@@ -100,7 +100,7 @@ class ClaimDisciplineTests(unittest.TestCase):
             audit_crosswalk(text)
 
     def test_rejects_missing_owner_only_disclaimers(self):
-        text = make_crosswalk().replace("Owner custody is NOT VERIFIED.", "Owner custody.")
+        text = make_crosswalk().replace("No complete owner-controlled package", "Package").replace("Owner custody is NOT VERIFIED.", "Owner custody.")
         with self.assertRaisesRegex(ClaimDisciplineError, "REQUIRED_LIMITATION_MISSING"):
             audit_crosswalk(text)
 
