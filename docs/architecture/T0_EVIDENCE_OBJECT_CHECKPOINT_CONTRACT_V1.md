@@ -829,3 +829,8 @@ This revocation removes Option C as a blanket prohibition but does not authorize
 This addendum supersedes only the requirement in §§7 and 9 that the custody copy and monotonic anchor MUST be outside both T0/VPS and GitHub, replacing it with the bounded two-location requirement above. All other v1 requirements remain unchanged. Where a stronger independent-failure-domain assurance is claimed, it remains NOT ESTABLISHED under this bounded scope.
 
 **Disposition:** OWNER-APPROVED CONTRACT AMENDMENT — DOCUMENTATION ONLY. Technical implementation, actual custody configuration, per-copy readback, signature verification, offline verification and L4 acceptance remain NOT VERIFIED until separately evidenced.
+
+### D. Harmonization with the G1 decision table
+
+The owner-approved bounded custody decision also governs the custody-location wording in §13.2 G1 rows **Evidence custodian** and **Latest-head anchor**, which restate the former §§7/9 outside-both location requirement. For those two rows only, the accepted locations are the designated VPS custody location and designated GitHub evidence location, subject to Sections A–C above. This is not a third independent failure domain; joint rollback of both locations remains undetectable. The role-separation requirements in the same rows and elsewhere in §13.2 are unchanged. This clarification does not alter the G1 decision that the initial A proof-of-existence product has no signer and makes no signer-authenticity claim.
+
