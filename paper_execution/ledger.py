@@ -12,6 +12,9 @@ from paper_execution import risk_control, equity as equity_history
 from paper_execution.account_history import (
     MIGRATION_VERSION as ACCOUNT_HISTORY_MIGRATION_VERSION,
     MIGRATION_CHECKSUM as ACCOUNT_HISTORY_MIGRATION_CHECKSUM,
+    CUTOVER_SNAPSHOT_MIGRATION_VERSION, CUTOVER_SNAPSHOT_MIGRATION_CHECKSUM,
+    FEE_PROVENANCE_MIGRATION_VERSION, FEE_PROVENANCE_MIGRATION_CHECKSUM,
+    DAILY_BASELINE_AUDIT_MIGRATION_VERSION, DAILY_BASELINE_AUDIT_MIGRATION_CHECKSUM,
     migrate_account_history, record_account_history_event,
     record_account_history_coverage, record_market_mark_history,
     reconstruct_daily_equity_baseline, migrate_cutover_ledger_snapshots,
@@ -1227,8 +1230,48 @@ def reduce_legacy_unattributed(
         return order
 
 
+def _dual_ledger_migrations_ready(connection):
+    """Verify the complete immutable schema without applying or repairing migrations."""
+    exists = connection.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name='paper_schema_migrations'"
+    ).fetchone()
+    if not exists:
+        return False
+    required = (
+        (MIGRATION_VERSION, MIGRATION_CHECKSUM),
+        (LEGACY_BOOK_MIGRATION_VERSION, LEGACY_BOOK_MIGRATION_CHECKSUM),
+        (RESERVATION_EXPIRY_MIGRATION_VERSION, RESERVATION_EXPIRY_MIGRATION_CHECKSUM),
+        (FUNDING_MIGRATION_VERSION, FUNDING_MIGRATION_CHECKSUM),
+        (CUTOVER_MIGRATION_VERSION, CUTOVER_MIGRATION_CHECKSUM),
+        (ACCOUNT_HISTORY_MIGRATION_VERSION, ACCOUNT_HISTORY_MIGRATION_CHECKSUM),
+        (CUTOVER_SNAPSHOT_MIGRATION_VERSION, CUTOVER_SNAPSHOT_MIGRATION_CHECKSUM),
+        (FEE_PROVENANCE_MIGRATION_VERSION, FEE_PROVENANCE_MIGRATION_CHECKSUM),
+        (DAILY_BASELINE_AUDIT_MIGRATION_VERSION, DAILY_BASELINE_AUDIT_MIGRATION_CHECKSUM),
+    )
+    for version, checksum in required:
+        row = connection.execute(
+            "SELECT checksum,status FROM paper_schema_migrations WHERE version=?",
+            (version,),
+        ).fetchone()
+        if row is None:
+            raise sqlite3.DatabaseError("DUAL_LEDGER_MIGRATION_INCOMPLETE")
+        if row != (checksum, "APPLIED"):
+            raise sqlite3.DatabaseError("DUAL_LEDGER_MIGRATION_CHECKSUM_MISMATCH")
+    return True
+
+
+def dual_ledger_ready(db_path):
+    """Read-only readiness check; never applies schema changes or repairs evidence."""
+    path = Path(db_path).resolve()
+    if not path.is_file():
+        raise FileNotFoundError("Paper ledger is unavailable")
+    with closing(sqlite3.connect(path.as_uri() + "?mode=ro", uri=True, timeout=10)) as connection:
+        connection.execute("PRAGMA query_only=ON")
+        return _dual_ledger_migrations_ready(connection)
+
+
 class PaperLedger:
-    def __init__(self, db_path, *, max_position_base="0.01", fee_rate="0.0005", max_spread_bps="50", risk_limits=None, require_risk_limits=False, leverage="13", strategy_id="MANUAL", source_sha=None, initial_capital="100"):
+    def __init__(self, db_path, *, max_position_base="0.01", fee_rate="0.0005", max_spread_bps="50", risk_limits=None, require_risk_limits=False, leverage="13", strategy_id="MANUAL", source_sha=None, apply_migrations=True):
         self.path = Path(db_path)
         self.maximum, self.fee_rate, self.spread = number(max_position_base), number(fee_rate), number(max_spread_bps)
         self.risk_limits, self.require_risk_limits = risk_limits, bool(require_risk_limits)
@@ -1275,28 +1318,18 @@ class PaperLedger:
                                        ("LEGACY" if legacy_position else None, 0, "0"))
             equity_history.ensure(connection)
             if self.strategy_id in DUAL_STRATEGIES:
-                configured_capital = number(str(initial_capital))
-                if configured_capital <= 0:
-                    raise ValueError("DUAL_LEDGER_INITIAL_CAPITAL_INVALID")
-                capital_row = connection.execute(
-                    "SELECT initial_capital FROM paper_account_config WHERE id=1"
-                ).fetchone()
-                if capital_row is None:
-                    connection.execute(
-                        "INSERT INTO paper_account_config(id,initial_capital) VALUES (1,?)",
-                        (text(configured_capital),),
-                    )
-                elif Decimal(capital_row[0]) != configured_capital:
-                    raise ValueError("PAPER_INITIAL_CAPITAL_CHANGED; explicit account migration required")
-                migrate_dual_ledger(connection, self.source_sha)
-                migrate_legacy_book_depth(connection, self.source_sha)
-                migrate_reservation_expiry(connection, self.source_sha)
-                migrate_funding_provenance(connection, self.source_sha)
-                migrate_account_equity_cutover(connection, self.source_sha)
-                migrate_account_history(connection, self.source_sha)
-                migrate_cutover_ledger_snapshots(connection, self.source_sha)
-                migrate_fee_currency_provenance(connection, self.source_sha)
-                migrate_daily_baseline_audit(connection, self.source_sha)
+                if apply_migrations:
+                    migrate_dual_ledger(connection, self.source_sha)
+                    migrate_legacy_book_depth(connection, self.source_sha)
+                    migrate_reservation_expiry(connection, self.source_sha)
+                    migrate_funding_provenance(connection, self.source_sha)
+                    migrate_account_equity_cutover(connection, self.source_sha)
+                    migrate_account_history(connection, self.source_sha)
+                    migrate_cutover_ledger_snapshots(connection, self.source_sha)
+                    migrate_fee_currency_provenance(connection, self.source_sha)
+                    migrate_daily_baseline_audit(connection, self.source_sha)
+                elif not _dual_ledger_migrations_ready(connection):
+                    raise sqlite3.DatabaseError("DUAL_LEDGER_MIGRATION_NOT_READY")
 
     def connect(self):
         connection = sqlite3.connect(self.path, timeout=10)
