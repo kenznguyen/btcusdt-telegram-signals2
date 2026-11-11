@@ -1862,3 +1862,16 @@ Next: if owner wants to proceed beyond planning, first approve a bounded provisi
 - No source/test/fixture/schema/API/registry/adapter/runner/oracle/workflow/scheduler/service/permission/credential/database/storage/VPS/runtime changes. No inventory, file/secret scan, network/provider/database access, archive, quarantine, cleanup, expiry, compaction, vacuum or deletion.
 - T0 remains independent/protected; CORE_LEDGER and AI_LEDGER remain separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
 - Next candidate: separate bounded implementation plan for sensitivity field propagation/validation in pure evaluator and in-memory synthetic tests. No implementation, CI dispatch, TEST-01–07 harness, runtime inventory or destructive operation authorized.
+
+
+## G0.18 — Sensitivity Field Integration Plan for Pure Lifecycle Evaluator (2026-11-11)
+
+- Evidence report: `docs/evidence/G0_18_SENSITIVITY_EVALUATOR_INTEGRATION_PLAN_2026-11-11.md`.
+- Report creation commit: `496e388202b6f8c3faed7cd746b9387d1c89668e`; report clarification commit: `db5124f164e7ff85c896fca422e3ab6921c77c7c`; final report blob: `d91b3d2ce998ba90a1df7849640c38dc4242d44e`.
+- Scope: documentation-only plan for the pure evaluator and its in-memory tests. Existing evaluator blob `6f083a6b9b7107f3b6e3c7af3b32da34b5dafb5e`; existing test blob `2ba03eb0deac67e1b82afb60ca24a6c15a2a56ce`.
+- Defines a proposed required in-memory `sensitivity` mapping, four ratified ordered labels, three non-label states, fail-closed validation, class-minimum enforcement, stable reason-code candidates and synthetic test matrix.
+- G0.17 ratifies semantic domain defaults, not a canonical machine-readable `data_class` enum. G0.18 explicitly leaves exact mapping from current evaluator identifiers to G0.17 semantic domains as a pre-implementation review item; no enum renaming or inferred equivalence is authorized.
+- Preserves five dispositions and their precedence; sensitivity cannot grant reviewability, retention-floor completion, archive/deletion approval or execution authority. Result flags remain false.
+- G0.18 verdict: documentation/plan PASS; evaluator integration NOT IMPLEMENTED; implementation approval NOT GRANTED by the plan; sensitivity tests NOT RUN; GitHub Actions NOT DISPATCHED; no run/artifact; evidence authentication NOT ESTABLISHED; TEST-01–07 unchanged at 0/87 executed; runtime inventory/classification NOT PERFORMED / NOT VERIFIED; destructive authority NOT GRANTED.
+- No source/test/fixture/schema/API/registry/adapter/runner/oracle/workflow/scheduler/service/permission/credential/database/storage/VPS/data/model/ledger/runtime changes. No inventory, file/secret scan, network/provider/database access, archive, quarantine, cleanup, expiry, compaction, vacuum or deletion.
+- Next gate: separate explicit bounded approval for changes only to `pipeline/lifecycle_disposition.py` and `pipeline/test_lifecycle_disposition.py`, plus the in-memory synthetic test matrix and local commands in the G0.18 report. CI dispatch, schema/registry integration, TEST-01–07, evidence authentication, runtime inventory and destructive actions remain separate gates. T0 independent/protected; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
