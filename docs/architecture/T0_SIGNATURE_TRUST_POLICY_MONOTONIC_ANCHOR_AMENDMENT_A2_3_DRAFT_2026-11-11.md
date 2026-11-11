@@ -352,7 +352,7 @@ The following ceilings are proposed for Stage II offline verification and requir
 - canonical Signature Statement: maximum 1,048,576 octets before domain/length prefix;
 - canonical envelope: maximum 1,114,112 octets (1 MiB + 64 KiB envelope overhead);
 - descriptor: maximum 65,536 octets;
-- nested evidence dependency count: maximum 64 descriptors per AEO package;
+- each nested evidence dependency object: maximum 1,048,576 octets; nested evidence dependency count: maximum 64 descriptors per AEO package; total frozen verification input-set bytes for one AEO package and its dependencies: maximum 16,777,216 octets (16 MiB);
 - JSON nesting depth: maximum 32; maximum object members 256; maximum array elements 256; maximum string UTF-8 length 16,384 octets.
 
 Exceeding a ceiling MUST return `INPUT_LIMIT_EXCEEDED` or the owning parser's stable size-limit reason, before expensive parsing/verification. These are proposed ceilings, not frozen constants, until exact owner approval and independent review.
