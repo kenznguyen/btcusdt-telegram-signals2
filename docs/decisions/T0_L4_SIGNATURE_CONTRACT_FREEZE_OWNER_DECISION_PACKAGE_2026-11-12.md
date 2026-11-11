@@ -43,9 +43,11 @@ Owner response: “có” (yes), in this conversation on 2026-11-12.
 
 ### D2 — Freeze proposed resource ceilings
 
-**Question:** Adopt the current A2.3 §9 limits as normative v1 ceilings?
+**Status: OWNER APPROVED — 2026-11-12**
 
-| Input | Proposed ceiling |
+**Decision: Option A — Adopt the exact A2.3 §9 ceilings below as normative v1 parser/resource limits.**
+
+| Input | Approved v1 ceiling |
 |---|---:|
 | AEO body | 1,048,576 bytes |
 | Canonical Signature Statement | 1,048,576 bytes |
@@ -62,10 +64,9 @@ Owner response: “có” (yes), in this conversation on 2026-11-12.
 | Array elements | 256 |
 | UTF-8 string length | 16,384 bytes |
 
-- Option A (recommended): adopt these exact ceilings, with boundary and over-limit negative tests.
-- Option B: defer numeric limits until a separate measurement exercise. If selected, the verifier remains NOT READY for real evidence and must fail closed on unbounded inputs.
+Required conformance: deterministic tests at each exact boundary and immediately over each ceiling; reject over-limit inputs before unbounded allocation/processing; all failures fail closed without advancing policy, anchor, trust-root, accepted-checkpoint or verification-history state.
 
-Recommendation: Option A for the bounded offline verifier. These are parser/resource ceilings, not evidence-retention or data-deletion limits.
+These are parser/resource ceilings only. They are not evidence-retention, data-deletion, cleanup or storage lifecycle limits. Approval freezes D2 policy values only; it does not authorize code/CI/dependency changes, package installation, real evidence verification, key operations, trust bootstrap or Stage II implementation.
 
 ### D3 — Freeze AEO and descriptor schemas
 
