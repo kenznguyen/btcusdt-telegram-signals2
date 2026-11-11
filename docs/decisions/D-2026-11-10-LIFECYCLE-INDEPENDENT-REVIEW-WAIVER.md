@@ -66,3 +66,10 @@ No control may be marked PASS merely because its reviewer gate is waived. Unknow
 This is a documentation/policy decision only. It authorizes no tests, GitHub Actions dispatch, source/runtime/VPS/database changes, identity or permission changes, provider contact, data/copy/inventory probes, staging, restore, fault injection, archive, cleanup, expiry, deletion, or other destructive operation.
 
 **Owner decision: APPROVED — independent human review waived for the lifecycle workstream, subject to all retained controls and claim limitations above.**
+
+
+## Superseding owner governance decision — Option C revoked (2026-11-11)
+
+The owner revoked **Option C — No Destructive Authority** on 2026-11-11. Any earlier statement in this historical record that Option C is ACTIVE, remains in force, is unchanged/current, or prohibits all destructive authority is superseded. Current status: **REVOKED**.
+
+This revocation removes Option C as a blanket prohibition but does not authorize any particular destructive operation. Deletion, archive, cleanup, expiry, vacuum, compaction, backup/replica removal, export mutation or provider operation still requires a separately explicit, scoped approval with exact target/data class, preconditions, expected effect, dependencies, verification and recovery/rollback plan. T0 canonical data, lease/fencing, ledgers, audit/reconstruction/recovery, custody and trust evidence remain protected unless separately approved. Paper-only and `AI_EXECUTION_ENABLED=false` remain unchanged. No L4 control or technical-enforcement status is promoted by this decision.
