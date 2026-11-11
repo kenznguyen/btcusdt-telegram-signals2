@@ -12,6 +12,8 @@ on:
       - ci/l4-artifact-allowlist.json
       - ci/t0_l4_repository_file_inventory.py
       - ci/test_t0_l4_repository_file_inventory.py
+      - ci/test_t0_l4_claim_discipline.py
+      - ci/t0_l4_claim_discipline.py
       - ci/l4-repository-file-inventory.json
       - docs/architecture/CENTRAL_DATA_LIFECYCLE_POLICY.md
       - docs/architecture/P1.8.14_EXTERNAL_TRUST_ANCHOR_PROVENANCE_AUTHENTICITY_2026-11-07.md
@@ -174,3 +176,46 @@ jobs:
           path: |
             l4-repository-file-inventory/l4-repository-file-inventory.json
             l4-repository-file-inventory/l4-repository-file-inventory.sha256
+
+  l4-claim-discipline:
+    name: L4M-08 bounded claim-discipline contract
+    needs: l4-minimum-lineage-contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout exact source commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run claim-discipline contract tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest ci.test_t0_l4_claim_discipline -v
+
+      - name: Audit the current control-to-source crosswalk
+        shell: bash
+        env:
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          python ci/t0_l4_claim_discipline.py --crosswalk docs/evidence/T0_L4_CONTROL_TO_SOURCE_CROSSWALK_2026-11-11.md --output-dir l4-claim-discipline
+
+      - name: Upload L4M-08 claim-discipline evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: t0-l4-claim-discipline-${{ github.run_id }}
+          if-no-files-found: warn
+          path: |
+            l4-claim-discipline/claim-discipline-report.json
+            l4-claim-discipline/claim-discipline-report.sha256
