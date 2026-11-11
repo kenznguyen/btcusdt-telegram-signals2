@@ -2055,3 +2055,17 @@ Next: if owner wants to proceed beyond planning, first approve a bounded provisi
 - Documentation-only. No source/test/fixture/schema/API/registry/adapter/runner/workflow/permission/credential/key/trust-root/database/storage/market-data/model/ledger/VPS/runtime changes; no tests or workflow dispatch; no cryptographic operations, provider/network/database/VPS access or inventory; no archive, quarantine, cleanup, expiry, compaction, VACUUM or deletion.
 - Next owner decision: explicitly approve or modify the exact S1 scope, D05/D10/D11/D14 decisions, permitted paths, commands, CI inclusion and acceptance evidence. Do not infer implementation authorization from approval of this proposal.
 - T0 remains independent/protected; CORE_LEDGER and AI_LEDGER remain separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
+
+
+## G0.30 — S1 Owner Decision Package (2026-11-11)
+
+- Baseline HEAD: `51ac7ed3845ce94d43e74c1d9e9aca9517292e3f`; baseline handoff blob: `f1bdb1ef51b151a4cbb5729ccb0235e4e913a6f1`.
+- Report: `docs/evidence/G0_30_S1_OWNER_DECISION_PACKAGE_2026-11-11.md`.
+- Report creation commit: `2fefcd681531d13f437dbe970406d3195a2a52cb`.
+- G0.30 prepared explicit owner options for S1 only: D05 Synthetic Contract Fixture v1 strict JSON/schema contract; D10 a separate 11-value synthetic-only `fixture_type` vocabulary; D11 resource-limit measurement method and provisional ceilings; D14 bounded implementation paths, focused local commands and acceptance evidence.
+- D11 caveat: G0.23 contains abstract fixture descriptors, not serialized fixture bytes. Numeric ceilings (64 KiB input, depth 8, 32 object members, 64 array items, 1 KiB/string, 512 scalar nodes, 16 reason codes) are provisional candidate ceilings, not empirically measured. Recommendation is to ratify measurement-first and measure a synthetic corpus before fixing numeric ceilings.
+- Proposed implementation paths if separately authorized: `pipeline/synthetic_contract.py`, `pipeline/test_synthetic_contract.py`, docs/evidence and handoff only. No CI workflow changes in initial S1 increment.
+- G0.30 verdict: **DECISION PACKAGE PASS — D05/D10/D11/D14 remain OPEN; S1 implementation/tests NOT AUTHORIZED**.
+- Documentation-only. No source/test/fixture/schema/API/registry/adapter/runner/workflow/permission/credential/key/trust-root/database/storage/market-data/model/ledger/VPS/runtime changes; no tests or workflow dispatch; no cryptographic operations, provider/network/database/VPS access or inventory; no lifecycle mutation.
+- Next owner decision: explicitly ratify or amend each D05/D10/D11/D14 recommendation. No implementation authorization is implied.
+- D01–D04, D06–D09, D12 and D13 remain OPEN / NOT RATIFIED. T0 remains independent/protected; CORE_LEDGER and AI_LEDGER remain separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
