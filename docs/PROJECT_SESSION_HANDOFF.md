@@ -14,7 +14,7 @@ Updated: 2026-11-11 (Asia/Ho_Chi_Minh)
 - Repository: `kenznguyen/btcusdt-telegram-signals2`.
 - Active branch: `feature/t0-centralized-data-feeder-p1-20261101`.
 - Default branch: `main`. Do not switch branches or create a parallel PR without a task-specific reason and approval.
-- Latest repository HEAD before this handoff update: `d5695ed7ac752d8e5570354a1389ef9c8403033c` (A2.2 Stage I contract ambiguity proposal recorded; see current A2.2 workstream below).
+- Latest repository HEAD before this handoff update: `41bbaa23cb8f7f732431644ad103882caa695146` (Stage I evidence linked to the contract clarification proposal; see current A2.2 workstream below).
 - Full previous handoff preserved verbatim in `docs/archive/PROJECT_SESSION_HANDOFF_HISTORY_2026-11-10.md`; archive commit: `2fcad94aef8b15002cdba58aafe62ad208dc818b`.
 - PR #139 is OPEN / DRAFT / NOT MERGED. It concerns SSH passphrase handling and targets this active branch. Do not merge or alter it as part of unrelated work.
 
@@ -747,3 +747,6 @@ Reconcile the four-artifact Actions allowlist with all eligible source artifacts
 - Proposal blob: `37bff74053ddc1034e09f40d9cc3bf558588e897`; commit: `d5695ed7ac752d8e5570354a1389ef9c8403033c`.
 - Proposal recommends exact NUL-terminated domain byte vectors for Evidence Object, Trust Policy body, Monotonic Anchor object and Signature Envelope object, plus a restricted T0-JCS-1 numeric grammar.
 - Proposal is **NOT OWNER-APPROVED** and does not amend A2.2. The three digest helpers remain fail-closed. Await explicit owner decision before changing the governing contract or implementing the ambiguous helpers.
+
+
+- Stage I harness evidence report was updated to reference the unapproved contract-ambiguity proposal: current evidence blob `9e5ecd7a2c47cad4d36e4d1b1ab0d8d3385e8bde`, commit `41bbaa23cb8f7f732431644ad103882caa695146`.
