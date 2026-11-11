@@ -99,6 +99,9 @@ class CalibrationRegistryVerifierTest(unittest.TestCase):
             "digest_algorithm": "SHA-256",
             "manifest_digest": digest(raw),
             "manifest_size_bytes": str(len(raw)),
+            "key_id": self.trust["key_id"],
+            "signer_role": "CALIBRATION_SIGNER",
+            "publisher_id": payload["publisher_id"],
         }
         signature = key.sign(signature_message(statement))
         return {
