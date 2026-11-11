@@ -2704,3 +2704,15 @@ Critical limits:
 - No C_min, sample-count, calibration-duration or max-age numeric threshold was selected. No registry/artifact/key, training job, DB migration, runtime activation, VPS operation or live execution occurred.
 
 **Disposition:** RFC8785/Ed25519 verifier, transform evaluator and fail-closed decision evidence contract IMPLEMENTED; focused CI PASS. Overall Calibrated confidence/provenance completion BLOCKED / NOT VERIFIED until an authorized real trust pin/key lifecycle, append-only active/revocation chain, trusted time, OOS evaluation/dataset lineage and real calibrated artifact are available. Do not weaken the new ACTIVE/time/OOS gates or enable AI execution to bypass missing evidence.
+
+## AI calibration verifier BOM rejection hardening — 2026-11-12
+
+- Scope: correct UTF-8 BOM detection for exact manifest bytes and calibration-transform artifact bytes; no schema, policy, trust, provider, registry-state or runtime changes.
+- Code review found both guards compared against the six-character text sequence `\\ufeff` instead of the decoded Unicode BOM character. This meant BOM-prefixed manifest/transform bytes could fall through to generic JSON parse errors instead of the explicit fail-closed BOM rejection.
+- Added regression tests in `pipeline/test_ai_calibration_registry.py` for actual UTF-8 BOM bytes in both inputs. Test file commit: `7fd55aad514675888877307a05bfafef6844b3cc`; blob `e3e07cde15f3e4bc00758ff9ff94c7288c4ee18c`.
+- Corrected both guards in `pipeline/calibration_registry.py`. Implementation commit: `9be4c7061db2eef3b521e966bee89296b5de45f9`; blob `084bae77874bfbb4aca4974511e4e2f5acd68284`.
+- Intermediate test-authoring commit `23f77ea0dcf2fbb99f10f540644cea346deb9dd1` was superseded by the corrected test bytes in `7fd55aad514675888877307a05bfafef6844b3cc`.
+- Verification: source diff confirms both guards now check the actual U+FEFF character and tests construct bytes from hex `efbbbf`. GitHub combined status for implementation SHA `9be4c7061db2eef3b521e966bee89296b5de45f9` returned no status checks; no workflow run/job log was available for the new commits. RED and GREEN execution are therefore **NOT VERIFIED**; do not claim these tests PASS until CI runs against the exact source SHA.
+- No independent runtime, local checkout test, artifact, model, calibration data, key, registry event, provider, database, T0/T1/T2, VPS, trading or destructive operation was performed.
+- Review: narrow correctness fix; existing verifier boundaries and failure semantics preserved. No new dependency or public API.
+- **Disposition: implementation committed; verification NOT VERIFIED.** Next: obtain a GitHub Actions run against exact SHA `9be4c7061db2eef3b521e966bee89296b5de45f9` and inspect the focused verifier job before promoting this increment to PASS.
