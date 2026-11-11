@@ -142,3 +142,15 @@ Not included:
 **GREEN-0 disposition:** source inventory COMPLETE; provider/policy freeze PARTIAL and BLOCKED on owner decisions G0-01–G0-07 in the evidence report. No defaults selected. No tests/workflow run; no code, schema, DB, migration, calibration, model, T0/T1/T2, VPS/runtime, deployment or exchange state changed.
 
 The existing 1% reservation budget, Core 13x and account-risk provider are identified; this does not authorize implementation. GREEN-1 through GREEN-5 remain NOT AUTHORIZED.
+
+
+## Owner decision record — 2026-11-11
+
+The owner approved a bounded GREEN-0 design disposition:
+
+1. Reuse the existing `read_account_risk_snapshot` read provider and `PaperLedger._submit_scoped` final Shared Risk Engine; do not add a parallel equity calculator or risk engine. Existing 30-minute mark freshness is observed source behavior only, not an approved AI policy threshold. AI freshness semantics and immutable risk-policy version identity remain open.
+2. Disable AI DCA in v1. AI may produce independent LONG/SHORT ENTRY intents; DCA remains unavailable until a separate trigger/eligibility contract is approved.
+3. Keep AI trade admission blocked until trusted calibration registry/digest verification, provenance compatibility, evidence-based calibration thresholds, and authoritative versioned BTCUSDT instrument filters are resolved.
+4. Defer reservation snapshot design. No schema or migration.
+
+This is a documentation/design decision only. GREEN-1..5, production code/tests, schema/database, migration, calibration/model work, backtest/OOS acceptance, feature activation, T0/T1/T2 runtime, VPS, deployment, exchange connectivity and live orders remain NOT AUTHORIZED. `AI_EXECUTION_ENABLED=false` remains in force.
