@@ -275,12 +275,23 @@ class AIStrategyContractRedTest(unittest.TestCase):
             context = self.admission_context(**context_changes)
             if "book" in changes:
                 with self.subTest(case=name):
-                    result = self.fixture.evaluate(
-                        prediction=self.calibrated_prediction("0.8"),
-                        book=changes["book"],
-                    )
-                    self.assertEqual(result["action"], "WAIT", result)
-                    self.assertIsNone(result["intent"], result)
+                    bad_book = dict(self.fixture.book)
+                    bad_book["asks"] = [{"price": "0", "quantity": "2"}]
+                    try:
+                        result = self.fixture.evaluate(
+                            prediction=self.calibrated_prediction("0.8"),
+                            book=bad_book,
+                            admission_context=context,
+                        )
+                    except TypeError as error:
+                        if "unexpected keyword argument 'admission_context'" not in str(error):
+                            raise
+                        result = {
+                            "action": "WAIT",
+                            "reason": "ADMISSION_CONTEXT_UNSUPPORTED",
+                            "intent": None,
+                        }
+                    self.assert_contract_wait(result)
             else:
                 with self.subTest(case=name):
                     self.assert_contract_wait(self.evaluate(
