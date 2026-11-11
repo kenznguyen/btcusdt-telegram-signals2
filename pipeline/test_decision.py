@@ -105,6 +105,7 @@ class DecisionTest(unittest.TestCase):
         self.assertEqual(intent["targetPositionBase"], "0.001")
         self.assertEqual(intent["limitPrice"], "101")
         self.assertEqual(intent["mode"], "PAPER")
+        self.assertEqual(intent["calibrationManifestDigest"], "sha256:" + "d" * 64)
         self.assertEqual(self.evaluate(now_ms=self.now+1000)["intent"], intent)
         self.assertEqual(intent["inputSnapshotId"], self.intelligence["snapshotId"])
 
