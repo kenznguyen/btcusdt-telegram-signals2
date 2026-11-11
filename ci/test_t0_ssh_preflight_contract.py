@@ -6,6 +6,7 @@ import re
 import shutil
 import subprocess
 import tempfile
+import textwrap
 import unittest
 
 
@@ -291,6 +292,78 @@ class T0SSHPreflightContractTests(unittest.TestCase):
         artifact = workflow.split("      - name: Upload sanitized preflight evidence\n", 1)[1]
         for required in ("preflight-ssh-diagnostic.txt", "preflight-ssh-exit-code.txt"):
             self.assertIn(required, artifact)
+
+
+    def run_classifier(self, *, ssh_exit_code="0", remote_log=None):
+        workflow = WORKFLOW.read_text(encoding="utf-8")
+        step = workflow.split("      - name: Classify preflight evidence\n", 1)[1].split(
+            "      - name: Upload sanitized preflight evidence\n", 1
+        )[0]
+        script = textwrap.dedent(step.split("        run: |\n", 1)[1])
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            if ssh_exit_code is not None:
+                (root / "preflight-ssh-exit-code.txt").write_text(
+                    f"{ssh_exit_code}\n", encoding="utf-8"
+                )
+            if remote_log is not None:
+                (root / "preflight-remote.log").write_text(remote_log, encoding="utf-8")
+            result = subprocess.run(
+                ["bash", "-c", script],
+                cwd=root,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            verdict_path = root / "preflight-verdict.txt"
+            verdict = verdict_path.read_text(encoding="utf-8") if verdict_path.exists() else ""
+            return result, verdict
+
+    @staticmethod
+    def complete_remote_evidence():
+        return "\n".join(
+            (
+                "P1_SSH_PREFLIGHT_VERSION=1",
+                "HOSTNAME=btcquant-test",
+                "SSH_USER=ubuntu",
+                "SOURCE_SHA=" + "a" * 40,
+                "FEEDER_PIDS=1234",
+                "API_8788=LOOPBACK_LISTENER",
+                "SQLITE_INTEGRITY=PASS",
+                "P1_SSH_PREFLIGHT_END=1",
+                "",
+            )
+        )
+
+    def test_classifier_blocks_failed_ssh_even_when_valid_remote_log_exists(self):
+        result, verdict = self.run_classifier(
+            ssh_exit_code="255", remote_log=self.complete_remote_evidence()
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("P1_SSH_PREFLIGHT=BLOCKED_SSH_STEP_FAILED_OR_NOT_RUN", verdict)
+        self.assertNotIn("P1_SSH_PREFLIGHT=PASS_READ_ONLY_PREFLIGHT", verdict)
+
+    def test_classifier_blocks_incomplete_protocol_framing(self):
+        evidence = self.complete_remote_evidence().replace(
+            "P1_SSH_PREFLIGHT_END=1\n", ""
+        )
+        result, verdict = self.run_classifier(ssh_exit_code="0", remote_log=evidence)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("P1_SSH_PREFLIGHT=PARTIAL_OR_BLOCKED_EVIDENCE", verdict)
+        self.assertNotIn("P1_SSH_PREFLIGHT=PASS_READ_ONLY_PREFLIGHT", verdict)
+
+    def test_classifier_blocks_missing_required_probe_field(self):
+        evidence = self.complete_remote_evidence().replace("HOSTNAME=btcquant-test\n", "")
+        result, verdict = self.run_classifier(ssh_exit_code="0", remote_log=evidence)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("P1_SSH_PREFLIGHT=PARTIAL_OR_BLOCKED_EVIDENCE", verdict)
+
+    def test_classifier_passes_only_complete_successful_loopback_evidence(self):
+        result, verdict = self.run_classifier(
+            ssh_exit_code="0", remote_log=self.complete_remote_evidence()
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("P1_SSH_PREFLIGHT=PASS_READ_ONLY_PREFLIGHT", verdict)
 
 if __name__ == "__main__":
     unittest.main()
