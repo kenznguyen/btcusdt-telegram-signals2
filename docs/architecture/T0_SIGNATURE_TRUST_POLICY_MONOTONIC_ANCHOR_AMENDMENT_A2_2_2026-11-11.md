@@ -563,7 +563,7 @@ This section supplements A2 §5.1 and replaces the abbreviated A2.1-NV-01..09 ca
 
 ### 18.1 Shared clean baseline fixture B0
 
-B0 is a synthetic, offline-only fixture. It contains:
+B0 is a synthetic, offline-only fixture. Its test-only signer and Trust Policy are cryptographically valid under an isolated fixture profile; this does not select a production algorithm or create a production trust root. It contains:
 - one A2.2 checkpoint descriptor and one canonical Evidence Object whose bytes, ID, type, schema, digest and byte length are mutually consistent;
 - Signature Statement and detached envelope with identical `T0-CHECKPOINT-ISSUER-SIGNATURE-PROFILE-V2` / version `2` values at every applicable descriptor, statement and envelope location;
 - purpose `T0_CHECKPOINT_ISSUER_ATTESTATION`;
@@ -579,9 +579,9 @@ For each test, clone its named baseline (B0 or B-A; A2.2-NV-04 uses B0-PF) to a 
 
 | ID | Single mutation from B0 | Per-dimension expected result | Aggregate / primary reason | State and forbidden transitions |
 |---|---|---|---|---|
-| A2.2-NV-01 | Change only statement purpose to legacy `T0_CHECKPOINT_OWNER_ATTESTATION`, retaining otherwise valid signature bytes | Purpose/profile authorization is UNTRUSTED; signature bytes are not accepted | UNTRUSTED / `PURPOSE_NOT_SUPPORTED_BY_PROFILE` | S1=S0; no root enrollment, policy/anchor/checkpoint advancement |
-| A2.2-NV-02 | Remove only issuer purpose from the policy allowlist | Policy authorization BLOCKED; signature dimension not accepted | BLOCKED / `POLICY_PURPOSE_NOT_EXPLICIT` | S1=S0; no authorization or state advancement |
-| A2.2-NV-03 | Change only the A1 historical descriptor's profile to `T0-CHECKPOINT-ISSUER-SIGNATURE-PROFILE-V2` version `2` while retaining A1 type/version | Object/profile binding INVALID | INVALID / `PROFILE_VERSION_MISMATCH` | S1=S0; no historical relabel or A2.2 acceptance |
+| A2.2-NV-01 | Change only statement purpose to legacy `T0_CHECKPOINT_OWNER_ATTESTATION`; regenerate the derived test signature so the altered statement remains cryptographically valid under the synthetic test signer | Purpose/profile authorization is UNTRUSTED; signature is cryptographically valid but purpose is unsupported | UNTRUSTED / `PURPOSE_NOT_SUPPORTED_BY_PROFILE` | S1=S0; no root enrollment, policy/anchor/checkpoint advancement |
+| A2.2-NV-02 | Remove only issuer purpose from the policy allowlist and regenerate the derived policy signature so the changed policy remains cryptographically valid | Policy authorization BLOCKED; policy signature is valid but does not authorize this purpose | BLOCKED / `POLICY_PURPOSE_NOT_EXPLICIT` | S1=S0; no authorization or state advancement |
+| A2.2-NV-03 | Select only the A2.2 V2 profile in the verifier request for an unchanged A1 historical object | Historical object/profile binding INVALID | INVALID / `PROFILE_VERSION_MISMATCH` | S1=S0; no historical relabel or A2.2 acceptance |
 | A2.2-NV-04 | Baseline B0-PF contains one fixed A2.2 profile-check failure; change only verifier configuration to enable automatic A1 fallback | Profile downgrade BLOCKED | BLOCKED / `PROFILE_DOWNGRADE_FORBIDDEN` | S1=S0; no second-profile attempt or state advancement |
 | A2.2-NV-05 | Change only verifier request profile ID to an unknown ID | Profile selection BLOCKED | BLOCKED / `PROFILE_UNKNOWN` | S1=S0; no policy lookup fallback or state advancement |
 | A2.2-NV-06 | Change only verifier request profile version to synthetic registry version `3`, which is known but locally disabled in the fixture | Profile selection BLOCKED | BLOCKED / `PROFILE_NOT_ENABLED` | S1=S0; no profile substitution |
@@ -619,8 +619,8 @@ B-A is strictly a synthetic test baseline describing a hypothetical future Path 
 ### 18.4 Required assertions for every fixture
 
 For every A2.2-NV case above, the test harness MUST:
-1. record the complete B0 or B-A baseline fixture digest and schema version;
-2. record exactly one mutation and prove no other fixture byte/field changed;
+1. record the complete B0, B-A or B0-PF baseline fixture digest and schema version;
+2. record exactly one semantic mutation and prove no unrelated fixture field changed; when a signed field is intentionally changed for a policy/purpose test, regenerate only the dependent test-only signature/digest artifacts so the fixture remains internally valid, except where the case explicitly tests signature invalidity;
 3. record per-dimension results for parsing/canonicalization, object binding, profile, purpose, signature, policy authorization, bootstrap authorization and custody/readback as applicable;
 4. emit exactly one aggregate verdict and exactly one primary reason code from the row;
 5. record state snapshot S0 and S1, proving S1 equals S0 for every failed case;
