@@ -2430,5 +2430,55 @@ os._exit(0)
                 )
 
 
+    def test_account_mark_reconciles_both_strategy_ledgers_under_one_account_transaction(self):
+        self.core.submit(
+            self.intent("mark-core-long", "0.1", "100.1", "mark-core-book"),
+            self.book(self.now), self.now,
+        )
+        self.ai.submit(
+            self.intent("mark-ai-short", "-0.1", "100", "mark-ai-book"),
+            self.book(self.now + 1), self.now + 1,
+        )
+        account = PaperLedger(
+            self.path, max_position_base="1", strategy_id="MANUAL",
+            source_sha="a" * 40,
+        )
+        account.record_account_mark(
+            mark_price="110", candle_close_ms=self.now-60_000,
+            observed_at_ms=self.now, dataset_version="sha256:account-mark",
+        )
+        with sqlite3.connect(self.path) as connection:
+            risk = connection.execute(
+                """SELECT last_equity_quote,last_mark_price,mark_observed_at_ms,
+                          mark_candle_close_ms,dataset_version,risk_ready
+                   FROM paper_account_risk_state WHERE account_id=1"""
+            ).fetchone()
+            capital = connection.execute(
+                "SELECT initial_capital FROM paper_accounts WHERE account_id=1"
+            ).fetchone()[0]
+            ledgers = connection.execute(
+                """SELECT position_base,average_entry_price,realized_pnl_quote,
+                          fees_quote,funding_quote FROM paper_strategy_ledgers
+                   WHERE account_id=1"""
+            ).fetchall()
+            adjustments = connection.execute(
+                "SELECT adjustment_type,amount_quote FROM paper_account_adjustments WHERE account_id=1"
+            ).fetchall()
+        unrealized = sum(
+            (Decimal(qty) * (Decimal("110") - Decimal(avg)) for qty, avg, *_ in ledgers),
+            Decimal(0),
+        )
+        realized = sum((Decimal(row[2]) for row in ledgers), Decimal(0))
+        fees = sum((Decimal(row[3]) for row in ledgers), Decimal(0))
+        funding = sum((Decimal(row[4]) for row in ledgers), Decimal(0))
+        legacy_pnl = sum((Decimal(amount) for kind, amount in adjustments if kind == "LEGACY_REALIZED_PNL"), Decimal(0))
+        legacy_fees = sum((Decimal(amount) for kind, amount in adjustments if kind == "LEGACY_FEES"), Decimal(0))
+        expected = Decimal(capital) + realized + legacy_pnl + unrealized - fees - legacy_fees - funding
+        self.assertEqual(risk[0], str(expected))
+        self.assertEqual(risk[1:5], ("110", self.now, self.now-60_000, "sha256:account-mark"))
+        self.assertEqual(risk[5], 1)
+
+
+
 if __name__ == "__main__":
     unittest.main()
