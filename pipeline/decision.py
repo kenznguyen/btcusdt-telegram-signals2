@@ -106,12 +106,10 @@ def _prices(book, now_ms):
 
 
 
-def _calibration(prediction, now_ms, policy):
-    """Validate an explicit calibrated-confidence and provenance envelope.
-
-    The policy is supplied by the server admission boundary. No production
-    defaults are inferred from test fixtures or from the prediction artifact.
-    """
+def _calibration(prediction, now_ms, admission_context):
+    """Validate server-constructed evidence derived from a verified calibration bundle."""
+    _require(isinstance(admission_context, dict), "AI_CALIBRATION_ADMISSION_CONTEXT_UNAVAILABLE")
+    policy = admission_context.get("ai_policy")
     _require(isinstance(policy, dict), "AI_CALIBRATION_POLICY_UNAVAILABLE")
     _require(isinstance(policy.get("policyVersion"), str) and
              1 <= len(policy["policyVersion"]) <= 128, "INVALID_AI_CALIBRATION_POLICY")
@@ -130,56 +128,56 @@ def _calibration(prediction, now_ms, policy):
              type(expected_horizon) is int and expected_horizon > 0,
              "INVALID_AI_CALIBRATION_COMPATIBILITY_POLICY")
 
-    calibration = prediction.get("calibration")
-    _require(isinstance(calibration, dict), "CALIBRATED_CONFIDENCE_UNAVAILABLE")
-    confidence = number(calibration["calibratedConfidence"])
+    evidence = admission_context.get("calibration_evidence")
+    _require(isinstance(evidence, dict) and
+             evidence.get("verificationStatus") == "SIGNATURE_VERIFIED_ONLY",
+             "TRUSTED_CALIBRATION_EVIDENCE_UNAVAILABLE")
+    confidence = number(evidence["calibratedConfidence"])
     _require(0 <= confidence <= 1, "INVALID_CALIBRATED_CONFIDENCE")
     _require(confidence >= confidence_min, "CALIBRATED_CONFIDENCE_BELOW_MINIMUM")
-
-    for field in ("calibrationVersion", "calibrationMethod"):
-        value = calibration.get(field)
-        _require(isinstance(value, str) and 1 <= len(value) <= 128,
-                 "INVALID_CALIBRATION_PROVENANCE")
-    for field in ("calibrationArtifactHash", "calibrationDatasetVersion"):
-        value = calibration.get(field)
+    for field in ("manifestDigest", "calibrationArtifactHash", "calibrationDatasetVersion"):
+        value = evidence.get(field)
         _require(isinstance(value, str) and
                  re.fullmatch(r"sha256:[0-9a-f]{64}", value) is not None,
                  "INVALID_CALIBRATION_DIGEST")
-    _require(calibration["calibrationDatasetVersion"] !=
+    _require(evidence["calibrationDatasetVersion"] !=
              prediction["trainingDatasetVersion"],
              "CALIBRATION_DATASET_MUST_DIFFER_FROM_TRAINING")
 
     for field in ("modelVersion", "strategyVersion", "trainingDatasetVersion"):
-        _require(calibration.get(field) == prediction.get(field),
+        _require(evidence.get(field) == prediction.get(field),
                  "CALIBRATION_PREDICTION_PROVENANCE_MISMATCH")
-    _require(calibration.get("labelDefinition") == expected_label and
-             calibration.get("forecastHorizonMs") == expected_horizon,
+    _require(evidence.get("labelDefinition") == expected_label and
+             evidence.get("forecastHorizonMs") == expected_horizon,
              "CALIBRATION_LABEL_HORIZON_MISMATCH")
 
-    sample_count = calibration["calibrationSampleCount"]
+    for field in ("calibrationVersion", "calibrationMethod"):
+        value = evidence.get(field)
+        _require(isinstance(value, str) and 1 <= len(value) <= 128,
+                 "INVALID_CALIBRATION_PROVENANCE")
+    sample_count = evidence["calibrationSampleCount"]
     _require(type(sample_count) is int and sample_count >= minimum_samples,
              "INSUFFICIENT_CALIBRATION_SAMPLES")
-    start = stamp(calibration["calibrationStartMs"])
-    end = stamp(calibration["calibrationEndMs"])
-    calibrated_at = stamp(calibration["calibratedAtMs"])
+    start = stamp(evidence["calibrationStartMs"])
+    end = stamp(evidence["calibrationEndMs"])
+    calibrated_at = stamp(evidence["calibratedAtMs"])
     trained_through = stamp(prediction["trainedThroughMs"])
     prediction_open = stamp(prediction["candleOpenTimeMs"])
     prediction_available = stamp(prediction["availableAtMs"])
     _require(start > trained_through and end >= start and
              end-start >= minimum_period,
              "INVALID_CALIBRATION_WINDOW")
-    # Calibration labels must have fully matured before the admitted prediction
-    # candle opens; otherwise the forecast horizon can leak across the cutoff.
     _require(end + expected_horizon <= prediction_open,
              "CALIBRATION_HORIZON_LEAKAGE")
     _require(end <= calibrated_at <= prediction_available <= now_ms,
              "INVALID_CALIBRATION_TIMESTAMP_ORDER")
     _require(now_ms-calibrated_at <= maximum_age,
              "STALE_CALIBRATION_ARTIFACT")
-    return {"confidence": confidence, "calibrationVersion": calibration["calibrationVersion"],
-            "calibrationMethod": calibration["calibrationMethod"],
-            "calibrationArtifactHash": calibration["calibrationArtifactHash"],
-            "calibrationDatasetVersion": calibration["calibrationDatasetVersion"],
+    return {"confidence": confidence, "calibrationVersion": evidence["calibrationVersion"],
+            "calibrationMethod": evidence["calibrationMethod"],
+            "manifestDigest": evidence["manifestDigest"],
+            "calibrationArtifactHash": evidence["calibrationArtifactHash"],
+            "calibrationDatasetVersion": evidence["calibrationDatasetVersion"],
             "calibrationSampleCount": sample_count, "calibrationStartMs": start,
             "calibrationEndMs": end, "calibratedAtMs": calibrated_at,
             "labelDefinition": expected_label, "forecastHorizonMs": expected_horizon}
@@ -230,6 +228,7 @@ def evaluate(candle_window, intelligence, prediction, book, now_ms, *, admission
                       "inputSnapshotId": intelligence["snapshotId"], "mode": "PAPER",
                       "calibratedConfidence": str(calibration["confidence"]),
                       "calibrationVersion": calibration["calibrationVersion"],
+                      "calibrationManifestDigest": calibration["manifestDigest"],
                       "calibrationArtifactHash": calibration["calibrationArtifactHash"],
                       "calibrationDatasetVersion": calibration["calibrationDatasetVersion"],
                       "calibrationPolicyVersion": admission_context["ai_policy"]["policyVersion"]}
