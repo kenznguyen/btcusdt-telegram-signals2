@@ -1936,6 +1936,124 @@ class PaperLedger:
     def strategy_state(self):
         return self.snapshot().get("strategyState", {"owner": None, "dcaUsed": False, "initialMarginQuote": "0"})
 
+    def record_account_mark(self, mark_price, candle_close_ms, observed_at_ms, dataset_version):
+        """Atomically reconcile one account-wide mark across all strategy ledgers."""
+        if self.strategy_id != "MANUAL":
+            raise ValueError("ACCOUNT_MARK_REQUIRES_ACCOUNT_SCOPE")
+        mark = number(str(mark_price))
+        candle_at, observed_at = stamp(candle_close_ms), stamp(observed_at_ms)
+        if mark <= 0 or candle_at > observed_at or observed_at-candle_at > 30*60_000:
+            raise ValueError("Invalid or stale account mark")
+        if not isinstance(dataset_version, str) or not dataset_version.strip():
+            raise ValueError("ACCOUNT_MARK_DATASET_VERSION_REQUIRED")
+
+        with closing(self.connect()) as connection, connection:
+            connection.execute("BEGIN IMMEDIATE")
+            migration = connection.execute(
+                "SELECT 1 FROM paper_schema_migrations WHERE version=? AND status='APPLIED'",
+                (MIGRATION_VERSION,),
+            ).fetchone()
+            if not migration:
+                position, average, realized, fees, _ = stored_state(connection)
+                return equity_history.record(
+                    connection, initial_capital="100", position=position, average=average,
+                    realized=realized, fees=fees, mark_price=mark,
+                    candle_close_ms=candle_at, observed_at_ms=observed_at,
+                    dataset_version=dataset_version,
+                )
+
+            risk = connection.execute(
+                """SELECT high_water_mark_quote,daily_baseline_utc_day_ms,
+                          last_mark_price,mark_observed_at_ms,risk_ready,unavailable_reason
+                   FROM paper_account_risk_state WHERE account_id=1"""
+            ).fetchone()
+            account = connection.execute(
+                "SELECT initial_capital FROM paper_accounts WHERE account_id=1"
+            ).fetchone()
+            cutover = connection.execute(
+                """SELECT funding_coverage_start_at_ms,funding_coverage_end_at_ms,
+                          mark_observed_at_ms FROM paper_account_equity_cutovers
+                   WHERE account_id=1 LIMIT 1"""
+            ).fetchone()
+            if risk is None or account is None:
+                raise sqlite3.DatabaseError("ACCOUNT_RISK_STATE_MISSING_OR_CORRUPT")
+            if observed_at < risk[3]:
+                raise ValueError("OUT_OF_ORDER_ACCOUNT_MARK")
+            if risk[1] != observed_at // 86_400_000 * 86_400_000:
+                raise ValueError("ACCOUNT_RISK_DAILY_BASELINE_UNAVAILABLE")
+
+            ledgers = connection.execute(
+                """SELECT strategy_id,position_base,average_entry_price,realized_pnl_quote,
+                          fees_quote,funding_quote FROM paper_strategy_ledgers
+                   WHERE account_id=1"""
+            ).fetchall()
+            expected = {"STRATEGY_CORE", "AI_FREQAI", "LEGACY_UNATTRIBUTED"}
+            if {row[0] for row in ledgers} != expected:
+                raise sqlite3.DatabaseError("ACCOUNT_RISK_LEDGER_SET_INVALID")
+            realized = fees = funding = unrealized = Decimal(0)
+            for strategy_id, raw_qty, raw_avg, raw_pnl, raw_fee, raw_funding in ledgers:
+                qty, avg, pnl, fee, fund = map(
+                    Decimal, (raw_qty, raw_avg, raw_pnl, raw_fee, raw_funding)
+                )
+                if any(not value.is_finite() for value in (qty, avg, pnl, fee, fund)):
+                    raise sqlite3.DatabaseError("ACCOUNT_RISK_LEDGER_VALUE_INVALID")
+                if (qty == 0 and avg != 0) or (qty != 0 and avg <= 0) or fee < 0:
+                    raise sqlite3.DatabaseError("ACCOUNT_RISK_POSITION_INCONSISTENT")
+                realized += pnl
+                fees += fee
+                funding += fund
+                if qty:
+                    unrealized += qty * (mark - avg)
+                if strategy_id == "LEGACY_UNATTRIBUTED" and qty != 0:
+                    raise ValueError("LEGACY_UNATTRIBUTED_EXPOSURE")
+
+            legacy_pnl = legacy_fees = Decimal(0)
+            for kind, raw_amount in connection.execute(
+                """SELECT adjustment_type,amount_quote FROM paper_account_adjustments
+                   WHERE account_id=1 AND strategy_id='LEGACY_UNATTRIBUTED'"""
+            ):
+                amount = Decimal(raw_amount)
+                if not amount.is_finite():
+                    raise sqlite3.DatabaseError("ACCOUNT_RISK_LEGACY_ADJUSTMENT_INVALID")
+                if kind == "LEGACY_REALIZED_PNL":
+                    legacy_pnl += amount
+                elif kind == "LEGACY_FEES" and amount >= 0:
+                    legacy_fees += amount
+                else:
+                    raise sqlite3.DatabaseError("ACCOUNT_RISK_LEGACY_ADJUSTMENT_INVALID")
+
+            equity = (
+                Decimal(account[0]) + realized + legacy_pnl + unrealized
+                - fees - legacy_fees - funding
+            )
+            hwm = Decimal(risk[0])
+            if not equity.is_finite() or equity <= 0 or not hwm.is_finite() or hwm <= 0:
+                raise sqlite3.DatabaseError("ACCOUNT_RISK_EQUITY_INVALID")
+            funding_ready = bool(cutover) and _funding_provenance_ready(
+                connection, cutover[0], cutover[1], observed_at, observed_at
+            )
+            risk_ready = bool(risk[4]) and funding_ready and bool(cutover)
+            unavailable = risk[5]
+            if not cutover:
+                unavailable = "ACCOUNT_EQUITY_CUTOVER_NOT_ESTABLISHED"
+            elif not funding_ready:
+                unavailable = "FUNDING_PROVENANCE_INCOMPLETE"
+            connection.execute(
+                """UPDATE paper_account_risk_state
+                   SET last_equity_quote=?,high_water_mark_quote=?,last_mark_price=?,
+                       mark_observed_at_ms=?,mark_candle_close_ms=?,dataset_version=?,
+                       risk_ready=?,unavailable_reason=?,updated_at_ms=?,version=version+1
+                   WHERE account_id=1""",
+                (text(equity), text(max(hwm, equity)), text(mark), observed_at,
+                 candle_at, dataset_version, int(risk_ready), unavailable, observed_at),
+            )
+            self.audit(connection, observed_at, "ACCOUNT_MARK", {
+                "markPrice": text(mark), "candleCloseMs": candle_at,
+                "datasetVersion": dataset_version, "accountEquityQuote": text(equity),
+                "riskReady": risk_ready,
+            })
+        return read_account_risk_snapshot(self.path, now_ms=observed_at)
+
     def record_equity(self, mark_price, candle_close_ms, observed_at_ms, dataset_version, initial_capital="100"):
         if self.strategy_id in DUAL_STRATEGIES:
             raise ValueError("DUAL_LEDGER_ACCOUNT_EQUITY_REQUIRES_SHARED_RECONCILIATION")
