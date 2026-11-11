@@ -18,6 +18,28 @@ def record(**changes):
         "consumer_ack": True, "heartbeat_lost": True,
     }
     value.update(changes)
+    if "sensitivity" not in changes:
+        kind = value["data_class"]
+        minimums = {
+            "T0_CANONICAL": "RESTRICTED",
+            "CORE_LEDGER": "RESTRICTED",
+            "AI_LEDGER": "RESTRICTED",
+            "T3_PROTECTED_EVIDENCE": "RESTRICTED",
+            "GOVERNANCE_EVIDENCE": "RESTRICTED",
+            "T4_DETERMINISTIC_CACHE": "INTERNAL",
+            "T2_EPHEMERAL_INFERENCE_OUTPUT": "CONFIDENTIAL",
+            "T1_RAW_OBSERVATION": "CONFIDENTIAL",
+            "NONCANONICAL_COPY": "CONFIDENTIAL",
+        }
+        label = minimums.get(kind, "PUBLIC")
+        sensitivity = {
+            "state": "CLASSIFIED", "label": label,
+            "evidence_ref": "synthetic-sensitivity-evidence",
+            "evidence_revision": "sensitivity-r1",
+        }
+        if kind == "NONCANONICAL_COPY":
+            sensitivity["inherited_labels"] = ["CONFIDENTIAL"]
+        value["sensitivity"] = sensitivity
     return value
 
 
@@ -232,6 +254,97 @@ class LifecycleDispositionTests(unittest.TestCase):
         for value in (None, [], "invalid", {}):
             self.assertEqual(evaluate_disposition(value)["disposition"], "BLOCKED_UNKNOWN")
 
+
+
+    def test_sensitivity_labels_validate_against_ratified_class_minimums(self):
+        cases = [
+            ("T0_CANONICAL", "RESTRICTED", "PROTECTED"),
+            ("CORE_LEDGER", "RESTRICTED", "PROTECTED"),
+            ("AI_LEDGER", "RESTRICTED", "PROTECTED"),
+            ("T3_PROTECTED_EVIDENCE", "RESTRICTED", "PROTECTED"),
+            ("GOVERNANCE_EVIDENCE", "RESTRICTED", "PROTECTED"),
+            ("T4_DETERMINISTIC_CACHE", "INTERNAL", "REVIEWABLE_NONCANONICAL"),
+            ("T2_EPHEMERAL_INFERENCE_OUTPUT", "CONFIDENTIAL", "REVIEWABLE_NONCANONICAL"),
+            ("T1_RAW_OBSERVATION", "CONFIDENTIAL", "REVIEWABLE_NONCANONICAL"),
+        ]
+        for kind, minimum, expected in cases:
+            with self.subTest(kind=kind):
+                out = evaluate_disposition(record(data_class=kind, review_group=kind,
+                    producer_provenance_verified=True))
+                self.assertEqual(out["disposition"], expected)
+                self.assertNotIn("UNK_SENSITIVITY_BELOW_CLASS_MINIMUM", out["reason_codes"])
+
+    def test_sensitivity_below_class_minimum_blocks_nonprotected_object(self):
+        sensitivity = {"state":"CLASSIFIED", "label":"PUBLIC",
+            "evidence_ref":"synthetic-ref", "evidence_revision":"r1"}
+        out = evaluate_disposition(record(sensitivity=sensitivity))
+        self.assertEqual(out["disposition"], "BLOCKED_UNKNOWN")
+        self.assertIn("UNK_SENSITIVITY_BELOW_CLASS_MINIMUM", out["reason_codes"])
+
+    def test_unknown_conflicted_and_pending_sensitivity_states_fail_closed(self):
+        for state in ("UNCLASSIFIED", "CONFLICTED", "PENDING_OWNER_DECISION"):
+            with self.subTest(state=state):
+                sensitivity = {"state":state, "label":None,
+                    "evidence_ref":"synthetic-ref", "evidence_revision":"r1"}
+                out = evaluate_disposition(record(sensitivity=sensitivity))
+                self.assertEqual(out["disposition"], "BLOCKED_UNKNOWN")
+                self.assertIn("UNK_SENSITIVITY_STATE", out["reason_codes"])
+
+    def test_malformed_sensitivity_metadata_fails_closed(self):
+        cases = [
+            (None, "UNK_SENSITIVITY_METADATA"),
+            ([], "UNK_SENSITIVITY_METADATA"),
+            ({"state":"CLASSIFIED", "label":"UNKNOWN", "evidence_ref":"x", "evidence_revision":"r1"},
+             "UNK_SENSITIVITY_LABEL"),
+            ({"state":"UNKNOWN", "label":"INTERNAL", "evidence_ref":"x", "evidence_revision":"r1"},
+             "UNK_SENSITIVITY_STATE"),
+            ({"state":"CLASSIFIED", "label":"INTERNAL", "evidence_ref":"", "evidence_revision":"r1"},
+             "UNK_SENSITIVITY_EVIDENCE"),
+            ({"state":"CLASSIFIED", "label":None, "evidence_ref":"x", "evidence_revision":"r1"},
+             "UNK_SENSITIVITY_LABEL"),
+            ({"state":"CLASSIFIED", "label":"INTERNAL", "evidence_ref":"x", "evidence_revision":"r1",
+              "inherited_labels":"CONFIDENTIAL"}, "UNK_SENSITIVITY_INHERITANCE"),
+        ]
+        for sensitivity, code in cases:
+            with self.subTest(sensitivity=sensitivity):
+                out = evaluate_disposition(record(sensitivity=sensitivity))
+                self.assertEqual(out["disposition"], "BLOCKED_UNKNOWN")
+                self.assertIn(code, out["reason_codes"])
+
+    def test_protected_object_remains_protected_when_sensitivity_is_unknown(self):
+        out = evaluate_disposition(record(data_class="T0_CANONICAL", sensitivity={
+            "state":"CONFLICTED", "label":None,
+            "evidence_ref":"synthetic-ref", "evidence_revision":"r1"}))
+        self.assertEqual(out["disposition"], "PROTECTED")
+        self.assertIn("PROT_CLASS_T0_CANONICAL", out["reason_codes"])
+        self.assertIn("UNK_SENSITIVITY_STATE", out["reason_codes"])
+
+    def test_noncanonical_copy_must_inherit_source_sensitivity(self):
+        base = {"data_class":"NONCANONICAL_COPY", "review_group":"NONCANONICAL_COPY",
+                "object_kind":"COPY", "object_id":"copy-1"}
+        lineage = {"complete":True, "copy_id":"copy-1",
+                   "source_object_id":"source-1", "source_version_id":"v1"}
+        inventory = {"complete":True, "items":[{"copy_id":"copy-1", "version_id":"v1",
+                    "kind":"NONCANONICAL_COPY", "state":"PRESENT"}]}
+        too_low = {"state":"CLASSIFIED", "label":"INTERNAL",
+                   "inherited_labels":["CONFIDENTIAL"], "evidence_ref":"synthetic-ref",
+                   "evidence_revision":"r1"}
+        valid = dict(too_low, label="RESTRICTED")
+        for sensitivity, expected, code in (
+            (too_low, "BLOCKED_UNKNOWN", "UNK_SENSITIVITY_BELOW_INHERITED"),
+            (valid, "COPY_SPECIFIC_REVIEW", None),
+            (dict(valid, inherited_labels=[]), "BLOCKED_UNKNOWN", "UNK_SENSITIVITY_INHERITANCE"),
+        ):
+            out = evaluate_disposition(record(**base, copy_lineage=lineage,
+                copies=inventory, sensitivity=sensitivity))
+            self.assertEqual(out["disposition"], expected)
+            if code:
+                self.assertIn(code, out["reason_codes"])
+
+    def test_sensitivity_never_grants_mutation_or_execution_authority(self):
+        out = evaluate_disposition(record())
+        self.assertIs(out["mutation_performed"], False)
+        self.assertIs(out["execution_authorized"], False)
 
 if __name__ == "__main__":
     unittest.main()
