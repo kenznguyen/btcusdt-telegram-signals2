@@ -2144,3 +2144,18 @@ Next: if owner wants to proceed beyond planning, first approve a bounded provisi
 - G0.35 verdict: **EVIDENCE CORRECTION PASS — G0.34 assurance downgraded to NOT VERIFIED; D05 separation FAIL; numeric D11 ceilings remain OPEN/NOT RATIFIED; parser/tests NOT AUTHORIZED**.
 - Next gate: documentation-only proposal for a corrected measurement authorization with oracle/input separation and completion assertions specified before any new separately approved run.
 - T0 remains independent/protected; CORE_LEDGER and AI_LEDGER remain separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
+
+## G0.36 — Corrected S1 Measurement Authorization Design (2026-11-11)
+
+- Baseline HEAD: `5b7db072ec71c9594d77e74f49d44937f9552944`; baseline handoff blob: `e9f1879b69d38b37323f2817c0591cd5e528d3ed`.
+- Report: `docs/evidence/G0_36_CORRECTED_S1_MEASUREMENT_AUTHORIZATION_DESIGN_2026-11-11.md`.
+- Report creation commit: `2c53ed0bd0ee2129e31e688c8cba16e88d755d2b`.
+- Corrected protocol separates exact parser-input UTF-8 bytes from external oracle metadata; oracle fields must never be serialized into or measured as parser input.
+- Predeclares A-01–A-13 completion assertions, two-pass repeatability, exact raw-byte measurement, malformed/duplicate-key handling, final report readback, evidence fields and stop/fail behavior.
+- Retains G0.32 S1 case scope (SYN-01, SYN-29–32; all 11 D10 values); SYN-33 remains deferred.
+- Proposes a new bounded G0.37-A owner authorization: one in-memory attempt only, no payload persistence, no parser/tests/CI, no CPU/RAM benchmark, no external/runtime access, no D11 ratification. This is a proposal only.
+- G0.34 historical metrics remain NOT VERIFIED for D11 use; G0.33-A is consumed. No re-execution occurred in G0.36.
+- G0.36 verdict: **DESIGN PASS — corrected protocol specified; new measurement NOT AUTHORIZED; numeric D11 ceilings OPEN/NOT RATIFIED**.
+- No source/tests/fixtures/workflows/dependencies/credentials/keys/runtime/database/network/VPS/market data/model/ledger/lifecycle changes; no tests, workflow dispatch, corpus generation or measurement run.
+- Next gate: prepare the G0.37-A owner authorization package for explicit review. Do not execute until separately approved.
+- T0 remains independent/protected; CORE_LEDGER and AI_LEDGER remain separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
