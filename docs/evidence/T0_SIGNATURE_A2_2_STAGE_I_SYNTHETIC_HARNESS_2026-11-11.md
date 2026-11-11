@@ -131,3 +131,9 @@ No production cryptography, real keys, trust-root enrollment, Path A/B activatio
 - A2.2 §19 wording was reconciled with the subsequent owner approval so it no longer describes all implementation as unapproved.
 - Current A2.2 contract blob: `d9f93bf390d107381b7135c3073aeca0d14894d4`; update commit: `96caa617ef1f5bb16b1c631ef164f4d34959592c`.
 - The only implementation approval remains the bounded synthetic Stage I scope. Production cryptography, keys, trust bootstrap, durable trust state, runtime and workflow dispatch remain outside authorization.
+
+
+### Post-amendment self-review
+- Review record: `docs/evidence/T0_SIGNATURE_A2_2_STAGE_I_POST_AMENDMENT_SELF_REVIEW_2026-11-11.md`.
+- Review blob: `e44273248ef7ee68898a90e1fdfb1cd6a0a6c6dc`; commit: `58a56660e50ff618d15bbea20665ce556b4378f1`.
+- Result: **SELF-REVIEW PASS WITH VERIFICATION BLOCKER**. No source-level correctness/security defect identified in the reviewed delta; exact repository tests and compile check remain NOT RUN. This is not independent review and does not establish G3.
