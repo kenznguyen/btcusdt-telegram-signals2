@@ -166,7 +166,7 @@ class AIStrategyContractRedTest(unittest.TestCase):
     def test_missing_or_unverified_calibration_evidence_fails_closed(self):
         prediction = self.calibrated_prediction("0.8")
         context = self.admission_context()
-        context.pop("calibration_evidence")
+        context["calibration_evidence"] = None
         self.assert_contract_wait(self.evaluate(
             prediction=prediction, admission_context=context
         ))
