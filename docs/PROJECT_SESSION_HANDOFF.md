@@ -788,3 +788,15 @@ The prior A2.2 Stage I status/proposal notes above are historical snapshots. Thi
 
 - Post-amendment self-review: `docs/evidence/T0_SIGNATURE_A2_2_STAGE_I_POST_AMENDMENT_SELF_REVIEW_2026-11-11.md`, blob `e44273248ef7ee68898a90e1fdfb1cd6a0a6c6dc`, commit `58a56660e50ff618d15bbea20665ce556b4378f1`; result **SELF-REVIEW PASS WITH VERIFICATION BLOCKER**. No source-level defect identified, but exact 34-test suite and compile check are NOT RUN. Independent review remains waived/not performed; G3 not established.
 - Updated Stage I evidence report blob: `3c77a5043756de54d4ccc8545b0ae5329f0aacfd`, commit `f58bf6a203e8dd663003eeff97ad7580dcbb9c57`.
+
+
+### A2.2 Stage I — workflow parser backport and exact-branch verification (2026-11-11)
+
+- Owner explicitly approved backporting only the workflow parser correction from `main` into the existing active branch. No Stage I package/source/tests were copied to `main`; no parallel branch or PR was created.
+- Backport commit: `ab8cc85017c0eda5da211d5fa326a9048b0239f7`.
+- Changed path: `.github/workflows/t0-signature-a2-2-stage-i.yml` only; compare from prior active HEAD `e7273e918f254bd17a3ce997bb722e8d4e36d029` reports 1 commit, 1 file, +10/-1, no other paths.
+- Workflow blob after backport: `5fa94939181af5f1f33686c3444bc6f8a0326962`, identical to the parser-fixed workflow blob on `main`.
+- Parser now accepts both unittest summaries `Ran 1 test` and `Ran 34 tests in 0.088s`; workflow contains inline regression assertions for both forms.
+- Source package and tests remain on the active feature branch; no source/test/runtime/T0/VPS/trading changes were made.
+- **Dispatch status: NOT RUN.** This approval covered the workflow-only backport, not a new manual workflow dispatch. A fresh explicit dispatch authorization is still required. Previous run `42954924103` on `main` remains blocked because the Stage I package is intentionally absent from `main`.
+- Stage I status remains **NOT VERIFIED end-to-end** until a new manual run on this feature branch proves compile, all 34 tests, parser, and artifact upload on the exact checkout SHA. Independent review/G3 remains not established.
