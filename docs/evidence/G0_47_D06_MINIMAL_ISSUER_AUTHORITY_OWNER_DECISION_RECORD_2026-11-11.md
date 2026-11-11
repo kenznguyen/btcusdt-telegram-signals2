@@ -37,15 +37,15 @@ The selections are consistent with G0.26:
 4. A single topology minimizes operational complexity but must preserve separate logical authority for Owner Root administration, issuer attestation, and owner authorization. A single key must not silently perform every role.
 5. G1 A remains unsigned under T0 Checkpoint Contract v1. A1 remains a separate extension. No retroactive signature requirement is introduced.
 
-## 4. D06 — Minimal issuer-authenticity candidate scope
+## 4. D06 — Initial-phase manual Owner-attestation scope
 
-D06 asks which exact evidence classes and issuer principals may make authoritative claims. The following three claim classes are in scope for the initial manual Owner-attestation process. This is not an autonomous issuer allowlist and does not assert that an attestation proves the underlying facts.
+D06 asks which evidence claims need an authoritative source attestation. For the initial phase, the Owner selected a manual attestation process covering review of three evidence classes. The Owner records that the specified evidence was reviewed for a bounded claim; the attestation does not convert an unverified producer/custodian statement into fact. This is not an autonomous issuer allowlist.
 
-| Candidate evidence class | Claim that may require issuer authenticity | Minimum supporting checks beyond signature | Proposed treatment |
+| Evidence class | Bounded claim the Owner may manually attest was reviewed | Required underlying checks | Initial treatment |
 |---|---|---|---|
-| Producer/source provenance attestation | A named producer asserts that an exact dataset/artifact was produced by a specified source and process | Bind exact subject/version/digest/byte length; reconcile producer identity and source records | Initial phase: manual Owner attestation only; no autonomous producer signature or issuer key |
-| Inventory closure/completeness attestation | An authorized inventory authority asserts that a defined evidence set is complete for a bounded scope and snapshot | Independently enumerate expected scope; reconcile omissions, pagination and immutable references | Initial phase: manual Owner attestation only; independently enumerate expected scope because attestation alone never proves completeness |
-| Recovery/readback/custody event attestation | An authorized custodian asserts a specific readback, restore, transfer or custody event occurred | Exact object/digest, source/destination, operation result, time/sequence evidence and independent readback where applicable | Initial phase: manual Owner attestation only; retain independent readback/custody evidence where applicable |
+| Producer/source provenance attestation | The identified source/provenance evidence for an exact dataset/artifact was reviewed within a defined source and process scope | Bind exact subject/version/digest/byte length; reconcile producer identity and source records | Initial phase: manual Owner attestation only; no autonomous producer signature or issuer key |
+| Inventory closure/completeness attestation | The defined inventory scope and snapshot were reviewed against an independently enumerated expected set | Independently enumerate expected scope; reconcile omissions, pagination and immutable references | Initial phase: manual Owner attestation only; independently enumerate expected scope because attestation alone never proves completeness |
+| Recovery/readback/custody event attestation | The specified recovery/readback/transfer event evidence was reviewed for the identified object and operation | Exact object/digest, source/destination, operation result, time/sequence evidence and independent readback where applicable | Initial phase: manual Owner attestation only; retain independent readback/custody evidence where applicable |
 
 The following are **not** issuer-signature requirements by default:
 
