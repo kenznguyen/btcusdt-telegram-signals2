@@ -2014,3 +2014,16 @@ Next: if owner wants to proceed beyond planning, first approve a bounded provisi
 - Documentation-only. No source/test/fixture/schema/API/registry/adapter/workflow/CI permission/credential/key/trust-root/provider/database/storage/market-data/model/ledger/VPS/runtime changes; no tests or workflow dispatch; no key operations, signing, anchor creation, inventory, provider/network/database/VPS access or lifecycle mutation.
 - Next owner decision: identify exact G0 evidence classes that require signer authenticity versus digest integrity only; then explicitly ratify/modify/reject D01–D04. Do not infer ratification from continuation requests. Synthetic verification, verifier implementation, real evidence adapters and runtime integration remain separate gates and approvals.
 - T0 remains independent/protected; CORE_LEDGER and AI_LEDGER remain separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
+
+
+## G0.27 — G0 Evidence-Class Assurance Requirements Matrix (2026-11-11)
+
+- Baseline HEAD: `db95116a5b0625835eda78abcbb5050bd5f79aa6`; active branch was identical to this baseline before G0.27.
+- Report: `docs/evidence/G0_27_G0_EVIDENCE_CLASS_ASSURANCE_REQUIREMENTS_MATRIX_2026-11-11.md`.
+- Report creation commit: `53131e89b555da3b757326f3823bbd07c73eaf05`.
+- Classified 14 evidence classes against six separate assurance dimensions: byte integrity, signer/issuer authenticity, owner authorization, freshness/anti-replay, completeness/provenance, and custody/readback.
+- Key boundaries: G1 A remains unsigned; signer authenticity is claim-specific; owner authorization is a separate gate; signatures do not prove completeness or custody; custody claims require independent readback; freshness is required only for claims that depend on current/latest/non-revoked state.
+- G0.27 verdict: **CLASSIFICATION PASS — claim-specific assurance requirements mapped; D01–D14 remain OPEN / NOT RATIFIED where previously open; cryptographic profile and implementation NOT AUTHORIZED**.
+- Documentation-only. No source/test/fixture/schema/API/registry/adapter/runner/workflow/permission/credential/key/trust-root/database/storage/market-data/model/ledger/VPS/runtime changes; no tests or workflow dispatch; no key operations, signing, anchor creation, provider/network/database/VPS access or inventory; no archive, quarantine, cleanup, expiry, compaction, VACUUM or deletion.
+- Next: owner/security review of evidence-class boundaries; then explicitly ratify/modify/reject only the applicable D01–D14 decisions. Synthetic executable verification, verifier implementation, real evidence adapters, owner authorization and any executor remain separate gates and approvals.
+- T0 remains independent/protected; CORE_LEDGER and AI_LEDGER remain separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
