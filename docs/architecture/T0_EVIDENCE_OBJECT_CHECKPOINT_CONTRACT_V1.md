@@ -800,3 +800,32 @@ Verification boundary:
 The owner revoked **Option C — No Destructive Authority** on 2026-11-11. Any earlier statement in this historical record that Option C is ACTIVE, remains in force, is unchanged/current, or prohibits all destructive authority is superseded. Current status: **REVOKED**.
 
 This revocation removes Option C as a blanket prohibition but does not authorize any particular destructive operation. Deletion, archive, cleanup, expiry, vacuum, compaction, backup/replica removal, export mutation or provider operation still requires a separately explicit, scoped approval with exact target/data class, preconditions, expected effect, dependencies, verification and recovery/rollback plan. T0 canonical data, lease/fencing, ledgers, audit/reconstruction/recovery, custody and trust evidence remain protected unless separately approved. Paper-only and `AI_EXECUTION_ENABLED=false` remain unchanged. No L4 control or technical-enforcement status is promoted by this decision.
+
+
+## Formal owner-approved amendment — bounded VPS + GitHub custody (2026-11-11)
+
+**Owner disposition:** On 2026-11-11, the owner explicitly approved amending this contract's custody-location requirement to accept **VPS + GitHub as the bounded custody scope** for this system. This dated addendum formally amends the conflicting requirements in §§7 and 9 only to the extent stated below. It does not rewrite the historical rationale or earlier draft text; this addendum controls where the earlier text conflicts.
+
+### A. Amended custody boundary
+
+1. The required retained-copy locations for the bounded design are: (a) the designated VPS custody location and (b) the designated GitHub repository/evidence location. The exact paths, object identities, access controls, responsible roles and retention configuration MUST be specified in the implementation/evidence plan before operational use.
+2. The exact canonical Evidence Object bytes, detached Signature Statement/envelope, Trust Policy evidence, Monotonic Anchor chain, custody receipts and readback/verification records MUST be independently read back and digest-verified from each required location. Publication success, Git object identity, Actions artifact metadata or a local write acknowledgement alone is not readback evidence.
+3. The two copies MUST be compared by exact object identity, canonical byte length and recomputed digest. Missing, inaccessible, mismatched or unverifiable required copies MUST produce BLOCKED/UNKNOWN; they MUST NOT be silently repaired from an untrusted producer copy.
+4. This is a bounded two-location custody and consistency arrangement. It is **not** independent external custody outside the VPS and GitHub failure domains.
+5. If both VPS and GitHub are jointly rolled back, replaced or made to present the same older valid chain, this design has no third independent fact or authority with which to detect that common-mode rollback. A verifier may report only CONSISTENT_WITH_RETAINED_ANCHOR_HEAD relative to the authenticated/pinned history it possesses. It MUST NOT claim globally latest, absolute anti-rollback, universal rollback detection or independently anchored freshness.
+6. A stronger claim requires a future separately approved amendment introducing an independently protected external monotonic authority/custody domain. No such authority is selected or authorized by this amendment.
+
+### B. Preserved controls and non-implications
+
+- The Monotonic Anchor remains a separately authenticated, strictly sequenced, predecessor-linked record. Its signing authority MUST remain distinct from the T0 writer and checkpoint signer.
+- Owner-pinned trust bootstrap, authenticated policy transitions, exact-object descriptors, append-only history, custody receipts, independent readback from each of the two approved locations, and offline verification requirements remain in force.
+- This amendment does not claim WORM/immutability, provider durability, external backup, external custody, trusted historical time, or protection against compromise/rollback affecting both locations.
+- A cryptographically valid old checkpoint that is not the accepted retained head remains STALE_REPLAY. If the verifier cannot establish the retained head under its available authenticated evidence, freshness is UNKNOWN/BLOCKED, not PASS.
+- L4 control dispositions are not promoted by this owner decision. Owner custody assertions and per-location readback evidence must still be collected and verified.
+- No code, schema, workflow, key, trust root, policy instance, anchor, provider, VPS runtime, SQLite database or canonical T0 data is changed or authorized by this documentation amendment. Implementation and runtime/provider qualification remain subject to the existing gates and separate approval.
+
+### C. Supersession scope
+
+This addendum supersedes only the requirement in §§7 and 9 that the custody copy and monotonic anchor MUST be outside both T0/VPS and GitHub, replacing it with the bounded two-location requirement above. All other v1 requirements remain unchanged. Where a stronger independent-failure-domain assurance is claimed, it remains NOT ESTABLISHED under this bounded scope.
+
+**Disposition:** OWNER-APPROVED CONTRACT AMENDMENT — DOCUMENTATION ONLY. Technical implementation, actual custody configuration, per-copy readback, signature verification, offline verification and L4 acceptance remain NOT VERIFIED until separately evidenced.
