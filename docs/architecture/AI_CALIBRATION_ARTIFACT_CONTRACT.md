@@ -148,3 +148,13 @@ The selected direction for the future calibration trust architecture is:
 This approval selects the architectural direction only. It does **not** approve registry path/schema, manifest canonicalization, key ceremony/rotation/revocation details, implementation, CI verification workflow, runtime provider, calibration training, numerical thresholds or AI activation. Those require separate design freeze and implementation gates.
 
 Digest integrity, signer authorization and statistical/OOS validity remain three independent checks. G0-01/02/03 remain BLOCKED until the remaining trust, schema, provenance and evidence thresholds are resolved.
+
+
+## 11. Manifest and key lifecycle design follow-up — 2026-11-11
+
+The owner requested documentation-only completion of the manifest and Ed25519 lifecycle design. Two proposal contracts and one evidence report were added:
+- `docs/architecture/AI_CALIBRATION_REGISTRY_MANIFEST_CONTRACT.md`: immutable manifest/evaluation/event/signature record model, provenance bindings, detached signature, canonicalization proposal, Git object evidence and T0 A2.2 separation.
+- `docs/architecture/AI_CALIBRATION_ED25519_KEY_LIFECYCLE_CONTRACT.md`: offline ROOT/CALIBRATION_SIGNER/RECOVERY_AUTHORITY roles, key generation, custody, pinning, signing, rotation, revocation, compromise response and recovery.
+- `docs/evidence/AI_CALIBRATION_MANIFEST_AND_KEY_LIFECYCLE_DESIGN_2026-11-11.md`: scope, design decisions, blockers and verification record.
+
+These are proposals, not frozen implementation contracts. Exact schema/canonicalization, signature statement/domain bytes, trust bootstrap, key ceremony/tooling/custody, trusted-time and recovery topology remain owner decisions. The T0 A2.2 checkpoint-attestation protocol is a separate trust domain; no authority or production implementation is inherited. No keys, signatures, registry, code, tests, workflow or provider were created. G0-01/02/03 remain BLOCKED; GREEN-1..5 remain NOT AUTHORIZED.
