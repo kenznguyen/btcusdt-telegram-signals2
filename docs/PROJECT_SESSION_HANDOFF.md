@@ -2234,3 +2234,13 @@ Next: if owner wants to proceed beyond planning, first approve a bounded provisi
 - G0.40 corpus generation/measurement remains NOT AUTHORIZED. Numeric D11 ceilings remain OPEN / NOT RATIFIED. Parser/verifier, CI, external/runtime and destructive actions remain NOT AUTHORIZED.
 - Next gate: run only the already approved focused test and compile commands against the exact final GitHub HEAD/blob contents; then prepare a separate G0.40 decision package. Do not generate or measure a corpus without a separate explicit G0.40 approval.
 - T0 remains independent/protected; CORE_LEDGER and AI_LEDGER remain separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
+
+### G0.39-B — Exact-source verification attempt (2026-11-11)
+- Owner request “chạy tự động” applied only to the already-scoped exact-source verification gate: read-only checkout of target HEAD `30fa54e6a24e95a275c4fbfd27170371e1d56d78`, then the two focused unit-test and py_compile commands.
+- Attempted read-only Git clone failed before checkout: GitHub hostname resolution error `Could not resolve host: github.com` (exit 128).
+- Neither focused command ran against the exact final GitHub checkout. No exact-source PASS may be claimed.
+- No GitHub Actions/workflow/artifact, source change, corpus measurement, external runtime, or production action was performed.
+- G0.39-B status: **BLOCKED — GitHub DNS/network resolution unavailable**.
+- G0.39-A remains PARTIAL / NOT VERIFIED; earlier local working-copy 24/24 tests and compile PASS do not establish final GitHub blob verification.
+- Evidence report updated: `docs/evidence/G0_39A_S1_MEASUREMENT_HARNESS_IMPLEMENTATION_RESULTS_2026-11-11.md`; update commit `0f9dfe5fdaf403f7c69a5eb486c9347bfe6da150`.
+- Retry only exact read-only checkout plus the two approved commands when GitHub DNS/network is available. G0.40 remains NOT AUTHORIZED.
