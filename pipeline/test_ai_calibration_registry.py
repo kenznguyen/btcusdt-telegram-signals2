@@ -82,6 +82,7 @@ class CalibrationRegistryVerifierTest(unittest.TestCase):
             "public_key_fingerprint": digest(TEST_ONLY_PUBLIC_KEY),
             "signer_role": "CALIBRATION_SIGNER",
             "registry_namespace": self.manifest["registry_namespace"],
+            "publisher_id": self.manifest["publisher_id"],
             "allowed_record_types": ["CALIBRATION_ARTIFACT"],
         }
         self.envelope = self.make_envelope()
@@ -175,7 +176,7 @@ class CalibrationRegistryVerifierTest(unittest.TestCase):
 
     def test_artifact_digest_and_exact_size_are_verified(self):
         with self.assertRaisesRegex(CalibrationVerificationError, "ARTIFACT_DIGEST_MISMATCH"):
-            self.verify(artifact=b"tampered")
+            self.verify(artifact=b"x" * len(self.artifact))
         invalid = copy.deepcopy(self.manifest)
         invalid["artifact_size_bytes"] = str(len(self.artifact) + 1)
         raw = canonical(invalid)
@@ -205,6 +206,8 @@ class CalibrationRegistryVerifierTest(unittest.TestCase):
             ("namespace", "other-namespace"),
             ("signature_algorithm", "Ed25519ph"),
             ("canonicalization_profile", "JSON-SORTED"),
+            ("key_id", "different-key"),
+            ("signer_role", "ROOT"),
         ):
             envelope = copy.deepcopy(self.envelope)
             envelope[field] = value
