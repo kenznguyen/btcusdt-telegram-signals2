@@ -198,3 +198,15 @@ Scope of approval:
 - private signing key excluded from repository, CI/GitHub Actions, VPS and runtime.
 
 This is not implementation authorization. Registry path, manifest schema/canonicalization, key ceremony and rotation/revocation details, verifier workflow/provider, calibration method/OOS protocol and numerical thresholds remain open. No keys or registry were created. G0-01/02/03 remain BLOCKED pending full contract freeze and later implementation approval.
+
+
+## GREEN-0 calibration trust design follow-up — 2026-11-11
+
+Documentation-only design deliverables are recorded:
+- `docs/architecture/AI_CALIBRATION_REGISTRY_MANIFEST_CONTRACT.md` — proposed immutable manifest, evaluation evidence, append-only event and detached signature model.
+- `docs/architecture/AI_CALIBRATION_ED25519_KEY_LIFECYCLE_CONTRACT.md` — proposed offline key hierarchy, generation/custody, verification, rotation, revocation and recovery lifecycle.
+- `docs/evidence/AI_CALIBRATION_MANIFEST_AND_KEY_LIFECYCLE_DESIGN_2026-11-11.md` — evidence and scope record.
+
+This work clarifies a candidate design only. It does not freeze the schema, canonicalization profile, signature statement/domain bytes, key bootstrap, tooling, custody topology, trusted-time rules or recovery authority. Existing T0 A2.2 is a distinct checkpoint-attestation trust domain; reuse of its trust policy or bootstrap is not implied. No code/tests/workflow/keys/signatures/registry/provider were created. No implementation authorization is granted.
+
+G0-01/02/03 remain BLOCKED pending contract freeze, trusted provenance/OOS provider and evidence-based thresholds. G0-05 remains BLOCKED; G0-07 remains DEFERRED. GREEN-1..5 remain NOT AUTHORIZED. Paper-only and `AI_EXECUTION_ENABLED=false` remain unchanged.
