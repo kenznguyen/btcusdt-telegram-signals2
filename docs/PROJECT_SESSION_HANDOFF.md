@@ -1,6 +1,6 @@
 # Five-Layer System — Session Handoff
 
-Updated: 2026-11-10 (Asia/Ho_Chi_Minh)
+Updated: 2026-11-11 (Asia/Ho_Chi_Minh)
 
 > Start here in every new session. GitHub is the source of truth. Read this short file first; consult the [archived handoff history](archive/PROJECT_SESSION_HANDOFF_HISTORY_2026-11-10.md) only when an older decision or evidence record is needed.
 
@@ -439,3 +439,18 @@ Reconcile the four-artifact Actions allowlist with all eligible source artifacts
 - Updated control-to-source crosswalk: blob `b1f4daac9624d8deedfaf14234e0b6bb79ff81ca`, commit `8bda3c987e2145a636bbcc9d8609c5ea15a492b9`. It now records current matrix/register refs, latest 40-file inventory and run `42936903511`; aggregate L4-Minimum remains BLOCKED / NOT VERIFIED.
 - No destructive operation, retention execution, artifact deletion, VPS/SQLite access, runtime change, key generation/signing, trust-root change or offline verification was performed. T0 remains an independent protected data asset; paper-only posture remains unchanged.
 - Next: verify the post-crosswalk/post-handoff CI run on the final branch HEAD. After that, proceed only with signature/negative-verification design review; do not generate keys, sign, change trust roots or run offline verification without separate approval.
+
+
+### Post-crosswalk validation — 2026-11-11
+
+- Crosswalk commit `8bda3c987e2145a636bbcc9d8609c5ea15a492b9` was validated by run [42937191664](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42937191664), exact checkout/source SHA `8bda3c987e2145a636bbcc9d8609c5ea15a492b9`; all three jobs SUCCESS:
+  - Lineage: 12/12 PASS.
+  - Artifact manifest: 19/19 PASS; `L4_ARTIFACT_MANIFEST=PASS`.
+  - Repository inventory: 10/10 PASS; `L4_REPOSITORY_FILE_INVENTORY=PASS`.
+  - Total 41/41.
+- Run `42937191664` outputs independently downloaded and re-hashed:
+  - Lineage `13818967476`, 1,150 bytes; ZIP SHA-256 `155986f0f35d875fad02b6c50d0aab7aa43afdcd9191391f9ee0b832e975b67e`; exact source marker; 12 tests; PASS.
+  - Manifest `13819680374`, 3,267 bytes; ZIP SHA-256 `3509f2ce14aa174a45e4200ab44d13c7ae532841a74886256e9f6fe20ea55f71`; JSON member SHA-256 `9bc86b32da5e2993729aac9f850ba15d2ff28274075a5ee2f5813119a0c5a0ef`, sidecar matches; exactly six source artifact IDs `13545287609`, `13546255148`, `13771662067`, `13774031418`, `13810187202`, `13810855669`.
+  - Repository inventory `13818163804`, 4,483 bytes; ZIP SHA-256 `98fc7fca7123ae0a9e72bcf1f209032a57c24d97aa898aaa075eb7212f04c0fa`; JSON member SHA-256 `4f57be4a46cac1703135d43dd5a99cc3ffb7e56aa1d71d2bdd87ab87085b9f0b`, sidecar matches; 40 paths / 559,566 bytes; exact source commit `8bda3c987e2145a636bbcc9d8609c5ea15a492b9`.
+- The latest handoff-only commit is not the source SHA tested by run `42937191664`; that run validates the crosswalk commit immediately preceding it. No source/runtime changes were made in the handoff-only update.
+- Current governance status remains Option C REVOKED. Revocation is not blanket permission to perform any specific destructive action. L4 aggregate remains BLOCKED / NOT VERIFIED.
