@@ -1831,3 +1831,18 @@ Next: if owner wants to proceed beyond planning, first approve a bounded provisi
 - G0.15 verdict: PARTIAL PASS — R1–R3 remediated; R4 BLOCKED. TEST-01–07 technical closure NOT ESTABLISHED; 0/87 vectors executed; TEST-08 NOT GRANTED; runtime/VPS NOT VERIFIED.
 - No workflow, fixtures, schema, API, registry, adapter, runner, oracle, scheduler, service, permission, credential, database, storage, VPS, market data, model, ledger or runtime changes. No production inventory, external evidence authentication, network/provider/database access, dispatch, archive, quarantine, cleanup, expiry, compaction, vacuum or deletion.
 - Next gate: owner-ratify exact sensitivity vocabulary and class-to-policy/version mapping before R4 implementation. CI, TEST-01–07, evidence authentication and destructive operations remain separate approvals. T0 remains independent/protected; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
+
+
+## G0.16 — Owner Sensitivity Classification Decision Package (2026-11-11)
+
+- Owner approved preparation of a proposed sensitivity-label vocabulary and class mapping for review; this is not owner ratification of the proposed values.
+- Evidence: `docs/evidence/G0_16_OWNER_SENSITIVITY_CLASSIFICATION_DECISION_PACKAGE_2026-11-11.md`.
+- Evidence commit: `3e4c86adf31a23c36669cd221e50879558aaf87e`.
+- Proposal: four ordered labels `PUBLIC < INTERNAL < CONFIDENTIAL < RESTRICTED`; `UNCLASSIFIED` and `CONFLICTED` are non-label states. Proposed most-restrictive-wins inheritance for copies/derived data; exact class defaults are in the evidence report.
+- Sensitivity is explicitly separate from lifecycle disposition and does not grant review eligibility, deletion/archive approval or execution authority.
+- Mapping is a proposed minimum baseline, not a runtime inventory or classification of actual objects. No numeric retention/TTL/freshness values are proposed.
+- Source reconciliation: RET-01 B, RET-02 B, P1.8.80, P1.8.143, P1.8.144 and Stage C.13. Unknown/conflicting classification remains fail-closed; no automatic downgrade.
+- Owner ratification: PENDING. Independent review NOT RUN. Tests NOT RUN. GitHub Actions NOT DISPATCHED; no run/artifact.
+- No evaluator/schema/source/test/fixture/API/registry/adapter/workflow/scheduler/service/permission/credential/database/storage/VPS/runtime changes. No inventory, file/secret scan, network/provider/database access, archive, quarantine, cleanup, expiry, compaction, vacuum or deletion.
+- G0.15 R4 remains BLOCKED until exact vocabulary and mapping are owner-ratified. After ratification, evaluator integration requires separate bounded approval. CI, TEST-01–07, runtime inventory and destructive actions remain separate gates.
+- T0 remains independent/protected; CORE_LEDGER and AI_LEDGER remain separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
