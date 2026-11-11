@@ -1366,3 +1366,18 @@ Next: retrieve the push-triggered AI RED workflow result for exact SHA `dd1b088a
 - Disposition: Gate A **APPROVED**; Gate B **RED TESTS EXECUTED / INITIAL SUITE NEEDS REFINEMENT**; GREEN **NOT AUTHORIZED**.
 
 Next: review test log for brittle/overbroad RED assertions, refine only test sources and re-run exact-SHA GitHub Actions; do not cross into GREEN or select C_min.
+
+
+## AI Strategy RED assertion-quality correction — 2026-11-11
+
+- Review found the prior 52 failures at SHA `dd1b088a763276f5510f99166ba175c13f70e0d9` were inflated by repeated synthetic `ADMISSION_CONTEXT_UNSUPPORTED` fallback results; they were not 52 independent defects.
+- Test-only commit `63ee390c17bf32ef8be2842aa2c9f183a4a37785` separates one explicit decision-boundary API failure from downstream tests that cannot run until `admission_context` exists. Commit `d37c0d4b554bbdcb936c419ebc134c6a8ff28783` fixes test helper forwarding of book fixtures.
+- Latest verified run [42991526067](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42991526067), exact SHA `d37c0d4b554bbdcb936c419ebc134c6a8ff28783`, job `130425336828`: compile PASS; 46 tests, 5 assertion failures, 48 skips, 0 errors; setup/preflight/artifact upload PASS.
+- Five meaningful RED assertions: missing decision `admission_context` API (1), missing explicit AI `admitted_leverage` factory API (1), and AI ledger fails to reject leverage 0.99x/3.01x/13x (3). Forty-eight skips are downstream calibration/equity/sizing/instrument cases not yet reachable through the absent decision API; they are not PASS.
+- Core fixed-13x regression PASS; AI BUY while Core WAIT → AI-only ledger → Shared Risk Engine rejection on unready account → no reservation PASS.
+- Artifact `13842490278`, `ai-strategy-contract-red-d37c0d4b554bbdcb936c419ebc134c6a8ff28783`, 3,251 bytes, digest `sha256:e1f0c8e5c7a9aff58062d7b499b2b7133190c0db710bc3e5a0f6f16d9608b019`, expires 2026-11-18 09:00:26Z; payload not independently re-hashed.
+- Evidence report commit `5946b897b755b9b80b909f4908e2227296607795`, blob `fc17ebf04620066a3302e10d46b6870c97d808ef`.
+- No production-source changes, no C_min/calibration policy selection, no schema/migration, backtest, VPS/T0/T1/T2 runtime, deployment, exchange connectivity or live orders.
+- Disposition: Gate A APPROVED; Gate B RED refined and verified for current exposed interfaces; downstream behavior tests BLOCKED/SKIPPED pending GREEN/provider interfaces; GREEN NOT AUTHORIZED.
+
+Next: inspect whether remaining RED test expectations can be made contract-level without implementing production behavior; otherwise freeze current test baseline and document skipped cases as deferred acceptance tests. Obtain separate owner approval before GREEN.
