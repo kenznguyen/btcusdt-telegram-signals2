@@ -187,7 +187,7 @@ class CalibrationRegistryVerifierTest(unittest.TestCase):
 
     def test_artifact_path_rejects_single_backslash(self):
         invalid = copy.deepcopy(self.manifest)
-        invalid["artifact_path"] = r"docs/registry/ai-calibration/artifacts\\..\\outside.json"
+        invalid["artifact_path"] = r"docs/registry/ai-calibration/artifacts\..\outside.json"
         raw = canonical(invalid)
         with self.assertRaisesRegex(CalibrationVerificationError, "ARTIFACT_PATH_OUTSIDE_REGISTRY"):
             self.verify(manifest_bytes=raw, envelope=self.make_envelope(raw, invalid))
