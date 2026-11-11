@@ -32,11 +32,11 @@
     },
     {
       "path": "docs/evidence/T0_L4_MINIMUM_NINE_CONTROL_EVIDENCE_ACQUISITION_REGISTER_2026-11-10.md",
-      "git_blob_sha1": "e67a58591b5f6168ab3a0f3f403557292aca45d5"
+      "git_blob_sha1": "6aa362731cbb9363b62bf6483a65f18d46853e00"
     },
     {
       "path": "docs/evidence/T0_L4_MINIMUM_AUTOMATION_PLAN_2026-11-10.md",
-      "git_blob_sha1": "27e4a50f5b2dfd4a98f2146986a6890dd3ed4904"
+      "git_blob_sha1": "7a944adf073ec73112af1e258cff91db98b3d8ed"
     },
     {
       "path": "docs/evidence/T0_L4_MINIMUM_ADVERSARIAL_REVIEW_2026-11-10.md",
@@ -48,7 +48,7 @@
     },
     {
       "path": "docs/evidence/T0_L4_MINIMUM_POLICY_HISTORICAL_AUDIT_RECONCILIATION_2026-11-10.md",
-      "git_blob_sha1": "017bca148719006b22431d6eafa383fe6337a10c"
+      "git_blob_sha1": "34f8dfce5af7fe414ef984b3c3b7db4bce3b9f12"
     },
     {
       "path": "docs/architecture/CENTRAL_DATA_LIFECYCLE_POLICY.md",
@@ -56,7 +56,7 @@
     },
     {
       "path": "docs/evidence/p1-8/P1.8.143-owner-retention-policy-ratification.md",
-      "git_blob_sha1": "6f4451f1eb193e763970581bcd6d8a782508acfd"
+      "git_blob_sha1": "4e10c73571fe479d8f66138db8c7aa81153109b5"
     },
     {
       "path": "docs/evidence/p1-8/P1.8.144-retention-floor-evidence-contract.md",
@@ -64,7 +64,7 @@
     },
     {
       "path": "docs/evidence/p1-8/P1.8.152-retention-and-lifecycle-residual-finding-reconciliation.md",
-      "git_blob_sha1": "e1a4d95af216e94a58fa5528850fcd0c1ff465f8"
+      "git_blob_sha1": "e05d0cfc02f985dc5045f504a0e81f2c30f5c7dd"
     },
     {
       "path": "docs/evidence/T0_L4_MINIMUM_EXTENDED_BRANCHING_ASSESSMENT_2026-11-10.md",
@@ -76,15 +76,15 @@
     },
     {
       "path": "docs/evidence/T0_L4M08_CLAIM_DISCIPLINE_DOCUMENTARY_ASSESSMENT_2026-11-10.md",
-      "git_blob_sha1": "f1fa0c5817bef560e698209b19d1b100acdcac4c"
+      "git_blob_sha1": "600ddf989f895e00be264d828ed60d5e0e172314"
     },
     {
       "path": "docs/evidence/T0_L4M10_FROZEN_BASELINE_OWNER_SELF_ASSESSMENT_READINESS_2026-11-10.md",
-      "git_blob_sha1": "6b8defae7da57a879fa5cfcd7edb8b165cad6ec5"
+      "git_blob_sha1": "8f12215e31580378f76fcc579c33e993aa798bcb"
     },
     {
       "path": "docs/evidence/T0_L4M02_SIGNER_SEPARATION_EXISTING_EVIDENCE_ASSESSMENT_2026-11-10.md",
-      "git_blob_sha1": "09a1ff7df0099d650db3c81a592efdaaff2db36d"
+      "git_blob_sha1": "05db03c8a384a0e09e338b5d11b1692e1514fb1b"
     },
     {
       "path": "docs/evidence/p1-8/P1.8.146-retention-obligation-completeness-end-state-copy-graph-clarification.md",
@@ -136,7 +136,7 @@
     },
     {
       "path": "docs/evidence/p1-8/P1.8.142-owner-retention-and-data-class-disposition-decision-package.md",
-      "git_blob_sha1": "a8b6027c5ff25192ebba82dadc52c70dd1983c82"
+      "git_blob_sha1": "f208ed3e128a9dff3dafb34f319253ccb5d78279"
     },
     {
       "path": "docs/evidence/COMMERCIAL_SCOPE_CONTENT_AUDIT_2026-11-09.md",
@@ -148,7 +148,7 @@
     },
     {
       "path": "docs/evidence/T0_TSA_WORM_READ_ONLY_AUDIT_2026-11-10.md",
-      "git_blob_sha1": "4a7b872656ec240ddd6862f7ed6d92ca6c26fcee"
+      "git_blob_sha1": "286ca18ad6cb961bb2762f2e298953eb9e8cf5ee"
     },
     {
       "path": "docs/evidence/p1-8/P1.8.80-retention-and-eligibility-policy.md",
@@ -156,11 +156,11 @@
     },
     {
       "path": "docs/evidence/p1-8/P1.8.121-owner-decision-ratification-option-c-no-destructive-authority.md",
-      "git_blob_sha1": "b92c63f593af0088fc522a55dc841af0ad1e5ac7"
+      "git_blob_sha1": "fe1daa35bad9af986f3eee12f57c847721e6215d"
     },
     {
       "path": "docs/evidence/p1-8/P1.8.141-holistic-data-lifecycle-design-closure-assessment.md",
-      "git_blob_sha1": "c20616d79f6dcedde08128f589a5c0e04d6257f1"
+      "git_blob_sha1": "5ef1cd9d35a6d850c4ff3d7b1eb802f36c8db178"
     }
   ]
 }
