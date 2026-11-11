@@ -834,3 +834,8 @@ This addendum supersedes only the requirement in §§7 and 9 that the custody co
 
 The owner-approved bounded custody decision also governs the custody-location wording in §13.2 G1 rows **Evidence custodian** and **Latest-head anchor**, which restate the former §§7/9 outside-both location requirement. For those two rows only, the accepted locations are the designated VPS custody location and designated GitHub evidence location, subject to Sections A–C above. This is not a third independent failure domain; joint rollback of both locations remains undetectable. The role-separation requirements in the same rows and elsewhere in §13.2 are unchanged. This clarification does not alter the G1 decision that the initial A proof-of-existence product has no signer and makes no signer-authenticity claim.
 
+### E. Harmonization of §7 outage/readback expectations
+
+Under the bounded two-location scope, the §7 readback requirement is satisfied only by demonstrating exact-object readback from the VPS copy while GitHub is unavailable, and from the GitHub copy while VPS is unavailable (or equivalent controlled isolation tests), with the copy actually under test independently accessible. The former §7 expectation to demonstrate readback while **both** approved locations are simultaneously unavailable is superseded and is not a requirement under this bounded design; there is no third recovery/custody domain. The system MUST NOT claim availability or recovery when both locations are unavailable. A production verification that requires both current copies MUST report BLOCKED/UNKNOWN if either required copy cannot be accessed or verified; this outage-test clarification does not permit silently accepting one copy as proof of two-copy agreement.
+
+
