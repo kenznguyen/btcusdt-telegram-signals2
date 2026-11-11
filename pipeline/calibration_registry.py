@@ -51,11 +51,11 @@ TRUST_FIELDS = frozenset({
     "key_id", "algorithm", "public_key_base64", "public_key_fingerprint",
     "signer_role", "registry_namespace", "allowed_record_types",
 })
-_DIGEST = re.compile(r"sha256:[0-9a-f]{64}\\Z")
-_IDENTIFIER = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}\\Z")
-_UNSIGNED = re.compile(r"(?:0|[1-9][0-9]*)\\Z")
-_COMMIT = re.compile(r"[0-9a-f]{40}\\Z")
-_TIMESTAMP = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z\\Z")
+_DIGEST = re.compile(r"sha256:[0-9a-f]{64}\Z")
+_IDENTIFIER = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}\Z")
+_UNSIGNED = re.compile(r"(?:0|[1-9][0-9]*)\Z")
+_COMMIT = re.compile(r"[0-9a-f]{40}\Z")
+_TIMESTAMP = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z\Z")
 
 
 def _fail(reason):
