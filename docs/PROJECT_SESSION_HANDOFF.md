@@ -1747,3 +1747,17 @@ Next: if owner wants to proceed beyond planning, first approve a bounded provisi
 - No source, fixture, schema, API, registry, workflow, scheduler, service, permission, credential, database, storage, VPS, data, model, ledger or runtime change. No inventory read, test, dispatch, archive, quarantine, cleanup, expiry, compaction, vacuum, deletion or provider operation. T0 remains independent; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
 - Next gate: separate bounded approval must identify exact synthetic fixture files/provenance, exact test-only read/write allowlist and workspace, test implementation files/command, CI workflow/permissions, and evidence excluding production data/secrets/network/database/VPS/provider access. Then review a pure evaluator implementation plan. No destructive executor.
 
+
+
+## G0.11 — Pure Lifecycle Disposition Evaluator Implementation Plan (2026-11-11)
+
+- Evidence report: `docs/evidence/G0_11_PURE_LIFECYCLE_DISPOSITION_EVALUATOR_IMPLEMENTATION_PLAN_2026-11-11.md`, created in commit `6cc8b3f11a5b0da397acac754f654d4e7033cef0`.
+- Scope: documentary-only implementation plan. Reconciles G0.10 with existing Stage C.5–C.14 lifecycle assurance contracts and evidence. No code, fixtures, tests, schema, adapter, runner, oracle, workflow, storage interface or executor added.
+- Explicitly separates (A) narrow pure five-disposition evaluator from (B) broader TEST-01–07 lifecycle assurance harness. G0.10 evaluator cannot close TEST-01–07 or claim coverage of the 87-vector catalogue.
+- Reuses Stage C.13 logical field map blob `c43c8bfbccaf698d6670f33fab66ee12d2072a7f` and Stage C.14 87-vector matrix blob `12bba6c475fc2ad8c4e2246e75034ede22d3bc20`. C.13/C.14 remain documentary; no technical gate closure.
+- Proposed pure interface accepts already materialized synthetic values and returns only a protective disposition; no filesystem/path/database/network/clock/process/adapter/executor capability. No storage discovery or fixture loader.
+- Decision tie-break table and reason-code catalogue remain OPEN before implementation. No TTL, retention, freshness or disk-alert values are invented.
+- G0.11 verdict: documentary reconciliation PASS; evaluator boundary CONDITIONAL PASS; policy tie-break table OPEN; implementation paths/fixtures/CI not approved; implementation NOT IMPLEMENTED; tests NOT RUN; Actions NOT DISPATCHED; no run/artifact; TEST-01–07 technical closure NOT ESTABLISHED; 0/87 executed, 87/87 NOT RUN; TEST-08 NOT GRANTED.
+- No source/test/fixture/schema/API/registry/adapter/runner/oracle/workflow/scheduler/service/permission/credential/database/storage/VPS/data/model/ledger/runtime changes. No test, compile, dry-run, fault injection, dispatch, inventory, provider/runtime probe, archive, quarantine, cleanup, expiry, compaction, vacuum or deletion. T0 independent; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
+- Next bounded documentary task: freeze field-level decision table and reason-code catalogue for PROTECTED / RETAIN / BLOCKED / REVIEWABLE / COPY_SPECIFIC outcomes. A separate exact-scope approval is required before pure evaluator implementation and in-memory synthetic unit tests. CI, broader TEST-01–07 harness and destructive operations remain separate gates.
+
