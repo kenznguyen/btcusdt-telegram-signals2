@@ -2546,3 +2546,18 @@ Next: if owner wants to proceed beyond planning, first approve a bounded provisi
 - Tests/compile/CI: NOT RUN (docs-only). Runtime/VPS/database/provider/key operations: NOT PERFORMED.
 - **G0.49: DOCUMENTATION PASS — D07-A/D08-A/D09-A OWNER-DECIDED FOR INITIAL PHASE; S2 IMPLEMENTATION NOT AUTHORIZED.**
 - Next: prepare bounded decisions for remaining open dependencies D12–D14. No automatic S2 progression.
+
+
+## G0.50 — D12/D13/D14 audit custody, verified-facts binding and stage-gate owner decision package (2026-11-11)
+
+- Baseline before G0.50: `2b4e59a59faebb34b0d62a658d08fa95ece68ffa`; G0.49 decision record remains controlling for D07-A/D08-A/D09-A.
+- Added `docs/evidence/G0_50_D12_D13_D14_AUDIT_VERIFIED_FACTS_STAGE_GATE_OWNER_DECISION_PACKAGE_2026-11-11.md` in package commit `c33594bb9c47753be2a57bb5e935b0b0e76ae8ad`.
+- G0.50 is documentation-only. It prepares owner options for D12 audit custody/retention/redaction/readback, D13 verified-facts exact binding/process boundary, and D14 per-increment review/implementation/release gates.
+- D12 recommendation: append-only logical decision history in the existing GitHub repository; exact artifact payload readback/hash before custody claims; explicitly GitHub-domain only; no automatic deletion, silent rewrite or unsupported recoverability claim.
+- D13 recommendation: immutable exact-subject/evidence/policy/evaluation-bound envelope; verifier-only construction; no caller-controlled trusted boolean; explicit claim dimensions; no execution authority.
+- D14 recommendation: strict per-increment Owner approval; every executable stage and real-source/runtime operation separately approved; CI PASS never substitutes for Owner authorization or production acceptance.
+- D12/D13/D14 remain OPEN / NOT RATIFIED. Recommendations are not decisions. No retention duration, backup cadence, serialization/IPC mechanism, production trust mechanism or implementation scope is ratified.
+- G0.50 changed only the new decision package and this handoff. No source, tests, fixtures, schemas, workflows, dependencies, keys, trust roots, providers, database, VPS, runtime, T0/T1/T2, ledgers, risk engine or lifecycle operations changed.
+- Tests/compile/CI: NOT RUN (docs-only). Runtime/VPS/database/provider/key operations: NOT PERFORMED.
+- **G0.50: PACKAGE PREPARED — D12/D13/D14 READY FOR OWNER DECISION; ALL THREE OPEN / NOT RATIFIED; S2 IMPLEMENTATION NOT AUTHORIZED.**
+- Next: Owner selects or amends D12, D13 and D14. No automatic S2 progression.
