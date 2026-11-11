@@ -132,6 +132,12 @@ def _calibration(prediction, now_ms, admission_context):
     _require(isinstance(evidence, dict) and
              evidence.get("verificationStatus") == "SIGNATURE_VERIFIED_ONLY",
              "TRUSTED_CALIBRATION_EVIDENCE_UNAVAILABLE")
+    _require(evidence.get("registryStatus") == "ACTIVE",
+             "CALIBRATION_REGISTRY_STATE_UNVERIFIED")
+    _require(evidence.get("trustedTimeStatus") == "VERIFIED",
+             "CALIBRATION_TRUSTED_TIME_UNAVAILABLE")
+    _require(evidence.get("oosEvidenceStatus") == "VERIFIED",
+             "CALIBRATION_OOS_EVIDENCE_UNVERIFIED")
     confidence = number(evidence["calibratedConfidence"])
     _require(0 <= confidence <= 1, "INVALID_CALIBRATED_CONFIDENCE")
     _require(confidence >= confidence_min, "CALIBRATED_CONFIDENCE_BELOW_MINIMUM")
