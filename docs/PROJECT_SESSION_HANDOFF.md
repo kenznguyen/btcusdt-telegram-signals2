@@ -2500,3 +2500,19 @@ Next: if owner wants to proceed beyond planning, first approve a bounded provisi
 - G0.46 changed only the owner decision package and this handoff. No source, tests, fixtures, schemas, workflow, CI permission, dependency, key, trust root, provider, database, VPS, runtime, T0/T1/T2, ledger, risk engine, or lifecycle operation changed.
 - **G0.46: PACKAGE PREPARED — docs-only scope PASS. D01–D04 OPEN / NOT RATIFIED. S2 IMPLEMENTATION NOT AUTHORIZED.**
 - Next: owner decides exact evidence classes requiring issuer authenticity and whether manual owner attestation is sufficient initially. Only after the dependent decisions close should a separate exact S2 implementation package be prepared for approval.
+
+## G0.47 — D06 minimal issuer authority owner decision record (2026-11-11)
+
+- Baseline before G0.47: `0e7a62ec565fff003edc5ab48956e6e7d2f282e4`; G0.46 handoff blob: `5ff090c0ad8cf7f690aa3a893c7171532f05d327`.
+- Owner selections recorded from explicit instruction: issuer authenticity minimal; single key topology; custody deferred; signature/canonicalization conditional.
+- D01 interpretation: SHA-256 over exact bytes by default; DSSE + Ed25519 + SHA-256 considered only for an exact evidence class requiring issuer authenticity, subject to later bounded approval.
+- D02 interpretation: opaque bytes remain exact; UTF-8 JSON + RFC 8785 JCS considered only for a future structured signed statement.
+- D03 interpretation: one Owner Root role and at most one initially scoped Issuer Key role; no multi-issuer topology by default. Logical separation of issuer attestation, owner authorization and trust administration remains mandatory.
+- D04: no real key generation/import/custody enrollment/signing/rotation/revocation/KMS/HSM/provider operation. Paper-only posture retained.
+- Added `docs/evidence/G0_47_D06_MINIMAL_ISSUER_AUTHORITY_OWNER_DECISION_RECORD_2026-11-11.md` in commit `7f44924f4378bff7785a6a06d59dabd6c25ae6e6`.
+- G0.47 proposes only three candidate evidence classes for owner confirmation: producer/source provenance attestation; inventory closure/completeness attestation; recovery/readback/custody event attestation. These are NOT an approved production issuer allowlist.
+- D06 remains OPEN pending owner confirmation of each candidate class and whether manual owner attestation is sufficient initially. D07–D09 and D12–D14 remain open dependencies.
+- G0.47 changed only the D06 decision record and this handoff. No source, tests, fixtures, schemas, workflows, dependencies, keys, trust roots, providers, database, VPS, runtime, T0/T1/T2, ledgers, risk engine, or lifecycle operations changed.
+- Tests/compile/CI: NOT RUN (docs-only).
+- **G0.47: DOCUMENTATION PREPARED — D01–D04 owner-selected conditional direction recorded; D06 candidate scope awaiting owner confirmation; S2 IMPLEMENTATION NOT AUTHORIZED.**
+- Next: obtain owner confirmation of the three D06 candidate classes and manual-attestation fallback; then prepare the next bounded owner decision record. No S2 implementation or key operation is authorized.
