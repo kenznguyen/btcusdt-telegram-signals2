@@ -5,11 +5,11 @@ Repository: `kenznguyen/btcusdt-telegram-signals2`
 Branch: `feature/t0-centralized-data-feeder-p1-20261101`  
 Base: Checkpoint Contract v1, as formally amended by its owner-approved bounded VPS + GitHub custody addendum  
 Corrects: A1 `docs/architecture/T0_SIGNATURE_TRUST_POLICY_MONOTONIC_ANCHOR_AMENDMENT_A1_2026-11-11.md`  
-Status: **DRAFT A2.2 — DOCUMENTATION ONLY — NOT APPROVED FOR IMPLEMENTATION**
+Status: **DRAFT A2.2 — OWNER-APPROVED STAGE I SYNTHETIC IMPLEMENTATION ONLY — NO PRODUCTION IMPLEMENTATION AUTHORITY**
 
 ## 1. Authority, precedence and preservation
 
-1. A2.2 is a contract-correction candidate responding to A2.1 second self-review findings A2.1-R2-01 through A2.1-R2-05. It preserves A2 and A2.1 as historical inputs and applies the explicit overrides in §§14–18 below.
+1. A2.2 is a contract-correction candidate responding to A2.1 second self-review findings A2.1-R2-01 through A2.1-R2-05. It preserves A2 and A2.1 as historical inputs and applies the explicit overrides in §§14–18 and the owner-approved byte-level clarification in §20 below.
 2. A1 remains preserved unchanged as historical design evidence. A2.2 supersedes A2.1, A2 and A1 only where this candidate explicitly replaces or supplements a rule below; all earlier versions remain historical inputs. All other A1 and Checkpoint Contract v1 requirements remain in force.
 3. The reviewed A1 snapshot and its source blobs are immutable review inputs. A2.2 is the current new candidate; A2 and A2.1 remain historical candidates and review inputs. This revision does not retroactively change any prior frozen snapshot or review result.
 4. This document defines contract semantics and test expectations only. It does not authorize code, schema migration, keys, signatures, trust-root installation, policy or anchor instances, provider/TSA use, VPS/SSH/runtime access, T0 database access, custody mutation or destructive operations.
@@ -633,4 +633,66 @@ A2.2 is a new documentation-only candidate. It preserves A2 and A2.1 as historic
 
 The second self-review of A2.1 is recorded as REQUEST CHANGES. A2.2 has received a fresh adversarial self-review. By the owner decision recorded in `docs/evidence/OWNER_DECISION_WAIVE_INDEPENDENT_REVIEW_A2_2_2026-11-11.md`, qualifying independent review is waived as a mandatory gate for the exact A2.2 candidate and its pinned review dependencies; this waiver does not represent that independent review occurred or establish independent assurance/G3. Implementation still requires a separate explicit owner approval naming exact blobs and bounded scope. No implementation, keys, signatures, root enrollment, verifier configuration, policy/anchor instance, CI, VPS/runtime or canonical T0 operation is authorized by this document.
 
-**A2.2 disposition: DRAFT / DOCUMENTATION ONLY / SELF-REVIEW PASS / INDEPENDENT REVIEW WAIVED (NOT PERFORMED) / IMPLEMENTATION NOT APPROVED.**
+**A2.2 disposition: DRAFT / SELF-REVIEW PASS (see exact-scope evidence) / INDEPENDENT REVIEW WAIVED (NOT PERFORMED) / STAGE I SYNTHETIC IMPLEMENTATION OWNER-APPROVED ONLY / PRODUCTION IMPLEMENTATION NOT APPROVED.**
+
+
+## 20. Owner-approved byte-level clarification — domain separators and T0-JCS-1 numeric subset (2026-11-11)
+
+**Authority:** explicit owner approval of proposal blob `37bff74053ddc1034e09f40d9cc3bf558588e897`, recorded 2026-11-11. This section is normative for A2.2 and overrides conflicting source-language escape spellings in §§3.3, 13.1, 13.3 and any inherited domain references for the four object-digest functions below. The proposal's approval does not authorize production cryptography or any scope beyond the separately approved Stage I synthetic harness.
+
+### 20.1 Exact domain-separator octets
+
+Each domain is the ASCII bytes shown below followed by exactly one NUL octet `0x00`. The hexadecimal column is normative and takes precedence over source-language escape notation.
+
+| Digest function | Exact domain bytes (hex) |
+|---|---|
+| Evidence Object | `54302d45564944454e43452d4f424a4543542d563100` |
+| Trust Policy body | `54302d54525553542d504f4c4943592d424f44592d563100` |
+| Monotonic Anchor object | `54302d4d4f4e4f544f4e49432d414e43484f522d4f424a4543542d563100` |
+| Signature Envelope object | `54302d5349474e41545552452d454e56454c4f50452d4f424a4543542d563100` |
+
+Equivalent definition: `ASCII(domain-name) || 0x00`. A literal backslash followed by ASCII `0` is NOT the terminator and MUST NOT be used. Implementations MUST use the exact bytes in the table.
+
+For exact payload bytes `P`, each digest is:
+
+```
+SHA256(domain_bytes || U64BE(byte_length(P)) || P)
+```
+
+The length is an unsigned 64-bit big-endian count of payload octets. Payload bytes MUST be the exact canonical bytes required by the owning object section; implementations MUST NOT reserialize or normalize a supplied payload inside the digest helper.
+
+### 20.2 Restricted T0-JCS-1 numeric-token grammar
+
+For all structured objects covered by A2.2:
+
+1. JSON input is strict UTF-8 without BOM. Duplicate object keys, invalid UTF-8, unpaired surrogates, non-finite values and noncanonical byte encodings MUST be rejected.
+2. JSON number tokens, where a schema explicitly permits a JSON number token, MUST be finite integral decimal tokens whose mathematical value is within the inclusive range `-(2^53-1)` through `+(2^53-1)`.
+3. Fractional tokens and exponent notation are forbidden, including forms such as `1.0`, `0.25`, `1e0` and `-2E+3`.
+4. Negative zero token `-0` is noncanonical and MUST be rejected by canonical-byte comparison; the only canonical zero number token is `0`.
+5. JSON numeric tokens MUST NOT be used for logical U64 values, byte lengths, checkpoint/policy/anchor sequences, timestamps, or schema-version fields that A1 §14.2 requires to use canonical unsigned decimal strings. U64 values MUST be decimal strings matching the canonical unsigned decimal grammar and are range-checked separately against `2^64-1`.
+6. A2.2's fixed `signature_profile_version` discriminator remains the exact schema-defined integer value `2`; it is not a free-form sequence or U64 field. No other field may infer permission to use a JSON number merely because its value is small.
+7. Financial decimal quantities and any schema-defined decimal quantities MUST use canonical decimal strings, not JSON floating-point numbers.
+8. Object member names MUST be ordered by UTF-16 code units. String escaping MUST be deterministic and conform to the restricted profile; valid Unicode scalar values are permitted, while unpaired surrogates are rejected.
+9. Canonical wire bytes MUST equal the independently generated canonical UTF-8 serialization byte-for-byte. Whitespace, alternate escapes, alternate number spellings, duplicate keys or noncanonical key order MUST be rejected.
+10. A schema requiring fractional or exponent-form numeric semantics MUST use a separately versioned canonicalization profile or a further explicit contract amendment. It MUST NOT silently broaden T0-JCS-1.
+
+This §20.2 clarifies the generic numeric-token subset while preserving the more specific A1 §14.2 rule for logical integer wire fields. Where a schema forbids JSON numeric tokens for a field, that stricter field-level rule controls.
+
+### 20.3 Required Stage I known-answer and negative vectors
+
+The Stage I synthetic harness MUST contain:
+- independent SHA-256 known-answer vectors for all four domain byte strings, including the 8-byte U64BE length prefix;
+- a cross-domain separation assertion proving the same payload produces four distinct digests;
+- exact hex assertions for each domain byte string;
+- acceptance vectors at both safe-integer boundaries;
+- rejection vectors for positive/negative overflow, fractional and exponent tokens, non-finite values and negative zero;
+- preservation tests that logical U64 values remain canonical decimal strings and retain U64 overflow checks;
+- byte-for-byte canonicalization tests for duplicate keys, UTF-8/BOM, Unicode validity, UTF-16 key ordering and noncanonical serialization.
+
+The expected digest values MUST be fixed vectors derived independently from the implementation under test. A test MUST NOT compute its only expected value by calling the same production helper it is testing.
+
+### 20.4 Implementation and approval boundary
+
+The owner-approved Stage I implementation scope is limited to the isolated `t0_signature_stage1/` package and its synthetic tests. It does not authorize production signing/verification, production algorithm/library selection, real keys, trust-root enrollment, Path A/B activation, durable policy/anchor state, VPS/SSH/runtime, canonical T0 access, custody publication, workflow dispatch, secrets, deployment or trading changes.
+
+The dedicated GitHub Actions workflow remains manual-only and NOT DISPATCHED. Dispatch requires separate explicit authorization after local Stage I acceptance criteria are met. Independent review remains waived/not performed; G3 is not established.
