@@ -1177,3 +1177,83 @@ This is the current disposition and supersedes the earlier historical NOT RUN / 
 - Persistent DB migration, account cutover/funding readiness, VPS activation/deployment, live execution and backtest acceptance: **NOT AUTHORIZED / NOT PERFORMED / NOT VERIFIED**.
 - T0 canonical candles, lease/fencing, T0 runtime, T1 activation, credentials and exchange state were not modified.
 - Next permitted work: read-only review of AI Strategy leverage/configuration propagation and its independent signal-to-Shared-Risk-Engine path. Any AI sizing/code changes require a separately bounded TDD scope and approval.
+
+
+
+## AI Strategy independent-path read-only audit — 2026-11-11
+
+### Snapshot and scope
+- Repository source reviewed: `6ef0d7456b2791fae73bfea8855ee30482774673`.
+- Current branch documentation head before this addendum:
+  `a9d9360ed1ea9e530ab6e4eed23a402c9baef755`.
+- Read-only inspection only: no source, tests, workflow, DB, T0, VPS, runtime,
+  credentials, ledger state or exchange state changed.
+
+### Findings
+- Independent AI signal path: **PASS at source level**. `signal_snapshot()`
+  calls `decide()` and `core_decide()` separately. Existing
+  `test_core_producer_waits_on_incomplete_history_without_suppressing_ai`
+  verifies Core WAIT while AI remains BUY.
+- Separate AI ledger routing: **PASS at source level, integration coverage PARTIAL**.
+  In dual-ledger mode the evaluate route chooses `AI_FREQAI` and submits to
+  that scoped ledger. Existing tests verify the AI ledger factory and ledger
+  separation, but no dedicated end-to-end AI evaluate-route test was found.
+- Shared Risk Engine: **PASS at source level, runtime NOT VERIFIED**. AI
+  submissions use the same account equity, 1% margin reservation, gross
+  exposure, readiness, liquidity and Kill Switch checks when dual-ledger mode
+  is active. Risk readiness remains fail-closed without verified account
+  cutover/funding evidence.
+- AI leverage policy: **BLOCKED / NOT IMPLEMENTED**. `pipeline/api.py`
+  passes generic `LEVERAGE` to the AI ledger; `PaperLedger` only requires
+  positive leverage for `AI_FREQAI`. There is no AI-specific 1x–3x bound or
+  dynamic leverage value in the decision/submit contract.
+- Confidence calibration: **BLOCKED / NOT IMPLEMENTED**.
+  `freqai_bridge/exporter.py` emits `predictedReturn`, model/strategy
+  provenance, training dataset and training cutoff; it does not emit calibrated
+  confidence or calibration provenance. `pipeline/decision.py` gates on
+  predicted return and observed taker-flow direction, not calibrated confidence.
+- AI sizing: **BLOCKED / NOT IMPLEMENTED**. `decide()` uses fixed
+  `PAPER_TARGET_BASE` (default 0.001 BTC); it does not size from current
+  Account Equity and an AI-specific leverage value. The Shared Risk Engine can
+  reject an over-budget candidate, but it does not resize that candidate.
+- Paper-only research boundary: **PASS at source level**. The FreqAI research
+  strategy is dry-run restricted, emits no native entry/exit signals and
+  `confirm_trade_entry()` returns false. The separate pipeline AI path emits
+  PAPER intents only.
+
+### Source evidence
+- `pipeline/decision.py`: `evaluate(... target_base="0.001")`; prediction
+  validation checks predictedReturn, model/data provenance and doPredict.
+- `pipeline/api.py`: AI decision path uses `decide()`; AI ledger leverage
+  comes from generic `LEVERAGE`; dual-mode submission selects
+  `ledger(strategy_id="AI_FREQAI")`.
+- `paper_execution/ledger.py`: account admission uses 1% current equity and
+  the ledger's `self.leverage`; Core is now pinned to 13x, but AI has no
+  min/max leverage enforcement.
+- `freqai_bridge/exporter.py`: prediction artifact has predictedReturn and
+  training provenance, no calibrated confidence.
+- `freqai_bridge/ChartProFreqaiResearch.py`: dry-run research strategy with
+  native entries/exits disabled.
+- `pipeline/test_api.py`: Core WAIT does not suppress AI BUY.
+- `paper_execution/test_dual_strategy_api_red.py`: verifies AI scoped ledger
+  construction; no AI evaluate-route integration test.
+- `pipeline/test_decision.py` and `paper_execution/test_dual_ledger_red.py`
+  cover AI signal validation and dual-ledger risk primitives, but not AI
+  dynamic leverage/calibration.
+
+### Next bounded task
+Prepare a separate AI contract/TDD proposal before implementation:
+1. Freeze the AI calibrated-confidence and provenance schema.
+2. Freeze the selected AI 1x–3x leverage mapping and fail-closed conditions.
+3. Size AI ENTRY/DCA from current reconciled Account Equity, the AI leverage
+   value and the same execution limit price used by the ledger.
+4. Pass the leverage/config snapshot into the AI reservation; reject values
+   outside the approved range. Keep the shared 1% margin gate and Kill Switch
+   authoritative.
+5. Add an end-to-end API test proving AI BUY can proceed while Core is WAIT,
+   is written only to AI_FREQAI ledger, and is rejected on missing calibration,
+   invalid leverage, stale account equity or shared-risk denial.
+
+No AI implementation, calibration change, DB migration, runtime activation,
+deployment, exchange connectivity or live execution is authorized by this
+read-only audit.

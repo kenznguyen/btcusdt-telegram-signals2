@@ -111,3 +111,34 @@ Disposition remains DS-01 / DS-02 PASS for source and isolated CI only.
 Persistent account migration/cutover and funding readiness remain NOT AUTHORIZED /
 NOT PERFORMED / NOT VERIFIED; DS-03 remains BLOCKED. Historical approval records
 above are retained unchanged.
+
+
+
+## Superseding DS-03 implementation record and AI follow-up — 2026-11-11
+
+The previous DS-03 BLOCKED status in the historical DS-01/DS-02 approval
+addendum is superseded by the separate owner approval and exact-SHA
+implementation evidence:
+
+- Core fixed leverage 13x; preserve TP +5, DCA -20, Soft SL -35 and Emergency
+  SL -90 leverage-adjusted ROE semantics.
+- Every new Core ENTRY/DCA uses a fresh 1% current Account Equity margin budget.
+- Shared Risk Engine remains final admission authority.
+- Source SHA `6ef0d7456b2791fae73bfea8855ee30482774673`.
+- Dual Ledger CI run `42975606884`: 237 focused and 300 full paper_execution
+  tests PASS; artifact `13834194926`.
+- Status: **DS-03 PASS — source/isolated CI only**. No persistent DB migration,
+  cutover, VPS/runtime, deployment, backtest or live execution.
+
+A separate read-only AI-path audit at the same source SHA found:
+- Independent AI signal production and AI ledger routing are present at source
+  level; Shared Risk Engine admission applies when dual-ledger mode is active.
+- AI-specific 1x–3x leverage bounds/dynamic selection are not enforced:
+  API uses generic `LEVERAGE`; AI ledger only requires positive leverage.
+- Prediction artifacts contain predicted return and training provenance but no
+  calibrated confidence/calibration version.
+- AI target sizing remains fixed by `PAPER_TARGET_BASE` (default 0.001), not
+  derived from current Account Equity and an AI-specific leverage value.
+- Therefore AI leverage/calibration/sizing is **BLOCKED / NOT IMPLEMENTED**;
+  no AI code was changed. A separate bounded TDD scope and owner approval are
+  required before implementation.

@@ -214,3 +214,42 @@ These are source-level findings and proposed acceptance requirements only. No en
 - Runtime/VPS activation, database migration, account cutover/funding proof, deployment and live execution: **NOT AUTHORIZED / NOT PERFORMED / NOT VERIFIED**.
 - DS-03: **BLOCKED**. DS-04: **OPEN**.
 - No canonical T0 DB, leases/fencing, VPS process, T1 activation, credentials, exchange state or live orders were changed. All paper DB mutations were confined to disposable CI fixtures.
+
+
+
+## Superseding implementation and AI-path audit addendum — 2026-11-11
+
+This document is the historical read-only baseline at its recorded source
+snapshot. Its earlier DS-03 BLOCKED disposition is superseded for the bounded
+Core sizing increment only:
+
+- DS-03 owner approval and implementation: Core fixed 13x; preserve ROE
+  thresholds TP +5 / DCA -20 / Soft SL -35 / Emergency SL -90; 1% current
+  Account Equity margin per new ENTRY/DCA.
+- Exact source SHA `6ef0d7456b2791fae73bfea8855ee30482774673`.
+- Dual Ledger run `42975606884`: 237 focused tests PASS and 300 full
+  paper_execution tests PASS; artifact `13834194926`.
+- DS-03 status: **PASS — source/isolated CI only**. Historical baseline
+  findings about the former 50% Core entry sizing and persisted-initial-margin
+  DCA sizing remain accurate for that older snapshot, not the final source.
+
+### AI path audit — same source snapshot
+
+- Independent AI signal generation is present: `signal_snapshot()` invokes
+  the AI decision path separately from `core_decide()`; an existing API test
+  asserts Core WAIT does not suppress an AI BUY.
+- When dual-ledger mode is active, the evaluate route selects
+  `ledger(strategy_id="AI_FREQAI")` and submits through the shared ledger
+  admission path. Runtime activation remains unverified because persistent
+  migration/cutover is not authorized.
+- AI-specific leverage policy is not implemented: the API uses generic
+  `LEVERAGE`; AI ledger construction only rejects non-positive leverage and
+  does not enforce the selected 1x–3x bounds.
+- FreqAI prediction output carries predictedReturn and training provenance,
+  but no calibrated confidence/calibration version. The AI producer still
+  sizes from fixed `PAPER_TARGET_BASE` (default 0.001), not current Account
+  Equity and a calibrated AI leverage value.
+- AI leverage/calibration/sizing: **BLOCKED / NOT IMPLEMENTED**. No AI code
+  change, DB migration, runtime action or exchange action was made by this audit.
+
+All earlier baseline evidence is retained as historical evidence.

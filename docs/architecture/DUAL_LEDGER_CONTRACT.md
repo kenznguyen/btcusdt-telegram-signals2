@@ -197,3 +197,35 @@ evidence above.
 
 No prior migration checksum, schema version, design decision, or historical
 evidence is changed by this addendum.
+
+
+
+## Current DS-03 disposition — 2026-11-11 (append-only)
+
+The earlier DS-03 BLOCKED wording in this document records the pre-approval
+baseline and is historical. It is superseded only for the bounded Core
+sizing/leverage implementation by the separate owner approval and final CI
+evidence below.
+
+- Owner-approved Core leverage: fixed 13x.
+- Existing leverage-adjusted ROE semantics are preserved: TP +5, DCA -20,
+  Soft SL -35, Emergency SL -90.
+- Each new Core ENTRY and exposure-increasing DCA uses a fresh 1% of current
+  reconciled Account Equity as its margin budget. DCA does not reuse persisted
+  initial margin as the new order budget.
+- Shared Risk Engine independently rechecks current account equity, margin,
+  exposure, readiness, liquidity and Kill Switch; it retains final ACCEPT/REJECT.
+- Exact source SHA: `6ef0d7456b2791fae73bfea8855ee30482774673`.
+- Exact CI: [Dual Ledger run 42975606884](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42975606884),
+  237/237 focused tests and 300/300 full `paper_execution` regression tests PASS.
+  Artifact ID `13834194926`, SHA-256
+  `66403ab6b9c8079e2d9f3b04dcfc650709a64abd77e62554e6a54c2c101cd5c4`.
+- T2 Freqtrade 2026.9 strategy-load smoke:
+  [run 42975606665](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42975606665),
+  SUCCESS at the same exact source SHA.
+- Disposition: **DS-03 PASS — source and isolated CI scope only**.
+
+This does not authorize persistent database migration, account cutover, funding
+readiness activation, backtest, VPS/runtime action, deployment, exchange
+connectivity or live execution. The historical design and migration evidence
+above remains unchanged.

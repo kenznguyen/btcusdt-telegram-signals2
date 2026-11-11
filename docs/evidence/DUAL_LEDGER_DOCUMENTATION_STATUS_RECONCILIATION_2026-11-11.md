@@ -82,3 +82,27 @@ policy or another specifically approved paper-only scope. Do not apply schema
 migrations, perform account cutover, activate runtime, change T0, alter Core
 sizing/leverage, deploy, connect exchange credentials or place live orders
 without separate explicit approval.
+
+
+
+## Post-DS-03 and AI-path status reconciliation — 2026-11-11 (append-only)
+
+This addendum supersedes only the dated status cells below; historical
+documentation and evidence remain preserved.
+
+| Item | Current status | Evidence / limit |
+|---|---|---|
+| DS-01 API writer, cancellation, account equity | PASS | Exact source/CI evidence remains in prior addendum |
+| DS-02 Core strategy-scoped read | PASS | Exact source/CI evidence remains in prior addendum |
+| DS-03 Core fixed 13x and 1% current-equity sizing | PASS — source/isolated CI only | Source SHA `6ef0d7456b2791fae73bfea8855ee30482774673`; run `42975606884`; 237 focused + 300 full tests PASS; artifact `13834194926` |
+| DS-04 contract/document status reconciliation | PASS — append-only status reconciliation | This addendum plus current contract, migration plan, open-decisions proposal, baseline and handoff |
+| AI independent signal path | PASS at source level | Core WAIT / AI BUY test; AI decision function is separate |
+| AI 1x–3x dynamic leverage | BLOCKED / NOT IMPLEMENTED | Generic `LEVERAGE` env only; no AI-specific bound |
+| AI confidence calibration | BLOCKED / NOT IMPLEMENTED | Prediction artifact has no calibrated confidence/calibration version |
+| AI account-equity sizing | BLOCKED / NOT IMPLEMENTED | Fixed `PAPER_TARGET_BASE`; shared risk engine rejects over-budget but does not resize |
+| Persistent account DB migration / cutover / funding readiness | NOT AUTHORIZED / NOT PERFORMED / NOT VERIFIED | Fail-closed until separate owner approval and evidence |
+| VPS/runtime/deployment/live execution | NOT AUTHORIZED / NOT PERFORMED | `AI_EXECUTION_ENABLED=false` |
+
+The AI audit is read-only and is not an implementation approval. AI sizing,
+calibration, ledger leverage changes, schema migration and runtime activation
+require a separate bounded scope and explicit owner approval.
