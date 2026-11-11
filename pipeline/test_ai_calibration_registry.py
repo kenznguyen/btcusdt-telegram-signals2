@@ -202,6 +202,12 @@ class CalibrationRegistryVerifierTest(unittest.TestCase):
         with self.assertRaisesRegex(CalibrationVerificationError, "KEY_SCOPE_MISMATCH"):
             self.verify(trust=invalid)
 
+    def test_manifest_publisher_must_match_the_independently_pinned_signer(self):
+        invalid = copy.deepcopy(self.trust)
+        invalid["publisher_id"] = "different-publisher"
+        with self.assertRaisesRegex(CalibrationVerificationError, "KEY_SCOPE_MISMATCH"):
+            self.verify(trust=invalid)
+
     def test_envelope_digest_length_namespace_and_algorithm_are_bound(self):
         for field, value in (
             ("manifest_digest", digest(b"wrong")),
