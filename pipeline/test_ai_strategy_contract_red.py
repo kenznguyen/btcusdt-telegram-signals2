@@ -82,7 +82,7 @@ class AIStrategyContractRedTest(unittest.TestCase):
             context[section].update(values)
         return context
 
-    def evaluate(self, prediction=None, admission_context=None):
+    def evaluate(self, prediction=None, admission_context=None, **changes):
         """Exercise the decision boundary; report unsupported contract as a RED result.
 
         Catch only Python's explicit unsupported-keyword error so missing API behavior
@@ -95,6 +95,7 @@ class AIStrategyContractRedTest(unittest.TestCase):
                     self.admission_context()
                     if admission_context is None else admission_context
                 ),
+                **changes,
             )
         except TypeError as error:
             if "unexpected keyword argument 'admission_context'" not in str(error):
