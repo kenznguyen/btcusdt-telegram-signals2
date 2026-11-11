@@ -2464,3 +2464,14 @@ Next: if owner wants to proceed beyond planning, first approve a bounded provisi
 - Decision recorded under user's standing bounded authorization through D11. Full table and rationale: `docs/evidence/G0_44_D11_MEASURED_RESOURCE_LIMITS_RATIFICATION_2026-11-11.md`.
 - D11: **COMPLETE — MEASUREMENT-FIRST REQUIREMENT SATISFIED; NUMERIC CEILINGS AND FAIL-CLOSED STRUCTURAL POLICY RATIFIED.**
 - Runtime enforcement: **NOT IMPLEMENTED / NOT VERIFIED**. No parser/verifier source, tests, CI, runtime, T0/T1/T2, data, ledgers, risk engine, VPS, external services or destructive lifecycle changes. D14 implementation scope remains separate. D01–D04, D06–D09 and D12–D13 remain OPEN / NOT RATIFIED.
+
+## G0.45 — S1 synthetic parser implementation owner package (2026-11-11)
+
+- D11 completion is recorded in G0.44; exact ceilings and fail-closed structural policy are ratified. Runtime enforcement remains NOT IMPLEMENTED / NOT VERIFIED.
+- Current branch baseline: `6a8491526dceceeabfdb048a5621bf2f2e273809`.
+- Prepared documentation-only owner package: `docs/evidence/G0_45_S1_SYNTHETIC_PARSER_IMPLEMENTATION_OWNER_PACKAGE_2026-11-11.md`.
+- Package requests explicit authorization for exactly `pipeline/synthetic_contract.py`, `pipeline/test_synthetic_contract.py`, one G0.45 evidence report and this handoff update.
+- The requested parser is synthetic-only and pure/in-memory. It must enforce the D05/D10 contract and all G0.44 D11 ceilings. It conveys no trust, verified-facts, lifecycle, authorization or execution authority.
+- Proposed focused TDD gate: `python -m unittest pipeline.test_synthetic_contract -v` and `python -m py_compile pipeline/synthetic_contract.py pipeline/test_synthetic_contract.py`; no workflow/CI changes or broad suite.
+- No implementation, test, compile, workflow, runtime, T0/T1/T2, data, ledger, risk-engine, VPS, external-service or destructive lifecycle action was performed in G0.45 package preparation.
+- **G0.45 disposition: READY FOR OWNER DECISION — S1 parser implementation NOT AUTHORIZED pending explicit approval of the exact package.**
