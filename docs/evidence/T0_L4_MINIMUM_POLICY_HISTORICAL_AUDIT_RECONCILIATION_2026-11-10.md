@@ -42,3 +42,10 @@ Do not repeat or rewrite the historical audits. Use the current matrix blob and 
 ## Limits
 
 Documentary reconciliation only. No code/schema/runtime/VPS/database/data/key/provider/permission/network changes. No tests, compile, dry-run, fault injection or GitHub Actions dispatch. No workflow run or artifact is claimed. No archive, cleanup, expiry, vacuum, compaction, backup expiry, replica removal or deletion. Option C remains ACTIVE; paper-only; `AI_EXECUTION_ENABLED=false`; no live orders.
+
+
+## Owner governance update — Option C revoked (2026-11-11)
+
+The owner explicitly revoked **Option C — No Destructive Authority** on 2026-11-11. Its former ACTIVE status in this document is historical and is superseded by this decision. Option C is now **REVOKED**; do not apply it as a blanket prohibition.
+
+This governance revocation is not a blanket instruction to execute deletion or cleanup. Any specific destructive operation still requires a separately scoped plan identifying exact target/data class, operation, retention/impact, preconditions, verification, recovery/rollback and explicit approval. T0 canonical data, lease/fencing state, ledgers, audit/reconstruction/recovery evidence and owner custody records remain protected unless an exact operation is separately approved. Paper-only posture and `AI_EXECUTION_ENABLED=false` remain unchanged. Revocation does not promote any L4 control or establish custody/signature/offline-verification assurance.
