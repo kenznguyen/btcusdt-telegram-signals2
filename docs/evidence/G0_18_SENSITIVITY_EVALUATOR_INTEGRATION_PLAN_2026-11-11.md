@@ -51,29 +51,28 @@ The pure evaluator must not read files, resolve references, inspect payload byte
 
 ## 4. Class minimums and effective-label validation
 
-Implement the exact G0.17 minimum mapping, without adding or weakening entries:
+Implement the exact G0.17 minimum mapping by semantic domain, without inventing new `data_class` identifiers:
 
-| `data_class` | Minimum label |
+| G0.17 semantic domain | Minimum label |
 |---|---|
-| `T0_CANONICAL` | `RESTRICTED` |
-| `T0_LEASE_FENCING_RECOVERY` | `RESTRICTED` |
-| `T1_RAW_OBSERVATION` | `CONFIDENTIAL` |
-| `T1_SIDECAR_SESSION_INTEGRITY` | `RESTRICTED` |
-| `T2_CANONICAL_INPUT_FEATURES_LABELS_DATASETS` | `CONFIDENTIAL` |
-| `T2_MODEL_ARTIFACTS_EVALUATION_PROVENANCE` | `CONFIDENTIAL` |
-| `T2_EPHEMERAL_INFERENCE_OUTPUT` | `CONFIDENTIAL` |
-| `T3_CORE_LEDGER_AI_LEDGER_ACCOUNT_EQUITY_RISK` | `RESTRICTED` |
-| `T3_SIGNALS_DECISIONS_PAPER_AUDIT` | `RESTRICTED` |
-| `T4_DETERMINISTIC_CACHE_READ_MODEL` | `INTERNAL` |
-| `GOVERNANCE_CUSTODY_TRUST_LIFECYCLE_EVIDENCE` | `RESTRICTED` |
-| `SYNTHETIC_FIXTURE_CI_REPORT` | `INTERNAL`, only when wholly synthetic and secret-free |
-| `NONCANONICAL_COPY_BACKUP_REPLICA_EXPORT` | Inherit source sensitivity; no lower default |
-| Unknown/unmapped class | Fail closed; treat as RESTRICTED pending resolution |
+| T0 canonical candles, source versions, correction lineage | `RESTRICTED` |
+| T0 lease, fencing, writer and recovery state | `RESTRICTED` |
+| T1 raw exchange observations and capture manifests | `CONFIDENTIAL` |
+| T1 sidecar/session integrity, gap and provenance evidence | `RESTRICTED` |
+| T2 canonical input snapshots, features, labels, training datasets | `CONFIDENTIAL` |
+| T2 model artifacts, evaluation reports and model provenance | `CONFIDENTIAL` |
+| T2 ephemeral inference outputs | `CONFIDENTIAL` |
+| T3 CORE_LEDGER, AI_LEDGER, account/equity, reservations, risk state | `RESTRICTED` |
+| T3 signals, decisions, paper events, fills, funding, reconciliation and audit records | `RESTRICTED` |
+| T4 deterministic caches, read models and materializations | `INTERNAL` |
+| Governance approvals, policy history, custody/trust records, manifests, holds, tombstones and lifecycle evidence | `RESTRICTED` |
+| Wholly synthetic fixtures and CI reports meeting G0.16 constraints | `INTERNAL` |
+| Noncanonical copies, backups, replicas and exports | Inherit source sensitivity; never lower by default |
+| Unknown, unclassified, orphaned or incompletely inventoried data | `UNCLASSIFIED`; handle as `RESTRICTED` pending resolution |
 
-Important compatibility issue: the current evaluator's `PROTECTED` and `REVIEW` class identifiers are narrower than G0.17's data-domain mapping. Implementation must not silently rename, merge or remap existing identifiers. Before coding, define an explicit, reviewed mapping from each existing identifier to its G0.17 domain default. If an existing class cannot be mapped unambiguously, it must remain fail-closed until an owner-approved mapping is recorded; do not invent a class equivalence.
+G0.17 ratifies semantic domains and minimum labels, but does not define a canonical machine-readable `data_class` enum or map every existing evaluator identifier to those domains. Before coding, inspect the exact existing identifier set and produce a reviewed one-to-one/explicit many-to-one mapping table. Do not silently rename, merge or infer equivalence. Any existing identifier that cannot be mapped unambiguously must fail closed pending owner clarification. Do not introduce new production data classes as part of this narrow change.
 
-For a classified object, the supplied effective `label` must be at least as restrictive as the applicable class minimum. If parent/source or context labels are supplied by the input contract in a later separately reviewed extension, effective sensitivity must be the maximum (most restrictive) of all applicable labels. G0.18 implementation should not pretend to discover absent parent/context labels.
-
+For a classified object, the supplied effective `label` must be at least as restrictive as the applicable semantic-domain minimum. If parent/source or context labels are supplied by the input contract in a later separately reviewed extension, effective sensitivity must be the maximum (most restrictive) of all applicable labels. G0.18 implementation should not pretend to discover absent parent/context labels.
 ## 5. Evaluator behavior
 
 1. Validate sensitivity metadata before any review disposition can be returned.
