@@ -1949,11 +1949,14 @@ class PaperLedger:
 
         with closing(self.connect()) as connection, connection:
             connection.execute("BEGIN IMMEDIATE")
+            migration_table = connection.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='paper_schema_migrations'"
+            ).fetchone()
             migration = connection.execute(
                 "SELECT 1 FROM paper_schema_migrations WHERE version=? AND status='APPLIED'",
                 (MIGRATION_VERSION,),
-            ).fetchone()
-            if not migration:
+            ).fetchone() if migration_table else None
+            if not migration_table:
                 position, average, realized, fees, _ = stored_state(connection)
                 return equity_history.record(
                     connection, initial_capital=initial_capital, position=position, average=average,
@@ -1961,6 +1964,8 @@ class PaperLedger:
                     candle_close_ms=candle_at, observed_at_ms=observed_at,
                     dataset_version=dataset_version,
                 )
+            if not migration:
+                raise sqlite3.DatabaseError("DUAL_LEDGER_MIGRATION_NOT_APPLIED")
 
             risk = connection.execute(
                 """SELECT high_water_mark_quote,daily_baseline_utc_day_ms,
