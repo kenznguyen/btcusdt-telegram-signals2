@@ -2680,3 +2680,27 @@ Verifier security boundary:
 - Artifact ID `13875077587`, name `ai-strategy-contract-red-cbfef9b48dfd996f7788e80f8f62f9c92a51628d`, upload ZIP SHA-256 `1a82bd0eeb050956adecb54281723650e2905a714996d256d8d8e05a6238f73c`.
 - These additional checks are structural only. The verifier still does not validate the full predecessor chain, owner approval/revocation state, trusted time, evaluation evidence bytes/metrics, dataset lineage or OOS statistical quality, and it does not calculate per-inference confidence from the artifact.
 - **Disposition unchanged:** verifier code and focused tests PASS; overall calibrated confidence/provenance completion BLOCKED / NOT VERIFIED; API remains fail-closed with no trusted provider. No production key/pin, manifest/artifact, calibration training, database migration, runtime activation or live execution.
+
+## AI calibration transform and verified-evidence decision gate (2026-11-11)
+
+Owner-approved autonomous implementation continued on the existing branch. No branch creation, PR split, merge/rebase or destructive operation.
+
+- Source HEAD before this handoff append: `3a7eb76ab1762e7f68e911944d751cf0f6723de0`.
+- `pipeline/calibration_registry.py` blob `2a077783878a5bbfc67afb3ba5a8df8241346fe9`: strict JCS/Ed25519 manifest and artifact verifier, monotone score/probability transform validation, exact transform/manifest compatibility, and per-inference confidence calculation by piecewise-linear interpolation with no extrapolation. Timestamp conversion uses integer UTC arithmetic.
+- `pipeline/decision.py` blob `8720d8ab988529b1545a27aa0792beca9e6a84aa`: consumes server-constructed calibration evidence rather than prediction-report confidence. It requires `SIGNATURE_VERIFIED_ONLY`, registry `ACTIVE`, trusted-time `VERIFIED`, and OOS-evidence `VERIFIED` before confidence/policy/provenance checks. Missing any state => WAIT.
+- Tests: `pipeline/test_ai_calibration_registry.py` blob `fe3c016a88149a198afac594dbe716303abcffca`; `pipeline/test_ai_strategy_contract_red.py` blob `3592d7aa9edeb4eac039153f1e5c19a9bf3b5fcf`; `pipeline/test_decision.py` blob `6781f26d66635f56662a627bdd3b4a63f26c1f28`.
+- Frozen contract updated: `docs/architecture/AI_CALIBRATION_REGISTRY_MANIFEST_CONTRACT.md` blob `955a7cc4addc7b282c3b88b7753a1dd1b0ce680e`.
+- Evidence report: `docs/evidence/AI_CALIBRATION_MANIFEST_AND_KEY_LIFECYCLE_DESIGN_2026-11-11.md` blob `0fb037a9d912e8e8807cad605ab3e4c8fa365c36`.
+
+Exact CI:
+- Workflow run `43066900003`, job `130684294885`, source SHA `f3a873c38f9ad917a6566faa5fa52e8dc013e0fd`: compile PASS; calibrated confidence/provenance 14 PASS; decision regression 15 PASS; registry verifier/transform 18 PASS.
+- Full AI/dual-strategy RED: 54 tests, 12 failures, 6 errors. Remaining failures/errors are leverage mapping, account equity/sizing, instrument lot/tick/minimum rules, Kill Switch and AI ledger/API routing; no full-system PASS claim.
+- Artifact ID `13875183120`, name `ai-strategy-contract-red-f3a873c38f9ad917a6566faa5fa52e8dc013e0fd`, ZIP SHA-256 `0dee6d84732a7be668e162ad782570014eb33f66c353105d36418b8446321054`.
+
+Critical limits:
+- The transform evaluator can derive confidence from a signed exact artifact, but no production calibration transform/artifact or OOS dataset exists. No training was performed.
+- The verifier returns only signature/integrity status. No production key/public-key pin was provisioned; no signed registry event-chain, Owner promotion/revocation provider, trusted-time anchor, or evaluation/OOS lineage verifier exists.
+- The decision boundary now explicitly requires registry ACTIVE, trusted time and OOS verification statuses. Test fixtures exercise these states only; no production provider can assert them. `pipeline/api.py::decide` still supplies no admission context, so production AI remains fail-closed to WAIT.
+- No C_min, sample-count, calibration-duration or max-age numeric threshold was selected. No registry/artifact/key, training job, DB migration, runtime activation, VPS operation or live execution occurred.
+
+**Disposition:** RFC8785/Ed25519 verifier, transform evaluator and fail-closed decision evidence contract IMPLEMENTED; focused CI PASS. Overall Calibrated confidence/provenance completion BLOCKED / NOT VERIFIED until an authorized real trust pin/key lifecycle, append-only active/revocation chain, trusted time, OOS evaluation/dataset lineage and real calibrated artifact are available. Do not weaken the new ACTIVE/time/OOS gates or enable AI execution to bypass missing evidence.
