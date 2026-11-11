@@ -14,7 +14,7 @@ Updated: 2026-11-11 (Asia/Ho_Chi_Minh)
 - Repository: `kenznguyen/btcusdt-telegram-signals2`.
 - Active branch: `feature/t0-centralized-data-feeder-p1-20261101`.
 - Default branch: `main`. Do not switch branches or create a parallel PR without a task-specific reason and approval.
-- Latest repository HEAD before this handoff update: `41bbaa23cb8f7f732431644ad103882caa695146` (Stage I evidence linked to the contract clarification proposal; see current A2.2 workstream below).
+- Latest repository HEAD before this handoff update: `b94e691eca70ae79ebc74cc104e47f544d26fb49` (owner-approved A2.2 byte clarification, Stage I digest implementation, and updated evidence; see current A2.2 workstream below).
 - Full previous handoff preserved verbatim in `docs/archive/PROJECT_SESSION_HANDOFF_HISTORY_2026-11-10.md`; archive commit: `2fcad94aef8b15002cdba58aafe62ad208dc818b`.
 - PR #139 is OPEN / DRAFT / NOT MERGED. It concerns SSH passphrase handling and targets this active branch. Do not merge or alter it as part of unrelated work.
 
@@ -750,3 +750,33 @@ Reconcile the four-artifact Actions allowlist with all eligible source artifacts
 
 
 - Stage I harness evidence report was updated to reference the unapproved contract-ambiguity proposal: current evidence blob `9e5ecd7a2c47cad4d36e4d1b1ab0d8d3385e8bde`, commit `41bbaa23cb8f7f732431644ad103882caa695146`.
+
+
+### A2.2 Stage I — owner-approved contract clarification and implementation delta (2026-11-11)
+
+The prior A2.2 Stage I status/proposal notes above are historical snapshots. This delta supersedes their "proposal unapproved / digest helpers blocked" disposition.
+
+**Owner decision and normative amendment**
+- Owner approved exact proposal blob `37bff74053ddc1034e09f40d9cc3bf558588e897`.
+- A2.2 §20 now normatively fixes the four domain separator byte sequences (ASCII domain name + exactly one NUL octet) and the restricted T0-JCS-1 numeric-token grammar.
+- A2.2 amendment commit: `e1cb154755f127587e5a868c3ac9423ecf9bf15f`; blob: `3f4cb1fc36a58bc6ccaa26872360b8ee2961270b`.
+- A1 §14.2 remains controlling for logical integer fields: logical U64/length/sequence/time/schema-version fields use canonical unsigned decimal strings. The fixed A2.2 profile-version discriminator remains integer `2`.
+
+**Stage I code/tests**
+- Test-first commit: `f1bc86d25b7ca773848c0ff5093e887e389f9a88`; test blob: `8e47af0bb98cae6e8501c609c97259ebc5e0c78f`.
+- Digest implementation commit: `8af2aeca99ddcab6d93133c5a689276582e4b358`; `primitives.py` blob: `91496d70a67d12525b8399b46aeb1318693b17ee`.
+- Three formerly fail-closed digest helpers now use the exact approved constants. Evidence Object digest uses the same explicit byte-constant pattern.
+- Current test denominator: 23 primitive tests + 11 fixture/verdict tests = **34 test methods**.
+- Independent Python spot-check: 4/4 fixed SHA-256 vectors, four distinct domain digests, both safe-integer boundaries accepted and six invalid numeric forms rejected. This does NOT constitute execution of the repository suite.
+
+**Current evidence and verification**
+- Updated evidence report: `docs/evidence/T0_SIGNATURE_A2_2_STAGE_I_SYNTHETIC_HARNESS_2026-11-11.md`, blob `f122daa5a70834077f5a93e8a43f302c7eb83890`, commit `b94e691eca70ae79ebc74cc104e47f544d26fb49`.
+- Repository unit tests: **NOT RUN** after the latest change. Local clone failed because GitHub DNS resolution was unavailable.
+- `compileall`: **NOT RUN** after the latest change.
+- GitHub Actions: **NOT DISPATCHED**; no run/job/artifact exists. Manual workflow dispatch still requires separate explicit authorization.
+- Python 3.12 parity: NOT VERIFIED.
+- Disposition: **CONTRACT CLARIFICATION APPLIED / IMPLEMENTATION COMMITTED / TEST EXECUTION NOT VERIFIED**. Stage I is not PASS until all 34 repository tests and compile checks pass on exact committed source.
+- Independent review remains waived/not performed; G3 is not established.
+
+**Next permitted step**
+- Obtain separate explicit authorization to dispatch the manual-only Stage I GitHub Actions workflow after confirming the current source and test files. Do not use workflow success to claim production cryptographic assurance. No production crypto, keys, root enrollment, Path A/B, durable trust state, VPS/T0, custody publication, CI secrets, deployment, trading or destructive operations.
