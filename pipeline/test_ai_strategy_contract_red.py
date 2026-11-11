@@ -93,6 +93,18 @@ class AIStrategyContractRedTest(unittest.TestCase):
         return context
 
     def evaluate(self, prediction=None, admission_context=None, **changes):
+        selected_prediction = self.fixture.prediction if prediction is None else prediction
+        selected_context = (
+            self.admission_context() if admission_context is None else admission_context
+        )
+        if "calibration_evidence" not in selected_context:
+            calibration = selected_prediction.get("calibration")
+            if isinstance(calibration, dict):
+                selected_context["calibration_evidence"] = {
+                    "verificationStatus": "SIGNATURE_VERIFIED_ONLY",
+                    "manifestDigest": "sha256:" + "d" * 64,
+                    **calibration,
+                }
         """Exercise the decision boundary; report unsupported contract as a RED result.
 
         Catch only Python's explicit unsupported-keyword error so missing API behavior
@@ -100,11 +112,8 @@ class AIStrategyContractRedTest(unittest.TestCase):
         """
         try:
             return self.fixture.evaluate(
-                prediction=self.fixture.prediction if prediction is None else prediction,
-                admission_context=(
-                    self.admission_context()
-                    if admission_context is None else admission_context
-                ),
+                prediction=selected_prediction,
+                admission_context=selected_context,
                 **changes,
             )
         except TypeError as error:
@@ -156,6 +165,19 @@ class AIStrategyContractRedTest(unittest.TestCase):
                          "sha256:" + "c" * 64)
         self.assertEqual(result["intent"]["calibrationPolicyVersion"],
                          "ai-policy-fixture-v1")
+
+    def test_missing_or_unverified_calibration_evidence_fails_closed(self):
+        prediction = self.calibrated_prediction("0.8")
+        context = self.admission_context()
+        context.pop("calibration_evidence")
+        self.assert_contract_wait(self.evaluate(
+            prediction=prediction, admission_context=context
+        ))
+        context = self.admission_context()
+        context["calibration_evidence"]["verificationStatus"] = "UNVERIFIED"
+        self.assert_contract_wait(self.evaluate(
+            prediction=prediction, admission_context=context
+        ))
 
     def test_missing_calibrated_confidence_blocks_an_otherwise_valid_ai_prediction(self):
         prediction = dict(self.fixture.prediction)
