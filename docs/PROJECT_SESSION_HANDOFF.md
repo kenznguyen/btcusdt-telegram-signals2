@@ -567,3 +567,16 @@ Reconcile the four-artifact Actions allowlist with all eligible source artifacts
 - Frozen source documents were not modified. The self-review report is a separate artifact and does not replace or satisfy qualifying independent review/G3. It is a same-session adversarial review, not independent assurance.
 - Current implementation status remains **BLOCKED**. No code/tests/workflow/CI, key/signature/trust-root/policy/anchor instance, provider/TSA, VPS/SSH/runtime, SQLite/canonical T0 data or destructive operation was changed or exercised.
 - Next permitted documentation step: prepare A2/new candidate that addresses SR-01–SR-08 and expands deterministic test vectors/matrix; preserve A1 frozen blobs for traceability. Then repeat self-review. Qualifying independent review and separate owner implementation approval remain required.
+
+
+## A2 signature-contract correction candidate drafted (2026-11-11)
+
+- User explicitly approved drafting A2 as a documentation-only correction candidate. This is not implementation approval.
+- A2 path: `docs/architecture/T0_SIGNATURE_TRUST_POLICY_MONOTONIC_ANCHOR_AMENDMENT_A2_2026-11-11.md`.
+- A2 current blob: `d76e382f5582530d4607e2cf36003e55e313cb64`; latest A2 update commit: `2f8f8e35af9c60ff9b9ae2a0f8983a078346f471`.
+- Initial A2 create commit: `3925f720a5cd531333c67d22a931c6a0d2a2de63`; the deterministic-test correction is the subsequent commit above.
+- A2 is a new candidate and leaves A1 unchanged. A1 blob remains `00fdad293e129562145ab930507a4e6b9c2bf23d`; self-review report blob remains `d7ff88b4a5fadbf08ae8fdc62e76fdd6274e89ce`.
+- A2 addresses SR-01–SR-08 at contract-design level: changes checkpoint purpose to issuer attestation (no implied owner intent); defines explicit provenance/authorization fields and envelope identity; specifies a durable anchor transition state machine and crash recovery; makes negative tests deterministic; separates common-mode rollback limitation from detection tests; defines U64/base64url primitives and boundary vectors; distinguishes byte-frozen review candidate from draft approval; specifies owner-pinned bootstrap record and out-of-band key pinning.
+- A2 negative matrix currently has A2-NV-01 through A2-NV-43. A2-NV-40 is a stateful recovery test with pre-/post-recovery assertions; A2-NV-33 and A2-NV-43 isolate missing authority evidence versus digest mismatch.
+- Status: **DRAFT A2 — DOCUMENTATION ONLY — NOT IMPLEMENTATION-APPROVED — NOT INDEPENDENTLY REVIEWED**. The user-approved scope was limited to drafting A2. Do not create keys, signatures, trust roots, policy/anchor instances; do not implement or exercise runtime/VPS/SQLite/T0/provider operations.
+- Next: adversarial self-review A2 against the exact current A2 blob and A1/base-contract/crosswalk source pins; record findings without mutating the reviewed candidate. If corrections are required, create a new A2 candidate revision and re-review. Qualifying independent review and separate implementation approval remain mandatory.
