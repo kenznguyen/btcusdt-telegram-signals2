@@ -152,3 +152,17 @@ Disposition: **RED triage PASS — analysis/documentation only**. API proposal a
 
 Disposition: **Gate A APPROVED. Gate B TEST SOURCE REFINEMENT WRITTEN; CI NOT VERIFIED. GREEN NOT AUTHORIZED.**
 Next: obtain exact push-triggered AI RED workflow run for SHA `dd1b088a763276f5510f99166ba175c13f70e0d9`; inspect compile and test logs, correct only test-source defects, then record exact run/artifact. Stop before GREEN.
+
+
+## Gate B — exact-SHA GitHub Actions execution — 2026-11-11
+
+- Workflow: [AI Strategy Contract RED run 42991140429](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42991140429).
+- Event: push; branch: `feature/t0-centralized-data-feeder-p1-20261101`; exact checkout/source SHA: `dd1b088a763276f5510f99166ba175c13f70e0d9` (confirmed in checkout log and `git rev-parse HEAD`).
+- Job: `130424044648` (`Isolated AI Strategy RED contracts`), conclusion FAILURE by design at test execution; setup, checkout, Python 3.12, paper-only preflight, dependency install, compile, and artifact upload all SUCCESS.
+- Compile: `AI_STRATEGY_RED_COMPILE=PASS`.
+- Test execution: **45 tests, 52 assertion failures, 0 errors**. Expected RED: the decision boundary does not yet accept the approved `admission_context`; AI ledger factory does not yet accept explicit `admitted_leverage`; AI ledger does not yet reject 0.99x/3.01x/13x. Positive BUY/sizing/leverage-mapping assertions remain RED because the production contract is not implemented.
+- Regression anchors in the same run: Core fixed-13x regression test **PASS**; AI BUY while Core WAIT → AI-only ledger → Shared Risk Engine rejects unready account → no reservation test **PASS**. Existing API/ledger isolation checks also ran in the same focused module.
+- Artifact ID `13841349049`; name `ai-strategy-contract-red-dd1b088a763276f5510f99166ba175c13f70e0d9`; size 4,143 bytes; GitHub-reported digest `sha256:7e2e5048db147243eaade59aebdb01ce0245fdcf1a9062abd7dc416cb7ac64e4`; created `2026-11-11T08:57:39Z`; expires `2026-11-18T08:57:31Z`. Digest is GitHub upload metadata; artifact bytes have not been independently downloaded and re-hashed.
+- This is the expected RED outcome, not a GREEN or full acceptance result. Do not edit production code. No C_min production value selected; fixture values remain test-only. GREEN, calibration/OOS acceptance, migration, backtest, activation, VPS/runtime and deployment remain unauthorized.
+
+Disposition: **Gate A APPROVED. Gate B initial behavioral RED suite executed at exact SHA; compile PASS; RED confirmed (45 tests / 52 assertion failures / 0 errors).** The current suite remains subject to test refinement for the precise missing behaviors and unresolved policy/provider boundaries. GREEN NOT AUTHORIZED.
