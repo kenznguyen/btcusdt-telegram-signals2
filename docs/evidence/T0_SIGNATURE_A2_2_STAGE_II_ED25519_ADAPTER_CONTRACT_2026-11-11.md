@@ -34,7 +34,7 @@ A1 §4.3 defines the checkpoint Signature Statement preimage. Let `S` be the exa
 
 ```
 signature_preimage =
-    UTF8("T0-SIGNATURE-STATEMENT-V1\\0")
+    UTF8("T0-SIGNATURE-STATEMENT-V1\0")
     || U64BE(byte_length(S))
     || S
 ```
