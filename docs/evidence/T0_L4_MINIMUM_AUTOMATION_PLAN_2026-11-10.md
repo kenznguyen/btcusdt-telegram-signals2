@@ -104,7 +104,7 @@ Each implementation increment must be reviewed and tested before proceeding. Do 
 - Owner signer/custody assertions: **PENDING EVIDENCE**.
 - L4-Minimum aggregate: **BLOCKED / NOT VERIFIED**.
 - L4M-09: **OWNER-WAIVED**.
-- Option C — No Destructive Authority: **ACTIVE**.
+- Option C — No Destructive Authority: **REVOKED (owner decision 2026-11-11)**. The prior ACTIVE line is superseded; see the owner governance update below.
 
 
 ### Latest inventory increment — 2026-11-10
