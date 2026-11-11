@@ -2518,3 +2518,18 @@ Next: if owner wants to proceed beyond planning, first approve a bounded provisi
 - Tests/compile/CI: NOT RUN (docs-only). Runtime/VPS/database/provider/key operations: NOT PERFORMED.
 - **G0.47: DOCUMENTATION PASS — D01–D04 owner selections recorded; D06 initial-phase manual Owner-attestation policy decided; D07–D09 and D12–D14 remain open; S2 IMPLEMENTATION NOT AUTHORIZED.**
 - Next: prepare the next bounded owner decision record for D07/D08/D09 and remaining dependencies. No autonomous issuer key, cryptographic operation or S2 implementation is authorized.
+
+## G0.48 — D07/D08/D09 inventory, freshness and Owner authentication decision package (2026-11-11)
+
+- Baseline before G0.48: `eeaeec02b38d428cb535a5dffc7ded4dec3bfe85`; G0.47 D06 decision record blob: `8a4bbb32fee04d01ef5a62f17a0d84bfc5262688`.
+- Added `docs/evidence/G0_48_D07_D08_D09_INVENTORY_FRESHNESS_OWNER_AUTH_DECISION_PACKAGE_2026-11-11.md` in package commit `b08fcfc9cbfd90748a4f9c0399d357e42026cac7`.
+- G0.48 is documentation-only. It prepares owner options for D07 inventory closure/omission detection, D08 freshness/expiry/revocation/replay/rollback, and D09 manual Owner authentication/exact-scope authorization.
+- D07 recommendation: declared scope, independently defined expected population, deterministic enumeration, expected/observed reconciliation; unresolved/inaccessible/ambiguous items block completeness. Explicitly partial inventories may be labelled partial, not complete.
+- D08 recommendation: initial posture makes no global latestness claim; use integrity-only or named-snapshot claims. Freshness-dependent actions fail closed when freshness is unknown. No TTL, trusted time source, anchor technology, revocation transport or replay window is ratified.
+- D09 recommendation: consider platform-attributed manual Owner action only if Owner accepts its assurance limits; explicitly do not label it cryptographically signed. Separate evidence-review attestation from privileged-action authorization and bind any authorization to exact target/action/scope/policy version/evidence references. Detached signatures remain deferred.
+- D07/D08/D09 are all OPEN / NOT RATIFIED. The package recommendations are not decisions. No numeric limits or implementation authority are granted.
+- D06 remains owner-decided: manual Owner attestation only in the initial phase; no autonomous Issuer Key or producer/service signature.
+- G0.48 changed only the new decision package and this handoff. No source, tests, fixtures, schemas, workflows, dependencies, keys, trust roots, providers, database, VPS, runtime, T0/T1/T2, ledgers, risk engine or lifecycle operations changed.
+- Tests/compile/CI: NOT RUN (docs-only). Runtime/VPS/database/provider/key operations: NOT PERFORMED.
+- **G0.48: PACKAGE PREPARED — D07/D08/D09 READY FOR OWNER DECISION; ALL THREE OPEN / NOT RATIFIED; S2 IMPLEMENTATION NOT AUTHORIZED.**
+- Next: Owner selects or amends D07, D08 and D09. No automatic progression to S2.
