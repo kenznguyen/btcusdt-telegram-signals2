@@ -150,3 +150,137 @@ Test fixtures must be synthetic and explicitly marked test-only. They must never
 **Design proposal prepared under explicit Owner approval.** No schema freeze, code implementation, contract tests, production provider, real dataset/evaluation, key, registry event, trust bootstrap, model training, calibration artifact or AI admission was created. Frozen manifest/envelope/transform v1 and current fail-closed decision boundary remain unchanged.
 
 Next permitted increment: Owner review of the proposed field inventory, dataset split/lineage rules and metric families; only after those choices are explicitly frozen may implementation and executable contract tests be considered.
+
+
+---
+
+# Owner-approved OOS Evaluation Evidence v1 — structural contract freeze
+
+Approval recorded: 2026-11-12 (Asia/Ho_Chi_Minh)  
+Disposition: **STRUCTURAL CONTRACT FROZEN; POLICY/PROVIDER GATES REMAIN OPEN**
+
+The Owner approved using this proposal as the baseline for freezing OOS Evaluation Evidence v1. This section is normative for the record's structural shape. It does not approve statistical thresholds, trust semantics, source authority, production providers or AI admission.
+
+## F1. Exact top-level field set
+
+The v1 record MUST contain exactly these fields; unknown or missing fields are rejected:
+
+```text
+schema
+evaluation_id
+evaluation_kind
+model_id
+model_version
+model_artifact_digest
+strategy_id
+strategy_version
+strategy_source_commit
+training_dataset_id
+training_dataset_digest
+training_cutoff
+calibration_dataset_id
+calibration_dataset_digest
+calibration_start
+calibration_end
+evaluation_dataset_id
+evaluation_dataset_digest
+label_definition_id
+label_definition_digest
+forecast_horizon_value
+forecast_horizon_unit
+split_protocol_id
+split_protocol_version
+evaluation_start
+evaluation_end
+eligible_sample_count
+excluded_sample_count
+exclusion_summary_digest
+metrics
+uncertainty
+reliability_bins_digest
+baseline_definition_id
+baseline_metrics
+evaluation_code_commit
+evaluation_code_digest
+environment_lock_digest
+reproduction_command_id
+created_at
+```
+
+Required constants and bindings:
+- `schema = "ai-calibration-oos-evaluation/v1"`.
+- `evaluation_kind = "OUT_OF_SAMPLE_CALIBRATION_EVALUATION"`.
+- `evaluation_id` MUST equal the signed manifest's `evaluation_record_id`.
+- SHA-256 digest fields use the manifest v1 lowercase `sha256:` plus 64-hex grammar.
+- All identifiers use the existing manifest v1 ASCII identifier grammar.
+- All timestamps use UTC `YYYY-MM-DDTHH:MM:SSZ`.
+- All counts and horizon values are canonical unsigned decimal strings, uint64 bounded. No JSON numeric values are permitted.
+- All remaining scalar values are strings unless a nested shape below explicitly specifies otherwise. JSON booleans and nulls are not permitted in v1.
+- Exact record bytes are UTF-8 without BOM and RFC 8785 JCS; duplicate keys, invalid UTF-8, unknown/missing fields and noncanonical bytes are rejected.
+- The exact bytes' SHA-256 MUST equal the signed manifest's `evaluation_record_digest`. No record may self-authorize.
+
+## F2. Exact nested metric shape
+
+`metrics` and `baseline_metrics` MUST each be an object with exactly:
+- `schema`: string, fixed value `ai-calibration-metric-set/v1`;
+- `items`: non-empty array of metric objects.
+
+Each metric object MUST contain exactly:
+- `metric_id`: stable ASCII identifier;
+- `value`: canonical finite decimal string;
+- `unit`: stable ASCII identifier;
+- `direction`: one of `LOWER_IS_BETTER`, `HIGHER_IS_BETTER`, `DESCRIPTIVE_ONLY`;
+- `aggregation`: stable ASCII identifier;
+- `sample_count`: canonical uint64 decimal string.
+
+Metric IDs MUST be unique within each metric set. Values MUST NOT be JSON numbers, NaN or infinity. This generic container deliberately does not mandate Brier/log-loss/AUC or declare any value acceptable. Metric definitions, suitability for the chosen label, weighting, missing-value behavior and acceptance thresholds remain separately governed policy. The baseline metric set MUST identify the same evaluation population and compatible metric IDs/definitions as the primary metric set.
+
+## F3. Exact uncertainty shape
+
+`uncertainty` MUST be an object with exactly:
+- `schema`: string, fixed value `ai-calibration-uncertainty/v1`;
+- `method`: stable ASCII identifier;
+- `resampling_unit`: stable ASCII identifier;
+- `interval_level`: canonical finite decimal string in (0,1);
+- `seed_derivation`: stable ASCII identifier;
+- `items`: non-empty array.
+
+Each uncertainty item MUST contain exactly:
+- `metric_id`: identifier matching one metric in `metrics.items`;
+- `lower`: canonical finite decimal string;
+- `upper`: canonical finite decimal string;
+- `estimate`: canonical finite decimal string matching the corresponding primary metric value.
+
+Require `lower <= estimate <= upper`. The method, resampling unit, interval level and seed derivation are recorded for reproducibility; this schema does not select the method or confidence level as an acceptance policy.
+
+## F4. Data partition invariants
+
+- Training, calibration and evaluation datasets MUST have distinct IDs and digests.
+- `training_cutoff < calibration_start <= calibration_end < evaluation_start <= evaluation_end`.
+- The complete forecast label horizon for every eligible observation MUST remain within its assigned partition.
+- Any feature/label window crossing a partition boundary, duplicate sample identity, future-feature dependency, or unaccounted exclusion MUST fail verification.
+- `eligible_sample_count` MUST be positive. Eligible plus excluded counts MUST reconcile to the independently established candidate population.
+- The evaluation sample set MUST be disjoint from training and calibration sample sets.
+- A dataset digest alone is insufficient. The provider must independently verify partition membership, sample identity and horizon embargo from the authoritative lineage evidence.
+- `split_protocol_id` and `split_protocol_version` bind the exact separately specified protocol. This structural freeze does not invent or approve that protocol's algorithm.
+
+## F5. Verification and decision semantics
+
+The evaluation record itself can establish only immutable declared evidence. A future trusted provider must independently verify exact bytes, signed-manifest binding, dataset lineage, split/embargo, evaluator identity, metric consistency and reproducibility before it may assert the existing decision gate's `oosEvidenceStatus=VERIFIED`.
+
+No record field, digest match, metric value or test fixture alone may produce `VERIFIED`. The provider must fail closed on missing, conflicting, stale, unreproducible or unverifiable evidence. The existing decision gate and manifest v1 are unchanged.
+
+## F6. Explicitly not frozen by this approval
+
+The following remain separate Owner decisions and are not inferred from this structural freeze:
+1. Approved authoritative source and independent verification method for dataset lineage.
+2. Concrete split protocol algorithm/version and reproducibility tolerance.
+3. Approved metric catalogue and label-specific suitability.
+4. Statistical acceptance policy, including minimum effective sample count, metric thresholds, uncertainty requirements, freshness, calibration duration and interaction with `C_min`.
+5. Trusted-time anchor and freshness semantics.
+6. Whether a detached evaluation-record signature is additionally required beyond the existing signed manifest digest and trusted provider.
+7. Resource/size limits and provider implementation details.
+
+No implementation, provider, executable tests, production evidence, training/calibration run, production key/trust bootstrap, registry event, S2, runtime, VPS, T0/T1/T2 or AI admission is authorized by this structural freeze.
+
+**Next permitted work:** translate F1–F5 into deterministic schema/contract tests and a pure offline validator only after the implementation step is separately approved. Until a real trusted provider and Owner-approved policy exist, OOS remains NOT VERIFIED and the AI decision path remains fail-closed.
