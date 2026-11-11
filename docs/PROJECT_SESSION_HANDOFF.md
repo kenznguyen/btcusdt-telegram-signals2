@@ -1812,3 +1812,22 @@ Next: if owner wants to proceed beyond planning, first approve a bounded provisi
 - T0 remains independent/protected; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
 - Next bounded step: request owner approval for G0.15 remediation of R1–R4. R4 remains blocked if the ratified policy does not specify exact sensitivity vocabulary and class-policy mapping. CI dispatch, TEST-01–07, evidence authentication and destructive executor remain separate gates.
 
+
+
+## G0.15 — Lifecycle Evaluator Remediation of G0.14 Findings (2026-11-11)
+
+- Owner approved bounded remediation of G0.14 R1–R4 only.
+- Implementation commit: `eb444273f54f46ca48d51f7be8cfed8d3a8a6cf9`.
+- Evidence report: `docs/evidence/G0_15_LIFECYCLE_EVALUATOR_REMEDIATION_2026-11-11.md`, created in commit `be1c18cc1413f623cee0e5a2f0608c2f6c9f78b1`.
+- Implementation blob `pipeline/lifecycle_disposition.py`: `6f083a6b9b7107f3b6e3c7af3b32da34b5dafb5e`.
+- Test blob `pipeline/test_lifecycle_disposition.py`: `2ba03eb0deac67e1b82afb60ca24a6c15a2a56ce`.
+- R1: explicit string type guard added before copy-state membership test. Regression test passes. The malformed-state case was also tested against the pre-change source and already failed closed due to the earlier shape guard; the reported TypeError was NOT REPRODUCED on baseline. Treat as defensive hardening, not a reproduced baseline bug.
+- R2: COPY_SPECIFIC_REVIEW now requires copy ID to equal the evaluated object ID and exactly one complete copies-inventory entry matching copy ID, exact version, NONCANONICAL_COPY kind and supported string state. Empty, mismatched-version and duplicate matches block. RED/GREEN regression coverage added.
+- R3: protected class/binding-hold precedence is retained while all applicable unknown metadata reason codes are collected. RED/GREEN regression coverage added.
+- R4: BLOCKED / NOT IMPLEMENTED. RET-01/RET-02 ratification and P1.8.80/C.13 establish that sensitivity/classification is required in applicable gates, but no exact owner-ratified sensitivity vocabulary or complete class-to-policy/version mapping was found. Do not invent labels or mappings.
+- Focused test command `python -m unittest pipeline.test_lifecycle_disposition -v`: 23/23 PASS.
+- Compile command `python -m py_compile pipeline/lifecycle_disposition.py pipeline/test_lifecycle_disposition.py`: PASS.
+- Repository-wide tests NOT RUN; GitHub Actions NOT DISPATCHED; no run/artifact.
+- G0.15 verdict: PARTIAL PASS — R1–R3 remediated; R4 BLOCKED. TEST-01–07 technical closure NOT ESTABLISHED; 0/87 vectors executed; TEST-08 NOT GRANTED; runtime/VPS NOT VERIFIED.
+- No workflow, fixtures, schema, API, registry, adapter, runner, oracle, scheduler, service, permission, credential, database, storage, VPS, market data, model, ledger or runtime changes. No production inventory, external evidence authentication, network/provider/database access, dispatch, archive, quarantine, cleanup, expiry, compaction, vacuum or deletion.
+- Next gate: owner-ratify exact sensitivity vocabulary and class-to-policy/version mapping before R4 implementation. CI, TEST-01–07, evidence authentication and destructive operations remain separate approvals. T0 remains independent/protected; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
