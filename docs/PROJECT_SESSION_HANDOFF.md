@@ -298,7 +298,6 @@ Reconcile the four-artifact Actions allowlist with all eligible source artifacts
 
 
 ### Independent readback of run 42916283963 output artifacts (2026-11-11)
-
 - Downloaded all three output ZIPs from run `42916283963` and independently recomputed their byte lengths and SHA-256 values; each matches the GitHub upload digest:
   - Lineage `13810400590`: 1,151 bytes; `3a77cdcd09328e5bfc54050110ddf7d2a2793d169f602a0f64f5ccc1b250f158`.
   - Repository inventory `13809381785`: 4,490 bytes; `eb3c2adb7b6ee87bc5cadd913439e201e105c88c9d710f34605ac9cea882a884`.
@@ -597,8 +596,7 @@ Reconcile the four-artifact Actions allowlist with all eligible source artifacts
 
 - User explicitly approved **documentation-only A2.1 drafting** to address A2 self-review findings A2-SR-01 and A2-SR-02. This approval does not authorize implementation.
 - New candidate: `docs/architecture/T0_SIGNATURE_TRUST_POLICY_MONOTONIC_ANCHOR_AMENDMENT_A2_1_2026-11-11.md`.
-- A2.1 create commit: `d4112dff435e115b474c581ce2c6f4c96e36536f`; clarification commit: `b319dc17046c4d6a53a099fd9398efa69c147ebf`; final A2.1 blob: `73ba6fd9f6bb862121842f7a1347fffc06738451`.
-- Historical A2 remains unchanged at blob `e15a90b779bd86b39729208db938e9de9471ef26`; A1 `00fdad293e129562145ab930507a4e6b9c2bf23d`; Checkpoint Contract v1 `a6825270d59bde274bfe765d5f942144b66a84de`; L4 crosswalk `e560f084642b5f81c78179ef673e5df116fc5f42`. All four were re-fetched from the active branch after A2.1 drafting and matched these exact blobs.
+- A2.1 create commit: `d4112dff435e115b474c581ce2c6f4c96e36536f`; clarification commit: `b319dc17046c4d6a53a099fd9398efa69c147ebf`; final A2.1 blob: `73ba6fd9f6bb862121842f7a1347fffc06738451`.- Historical A2 remains unchanged at blob `e15a90b779bd86b39729208db938e9de9471ef26`; A1 `00fdad293e129562145ab930507a4e6b9c2bf23d`; Checkpoint Contract v1 `a6825270d59bde274bfe765d5f942144b66a84de`; L4 crosswalk `e560f084642b5f81c78179ef673e5df116fc5f42`. All four were re-fetched from the active branch after A2.1 drafting and matched these exact blobs.
 - A2-SR-01 correction: A2.1 Trust Policy MUST explicitly authorize only `T0_CHECKPOINT_ISSUER_ATTESTATION` for A2.1 checkpoint objects; legacy `T0_CHECKPOINT_OWNER_ATTESTATION` is rejected with `PURPOSE_NOT_SUPPORTED_BY_PROFILE`; historical A1 verification requires explicit A1 profile; no relabel, silent upgrade or downgrade. Four new negative cases A2.1-NV-01..04.
 - A2-SR-02 correction: defines `T0-TRUST-BOOTSTRAP-AUTHORIZATION-V1` and binds exact bootstrap digest/length, namespace, audience, root SPKI fingerprint, role, profile, sequence and recovery policy. Path A uses separately pre-pinned owner authority but is unavailable until its own canonical schema/preimage/profile/revocation contract is separately approved. Path B uses an owner-controlled provisioning ceremony whose exact canonical record is identified by the bootstrap record's owner-authorization evidence ID/digest and pinned/read back through an independent verifier-provisioning channel. Newly enrolled root cannot authenticate its own enrollment. Five new negative cases A2.1-NV-05..09.
 - Self-review report: `docs/evidence/T0_SIGNATURE_CONTRACT_A2_1_SELF_REVIEW_2026-11-11.md`; create commit `61d65d7a242be49466e74a52d1554120c868c876`; final report commit `5e22dbb3ff53a588f8121200e3b5a2a69316a25a`; report blob `9fa179c9daf657880533eb69394b42cdb644fa0b`.
@@ -851,3 +849,16 @@ This is the current disposition and supersedes the earlier historical NOT RUN / 
 - Preliminary recommendation: Ed25519 + PyCA `cryptography`, conditional on no mandatory external interoperability/FIPS-validated-module constraint. SPKI vs raw key encoding remains an owner decision. Exact signature input bytes must be reconciled against normative A2.2; no assumption is made about envelope serialization vs digest input.
 - No algorithm/library/profile is normatively selected. No code, dependencies, keys, trust root, durable state, CI workflow, VPS/runtime, T0, trading or destructive data operation changed.
 - Next owner decision: approve/reject the candidate for a **contract-only** Stage II specification and resolve key representation / FIPS requirement. Implementation remains separately gated. Stage III–V scope is not inferred from Stage II.
+
+### A2.2 Stage II — Ed25519 adapter contract draft (2026-11-11)
+
+- Owner approval recorded for **Ed25519 PureEdDSA**, PyCA `cryptography` candidate, DER SubjectPublicKeyInfo (SPKI), 64-byte raw signature, and no mandatory FIPS-validated-module requirement.
+- Contract draft: `docs/evidence/T0_SIGNATURE_A2_2_STAGE_II_ED25519_ADAPTER_CONTRACT_2026-11-11.md`.
+- Contract commit: `ab66b77a18b29f7bdaac4a86dc17260f94655c58`.
+- Contract status: **DRAFT / OWNER-DECISIONS RECORDED / CONTRACT-ONLY / NOT FROZEN / NO IMPLEMENTATION AUTHORITY**.
+- The adapter verifies only the supplied exact A1-defined preimage bytes. It does not parse/re-serialize statements, hash again, resolve signer trust, authorize purpose/audience, check revocation or anchors, mutate state, access network, or use private keys.
+- A1 §4.3 exact Signature Statement preimage and A1 §14.3 unpadded base64url envelope encoding are preserved. SPKI fingerprint remains SHA-256 over exact DER SPKI bytes.
+- FIPS decision is not a FIPS certification or validated-mode claim.
+- Open blockers before contract freeze: bounded resource ceilings; exact PyCA release/dependency hashes and build provenance; complete legacy v1 field mapping; final A1/A2.2 consistency review; qualifying independent security review.
+- No tests were run because this increment is documentation-only. No code, dependency, key, trust root, policy/anchor state, CI workflow, VPS/runtime, T0, trading or destructive data operation changed.
+- Next step: resolve the contract blockers and review the exact contract blob before asking for a separate implementation approval. Stage III–V scope remains independently gated.
