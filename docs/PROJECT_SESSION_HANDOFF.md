@@ -1031,3 +1031,43 @@ This is the current disposition and supersedes the earlier historical NOT RUN / 
   - A dedicated account-level mark/equity update and strategy-scoped cancellation path are required; account risk readiness must remain fail-closed until then.
 - Acceptance mapping now includes scoped ENTRY/DCA/EXIT, owner-scoped cancellation, explicit Core/AI read models, account aggregate equity/funding/reservation reconciliation, and atomic account-wide Kill Switch admission behavior.
 - Static-only; no endpoint/test execution, source code, workflow, VPS/runtime, DB or ledger mutation.
+
+
+## Owner-approved Dual-Strategy DS-01 / DS-02 TDD increment — 2026-11-11
+
+### Approval and boundary
+- Owner explicitly approved implementation/TDD for DS-01 and DS-02, including Equity/account mark and cancellation paths, within paper-only scope.
+- No VPS/runtime changes, no canonical T0 data changes and no real orders.
+- This approval does not authorize migration activation, account cutover/funding reconciliation, deployment, DS-03 leverage/sizing changes or live execution.
+- Stage II A2.3 / Ed25519 adapter remains **PAUSED BY OWNER**.
+
+### Source and evidence
+- Implementation/test source SHA: `4c8007e40f5c951a7644764756bf120c8b65c6d9`
+- Branch: `feature/t0-centralized-data-feeder-p1-20261101`
+- Evidence report: `docs/evidence/DUAL_STRATEGY_AND_OPERATIONAL_BASELINE_2026-11-11.md`
+- Evidence report commit: `9c7f8487447988ad8daa01efda7b0388db8f9e01`
+- Evidence report blob: `34ad2ff64e8a2159fb6fe2f97c98438e695d4448`
+- Dual Ledger CI: [42970058846](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42970058846), exact SHA `4c8007e40f5c951a7644764756bf120c8b65c6d9`; compile/focused/full regression PASS, **298 tests PASS**.
+- Artifact ID: `13832762848`; SHA-256: `13a2f8ed2757beb61cdeb63f082725e82b8c66158c99b53479462482a403a81e`.
+- T0 Single Writer Gateway: run `42969831047`, SHA `978f27b6418b0e350ebe851c74bcc498c350e7ba`, all jobs PASS.
+- T2 Freqtrade 2026.9 strategy-load smoke: run `42969831103`, SHA `978f27b6418b0e350ebe851c74bcc498c350e7ba`, PASS.
+
+### Implemented / verified in source and CI
+- Core/AI API submission selects exact strategy-scoped writer only when all nine Dual Ledger migration versions/checksums are already applied.
+- Scoped API ledger construction is read-only; it does not run migrations. No migration evidence => legacy path preserved. Partial/mismatched migration evidence => fail closed, never auto-migrate or silently fall back.
+- Core decision reads `STRATEGY_CORE` explicitly once migration is owner-activated; legacy read path remains before activation.
+- Cancellation uses persisted `paper_orders.strategy_id`; null/missing/unverified owner is rejected; Core/AI cancel is strategy-scoped.
+- Account mark/equity reconciliation covers Core, AI, legacy adjustments, funding and active/partial reservations within one account transaction. Missing cutover/daily baseline keeps risk readiness false; no automatic cutover or baseline is created.
+- `/v1/paper` returns separate account/Core/AI read models after migration.
+- Kill-switch reset readiness checks Core and AI, all pending orders including unassigned legacy rows, and shared account risk readiness.
+
+### Current status
+- DS-01: **PASS — source/CI scope**.
+- DS-02: **PASS — source/CI scope**.
+- Runtime migration/activation, account cutover, funding readiness and VPS deployment: **NOT AUTHORIZED / NOT PERFORMED / NOT VERIFIED**. Shared Risk Engine remains fail-closed until a separately approved account reconciliation/cutover.
+- DS-03 Core sizing/leverage: **BLOCKED**, unchanged.
+- DS-04 contract/document status reconciliation: **OPEN**.
+- T0 canonical DB, leases/fencing, VPS processes, T1 activation, credentials, exchange state and live orders were not changed. CI used isolated temporary paper databases only.
+
+### Next permitted step
+- Conduct a read-only code review of the exact DS-01/DS-02 source and reconcile the remaining DS-04 documentation status. Do not activate migrations, perform account cutover, deploy to VPS or change DS-03 without separate owner approval.
