@@ -172,6 +172,18 @@ Before implementation approval, a separate build review MUST record:
 
 No package installation, lockfile change, VPS installation, CI secret, workflow dispatch, or runtime deployment is authorized by this contract draft.
 
+
+
+### 8.1 PyCA version candidate (not frozen)
+
+A current upstream candidate has been recorded in `docs/evidence/T0_SIGNATURE_A2_3_PYCA_DEPENDENCY_CANDIDATE_2026-11-11.md`:
+- `cryptography==50.0.2`;
+- proposed CPython 3.12 Linux x86-64 wheel: `cryptography-50.0.2-cp311-abi3-manylinux_2_34_x86_64.whl`;
+- proposed wheel SHA-256: `9dab55f57c74c3cad24c323bacbbd04be4705ba6eb0d92e920b1fc4837ed5079`;
+- proposed PyPI sdist SHA-256: `7b46165bb56eb4704e2eaaf86f3c940d19154535d9b0ca7d6d590b04060e00d5`.
+
+The wheel hash has not yet been recomputed from the exact downloaded PyPI wheel in this repository. It MUST be independently verified before lockfile freeze. The actual CI runner glibc, full transitive dependency closure, provenance attestation verification, license review and offline install behavior remain unverified. This candidate does not authorize installation or lockfile/CI changes.
+
 ## 9. Open blockers before contract freeze
 
 The owner-approved choices above resolve the algorithm, library candidate, key encoding, signature encoding and FIPS requirement. The following are intentionally not invented:
