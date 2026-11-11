@@ -67,7 +67,7 @@ A descriptor or ID is not itself proof of authority. All object bytes, digests, 
 | `signing_request` | object | Immutable request ID and exact request evidence descriptor |
 | `signing_decision` | object | Immutable decision ID, exact decision evidence descriptor and affirmative outcome |
 | `signer_authority_evidence` | non-empty array | Exact authority/delegation evidence descriptors and explicit scope |
-| `signer_custody_evidence` | array or policy-approved NOT_APPLICABLE | Exact custody evidence descriptors; empty only where Trust Policy explicitly permits and gives a reason |
+| `signer_custody_evidence` | array | Exact custody evidence descriptors; empty only when accompanied by the policy-bound `custody_exception` object described in §3.4 |
 | `scope` | object | Exact action, audience, object type, checkpoint stream and constraints |
 | `issued_for_checkpoint_id` | string | Exact checkpoint ID for which the AEO is issued |
 | `issued_for_checkpoint_sequence` | canonical U64 decimal string | Exact checkpoint sequence |
@@ -76,6 +76,7 @@ A descriptor or ID is not itself proof of authority. All object bytes, digests, 
 | `issuer_policy_sequence` | canonical U64 decimal string | Exact policy sequence |
 | `issuer_policy_digest` | lowercase hex string | Digest of exact canonical Trust Policy body |
 | `issued_at_observed_ms` | canonical U64 decimal string or null | Untrusted local observation only; no historical validity inference |
+| `custody_exception` | object or null | Required only when custody evidence array is empty; binds exact policy ID/digest and registered exception reason; otherwise null |
 | `extensions` | object | Empty in v1; future extensions require registered schema/profile |
 
 The nested `signing_software` object contains `software_id`, `software_version`, `build_digest_algorithm`, and `build_digest`. Floating aliases such as `latest` are forbidden.
