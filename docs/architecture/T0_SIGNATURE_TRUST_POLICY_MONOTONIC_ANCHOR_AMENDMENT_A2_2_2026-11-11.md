@@ -440,7 +440,7 @@ This section is normative and overrides inconsistent revision/status language in
    - `SELF_REVIEW_PASS`: same-session adversarial review completed with no blocking findings for the declared scope; not independent assurance.
    - `INDEPENDENT_REVIEW_PASS`: qualifying reviewer independent of authors/editors and relevant T0/signing/trust/anchor/custody operators has reviewed the exact blob set and recorded findings/disposition.
    - `IMPLEMENTATION_APPROVED`: separate explicit owner authorization naming exact source blobs, bounded implementation scope, permitted environment and prohibited operations.
-5. A2.2 is currently `DRAFT`, documentation-only, not byte-frozen until exact blob pins are recorded, not self-reviewed, not independently reviewed and not implementation-approved.
+5. A2.2 is `DRAFT` and documentation-only. Byte-freeze, self-review, independent-review and implementation-approval states are external evidence records bound to exact source blobs; they MUST be read from the latest Handoff and corresponding exact-blob evidence reports, not inferred from this static document label.
 6. Historical A1/A2/A2.1 text may be quoted or superseded only by an explicit normative rule. A historical status line MUST NOT be interpreted as the status of A2.2.
 7. No text in this section promotes A2.1's earlier self-review disposition. The later A2.1 second review REQUEST CHANGES supersedes its earlier "ready for independent review" recommendation for the A2.1 candidate.
 
@@ -633,4 +633,4 @@ A2.2 is a new documentation-only candidate. It preserves A2 and A2.1 as historic
 
 The second self-review of A2.1 is recorded as REQUEST CHANGES. The current A2.2 blob must receive a fresh adversarial self-review. A qualifying independent review must then assess the exact A2.2 source and pinned dependencies. Implementation requires a separate explicit owner approval naming exact blobs and bounded synthetic-only scope. No implementation, keys, signatures, root enrollment, verifier configuration, policy/anchor instance, CI, VPS/runtime or canonical T0 operation is authorized by this document.
 
-**A2.2 disposition: DRAFT / DOCUMENTATION ONLY / SELF-REVIEW PENDING / INDEPENDENT REVIEW NOT PERFORMED / IMPLEMENTATION NOT APPROVED.**
+**A2.2 disposition: DRAFT / DOCUMENTATION ONLY / REVIEW-GATE STATE RECORDED IN SEPARATE EXACT-BLOB EVIDENCE / IMPLEMENTATION NOT APPROVED.**
