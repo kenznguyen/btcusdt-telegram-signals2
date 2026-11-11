@@ -999,3 +999,24 @@ This is the current disposition and supersedes the earlier historical NOT RUN / 
 - Dual-Strategy implementation: **NOT YET AUTHORIZED BY THIS PRIORITY DECISION**; next step is repository-state assessment and contract-level planning.
 - No tests, CI workflow, runtime, VPS, SQLite/canonical T0, credentials, keys/trust state, trading ledger or exchange order state were changed by this decision.
 
+
+
+## Read-only operational and Dual-Strategy baseline — 2026-11-11
+
+- Owner direction remains: Stage II A2.3 paused; preserve Stage I/II artifacts; prioritize T0/T1/T2 operational readiness and Dual-Strategy; paper-only; no runtime or live execution authority.
+- Read-only assessment report: `docs/evidence/DUAL_STRATEGY_AND_OPERATIONAL_BASELINE_2026-11-11.md`.
+- Report commit: `aa5fa075fe8ad3179fb5c3b70c1f27eb5e6420ae`.
+- Exact reviewed source snapshot: `fa12771973680c94f8d75fd48e69dafed9750d68`.
+- Report disposition: **PARTIAL / IMPLEMENTATION PRESENT / END-TO-END DUAL-STRATEGY NOT VERIFIED**.
+- T0: existing source/isolated CI evidence; dated feeder runtime receipt PARTIAL PASS with bounded M15/H1 coverage, scheduler completion and full recovery-history coverage NOT VERIFIED.
+- T1: external collector exact SHA `4566cffbbcf8495182abbc0d3496fdc65709ac14`; manual exact-SHA validation 7/7 commands and 88 tests PASS; GitHub Actions NOT VERIFIED; T1→T0/T2 NOT VERIFIED; activation NOT AUTHORIZED/PERFORMED.
+- T2: HTTP Candle Client focused tests 45/45 PASS and Freqtrade 2026.9 strategy-load smoke PASS; bounded 2026-11-09 loopback API/T2 context verification PASS; remote TLS/live endpoint and full T1 integration remain NOT VERIFIED.
+- Dual-Strategy code already exists: Core RSI/ADX/Smart-DCA producer, independent AI/FreqAI decision path, strategy-scoped ledger tables, shared account risk/reservations/Kill Switch, 61 Core/AI dual-ledger test methods and paper-only workflow. No current-HEAD workflow result was established by this assessment.
+- Critical static findings recorded:
+  - DS-01: API `ledger()` constructs `PaperLedger` as MANUAL, then evaluate route submits with a strategy_id override. After dual-ledger migration, MANUAL writer rejects writes with `DUAL_LEDGER_MIGRATION_ACTIVE_MANUAL_WRITE_BLOCKED`; API route is not wired to the scoped writer.
+  - DS-02: `core_decide()` reads `read_snapshot(db_path)` without `strategy_id="STRATEGY_CORE"`, so it reads legacy aggregate state rather than Core's own ledger.
+  - DS-03: Core producer defaults to fixed `LEVERAGE=13` and `ENTRY_MARGIN_PCT=0.50`, conflicting with the current 1%-of-account-equity margin cap per new ENTRY/DCA and current leverage policy. Resolve sizing without changing RSI/ADX/Smart-DCA signal rules.
+  - DS-04: Dual Ledger contract/migration docs have stale/inconsistent status statements relative to later implementation addenda and current code.
+- Next permitted work: contract-level correction plan and test mapping for DS-01/DS-02; reconcile sizing for DS-03; append-only documentation status reconciliation for DS-04. Then request a bounded implementation approval. No code fix, workflow dispatch, VPS/runtime action, schema migration, T0 mutation, T1 activation or live trading was performed/authorized by this assessment.
+- Branch continuity preserved; report and handoff only. No tests or workflow runs are claimed for this documentation increment.
+
