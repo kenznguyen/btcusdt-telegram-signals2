@@ -147,6 +147,23 @@ class LifecycleDispositionTests(unittest.TestCase):
         self.assertEqual(a, b)
         self.assertEqual(a["reason_codes"], sorted(a["reason_codes"]))
 
+    def test_unhashable_or_wrong_type_enum_values_fail_closed(self):
+        cases = [
+            ({"data_class": []}, "UNK_CLASSIFICATION"),
+            ({"policy_id": []}, "UNK_POLICY_REFERENCE"),
+            ({"process_state": []}, "UNK_PROCESS_STATE"),
+            ({"material_decision_use": []}, "UNK_MATERIAL_USE_STATUS"),
+            ({"review_group": []}, "UNK_CLASSIFICATION"),
+            ({"dependencies": {"complete": True, "items": [
+                {"dependency_id": "d1", "state": [], "obligation_type": "CONSUMER"}]}},
+             "UNK_DEPENDENCY_REGISTRY"),
+        ]
+        for changes, code in cases:
+            with self.subTest(code=code):
+                out = evaluate_disposition(record(**changes))
+                self.assertEqual(out["disposition"], "BLOCKED_UNKNOWN")
+                self.assertIn(code, out["reason_codes"])
+
     def test_unratified_group_and_malformed_input_block(self):
         out = evaluate_disposition(record(review_group="UNRATIFIED"))
         self.assertEqual(out["disposition"], "BLOCKED_UNKNOWN")
