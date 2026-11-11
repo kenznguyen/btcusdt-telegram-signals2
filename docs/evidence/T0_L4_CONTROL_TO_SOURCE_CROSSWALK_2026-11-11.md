@@ -72,3 +72,16 @@ This governance revocation is not a blanket instruction to execute deletion or c
 ## Current governance state — Option C revoked
 
 Owner decision dated 2026-11-11: **Option C — No Destructive Authority is REVOKED**. Historical ACTIVE/in-force statements in earlier source records are superseded by dated addenda. Revocation removes the blanket prohibition but is not authorization for any specific destructive action. Each deletion/archive/cleanup/expiry/vacuum/compaction/provider action still requires separate explicit approval and a bounded target, impact, preconditions, verification and recovery plan. T0 canonical data, lease/fencing, ledgers, audit/recovery and custody/trust evidence remain protected unless specifically approved. Paper-only and `AI_EXECUTION_ENABLED=false` remain unchanged.
+
+
+## Owner decision — bounded VPS + GitHub custody accepted (2026-11-11)
+
+The owner approved the formal amendment to Checkpoint Contract v1 §§7/9. The bounded custody scope for this system is the designated VPS location plus the designated GitHub evidence location. This supersedes the former outside-both-VPS-and-GitHub location requirement only for the bounded claims described in the amended contract.
+
+**Assurance limitation:** This arrangement does not provide an independent custody domain outside VPS and GitHub. A joint rollback/replacement of both locations to the same older valid chain is not detectable by this design. Permitted wording is limited to exact two-location consistency with the authenticated retained anchor chain available to the verifier; do not claim globally latest, absolute anti-rollback, WORM, external custody or independent external assurance.
+
+The amendment does not promote L4M-01, L4M-03, L4M-04, L4M-05 or L4M-07. Actual owner custody, signer/anchor separation, per-location receipts/readback, authenticated trust bootstrap, signed anchor-chain verification and offline verification remain evidence gates. Aggregate L4-Minimum remains **BLOCKED / NOT VERIFIED** until those controls are independently evidenced and the owner performs the separate final disposition.
+
+Source: T0_EVIDENCE_OBJECT_CHECKPOINT_CONTRACT_V1.md dated owner-approved addendum; T0_SIGNATURE_TRUST_POLICY_MONOTONIC_ANCHOR_AMENDMENT_A1_2026-11-11.md §14 and owner-disposition addendum.
+
+No implementation, key generation/signing, trust-root mutation, anchor creation, provider operation, VPS/SQLite/runtime action or T0 canonical data change is authorized by this decision.
