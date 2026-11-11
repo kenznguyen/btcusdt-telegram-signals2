@@ -195,6 +195,15 @@ class AIStrategyContractRedTest(unittest.TestCase):
                     admission_context=context,
                 ))
 
+    def test_confidence_equal_to_explicit_policy_minimum_is_admissible(self):
+        result = self.evaluate(
+            prediction=self.calibrated_prediction(self.FIXTURE_CONFIDENCE_MIN),
+            admission_context=self.admission_context(),
+        )
+        self.assertEqual(result["action"], "BUY", result)
+        self.assertEqual(result["intent"]["calibratedConfidence"],
+                         self.FIXTURE_CONFIDENCE_MIN)
+
     def test_confidence_below_policy_minimum_fails_closed(self):
         context = self.admission_context(
             ai_policy={"confidenceMin": self.FIXTURE_CONFIDENCE_MIN}
