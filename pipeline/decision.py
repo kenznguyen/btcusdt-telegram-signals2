@@ -210,9 +210,7 @@ def evaluate(candle_window, intelligence, prediction, book, now_ms, *, admission
             forecast = _prediction(prediction, candle_window, latest, now_ms)
             if admission_context is None or not isinstance(admission_context, dict):
                 raise ValueError("AI_CALIBRATION_ADMISSION_CONTEXT_UNAVAILABLE")
-            calibration = _calibration(
-                prediction, now_ms, admission_context.get("ai_policy")
-            )
+            calibration = _calibration(prediction, now_ms, admission_context)
             bid, ask = _prices(book, now_ms)
             _require(abs(forecast) >= cutoff, "PREDICTION_BELOW_THRESHOLD")
             _require(forecast*flow > 0, "FLOW_DIRECTION_MISMATCH")
