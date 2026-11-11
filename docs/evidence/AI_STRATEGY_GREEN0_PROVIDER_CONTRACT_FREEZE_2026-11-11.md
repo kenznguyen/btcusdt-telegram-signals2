@@ -143,3 +143,39 @@ Owner approved design/documentation only. Added:
 - `docs/architecture/BINANCE_USDM_INSTRUMENT_RULES_CONTRACT.md`: read-only candidate source `/fapi/v1/exchangeInfo`, BTCUSDT filter requirements, normalization/version/digest/freshness and fail-closed semantics. No adapter or network request.
 
 Both documents remain design proposals. G0-01/02/03 and G0-05 remain BLOCKED pending provider/policy decisions. No code, tests, workflow, exchange request, DB, runtime, VPS or deployment action occurred. GREEN-1..5 remain NOT AUTHORIZED.
+
+
+## 9. GREEN-0 design verification — calibration trust and Binance USDⓈ-M filters (2026-11-11)
+
+### Calibration registry recommendation
+
+A low-cost, personal-system proposal was evaluated: repository-backed append-only registry records, compact manifest/calibration-transform/evaluation artifacts, offline Ed25519 signing of canonical manifest digests, and pinned public-key verification in future read-only consumers. Private signing material must remain offline and must never enter GitHub Actions, repository contents, VPS or runtime.
+
+Trust must be separated into:
+- content integrity: digest of exact artifact bytes;
+- publisher authorization: signature checked against a pinned trusted public key and explicit key lifecycle;
+- statistical validity: reproducible OOS evaluation, dataset lineage, disjoint calibration/training windows, horizon-aware embargo and owner-approved promotion.
+
+A signature does not prove calibration quality or leakage-free data. A digest does not prove publisher authority. The calibration artifact should contain the score-to-probability transform and evaluation evidence; each inference carries its own calibrated confidence bound to the exact artifact ID/version/digest. The artifact must not be modeled as one static confidence value.
+
+This is a recommendation only. Repository-backed registry, offline Ed25519 trust root, schema/canonicalization, calibration method, OOS protocol and numeric thresholds remain owner decisions. No key, registry, artifact or calibration pipeline was created.
+
+### Binance USDⓈ-M official documentation check
+
+Official Binance USDⓈ-M Futures common-definition documentation was reviewed at https://developers.binance.com/zh-CN/docs/products/derivatives-trading-usds-futures/common-definition (localized official page, displayed last modified 2026-08-08). Confirmed semantics:
+- `PRICE_FILTER`: each minPrice/maxPrice/tickSize may be zero to disable that individual rule; enabled price alignment is `(price - minPrice) % tickSize == 0`.
+- `LOT_SIZE`: quantity must satisfy min/max and `(quantity - minQty) % stepSize == 0`.
+- `MARKET_LOT_SIZE` is distinct and applies to market orders.
+- `PERCENT_PRICE` constrains limit price against mark price, introducing a separate dynamic mark-price and freshness dependency.
+- USDⓈ-M `MIN_NOTIONAL` uses a documented `notional` field. Do not assume Spot `NOTIONAL` schema/semantics.
+- `MAX_NUM_ORDERS` and `MAX_NUM_ALGO_ORDERS` are order/account-state constraints, not static tick/lot metadata.
+
+The previous contract's blanket positive-only validation for all tick/filter values was corrected. The instrument contract now records field-specific disabled semantics and correct LOT_SIZE arithmetic.
+
+**Limit:** this was documentation review only. No `/fapi/v1/exchangeInfo` request was made; no live BTCUSDT filters, response schema instance, update time or endpoint behavior were independently fetched. Therefore official docs support the semantics, but endpoint/provider correctness and current instrument values remain NOT VERIFIED.
+
+### GREEN-0 disposition
+
+- Calibration design: architecture recommendation available; trusted provider/key owner and policy remain unresolved. G0-01/02/03 BLOCKED.
+- Instrument rules: official filter semantics reviewed and contract corrected; Binance exchangeInfo candidate remains unaccepted and no endpoint data fetched. G0-05 BLOCKED.
+- No code/tests/workflow, API request, exchange connection, database/schema/migration, T0/T1/T2 runtime, VPS, deployment, calibration/model or live order action occurred.
