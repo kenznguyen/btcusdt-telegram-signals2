@@ -816,3 +816,17 @@ The prior A2.2 Stage I status/proposal notes above are historical snapshots. Thi
 - Result: **STAGE I SYNTHETIC CI/TEST GATE PASS** for this exact source and Python 3.12 runtime. This resolves the prior repository-suite/compile/Python-3.12 verification blocker.
 - Limits remain: synthetic/mock-only, not production cryptographic assurance; independent review waived/not performed; G3 not established. No production keys/signatures, trust-root/bootstrap, policy/anchor instances, VPS/SSH/T0 runtime, SQLite/canonical data, custody publication, trading or destructive operations were exercised. `AI_EXECUTION_ENABLED=false` remains.
 - Next step: record the gate as PASS and retain the artifact/run evidence. Any later stage (production crypto, bootstrap, durable trust/anchor/custody, runtime integration or trading) requires its own contract and explicit approval; this run grants none of those permissions.
+
+
+
+### A2.2 Stage I — evidence dossier closed for synthetic CI gate (2026-11-11)
+
+This is the current disposition and supersedes the earlier historical NOT RUN / NOT VERIFIED execution statements and the prior "next step: record the gate" note above. Historical entries remain intact.
+
+- Exact tested source: `cadcfcf66503c0a0750adcfc6646d6fa2944f03e`; run [42955676103](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42955676103), `workflow_dispatch`, feature branch, SUCCESS.
+- CPython 3.12.16; compile PASS; 34/34 tests PASS; parser PASS; artifact upload PASS. Job `130310067517`.
+- Artifact `13826832203`, SHA-256 `fbd311592772e3da4dda726d0a25fb768561df6ebad0667a7d607247983ed845`, independently re-hashed from downloaded ZIP; expires `2026-11-18T03:53:32Z`.
+- Evidence report append-only addendum: `docs/evidence/T0_SIGNATURE_A2_2_STAGE_I_SYNTHETIC_HARNESS_2026-11-11.md`, blob `95f2a7f81ee167657e157dc85d391355c57e3ef6`, commit `7eb57abb10d73ac21100a5d860fc5afa6eb77f68`.
+- **Current gate: STAGE I SYNTHETIC CI/TEST = PASS.** Scope remains synthetic-only; independent review waived/not performed; G3 not established. No production crypto, key/root bootstrap, durable policy/anchor, custody, VPS/T0 runtime, canonical data, trading or destructive action is approved by this result.
+- Latest planned follow-up is **contract-only Stage II scoping**, not implementation: first identify the exact Stage II purpose, boundaries, prerequisites, trust assumptions, negative cases, acceptance evidence and approval gates from the governing A2.2 architecture. No Stage II code, production cryptography, key handling, bootstrap, durable state or runtime integration is authorized by this handoff.
+- Branch continuity preserved; evidence updates only. Current commit after this handoff append becomes the new branch HEAD.
