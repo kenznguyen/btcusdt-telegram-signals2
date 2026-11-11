@@ -866,3 +866,16 @@ This is the current disposition and supersedes the earlier historical NOT RUN / 
 - Static comparison against A1 §4.3 found the draft's displayed domain-separator escape had an extra backslash. Corrected the notation to the exact single-NUL escape `\\0` used by A1. This is a documentation correction; the domain bytes remain those already fixed by A2.2 §20.
 - Corrected contract commit: `232ea8f2dfeda0f08544fa483544f0f761d21914`; blob: `944758f37f0cc3b0fa1d9968976ce2a7d6c7ce72`.
 - No code or test was run; no runtime or key operation occurred.
+
+
+### Stage II v1 signature field-mapping review (2026-11-11)
+
+- Review: `docs/evidence/T0_SIGNATURE_A2_2_STAGE_II_V1_FIELD_MAPPING_REVIEW_2026-11-11.md`.
+- Review commit: `7914a8e3946cbdc81f0a7e6c48c2d36e9bb0c618`.
+- Static crosswalk against Checkpoint Contract v1 §6 and A1 §§4.2–4.4/14.4: **PARTIAL PASS**.
+- Exact evidence-object binding, purpose/audience, profile, signer fingerprint, algorithm/signature, untrusted local signing observation and Trust Policy snapshot fields are mapped. Verification references correctly remain post-signing append-only Verification Record data.
+- Three higher-level signed provenance/authorization mappings remain open: signing software/build identity; signing request/decision reference; signer authority/custody evidence reference. A1 §14.4 requires these either in the signed Signature Statement or in a separately signed authorization-evidence object whose exact ID/digest is bound by the statement. Stage II review does not choose either representation.
+- Envelope ID/descriptor lifecycle remains a higher-layer requirement and must avoid self-reference.
+- Disposition: full Signature Statement schema freeze **BLOCKED** until owner/security contract review resolves the three provenance references and envelope descriptor mapping. The Ed25519 primitive boundary remains unchanged and stateless.
+- Documentation-only; no tests run. No code, dependency, key, trust root, policy/anchor state, CI dispatch, VPS/runtime, T0, trading or destructive operation changed.
+- Next step: prepare a bounded options note for the three provenance references and envelope-ID lifecycle; request owner decision before revising/finalizing the statement schema. No implementation authority implied.
