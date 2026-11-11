@@ -429,6 +429,13 @@ class DualStrategyApiScopeRedTest(unittest.TestCase):
         self.assertEqual(response["order"]["status"], "REJECTED", response)
         self.assertEqual(response["order"]["reason"], "RISK_INPUTS_UNAVAILABLE")
 
+        # A rejected AI candidate must not leave a risk reservation behind.
+        with sqlite3.connect(self.db) as connection:
+            reservations = connection.execute(
+                "SELECT COUNT(*) FROM paper_risk_reservations"
+            ).fetchone()[0]
+        self.assertEqual(reservations, 0)
+
         after_core = read_snapshot(str(self.db), strategy_id="STRATEGY_CORE")
         after_ai = read_snapshot(str(self.db), strategy_id="AI_FREQAI")
         self.assertEqual(after_core["positionBase"], before_core["positionBase"])
