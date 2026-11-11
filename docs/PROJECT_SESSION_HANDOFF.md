@@ -2100,3 +2100,18 @@ Next: if owner wants to proceed beyond planning, first approve a bounded provisi
 - Documentation-only. No parser/source/test/fixture bytes, schema implementation, API/registry/adapter/runner/oracle/workflow/permissions/credentials/keys/trust roots/database/storage/market-data/model/ledger/VPS/runtime changes; no tests, fixture generation, measurement execution, workflow dispatch, network/provider/database/VPS access or inventory; no lifecycle mutation.
 - Next gate requires separate owner authorization for synthetic corpus creation and isolated measurement only. That authorization would not permit parser implementation, tests or CI changes unless explicitly included.
 - D05/D10/D11 measurement-first/D14 remain ratified within S1 limits; numeric D11 ceilings remain open. D01–D04, D06–D09, D12–D13 remain OPEN. T0 remains independent/protected; CORE_LEDGER and AI_LEDGER remain separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
+
+
+## G0.33 — S1 Synthetic Corpus Measurement Authorization Package (2026-11-11)
+
+- Baseline HEAD: `58d76499cc824b065aad43c94bd60c12459785ea`; baseline handoff blob: `573460697b31dc4b06cd0cfb0b195639ac6e016c`.
+- Inputs re-read: G0.30 owner decision package, G0.31 ratification, G0.32 measurement specification.
+- Report: `docs/evidence/G0_33_S1_SYNTHETIC_CORPUS_MEASUREMENT_AUTHORIZATION_PACKAGE_2026-11-11.md`.
+- Report creation commit: `1ef3236b64af59ae058b643e26aebbf217bcf57f`.
+- Presents exact owner decision G0.33-A: one isolated, deterministic, in-memory synthetic corpus generation and resource-measurement run; S1-only case subset; all 11 D10 fixture types; no persistent fixture files; documentation-only evidence output.
+- Explicitly excludes parser/test implementation or execution, CI changes, cryptography/verifier, network/provider/database/VPS/runtime access, production data, T0/T1/T2/ledger mutation, and all lifecycle/destructive operations.
+- Numeric D11 ceilings remain OPEN/NOT RATIFIED. The run may propose values but cannot activate/enforce them; a separate owner decision is required.
+- G0.33 verdict: **DECISION PACKAGE PASS — bounded owner decision prepared; corpus creation/measurement NOT AUTHORIZED pending explicit approval of G0.33-A**.
+- Documentation-only. No corpus bytes generated, no measurements run, no tests/workflows, no source changes, no external access/inventory and no lifecycle mutation.
+- Next gate: wait for explicit approval or amendment of G0.33-A. Do not infer authorization from “tiếp theo” or from approval of G0.30/G0.31/G0.32.
+- D05/D10/D11 measurement-first/D14 remain ratified within S1 boundaries; numeric D11 ceilings remain open. D01–D04, D06–D09, D12–D13 remain OPEN. T0 remains independent/protected; CORE_LEDGER and AI_LEDGER remain separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
