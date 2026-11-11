@@ -1904,3 +1904,22 @@ Next: if owner wants to proceed beyond planning, first approve a bounded provisi
 - GitHub Actions NOT DISPATCHED; no run/artifact. Repository-wide tests NOT RUN. TEST-01–07 unchanged, 0/87 executed. Runtime/VPS NOT VERIFIED. Destructive authority NOT GRANTED.
 - No schema/registry/API/adapter/runner/oracle/workflow/scheduler/service/permission/credential/database/storage/VPS/data/model/ledger/runtime changes; no inventory, secret scan, provider/network/database access, archive, quarantine, cleanup, expiry, compaction, vacuum or deletion.
 - Next gate: obtain a test-capable checkout/environment containing exact branch source, then run the two commands in the G0.20 report and record full output. Any remediation remains limited to `pipeline/lifecycle_disposition.py` and `pipeline/test_lifecycle_disposition.py` under the existing approval. T0 independent/protected; CORE_LEDGER and AI_LEDGER separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
+
+
+## G0.20-B — Exact-source GitHub Actions verification (2026-11-11)
+
+- Owner approved a dedicated isolated CI workflow and one verification run for G0.20.
+- Workflow: `.github/workflows/g0-20-lifecycle-evaluator-verification.yml`; workflow creation commit / run head SHA `6db05c878873790d113e0a315a9be90923a9650c`.
+- Workflow is scoped to the existing feature branch and workflow-file path for its one-time push-triggered run; `workflow_dispatch` input is also defined. Repo default branch is `main`; this feature-branch verification was triggered by the narrowly path-filtered push, not a manual dispatch.
+- Exact checkout commit verified: `6db05c878873790d113e0a315a9be90923a9650c`.
+- Evaluator blob pinned and verified in CI: `cf22385a718c6b5b08cd50c2a45578b4180c2c4d`.
+- Test blob pinned and verified in CI: `d54d0523d6388df448cbec7c2fb9e2e092f72920`.
+- Workflow run ID `43036222952`, run #1, event `push`, final status `completed`, conclusion **SUCCESS**; job ID `130575627133`, conclusion **SUCCESS**.
+- Run URL: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43036222952
+- GitHub-hosted Ubuntu 26.04.1, Python 3.12.16. Focused `py_compile`: **PASS**. Focused unittest: **PASS**, 32 tests, 0 failures/errors. Full job logs fetched and inspected.
+- Artifact name `g0-20-lifecycle-verification-6db05c878873790d113e0a315a9be90923a9650c`; artifact ID `13862633389`; SHA-256 `0eff7bb4c6fba66656841734b3a64f771872154d723c42eb326ebd57440f3d00`; expires 2026-11-18T14:12:21Z. Artifact URL: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43036222952/artifacts/13862633389
+- Evidence report updated: `docs/evidence/G0_20_LOCAL_VERIFICATION_CODE_REVIEW_2026-11-11.md`; update commit `c04b423638b3e72aaf517fa9aa3a1db8f05ca858`; final report blob `2845a4ce52525b89bbc4ec7c240c994370a74e2a`.
+- G0.20 verdict: **PASS for the approved pure evaluator verification scope**. Repository-wide tests NOT RUN; independent review beyond source inspection NOT RUN; TEST-01–07 remain 0/87; runtime/VPS inventory NOT PERFORMED/NOT VERIFIED; evidence authenticity and real-world identity/provenance not established; destructive authority NOT GRANTED.
+- Workflow has `contents: read`, no configured secrets, no package installation and no DB/provider/exchange calls. No full CI or other workflow was dispatched by this step.
+- No schema/registry/API/adapter/runner/oracle/TEST-01–07/retention/runtime integration, VPS access, data/model/ledger mutation, archive, quarantine, cleanup, expiry, compaction, vacuum or deletion.
+- Next gate: separately bounded trust-boundary review for caller-asserted metadata/evidence refs and required authenticity/provenance controls before any registry or lifecycle-harness integration. Do not infer authority for schema/registry changes, TEST-01–07, runtime inventory or destructive execution from this PASS. T0 independent/protected; CORE_LEDGER and AI_LEDGER separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
