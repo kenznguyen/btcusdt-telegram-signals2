@@ -30,12 +30,16 @@ Owner-selected architecture patterns already recorded:
 
 ### D1 — AEO issuer separation
 
-**Question:** Must the AEO issuer principal and SPKI fingerprint be distinct from the subject checkpoint signer principal and SPKI fingerprint?
+<badge>OWNER APPROVED — 2026-11-12</badge>
 
-- Option A (recommended): **MUST be distinct**. Same principal or same SPKI fingerprint is rejected with `AUTHORIZATION_EVIDENCE_SELF_ISSUED`.
-- Option B: permit same principal under separately scoped keys/roles. This weakens the independent provenance/authority assertion and requires a separate rationale and explicit scope.
+**Decision: Option A — AEO issuer MUST be distinct from the subject checkpoint signer.**
 
-Recommendation: Option A. It is consistent with the A2.3 §3.3 anti-self-authentication rule and avoids the subject signer authorizing its own signing provenance.
+- AEO issuer principal MUST differ from the subject checkpoint signer principal.
+- AEO issuer SPKI fingerprint MUST differ from the subject checkpoint signer SPKI fingerprint.
+- Same principal or same SPKI fingerprint MUST be rejected with `AUTHORIZATION_EVIDENCE_SELF_ISSUED`.
+- This approval freezes the D1 policy decision only. It does not freeze the complete AEO schema, issuer namespace/authority contract, signature preimage, trust chain, or authorize implementation, key operations, trust bootstrap or real evidence signing/verification.
+
+Owner response: “có” (yes), in this conversation on 2026-11-12.
 
 ### D2 — Freeze proposed resource ceilings
 
