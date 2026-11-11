@@ -291,3 +291,10 @@ No critical contradiction was found in the written scope boundary. SR-01 and SR-
 - No tests or GitHub Actions were run; no workflow run/artifact. No source/config/dependency/workflow/runtime/data/credential/key/permission changes; no VPS/DB/provider operations.
 - No REMOVE-CANDIDATE and no removal proposal. Option C — No Destructive Authority — remains in force.
 - Next: complete remaining source/config/docs and deployment/external-boundary review; maintain exact path/symbol coverage and do not upgrade repository-wide absence claims until full coverage is evidenced.
+
+
+## Superseding owner governance decision — Option C revoked (2026-11-11)
+
+The owner revoked **Option C — No Destructive Authority** on 2026-11-11. Any earlier statement in this historical record that Option C is ACTIVE, remains in force, is unchanged/current, or prohibits all destructive authority is superseded. Current status: **REVOKED**.
+
+This revocation removes Option C as a blanket prohibition but does not authorize any particular destructive operation. Deletion, archive, cleanup, expiry, vacuum, compaction, backup/replica removal, export mutation or provider operation still requires a separately explicit, scoped approval with exact target/data class, preconditions, expected effect, dependencies, verification and recovery/rollback plan. T0 canonical data, lease/fencing, ledgers, audit/reconstruction/recovery, custody and trust evidence remain protected unless separately approved. Paper-only and `AI_EXECUTION_ENABLED=false` remain unchanged. No L4 control or technical-enforcement status is promoted by this decision.
