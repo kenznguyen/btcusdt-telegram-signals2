@@ -120,3 +120,15 @@ Verifier output is deliberately only `SIGNATURE_VERIFIED_ONLY`. It does not veri
 - Enforced calibration start no earlier than training cutoff plus the declared forecast-horizon embargo, and artifact creation no earlier than calibration end.
 - Exact follow-up CI: run `43065750329`, job `130680105605`, source SHA `cbfef9b48dfd996f7788e80f8f62f9c92a51628d`. Compile PASS; calibrated confidence/provenance 13 PASS; decision regression 15 PASS; registry verifier 14 PASS. Full AI/dual-strategy RED remains 52 tests, 12 failures and 6 errors due the separately outstanding leverage/equity/instrument/Kill Switch/ledger contracts.
 - Artifact ID `13875077587`, name `ai-strategy-contract-red-cbfef9b48dfd996f7788e80f8f62f9c92a51628d`, upload ZIP SHA-256 `1a82bd0eeb050956adecb54281723650e2905a714996d256d8d8e05a6238f73c`.
+
+
+### 8.2 Verified transform output and decision-boundary gate (2026-11-11)
+
+- Added `apply_calibration_transform` and `calibrate_verified_prediction` to `pipeline/calibration_registry.py`. They validate the canonical transform artifact against the signed manifest and derive per-inference confidence using a monotone piecewise-linear score/probability map. The evaluator rejects malformed/nonmonotonic knots and raw scores outside the calibrated range; it does not extrapolate or train a calibrator.
+- The transform representation is method-neutral: the manifest binds method/version, while the artifact provides the exact precomputed mapping. No actual production mapping or OOS dataset was created.
+- `pipeline/decision.py` now consumes server-constructed `calibration_evidence`, not `prediction.calibration` as a trust source. It requires signature verification, ACTIVE registry state, trusted-time verification and OOS-evidence verification before confidence/policy/provenance checks.
+- The current verifier helper returns only `SIGNATURE_VERIFIED_ONLY`; it deliberately does not invent ACTIVE, trusted-time or OOS status. No production provider supplies those statuses, so the API remains fail-closed.
+- Exact CI run `43066900003`, job `130684294885`, source SHA `f3a873c38f9ad917a6566faa5fa52e8dc013e0fd`: compile PASS; calibrated-confidence/provenance 14 PASS; decision regression 15 PASS; registry verifier/transform 18 PASS. Full AI/dual-strategy RED: 54 tests, 12 failures and 6 errors (remaining leverage/equity/instrument/Kill Switch/AI-ledger gates).
+- Artifact ID `13875183120`, name `ai-strategy-contract-red-f3a873c38f9ad917a6566faa5fa52e8dc013e0fd`, upload ZIP SHA-256 `0dee6d84732a7be668e162ad782570014eb33f66c353105d36418b8446321054`.
+
+**Current disposition:** signed manifest/artifact verification, generic transform application, per-inference confidence calculation and fail-closed decision contract are implemented and focused-tested. Full trusted provenance and production admission remain BLOCKED: no independently provisioned production key pin; no verifiable registry event chain/promotion/revocation provider; no trusted-time anchor; no evaluation-record/OOS dataset-lineage provider; no actual calibration artifact; no policy thresholds. The test fixture is not production trust evidence.
