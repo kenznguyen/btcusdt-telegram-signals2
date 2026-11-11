@@ -34,9 +34,9 @@ A signature MUST NOT be interpreted as proof of source truth, data completeness,
 
 ### 2.1 Accepted custody boundary and supersession of conflicting v1 language
 
-The L4 crosswalk records an owner-accepted operational evidence scope of **VPS + GitHub only**, with no external backup requirement. However, Checkpoint Contract v1 §§7 and 9 normatively require custody and the monotonic anchor outside both T0/VPS and GitHub failure domains. This amendment is a draft and cannot unilaterally supersede that v1 requirement.
+The owner formally approved a dated amendment to Checkpoint Contract v1 §§7/9 on 2026-11-11, accepting the designated **VPS + GitHub locations as the bounded two-location custody scope**. The amendment is appended to T0_EVIDENCE_OBJECT_CHECKPOINT_CONTRACT_V1.md and also harmonizes the corresponding custody-location wording in the §13.2 G1 decision table. This A1 section implements that approved boundary; it does not claim independent custody outside the VPS and GitHub failure domains. The initial G1 A proof-of-existence product remains unsigned and outside signer-authenticity claims; A1 defines the separate signature/trust extension only.
 
-**Until an explicit owner decision formally amends the governing v1 custody requirement, v1 remains controlling for any claim that invokes L4-Minimum independent custody or independent latest-head assurance.** This A1 section proposes a bounded alternative for owner decision only; it does not make that alternative effective. No external backup, third-party WORM service or independent external anchor is assumed in the proposed bounded alternative.
+The approved bounded arrangement permits exact two-location readback and retained-chain consistency checks. It cannot detect joint rollback/replacement of both locations to the same older valid chain. No external backup, third-party WORM service or independent external anchor is selected or authorized.
 
 Required limits:
 
@@ -47,7 +47,7 @@ Required limits:
 5. Any claim requiring an independently protected monotonic anchor outside both VPS and GitHub remains **NOT ESTABLISHED / NOT VERIFIED** until the owner separately approves and qualifies such a mechanism.
 6. No WORM, immutable-storage, independent-backup, disaster-recovery or guaranteed-availability claim is made.
 
-This proposal does not reconcile the normative contract conflict by itself. Owner ratification is a prerequisite to adopting the VPS + GitHub-only alternative for the affected contract claims. Until then, the custody/anchor claim remains BLOCKED or NOT VERIFIED; no L4 custody or freshness control is promoted to PASS.
+The owner-approved addendum resolves the former normative location conflict for the bounded VPS + GitHub scope. This does not promote any L4 custody or freshness control to PASS: actual owner custody, exact-object descriptors, per-location receipts/readback, authenticated anchor history and offline verification remain NOT VERIFIED until evidenced. Any claim requiring an independently protected third failure domain remains NOT ESTABLISHED.
 
 ## 3. Canonical byte and digest rules
 
@@ -399,7 +399,7 @@ The following remain deliberately unresolved and MUST be decided explicitly by t
 2. Root bootstrap ceremony, pinned-root custody and recovery/rotation authority.
 3. Dedicated checkpoint signer and anchor signer identities/roles.
 4. Anchor authority implementation and serialization/concurrency mechanism.
-5. Whether the owner accepts the bounded VPS + GitHub limitation as sufficient for the intended claim, or wants to authorize an external monotonic anchor later.
+5. **RESOLVED FOR THE CURRENT BOUNDED CLAIM:** the owner accepts VPS + GitHub custody with the explicit joint-rollback limitation. No external monotonic anchor is authorized; a stronger third-domain claim would require a future separate owner decision.
 6. Whether any trusted-time/TSA evidence is required for the intended historical trust-at-time claim.
 7. Exact policy/anchor object retention and recovery requirements, without inferring deletion or TTL authority.
 
@@ -535,7 +535,7 @@ The same descriptor discipline applies to Trust Policy bodies and detached signa
 
 | ID | Finding | Required disposition |
 |---|---|---|
-| CR-01 | A1 cannot unilaterally supersede v1's outside-both custody requirement | Owner must approve a formal v1 amendment or retain the independent custody requirement |
+| CR-01 | A1 could not unilaterally supersede v1's outside-both custody requirement | **RESOLVED:** owner-approved v1 addendum accepts bounded VPS + GitHub custody and harmonizes §13.2 G1 custody rows; joint rollback remains undetectable |
 | CR-02 | Trust Policy body digest was described inside the body while §13.1 excludes self-digest | Corrected: body excludes its own digest/signature; detached statement/descriptor carries digest |
 | CR-03 | Numeric wire encoding was not explicitly tied to T0-JCS-1 | Corrected: all logical integers serialize as canonical unsigned decimal strings |
 | CR-04 | Binary envelope field encoding was unspecified | Corrected at draft level: unpadded base64url with strict canonical decode/re-encode |
@@ -550,3 +550,8 @@ No code, tests, workflow, CI, key, trust root, policy instance, anchor, VPS runt
 ## Owner disposition — bounded VPS + GitHub custody approved (2026-11-11)
 
 The owner explicitly approved the formal amendment to Checkpoint Contract v1 §§7/9. VPS + GitHub is accepted as the bounded custody scope. Joint rollback of both locations to the same older valid chain cannot be detected by this design. No external custody, WORM, global latestness or absolute anti-rollback claim is permitted. Exact descriptors, custody receipts, readback from both locations, authenticated anchor history and fail-closed handling remain required. This is contract/documentation approval only; no implementation, key, trust-root, anchor, provider or runtime action is authorized.
+
+
+## Final consistency correction — owner custody decision propagation (2026-11-11)
+
+The prior owner decision is now propagated into every current normative A1 location: §2.1 no longer treats owner ratification as pending; §11 item 5 records the bounded VPS + GitHub decision as resolved; and §14.6 CR-01 records the formal v1 addendum and §13.2 G1 harmonization. A1 is a separate signature/trust extension and does not change the initial G1 A proof-of-existence product's explicit no-signer boundary. External third-domain custody and global latestness remain NOT ESTABLISHED. This correction is documentation-only; A1 remains a review candidate pending the independent review and other owner/security decisions.
