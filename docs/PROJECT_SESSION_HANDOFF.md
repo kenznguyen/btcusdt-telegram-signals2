@@ -2590,3 +2590,16 @@ Next: if owner wants to proceed beyond planning, first approve a bounded provisi
 - This increment changed only the audit report and handoff. No source, tests, fixtures, schemas, workflows, dependencies, keys, trust roots, providers, database, VPS, runtime, T0/T1/T2, ledgers, risk engine or lifecycle operation changed.
 - Tests/compile/CI: NOT RUN (docs-only). Runtime/VPS/database/provider/key operations: NOT PERFORMED. Independent reviewer sign-off remains waived as a mandatory gate; no independent assurance claim.
 - No S2 implementation or operational/destructive action is authorized.
+
+
+## G0.53 — S2 Synthetic Verifier Contract Owner Decision Package (2026-11-11)
+
+- Baseline HEAD: `d9baed38bad73c0d39c88f233b0f254a669a07a2`; controlling handoff blob read before work: `6e029acbcd8f833b224c2bb981b332eefdaa7c5f`.
+- Added `docs/evidence/G0_53_S2_SYNTHETIC_VERIFIER_CONTRACT_OWNER_DECISION_PACKAGE_2026-11-11.md`; package commit `1142423eae2a9f931b42fc3c706d546e411c6d2e`; report blob `8c9f7980d14a13b16b2f9f79f4cc2bc176253f15`.
+- G0.53 proposes a narrow first S2 scope: SHA-256 exact-byte integrity only; explicitly exclude issuer-signature verification; keep evidence bytes opaque; define a new S2-only versioned verifier envelope separate from S1 Fixture v1; no keys/trust roots/providers; verifier-created immutable D13-A result binding; D11 measurement-first with numeric ceilings still OPEN; separate D14 approval required before any implementation.
+- Alternative signature-testing Option B is documented but requires separate exact decisions for signature profile, schema/canonicalization, test-only keys and resource limits. No option is Owner-ratified yet.
+- Owner decisions requested: D01-S2, D02/D05-S2, D03/D04-S2, D13-S2, D11-S2 and D14-S2.
+- This increment changes only the G0.53 decision package and this handoff. No source, tests, fixtures, schemas, workflows, dependencies, keys, trust roots, providers, database, VPS, runtime, T0/T1/T2, ledgers, risk engine or lifecycle operation changed.
+- Tests/compile/CI: NOT RUN (docs-only). Runtime/VPS/database/provider/key operations: NOT PERFORMED. Independent reviewer sign-off remains waived as a mandatory gate; no independent assurance claim.
+- **G0.53: PACKAGE PREPARED — READY FOR OWNER DECISION; D01-S2/D02-S2/D03-S2/D04-S2/D13-S2/D11-S2/D14-S2 NOT RATIFIED; S2 IMPLEMENTATION NOT AUTHORIZED.**
+- Next: Owner selects/amends the exact S2 contract. Even if ratified, a separate D14 implementation approval is required.
