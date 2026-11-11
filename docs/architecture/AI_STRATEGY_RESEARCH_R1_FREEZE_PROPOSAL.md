@@ -147,3 +147,19 @@ Until all checklist items pass, R1 is PENDING and R2 is NOT AUTHORIZED.
 This document is a proposal to support owner decisions. It does not create or inspect a dataset, run a backtest, train a model, fit calibration, choose `C_min`, or create experiment artifacts.
 
 No production code, tests, CI workflow, database/schema/migration, T0/T1/T2 runtime, VPS, deployment, exchange connectivity, feature activation, order or destructive data operation is authorized. T0 remains independent and unchanged. Strategy Core remains unchanged. AI DCA remains disabled in v1. Paper-only remains in force and `AI_EXECUTION_ENABLED=false`.
+
+
+## 11. Owner decision recorded — dataset integrity policy
+
+**Decision:** APPROVED IN PRINCIPLE (2026-11-11).
+
+The owner accepts a lightweight SHA-256 + manifest integrity and provenance policy for AI Research datasets:
+- Each immutable dataset bundle has a stable dataset ID and a manifest.
+- The manifest records source, symbol, timeframes, UTC coverage, schema version, file inventory, row/candle counts, quality/gap report and creation metadata where available.
+- Each bundle file is hashed with SHA-256; the manifest itself is also hashed and its digest is recorded in the experiment record.
+- Research runs record the dataset ID, manifest digest and relevant file digests alongside source-code SHA and experiment configuration.
+- Existing bundles are never silently overwritten. A changed dataset is represented by a new immutable version/ID.
+- SHA-256 is an integrity comparison, not proof that the source data is correct, complete, authentic or statistically suitable. Source provenance and quality checks remain separate requirements.
+- Keep the implementation minimal; do not introduce a new service or infrastructure solely for this policy.
+
+**Boundary:** This approval does not confirm that `T0_M15_H1_DATASET_BUNDLE_V1` exists, does not approve reading/exporting/copying T0 data, and does not freeze D1's exact bundle digest, coverage or quality. Those require a separately scoped, read-only verification step and evidence. D1 remains PARTIALLY DECIDED; R1 is not frozen and R2 remains NOT AUTHORIZED.
