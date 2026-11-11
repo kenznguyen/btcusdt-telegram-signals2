@@ -96,25 +96,14 @@ def resolve_order_strategy(db_path, order_id):
         raise FileNotFoundError("Paper ledger is unavailable")
     with sqlite3.connect(path.as_uri() + "?mode=ro", uri=True, timeout=10) as connection:
         columns = {row[1] for row in connection.execute("PRAGMA table_info(paper_orders)")}
-        if not columns:
+        if "strategy_id" not in columns:
+            raise ValueError("PAPER_ORDER_OWNER_UNVERIFIED")
+        row = connection.execute(
+            "SELECT strategy_id FROM paper_orders WHERE order_id=?", (order_id,)
+        ).fetchone()
+        if row is None:
             raise ValueError("Unknown paper order")
-        if "strategy_id" in columns:
-            row = connection.execute(
-                "SELECT strategy_id,document FROM paper_orders WHERE order_id=?",
-                (order_id,),
-            ).fetchone()
-            if row is None:
-                raise ValueError("Unknown paper order")
-            if row[0] is None:
-                raise ValueError("PAPER_ORDER_OWNER_UNVERIFIED")
-            owner = row[0]
-        else:
-            row = connection.execute(
-                "SELECT document FROM paper_orders WHERE order_id=?", (order_id,)
-            ).fetchone()
-            if row is None:
-                raise ValueError("Unknown paper order")
-            owner = json.loads(row[0]).get("strategyId") or "MANUAL"
+    owner = row[0]
     if owner not in {"MANUAL", "STRATEGY_CORE", "AI_FREQAI"}:
         raise ValueError("PAPER_ORDER_STRATEGY_SCOPE_UNSUPPORTED")
     return owner
