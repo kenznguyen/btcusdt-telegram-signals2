@@ -3,3 +3,5 @@ numpy>=1.26.0,<3
 pandas>=2.2.0,<3
 Flask>=3.0.0,<4
 gunicorn>=22.0.0,<24
+cryptography>=42.0.0,<47
+rfc8785>=0.1.4,<0.2
