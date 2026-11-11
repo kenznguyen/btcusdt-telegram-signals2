@@ -81,7 +81,7 @@ class CoreStrategyTest(unittest.TestCase):
         self.assertEqual(validate(result["intent"],now)["action"],"BUY")
         self.assertEqual(result["intent"]["source"],"STRATEGY_CORE")
 
-    def test_native_core_emits_smart_dca_intent_using_initial_margin(self):
+    def test_native_core_emits_smart_dca_intent_using_fresh_account_budget(self):
         from unittest.mock import patch
         start=1_700_000_000_000
         m15rows=candles(120,900_000,start)

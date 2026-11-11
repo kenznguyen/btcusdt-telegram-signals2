@@ -6,7 +6,7 @@ closed BTCUSDT candles and never accesses exchange trading endpoints.
 import math
 import os
 from decimal import Decimal
-from paper_execution.risk_policy import CORE_LEVERAGE, ORDER_MARGIN_BUDGET_PCT
+from risk_policy import CORE_LEVERAGE, ORDER_MARGIN_BUDGET_PCT
 from pipeline.values import identity, number, stamp
 
 LEVERAGE = float(CORE_LEVERAGE)
@@ -170,8 +170,6 @@ def produce(m15_window, h1_window, paper, strategy_state, book, now_ms, *,
     h1_plus, h1_minus, h1_adx = trend["plus_di"], trend["minus_di"], trend["adx"]
     position = float(number(paper.get("positionBase", "0"), signed=True))
     average = float(number(paper.get("averageEntryPrice", "0")))
-    realized = float(number(paper.get("realizedPnlQuote", "0"), signed=True))
-    fees = float(number(paper.get("feesQuote", "0")))
     owner = strategy_state.get("owner")
     dca_used = strategy_state.get("dcaUsed") is True
     side = "LONG" if position > 0 else "SHORT" if position < 0 else None

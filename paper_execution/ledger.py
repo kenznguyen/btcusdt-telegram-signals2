@@ -9,7 +9,7 @@ import sqlite3
 
 from pipeline.values import identity, number, stamp
 from paper_execution import risk_control, equity as equity_history
-from paper_execution.risk_policy import CORE_LEVERAGE, ORDER_MARGIN_BUDGET_PCT
+from risk_policy import CORE_LEVERAGE, ORDER_MARGIN_BUDGET_PCT
 from paper_execution.account_history import (
     MIGRATION_VERSION as ACCOUNT_HISTORY_MIGRATION_VERSION,
     MIGRATION_CHECKSUM as ACCOUNT_HISTORY_MIGRATION_CHECKSUM,

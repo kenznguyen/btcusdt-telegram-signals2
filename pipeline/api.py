@@ -81,7 +81,7 @@ def ledger(strategy_id="MANUAL"):
         from paper_execution.ledger import dual_ledger_ready
         if not dual_ledger_ready(path):
             raise sqlite3.DatabaseError("DUAL_LEDGER_MIGRATION_NOT_READY")
-    from paper_execution.risk_policy import CORE_LEVERAGE
+    from risk_policy import CORE_LEVERAGE
     configured_leverage = (str(CORE_LEVERAGE) if strategy_id == "STRATEGY_CORE"
                            else os.environ.get("LEVERAGE", "13"))
     return PaperLedger(path, max_position_base=os.environ.get("PAPER_MAX_POSITION_BASE", "0.01"),
