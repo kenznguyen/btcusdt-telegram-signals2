@@ -2115,3 +2115,19 @@ Next: if owner wants to proceed beyond planning, first approve a bounded provisi
 - Documentation-only. No corpus bytes generated, no measurements run, no tests/workflows, no source changes, no external access/inventory and no lifecycle mutation.
 - Next gate: wait for explicit approval or amendment of G0.33-A. Do not infer authorization from “tiếp theo” or from approval of G0.30/G0.31/G0.32.
 - D05/D10/D11 measurement-first/D14 remain ratified within S1 boundaries; numeric D11 ceilings remain open. D01–D04, D06–D09, D12–D13 remain OPEN. T0 remains independent/protected; CORE_LEDGER and AI_LEDGER remain separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
+
+
+## G0.34 — S1 Synthetic Corpus Measurement Results (2026-11-11)
+
+- Baseline HEAD: `6c3ac52bc0dacac6e428844f224618b87d6a5399`; baseline handoff blob: `426e7a497a9f1c87b3624c16b332bb024b3d1593`.
+- Owner explicitly approved G0.33-A in this conversation: one isolated, deterministic, in-memory synthetic corpus generation and measurement; no persistent fixture files; no parser/tests/CI/runtime/network/database/VPS access; documentation-only evidence; no numeric ceilings ratified.
+- Report: `docs/evidence/G0_34_S1_SYNTHETIC_CORPUS_MEASUREMENT_RESULTS_2026-11-11.md`.
+- Report creation commit: `5a156f57fe6e1cf1ff31337c177f528312937cee`.
+- Corpus revision `G033A-S1-INMEM-24-v1`; 24 fixtures; all 11 D10 values; SYN-01, SYN-29, SYN-30, SYN-31 and SYN-32; two identical measurement passes (24/24).
+- Corpus SHA-256 (ordered payload bytes, LF separator): `b6b1ddf4530eea6d92bc7cb6bde4ed6474398db527a08cd36d891c3310b202e7`.
+- Aggregate: 16,350 raw bytes total; max payload 3,816 bytes; depth 13; max object members 48; max array items 480; max UTF-8 string value 3,328 bytes; max UTF-8 key 132 bytes; max scalar nodes 489; eight distinct synthetic oracle reason labels.
+- Candidate ceilings proposed only: 8,192 raw bytes; depth 16; 64 object members; 640 array items; 4,096 value bytes; 256 key bytes; 1,024 scalar nodes; 16 reason labels. All remain NOT RATIFIED and must not be enforced.
+- Important limits: structural/payload-size measurement only; no CPU/RAM benchmark, parser implementation, parser correctness claim or actual parser diagnostic measurement. Malformed/duplicate/trailing/invalid-UTF8 cases report raw size only. No payload files/artifacts persisted.
+- G0.34 verdict: **MEASUREMENT PASS — G0.33-A completed within scope; numeric D11 ceilings OPEN/NOT RATIFIED; parser implementation and tests NOT AUTHORIZED**.
+- No tests, CI, crypto/verifier, external access, inventory, runtime/VPS/database/network, T0/T1/T2, ledger or lifecycle mutation. T0 remains independent/protected; CORE_LEDGER and AI_LEDGER remain separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
+- Next gate: present the exact candidate numeric ceiling table for owner ratification or amendment. Do not begin S1 parser implementation/tests until a separate explicit implementation authorization.
