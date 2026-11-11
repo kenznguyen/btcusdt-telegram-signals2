@@ -1,0 +1,66 @@
+name: G0.40-A Exact-Source Focused Verification
+
+on:
+  push:
+    branches:
+      - feature/t0-centralized-data-feeder-p1-20261101
+    paths:
+      - .github/workflows/g040-a-exact-source-verification.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: g040-a-exact-source-verification
+  cancel-in-progress: false
+
+jobs:
+  focused-verification:
+    name: Verify frozen G0.40-A runner source
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact approved source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: a68d0096f6a04b9ce25591118a47b89660c0965c
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Verify immutable source identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "a68d0096f6a04b9ce25591118a47b89660c0965c"
+          test "$(git rev-parse HEAD:tools/s1_measurement_runner.py)" = "784d2b5381fa50007ceba468b8bc81ce045b80c2"
+          test "$(git rev-parse HEAD:tools/test_s1_measurement_runner.py)" = "47363d0a30cd12795fe43b22e0b5a22f934854bf"
+          {
+            echo "checkout_sha=$(git rev-parse HEAD)"
+            echo "runner_blob=$(git rev-parse HEAD:tools/s1_measurement_runner.py)"
+            echo "tests_blob=$(git rev-parse HEAD:tools/test_s1_measurement_runner.py)"
+            python --version
+          } | tee verification-identity.txt
+
+      - name: Run focused unit tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest tools.test_s1_measurement_runner -v 2>&1 | tee unittest.log
+
+      - name: Run focused compile check
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile tools/s1_measurement_runner.py tools/test_s1_measurement_runner.py 2>&1 | tee py_compile.log
+
+      - name: Upload verification evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: g040-a-exact-source-verification
+          path: |
+            verification-identity.txt
+            unittest.log
+            py_compile.log
+          if-no-files-found: warn
+          retention-days: 14
