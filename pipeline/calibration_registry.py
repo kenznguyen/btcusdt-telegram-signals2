@@ -49,7 +49,7 @@ ENVELOPE_FIELDS = frozenset({
 })
 TRUST_FIELDS = frozenset({
     "key_id", "algorithm", "public_key_base64", "public_key_fingerprint",
-    "signer_role", "registry_namespace", "allowed_record_types",
+    "signer_role", "registry_namespace", "publisher_id", "allowed_record_types",
 })
 _DIGEST = re.compile(r"sha256:[0-9a-f]{64}\Z")
 _IDENTIFIER = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}\Z")
@@ -222,7 +222,7 @@ def _validate_trust(trust, envelope, payload):
     if not isinstance(trust, dict) or set(trust) != TRUST_FIELDS:
         _fail("TRUST_CONFIGURATION_SCHEMA_MISMATCH")
     for name in ("key_id", "algorithm", "public_key_base64", "public_key_fingerprint",
-                 "signer_role", "registry_namespace"):
+                 "signer_role", "registry_namespace", "publisher_id"):
         _require_string(trust[name], "TRUST_CONFIGURATION_INVALID:" + name)
     if trust["key_id"] != envelope["key_id"]:
         _fail("KEY_ID_NOT_PINNED")
@@ -230,7 +230,9 @@ def _validate_trust(trust, envelope, payload):
         _fail("TRUST_ALGORITHM_UNSUPPORTED")
     if trust["signer_role"] != envelope["signer_role"] or trust[
         "registry_namespace"
-    ] != payload["registry_namespace"] or trust["registry_namespace"] != envelope["namespace"]:
+    ] != payload["registry_namespace"] or trust["registry_namespace"] != envelope["namespace"] or trust[
+        "publisher_id"
+    ] != payload["publisher_id"]:
         _fail("KEY_SCOPE_MISMATCH")
     allowed = trust["allowed_record_types"]
     if not isinstance(allowed, list) or not all(isinstance(x, str) for x in allowed):
@@ -290,6 +292,9 @@ def verify_calibration_manifest(manifest_bytes, signature_envelope, artifact_byt
         "digest_algorithm": "SHA-256",
         "manifest_digest": _sha256(manifest_bytes),
         "manifest_size_bytes": str(len(manifest_bytes)),
+        "key_id": signature_envelope["key_id"],
+        "signer_role": signature_envelope["signer_role"],
+        "publisher_id": payload["publisher_id"],
     }
     try:
         public_key.verify(signature, signature_message(statement))
