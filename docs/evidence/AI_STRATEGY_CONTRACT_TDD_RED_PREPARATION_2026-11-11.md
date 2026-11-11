@@ -47,3 +47,59 @@ Reviewed source baseline: `6ef0d7456b2791fae73bfea8855ee30482774673`.
 ## Next step
 
 Run both focused RED test files in the repository's GitHub Actions test environment against exact SHA `550a529c2a726f82911602aee207f0df32c78eb9`. Inspect failures and correct test fixtures/specification only. Do not implement GREEN behavior until a separate owner approval is recorded.
+
+
+## Automated AI Strategy RED workflow and exact-SHA execution — 2026-11-11
+
+### Workflow implementation
+
+- Added `.github/workflows/ai-strategy-contract-red.yml`.
+- Workflow creation commit: `be4e59d0ca0c8d764ea2fffe63234d18cd9497fc`.
+- Final workflow blob: `c0b82a4d9ef222c836b7081889206e2b4c12459b`.
+- Final test source blob: `ec75ead0c27f3b65c58cc04202b4d6b21181f73d`.
+- Branch: `feature/t0-centralized-data-feeder-p1-20261101`.
+- Triggers: push to the existing branch when either focused RED test or an AI decision/API/ledger/risk module changes; manual `workflow_dispatch` is also enabled.
+- Runs on Python 3.12, checks out `${{ github.sha }}`, compiles both focused test files, runs the exact unittest command, and uploads logs/preflight as a SHA-named artifact.
+- Workflow permissions are read-only (`contents: read`). Exchange/database credentials are explicitly empty. No external exchange services, database, VPS, deployment or live execution is used.
+- Artifact retention set to 7 days to match the repository maximum.
+- Workflow configuration is separate from production behavior and is not configured as a required branch-protection check.
+
+### Test-only corrections
+
+- Initial workflow run `42988971070` at SHA `be4e59d0ca0c8d764ea2fffe63234d18cd9497fc` stopped at compile because the earlier E2E test contained an escaped double line-continuation character. Artifact `13841105881`, digest `sha256:3354f492fbee54bc221f4f1d7884399f58366c82b0208f70d5787c265b78bbe0`.
+- Corrected the test-only line continuations; intermediate commits: `14e532d4f3de6bcdec8c73c079e5521835cd1ff7`, `084b13df016dcc455f9567b9898420e7e9f91c4c`.
+- Reworked test expectations for not-yet-existing API parameters to fail as explicit contract assertions instead of uncaught `TypeError` exceptions.
+- Added an AI ledger [1x,3x] leverage-bound test and initialized its dual-ledger fixture before testing. Test-only commits: `0c049a9b37c69cefb6a5117531c64ac579075f5e`, `747dba7e0b264547b72edc52c941357362696804`, final `aa7897520b5435ff4c981b3f2ab8a6710f811eea`.
+- No production implementation was changed.
+
+### Final focused RED run
+
+- Workflow run: [42989566675](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42989566675).
+- Exact source SHA: `aa7897520b5435ff4c981b3f2ab8a6710f811eea`.
+- Preflight: PASS (paper-only, empty exchange/database credential variables, no external services).
+- Dependency installation: PASS.
+- Python compile of both RED test files: PASS.
+- Focused test execution: **36 tests, 23 assertion failures, 0 errors**. Workflow conclusion is failure by design at the RED stage; the failures expose current contract gaps and are not GREEN acceptance.
+- The E2E case `test_ai_buy_while_core_wait_routes_only_to_ai_ledger_and_shared_risk_rejects` passed: AI BUY remains available while Core is WAIT, order is routed to AI ledger, shared risk denies admission while account risk is unready, and Core ledger state/orders remain unchanged.
+- Current failing contract areas: absent/invalid calibrated-confidence rejection and calibration provenance validation; missing AI leverage admission interface; AI ledger does not enforce the approved 1x–3x domain (0.99x, 3.01x and 13x cases fail the rejection assertions); missing equity-based sizing API; stale/missing equity fail-closed contract.
+- Artifact: ID `13841700390`, name `ai-strategy-contract-red-aa7897520b5435ff4c981b3f2ab8a6710f811eea`, digest `sha256:bcddb274a58013060af6293604abee08a5d11d304dc2c4a0e50ebeb852df3445`.
+
+### Existing Dual Ledger regression at the same SHA
+
+- Workflow run: [42989566780](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42989566780).
+- Exact source SHA: `aa7897520b5435ff4c981b3f2ab8a6710f811eea`.
+- Focused Dual Ledger contract: 238 tests PASS.
+- Full `paper_execution` regression: 301 tests PASS.
+- Compile and isolated paper-only preflight: PASS.
+- Artifact: ID `13841126612`, digest `sha256:aaa0c3c4a9ccd59360c718b2748cfd7077190a84c29dd8e8b298a9ada35963c0`.
+
+### Disposition and next gate
+
+- Automated workflow: **PASS — created, push-triggered, exact-SHA checkout, compile and artifact upload verified**.
+- AI Strategy contract RED: **RED CONFIRMED — 23 assertion failures, 0 runtime errors; expected at this TDD stage**.
+- E2E AI BUY/Core WAIT/AI-ledger/shared-risk-denial path: **PASS at the isolated test scope**.
+- Existing Dual Ledger regression: **PASS — 238 focused and 301 full paper_execution tests**.
+- AI GREEN implementation: **NOT AUTHORIZED / NOT STARTED**. Numerical `C_min`, calibration/OOS evidence, migration/cutover, backtest acceptance, feature activation, VPS/runtime, deployment and live execution remain outside approval.
+- T0 canonical data, T1 activation, T2 runtime, database state, credentials, exchange state and deployment state were not changed.
+
+Next: review and prioritize the 23 RED assertions, freeze any remaining AI API contract details, and request separate owner approval before GREEN implementation.
