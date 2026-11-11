@@ -1846,3 +1846,19 @@ Next: if owner wants to proceed beyond planning, first approve a bounded provisi
 - No evaluator/schema/source/test/fixture/API/registry/adapter/workflow/scheduler/service/permission/credential/database/storage/VPS/runtime changes. No inventory, file/secret scan, network/provider/database access, archive, quarantine, cleanup, expiry, compaction, vacuum or deletion.
 - G0.15 R4 remains BLOCKED until exact vocabulary and mapping are owner-ratified. After ratification, evaluator integration requires separate bounded approval. CI, TEST-01–07, runtime inventory and destructive actions remain separate gates.
 - T0 remains independent/protected; CORE_LEDGER and AI_LEDGER remain separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
+
+
+## G0.17 — Owner Ratification of Sensitivity Classification Policy (2026-11-11)
+
+- Owner explicitly approved all six G0.16 decisions without amendment.
+- Ratification evidence: `docs/evidence/G0_17_OWNER_SENSITIVITY_CLASSIFICATION_POLICY_RATIFICATION_2026-11-11.md`.
+- Ratification commit: `645f2893ce8a2e846c9298d8d6c6bdbff1f041d5`.
+- G0.16 proposal blob ratified: `95cc2a1a36b05e35e15348d870a147282d659851`.
+- Ratified ordered labels: `PUBLIC < INTERNAL < CONFIDENTIAL < RESTRICTED`. Non-label states: `UNCLASSIFIED`, `CONFLICTED`, `PENDING_OWNER_DECISION`.
+- Ratified minimum class mapping is exactly G0.16 §3 / G0.17 §3. Unknown/stale/conflicting/unauthenticated classification fails closed and is handled as RESTRICTED pending resolution.
+- Ratified most-restrictive-wins inheritance across copies, backups, replicas, exports and derived outputs; no automatic downgrade. Exact-scope owner approval and evidence are required for declassification. Credentials, keys, tokens, signing and trust-root secrets are always RESTRICTED and their values must not appear in ordinary evidence/CI artifacts.
+- Sensitivity is separate from lifecycle disposition and does not grant review eligibility, retention-floor completion, archive/deletion approval or execution authority. RET-01 B / RET-02 B remain unchanged; T0 protected and independent.
+- G0.15 R4 policy-definition gap: **CLOSED AT DOCUMENTARY OWNER-POLICY LEVEL**. Evaluator/schema/registry integration: NOT IMPLEMENTED; requires separate bounded approval. Evidence authentication, independent review, tests, Actions, runtime inventory/classification and TEST-01–07 remain NOT RUN / NOT VERIFIED; no status promotion.
+- No source/test/fixture/schema/API/registry/adapter/runner/oracle/workflow/scheduler/service/permission/credential/database/storage/VPS/runtime changes. No inventory, file/secret scan, network/provider/database access, archive, quarantine, cleanup, expiry, compaction, vacuum or deletion.
+- T0 remains independent/protected; CORE_LEDGER and AI_LEDGER remain separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
+- Next candidate: separate bounded implementation plan for sensitivity field propagation/validation in pure evaluator and in-memory synthetic tests. No implementation, CI dispatch, TEST-01–07 harness, runtime inventory or destructive operation authorized.
