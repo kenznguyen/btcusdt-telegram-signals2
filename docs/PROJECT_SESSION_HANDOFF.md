@@ -2216,3 +2216,21 @@ Next: if owner wants to proceed beyond planning, first approve a bounded provisi
 - G0.37-A remains FAILED / INCOMPLETE and consumed; its intermediate metrics/digest remain NOT VERIFIED for D11 policy use. G0.34 metrics also remain NOT VERIFIED. Numeric D11 ceilings OPEN / NOT RATIFIED.
 - G0.40 measurement is NOT AUTHORIZED and requires a separate package and explicit approval. Parser/verifier implementation and CI remain NOT AUTHORIZED.
 - T0 remains independent/protected; CORE_LEDGER and AI_LEDGER remain separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
+
+## G0.39-A — S1 Measurement Harness Implementation Results (2026-11-11)
+
+- G0.39-A approved narrowly by owner message “phê duyệt tự động trong phạm vi G0”: standalone harness implementation and D14 amendment for exactly two `tools/` paths. This does not authorize G0.40 measurement or any other open gate.
+- Baseline HEAD: `bddbb830fb12faf252b4d824a8f83d3d5bd23b52`.
+- Source: `tools/s1_measurement_harness.py`; final blob `0f713a1cc87f4c0c355d4488f1cf6af4d8f08d98`.
+- Tests: `tools/test_s1_measurement_harness.py`; final blob `ff5e3c9d584e13948fc4265f9ca261e697fa9da6`; 24 test methods.
+- Source/test implementation commits are on the existing branch; no workflow, dependency, CI, production or runtime path changed.
+- Harness includes strict UTF-8/JSON handling, duplicate-aware pair preservation, D05 shape/type checks, D10 allowlist, separated parser-input/manifest/oracle structures, exact byte/depth/structural metrics, length-prefixed digest, A-01–A-13 executable predicates, source-hash provenance and safe report readback.
+- Local isolated working-copy verification: `python -m unittest tools.test_s1_measurement_harness -v` 24/24 PASS; `python -m py_compile tools/s1_measurement_harness.py tools/test_s1_measurement_harness.py` PASS. TDD RED was observed before module creation.
+- Verification limit: final GitHub blobs were read back and statically checked, but were not re-materialized as the exact local checkout after sequential GitHub edits. Therefore exact final-blob test/compile attribution is NOT VERIFIED; overall G0.39-A is PARTIAL / NOT VERIFIED, not PASS.
+- Review limitations: non-empty case-specific `claims` schemas are not ratified; harness accepts only empty claims unless a closed schema is supplied. A-12/A-13 static AST inspection plus supplied trace is not OS-level runtime isolation attestation.
+- Report: `docs/evidence/G0_39A_S1_MEASUREMENT_HARNESS_IMPLEMENTATION_RESULTS_2026-11-11.md`.
+- Report creation commit: `2c0f468120ac42a7b2d3abf2e027449bcf5036ed`.
+- G0.39-A verdict: **PARTIAL / NOT VERIFIED — implementation committed/read back; local prototype checks pass; exact final GitHub blob execution not verified**.
+- G0.40 corpus generation/measurement remains NOT AUTHORIZED. Numeric D11 ceilings remain OPEN / NOT RATIFIED. Parser/verifier, CI, external/runtime and destructive actions remain NOT AUTHORIZED.
+- Next gate: run only the already approved focused test and compile commands against the exact final GitHub HEAD/blob contents; then prepare a separate G0.40 decision package. Do not generate or measure a corpus without a separate explicit G0.40 approval.
+- T0 remains independent/protected; CORE_LEDGER and AI_LEDGER remain separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
