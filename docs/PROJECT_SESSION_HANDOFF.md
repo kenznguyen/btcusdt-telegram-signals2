@@ -1335,3 +1335,18 @@ Next: owner review the API proposal and resolve open design decisions. Only then
 - No T0 canonical data, T1 activation, T2 runtime, credentials, deployment or exchange state changed.
 
 Next: perform only the approved test-source refinement on this existing branch, run the existing AI RED GitHub Actions workflow against the resulting exact SHA, record all tests/artifacts, then stop before GREEN and seek separate approval.
+
+
+## AI Strategy RED test-only refinement — 2026-11-11
+
+- Gate A API Contract approval remains in force; approved proposal blob `65c3e5a6102cde6f7d51784fd9638f14aec3269e`.
+- Gate B test-only refinement was started on the same active branch. Test commits: `eaf441c97835efba8d7c8d8f25bd01d77b5612d2`, `ae244d7544a14182ac21dc7853eb55e15a84679e`, and `dd1b088a763276f5510f99166ba175c13f70e0d9`.
+- Latest test source SHA: `dd1b088a763276f5510f99166ba175c13f70e0d9`. Tests now exercise the admission-context boundary behaviorally instead of relying on signature introspection; add calibration, confidence-policy fixture boundaries, leverage mapping, freshness/readiness, instrument sizing, Kill Switch, Core leverage and no-partial-risk-reservation assertions.
+- Numeric values in tests are explicitly isolated fixtures only; they do not set production `C_min` or calibration policy. Trusted registry/provider identity, exact manifest matching fields, AI DCA v1 eligibility and immutable reservation snapshot/idempotency remain deferred pending owner/provider contract decisions.
+- Production source was not changed. No DB/schema, migration, T0/T1/T2 runtime, VPS, deployment, credential, exchange or live-order changes.
+- Evidence report update commit: `870e96ea2924b83b9f04a37434b5f871244c6e3b`; evidence blob `7a366ae7dadfefc3bc8c74da1fe1325dd1b6857b`.
+- GitHub combined commit status for exact test SHA `dd1b088a763276f5510f99166ba175c13f70e0d9` returned no statuses; available workflow-run lookup did not return push-triggered runs. Refined-suite CI, test counts and artifacts are **NOT VERIFIED**; do not infer a run from the push.
+- Historical RED baseline only: run [42989566675](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42989566675), exact SHA `aa7897520b5435ff4c981b3f2ab8a6710f811eea`, 36 tests / 23 assertion failures / 0 runtime errors.
+- Current disposition: Gate A **APPROVED**; Gate B test-source refinement **WRITTEN / CI NOT VERIFIED**; GREEN **NOT AUTHORIZED**.
+
+Next: retrieve the push-triggered AI RED workflow result for exact SHA `dd1b088a763276f5510f99166ba175c13f70e0d9`, inspect compile and test logs, correct test-only defects, record exact run/artifact, and stop before GREEN.
