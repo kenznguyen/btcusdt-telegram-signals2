@@ -559,7 +559,7 @@ This section is normative and replaces A2.1 §12.3. The verifier evaluates condi
 
 ## 18. A2.1-R2-04 — Complete deterministic negative fixtures for A2.2 overrides
 
-This section supplements A2 §5.1 and replaces the abbreviated A2.1-NV-01..09 cases. Every case below uses the same fully specified clean baseline and changes exactly one field or condition.
+This section supplements A2 §5.1 and replaces the abbreviated A2.1-NV-01..09 cases. Every case below uses a fully specified clean or explicitly named precondition baseline and changes exactly one field or condition.
 
 ### 18.1 Shared clean baseline fixture B0
 
@@ -570,21 +570,21 @@ B0 is a synthetic, offline-only fixture. It contains:
 - one synthetic Trust Policy fixture explicitly authorizing that purpose/profile for the exact synthetic signer role, namespace and audience;
 - a verifier request explicitly selecting the same profile ID/version;
 - a synthetic A1 historical fixture stored separately and never relabeled;
-- bootstrap verifier configuration explicitly marking both Path A and Path B `NOT_ENABLED`, with no trusted root or accepted bootstrap sequence;
+- bootstrap verifier configuration explicitly marking both Path A and Path B `NOT_ENABLED`, with no enrolled bootstrap root or accepted bootstrap sequence; the synthetic checkpoint signer trust material, if needed for a dimension-specific fixture, is test-only and separate from bootstrap-root enrollment;
 - state snapshot S0 containing exact trust-root set, policy-head digest, anchor-head sequence/digest, accepted checkpoint-head ID/digest and bootstrap sequence; all are recorded before each test and must remain unchanged after a failed test.
 
-For each test, clone B0 to a fresh isolated fixture. Apply exactly the one mutation listed. Record per-dimension outcomes, one aggregate verdict, one primary reason, S0 and post-state S1, and forbidden transitions. The expected post-state for every failing case is S1 = S0.
+For each test, clone its named baseline (B0 or B-A; A2.2-NV-04 uses B0-PF) to a fresh isolated fixture. B0-PF is defined as a fixed, pre-existing profile-check failure used only to test downgrade behavior; the only mutation in NV-04 is enabling automatic fallback. Apply exactly the one mutation listed. Record per-dimension outcomes, one aggregate verdict, one primary reason, S0 and post-state S1, and forbidden transitions. The expected post-state for every failing case is S1 = S0.
 
 ### 18.2 Profile and purpose fixtures
 
 | ID | Single mutation from B0 | Per-dimension expected result | Aggregate / primary reason | State and forbidden transitions |
 |---|---|---|---|---|
-| A2.2-NV-01 | Change only statement purpose to legacy `T0_CHECKPOINT_OWNER_ATTESTATION`, retaining otherwise valid signature bytes | Signature INVALID; purpose/profile binding INVALID | INVALID / `PURPOSE_NOT_SUPPORTED_BY_PROFILE` | S1=S0; no root enrollment, policy/anchor/checkpoint advancement |
+| A2.2-NV-01 | Change only statement purpose to legacy `T0_CHECKPOINT_OWNER_ATTESTATION`, retaining otherwise valid signature bytes | Purpose/profile policy gate rejects the legacy value before signature verification; signature bytes are not accepted | INVALID / `PURPOSE_NOT_SUPPORTED_BY_PROFILE` | S1=S0; no root enrollment, policy/anchor/checkpoint advancement |
 | A2.2-NV-02 | Remove only issuer purpose from the policy allowlist | Policy authorization BLOCKED; signature dimension not accepted | BLOCKED / `POLICY_PURPOSE_NOT_EXPLICIT` | S1=S0; no authorization or state advancement |
 | A2.2-NV-03 | Change only the A1 historical descriptor's declared profile to A2.2 while retaining A1 type/version | Object/profile binding INVALID | INVALID / `PROFILE_VERSION_MISMATCH` | S1=S0; no historical relabel or A2.2 acceptance |
-| A2.2-NV-04 | Configure only an automatic A1 fallback after an A2.2 profile failure | Profile downgrade BLOCKED | BLOCKED / `PROFILE_DOWNGRADE_FORBIDDEN` | S1=S0; no second-profile attempt or state advancement |
+| A2.2-NV-04 | Baseline B0-PF contains one fixed A2.2 profile-check failure; change only verifier configuration to enable automatic A1 fallback | Profile downgrade BLOCKED | BLOCKED / `PROFILE_DOWNGRADE_FORBIDDEN` | S1=S0; no second-profile attempt or state advancement |
 | A2.2-NV-05 | Change only verifier request profile ID to an unknown ID | Profile selection BLOCKED | BLOCKED / `PROFILE_UNKNOWN` | S1=S0; no policy lookup fallback or state advancement |
-| A2.2-NV-06 | Change only verifier request profile version to a known but locally disabled version | Profile selection BLOCKED | BLOCKED / `PROFILE_NOT_ENABLED` | S1=S0; no profile substitution |
+| A2.2-NV-06 | Change only verifier request profile version to synthetic registry version `3`, which is known but locally disabled in the fixture | Profile selection BLOCKED | BLOCKED / `PROFILE_NOT_ENABLED` | S1=S0; no profile substitution |
 | A2.2-NV-07 | Change only envelope profile ID while statement/descriptor/policy/request remain B0 | Envelope/profile binding INVALID | INVALID / `PROFILE_BINDING_MISMATCH` | S1=S0; no signature acceptance |
 | A2.2-NV-08 | Change only Trust Policy profile version | Policy/profile binding INVALID | INVALID / `PROFILE_BINDING_MISMATCH` | S1=S0; no policy-head advancement |
 | A2.2-NV-09 | Mark only the selected profile retired for new signatures | Profile lifecycle UNTRUSTED | UNTRUSTED / `PROFILE_RETIRED` | S1=S0; historical profile path remains separately selected only |
