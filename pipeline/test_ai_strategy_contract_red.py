@@ -93,6 +93,9 @@ class AIStrategyContractRedTest(unittest.TestCase):
             return None
         return {
             "verificationStatus": "SIGNATURE_VERIFIED_ONLY",
+            "registryStatus": "ACTIVE",
+            "trustedTimeStatus": "VERIFIED",
+            "oosEvidenceStatus": "VERIFIED",
             "manifestDigest": "sha256:" + "d" * 64,
             **calibration,
         }
@@ -182,6 +185,21 @@ class AIStrategyContractRedTest(unittest.TestCase):
         self.assert_contract_wait(self.evaluate(
             prediction=prediction, admission_context=context
         ))
+
+    def test_unverified_registry_time_or_oos_state_fails_closed(self):
+        prediction = self.calibrated_prediction("0.8")
+        for field, value in (
+            ("registryStatus", "REVOKED"),
+            ("trustedTimeStatus", "UNVERIFIED"),
+            ("oosEvidenceStatus", "UNVERVERIFIED"),
+        ):
+            context = self.admission_context()
+            context["calibration_evidence"] = self.calibration_evidence(prediction)
+            context["calibration_evidence"][field] = value
+            with self.subTest(field=field):
+                self.assert_contract_wait(self.evaluate(
+                    prediction=prediction, admission_context=context
+                ))
 
     def test_missing_calibrated_confidence_blocks_an_otherwise_valid_ai_prediction(self):
         prediction = dict(self.fixture.prediction)
