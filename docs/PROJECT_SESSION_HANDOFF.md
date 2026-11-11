@@ -497,3 +497,14 @@ Reconcile the four-artifact Actions allowlist with all eligible source artifacts
 - Added exact domain-separated, length-prefixed SHA-256 formula for Trust Policy body; defined detached `T0-TRUST-POLICY-STATEMENT-V1` and its exact signature preimage/envelope; defined genesis and subsequent policy sequence/predecessor rules; defined canonical anchor envelope and exact anchor-object digest used by the next anchor's predecessor link.
 - The earlier amendment blob `91727c8f0409fd0e6e0df0c0420e459f54bd601b` is superseded by this byte-level closure. Latest contract text is the blob recorded above.
 - Production signature algorithm remains deliberately unselected. This amendment is still DRAFT, not independently reviewed and not approved for implementation.
+
+
+## Signature amendment A1 cross-contract consistency review — 2026-11-11
+
+- Updated amendment: `docs/architecture/T0_SIGNATURE_TRUST_POLICY_MONOTONIC_ANCHOR_AMENDMENT_A1_2026-11-11.md`.
+- Consistency-review commit: `9941c6fe890be32cd87b37f3051e496527f264d6`; latest amendment blob: `ca0e73778c3e1430f1d9e8ac4aaa90721bfc113a`.
+- Re-read governing Checkpoint Contract v1 blob `5948dd904e1819b626aecc1a85e10c95735191a3`, L4 crosswalk blob `b1f4daac9624d8deedfaf14234e0b6bb79ff81ca`, latest amendment and this handoff.
+- Findings/corrections recorded: (CR-01) A1 cannot unilaterally supersede v1's outside-both VPS/GitHub custody requirement; VPS + GitHub-only is now explicitly a proposed alternative requiring owner ratification, and v1 remains controlling until formal amendment. (CR-02) Trust Policy body excludes its own digest/signature; detached statement/descriptor carries digest. (CR-03) all logical integers serialize as canonical unsigned decimal strings under T0-JCS-1. (CR-04) binary envelope fields use strict unpadded base64url. (CR-05) v1 signing provenance/authorization fields are mapped to signed statement or separately signed referenced evidence; post-signing verification references remain in append-only Verification Records. (CR-06) anchor Evidence Object descriptor and custody receipt/readback requirements remain unless owner formally amends v1.
+- Consistency-review disposition: **PARTIAL / NOT FROZEN**. CR-01 remains an owner decision; production signature algorithm/profile, root ceremony, signer/anchor identities and trusted-time/TSA decisions remain open. This was same-session static review, not qualifying independent review.
+- No implementation, code/test/workflow/CI/runtime/VPS/SQLite/key/trust-root/policy/anchor/provider/TSA/destructive action occurred. No CI run/artifact is claimed.
+- Next: obtain explicit owner disposition on whether to formally amend Checkpoint Contract v1's outside-both custody requirement. Until then, v1 governs that claim and A1 cannot be frozen as a fully reconciled contract. After owner disposition, perform final contract freeze and qualifying independent review; implementation still requires separate approval.
