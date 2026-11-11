@@ -80,6 +80,9 @@ class DecisionTest(unittest.TestCase):
             },
             "calibration_evidence": {
                 "verificationStatus": "SIGNATURE_VERIFIED_ONLY",
+                "registryStatus": "ACTIVE",
+                "trustedTimeStatus": "VERIFIED",
+                "oosEvidenceStatus": "VERIFIED",
                 "manifestDigest": "sha256:" + "d" * 64,
                 **calibration,
             },
