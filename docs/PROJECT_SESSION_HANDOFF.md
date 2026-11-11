@@ -2533,3 +2533,16 @@ Next: if owner wants to proceed beyond planning, first approve a bounded provisi
 - Tests/compile/CI: NOT RUN (docs-only). Runtime/VPS/database/provider/key operations: NOT PERFORMED.
 - **G0.48: PACKAGE PREPARED — D07/D08/D09 READY FOR OWNER DECISION; ALL THREE OPEN / NOT RATIFIED; S2 IMPLEMENTATION NOT AUTHORIZED.**
 - Next: Owner selects or amends D07, D08 and D09. No automatic progression to S2.
+
+
+## G0.49 — D07/D08/D09 Owner decision record (2026-11-11)
+
+- Owner explicitly selected D07-A, D08-A and D09-A from G0.48. Decision record: `docs/evidence/G0_49_D07_D08_D09_OWNER_DECISION_RECORD_2026-11-11.md`.
+- D07-A is OWNER-DECIDED: complete inventory requires declared scope, independently defined expected population, deterministic complete enumeration and expected/observed reconciliation. Any unresolved/inaccessible/ambiguous item or unexplained enumeration defect blocks COMPLETE. Explicitly partial inventories may be labelled PARTIAL only; no completeness claim.
+- D08-A is OWNER-DECIDED: initial phase permits `INTEGRITY_ONLY` or `AS_OF_SNAPSHOT`; no global latestness/freshness claim. Freshness-dependent decisions fail closed when freshness is unknown. TTLs, trusted time source/anchor, expiry durations, revocation transport, replay window and rollback policy remain OPEN / NOT RATIFIED.
+- D09-A is OWNER-DECIDED for initial phase: authenticated Owner-controlled GitHub action/commit may be labelled `PLATFORM_ATTRIBUTED_OWNER_ACTION`, not a cryptographic signature. Commit metadata alone does not prove uncompromised identity or factual truth. Review attestation, exact-scope privileged authorization and trust administration remain separate.
+- D06 remains manual Owner attestation only; autonomous issuer authenticity and cryptographic key operations remain deferred.
+- G0.49 changed only the D07/D08/D09 decision record and this handoff. No source, tests, fixtures, schemas, workflows, dependencies, keys, trust roots, providers, database, VPS, runtime, T0/T1/T2, ledgers, risk engine or lifecycle operations changed.
+- Tests/compile/CI: NOT RUN (docs-only). Runtime/VPS/database/provider/key operations: NOT PERFORMED.
+- **G0.49: DOCUMENTATION PASS — D07-A/D08-A/D09-A OWNER-DECIDED FOR INITIAL PHASE; S2 IMPLEMENTATION NOT AUTHORIZED.**
+- Next: prepare bounded decisions for remaining open dependencies D12–D14. No automatic S2 progression.
