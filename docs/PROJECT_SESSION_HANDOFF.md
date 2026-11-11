@@ -476,3 +476,16 @@ Reconcile the four-artifact Actions allowlist with all eligible source artifacts
 - Review disposition: **DESIGN BASELINE PARTIAL; IMPLEMENTATION BLOCKED**. This was an adversarial second-pass static review, not a qualifying external/independent L4M-09 review. Formal independent review remains NOT VERIFIED.
 - No code, test, workflow, runtime, VPS, SQLite, key, trust root, anchor, provider, TSA or retention operation was changed or executed. No implementation approval is requested or implied.
 - Next permitted work: contract-only amendment resolving S-01–S-04 and identity/trust-time details, followed by frozen test matrix and a qualifying independent review. Do not implement until a separate explicit owner approval after review.
+
+
+## Signature / Trust Policy / Monotonic Anchor contract amendment A1 — 2026-11-11
+
+- Amendment: `docs/architecture/T0_SIGNATURE_TRUST_POLICY_MONOTONIC_ANCHOR_AMENDMENT_A1_2026-11-11.md`.
+- Amendment commit: `ac2849764bc45122a6b17cfe9cc7ef40000e1edd`; exact file blob: `91727c8f0409fd0e6e0df0c0420e459f54bd601b`; 29,834 characters.
+- Base architecture review report remains `docs/evidence/T0_SIGNATURE_NEGATIVE_VERIFICATION_ARCHITECTURE_REVIEW_2026-11-11.md`; review report commit `805e4be31d741e76f21c6f2bdb367bdcc27197bd`.
+- Amendment defines: exact canonical Signature Statement preimage and detached envelope; immutable Evidence Object ID-to-type/schema/profile/digest/length binding; versioned Trust Policy, pinned-root bootstrap, signer authorization, policy sequence/rollback, key status and historical trust-time limits; separately signed Monotonic Anchor, strict sequence/predecessor rules, duplicate/equivocation/replay handling; deterministic verification order and 30 negative cases.
+- Custody conflict S-04 is reconciled as a bounded claim: approved scope VPS + GitHub only. Exact dual-copy agreement can establish consistency with the retained anchor head, but cannot detect a joint rollback of both stores. Absolute/global anti-rollback and independent external custody remain NOT ESTABLISHED. No WORM or external-backup claim.
+- Owner decisions still open: production algorithm/profile, root bootstrap/recovery ceremony, signer and anchor-authority identities, anchor concurrency mechanism, acceptance of the bounded custody limitation versus future external anchor, and trusted-time/TSA requirements.
+- Amendment status: **DRAFT / CONTRACT-ONLY / NOT APPROVED FOR IMPLEMENTATION**. It has not received an independent review. Implementation remains BLOCKED pending frozen-contract independent review and separate explicit owner approval.
+- No code/tests/workflows/CI/runtime/VPS/SQLite/canonical T0 data/keys/trust roots/policy instances/anchor records/providers/TSA/retention or destructive operations were changed or exercised. No CI run or artifact is claimed for this documentation increment.
+- Next: perform a contract consistency review against base contract v1 and the L4 crosswalk, then freeze the amendment for qualifying independent review. Do not implement or generate keys/signatures/anchors.
