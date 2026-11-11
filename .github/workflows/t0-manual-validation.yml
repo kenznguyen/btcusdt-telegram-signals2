@@ -215,7 +215,7 @@ jobs:
             if [[ -z "${!key:-}" ]]; then
               echo "Missing required protected SSH input: $key"
               printf '%s\n' 'SSH_PRIVATE_KEY_SETUP=BLOCKED_MISSING_INPUT' > preflight-ssh-diagnostic.txt
-              printf '%s\\n' '1' > preflight-ssh-exit-code.txt
+              printf '%s\n' '1' > preflight-ssh-exit-code.txt
               exit 1
             fi
           done
