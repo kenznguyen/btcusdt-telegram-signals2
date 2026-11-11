@@ -413,7 +413,7 @@ class DualStrategyApiScopeRedTest(unittest.TestCase):
         before_core = read_snapshot(str(self.db), strategy_id="STRATEGY_CORE")
         before_ai = read_snapshot(str(self.db), strategy_id="AI_FREQAI")
 
-        with patch.object(api, "now_ms", return_value=timestamp), \\
+        with patch.object(api, "now_ms", return_value=timestamp), \
              patch.object(api, "context", return_value={"book": book}), \\
              patch.object(api, "decide", return_value=decision), \\
              patch.object(api, "core_decide", return_value=core_wait), \\
