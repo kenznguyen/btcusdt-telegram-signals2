@@ -1554,3 +1554,16 @@ Evidence: `docs/evidence/AI_STRATEGY_D1_READ_ONLY_BUNDLE_VERIFICATION_2026-11-11
 Disposition: D1 **BLOCKED / PARTIALLY DECIDED**; candidate bundle SHA/manifest, UTC coverage, counts and quality remain NOT VERIFIED. This bounded repository inventory does not prove the bundle is absent outside GitHub. A separate scoped read-only access method/location for the actual published T0 bundle must be established before further verification. Do not create/export a bundle under this authorization. R1 remains NOT FROZEN; R2 remains NOT AUTHORIZED. No tests/workflow, data export/copy, T0 access/mutation, feature computation, model training, backtest, VPS/runtime/deployment, exchange or trading action occurred.
 
 Next: identify the actual read-only publication/reference for the existing T0 bundle. If no bundle exists, request a separate owner decision before preparing one. Preserve T0 independence and all existing paper-only restrictions.
+
+
+### AI Strategy D1 — T0 read-only API path assessment (2026-11-11)
+
+Further repository review identified the documented T0 consumer boundary: authenticated GET `/v1/candles`, source implementation in `market_data/api.py`, with same-host loopback target documented as `http://127.0.0.1:8788`. The API contract exposes bounded M15/H1 windows, coverage/gaps, closed-candle and availability metadata, freshness, and a query-window `datasetVersion`.
+
+Important distinction: API `datasetVersion` is a content-and-query hash for the exact response window, not a whole-bundle digest or manifest. API availability does not prove that an immutable AI research bundle `T0_M15_H1_DATASET_BUNDLE_V1` exists. Exporting API data into a bundle is a separate data-preparation action and is not authorized by the current verification approval.
+
+Evidence: `docs/evidence/AI_STRATEGY_D1_T0_API_READONLY_PATH_ASSESSMENT_2026-11-11.md`, commit `44f383869a9e91f85525f85c4243185eb4e5a1ee`.
+
+No live API request, token use, SSH/VPS access, SQLite read, data export/copy, bundle creation, tests/workflow, or runtime action occurred. Existing owner deployment protocol and live endpoint verification plan require explicit access/operator/origin/credential/request-budget controls. Current live endpoint, deployed source/config parity, M15/H1 API response and bundle manifest remain NOT VERIFIED. D1 remains PARTIALLY DECIDED / BLOCKED; R1 NOT FROZEN; R2 NOT AUTHORIZED.
+
+Next: obtain sanitized owner/operator-supplied bounded API response metadata, or a separately scoped explicit authorization naming the operator, exact probe origin/endpoint, protected credential method and request budget. Do not create/export a bundle without separate approval. T0 remains independent and unchanged; paper-only and `AI_EXECUTION_ENABLED=false` remain.
