@@ -122,3 +122,14 @@ Next: review and prioritize the 23 RED assertions, freeze any remaining AI API c
 - No production code, RED test source, database, migration, T0/T1/T2 runtime, VPS, credentials, deployment or exchange state changed.
 
 Disposition: **RED triage PASS — analysis/documentation only**. API proposal and unresolved decisions are **PENDING OWNER REVIEW**. GREEN remains NOT AUTHORIZED.
+
+
+## Owner approval — API Contract design gate — 2026-11-11
+
+- Owner explicitly approved `docs/architecture/AI_STRATEGY_API_CONTRACT_PROPOSAL.md` as the design basis for the next test-only refinement gate.
+- Approval recorded in proposal commit: `a7f8ca579ff7990eca3f640e1d496608c0ad36f4`; approved proposal blob: `65c3e5a6102cde6f7d51784fd9638f14aec3269e`.
+- **Gate A: APPROVED.** Interface boundaries and behavioral invariants in the proposal are the target for RED test refinement.
+- **Gate B: AUTHORIZED — TEST-ONLY.** Replace brittle function-signature introspection sentinels with behavioral API/provider-boundary tests; add deterministic missing-coverage tests. Keep intentional RED failures for missing production behavior. Do not edit production source.
+- Numerical `C_min`, calibration sample/period/age thresholds, registry/provider choices, instrument-rule source, AI DCA v1 eligibility and snapshot persistence remain unresolved. Tests may use labeled fixtures for boundary behavior but must not turn fixtures into production defaults or imply owner selection.
+- **GREEN: NOT AUTHORIZED.** No production changes, migration/cutover, calibration training/OOS acceptance, backtest acceptance, feature activation, VPS/runtime, deployment, exchange connectivity or live orders.
+- No RED test execution or new CI run is claimed by this approval record. The existing RED baseline remains run `42989566675`, exact SHA `aa7897520b5435ff4c981b3f2ab8a6710f811eea`.
