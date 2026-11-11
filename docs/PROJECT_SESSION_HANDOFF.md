@@ -2959,3 +2959,13 @@ Critical limits:
 - The Owner's independent-review waiver remains in force for Stage II A2.3; it does not establish independent assurance/G3 and does not waive technical gates.
 - **Disposition: DECISION PACKAGE PREPARED; OWNER DECISIONS PENDING; A2.3 NOT FROZEN; STAGE II IMPLEMENTATION NOT AUTHORIZED; L4-MINIMUM BLOCKED / NOT VERIFIED.**
 - Next: wait for Owner decisions on D1–D4. Do not infer approval or proceed to code/dependency/CI changes from the package itself.
+
+
+### Owner decision D1 recorded — AEO issuer separation (2026-11-12)
+
+- Owner explicitly approved D1 (“có”): the AEO issuer principal MUST differ from the subject checkpoint signer principal, and the AEO issuer SPKI fingerprint MUST differ from the subject checkpoint signer SPKI fingerprint. Same principal or same SPKI fingerprint is rejected with `AUTHORIZATION_EVIDENCE_SELF_ISSUED`.
+- Decision package updated: `docs/decisions/T0_L4_SIGNATURE_CONTRACT_FREEZE_OWNER_DECISION_PACKAGE_2026-11-12.md`; final content commit `4f5c5e3873609fb92cbc4bfd11b08bddfd6ccbb4`; blob `dcfba078383c875c1513acfbe54de07fcbf01c42`.
+- Scope of approval is D1 policy only. It does not freeze AEO schema, issuer namespace/authority, signature preimage, trust chain or full A2.3; it does not authorize code/CI/dependency changes, key operations, trust bootstrap, real signing/verification or custody publication.
+- D2 resource ceilings, D3 exact schemas/descriptor namespace and D4 schema-only Verification Record remain PENDING OWNER DECISION.
+- **Disposition: D1 APPROVED; D2–D4 PENDING; A2.3 CONTRACT NOT FROZEN; STAGE II IMPLEMENTATION NOT AUTHORIZED; L4-MINIMUM BLOCKED / NOT VERIFIED.**
+- Next: request/record D2 independently; do not infer approval of D2–D4 from D1.
