@@ -515,3 +515,15 @@ Reconcile the four-artifact Actions allowlist with all eligible source artifacts
 - Corrected active-branch amendment commit: `397ff689d9d19d3f3c7f72f2b4bc3c4c4314a9c0`; amendment blob: `ced2b7cf0c74910aed4b8d6d761d76f0b7739e27`.
 - Active-branch handoff must point to this commit/blob. The default-branch duplicate was not reverted; no history rewrite or force-push was performed.
 - This branch correction does not change the disposition: A1 remains DRAFT / NOT FROZEN; CR-01 custody precedence requires explicit owner decision; independent review and implementation approval remain outstanding.
+
+## Owner approval — Checkpoint Contract v1 bounded custody amendment (2026-11-11)
+
+- Owner explicitly approved formally amending Checkpoint Contract v1 §§7/9 to accept **VPS + GitHub as the bounded two-location custody scope**.
+- The owner explicitly accepts that joint rollback/replacement of both VPS and GitHub to the same older valid chain is not detectable by this design. Permitted assurance is limited to exact two-location consistency with the authenticated retained anchor history available to the verifier. No external custody, WORM, global latestness, absolute anti-rollback or universal rollback-detection claim is permitted.
+- Formal contract addendum appended to `docs/architecture/T0_EVIDENCE_OBJECT_CHECKPOINT_CONTRACT_V1.md`: commit `2fc8c3bfde08bd2b95542d20981b99321d42dbe4`; blob `2d95aaeba9d7d6d388f3d5941be6f051d40111f6`.
+- Signature amendment A1 §14.1 and disposition reconciled with owner decision: commit `6baed29b63ddaa31cd390ede3e690e2211d3e21a`; blob `22fb42ba201f9105c8e612ca9b4695f6a0519382`.
+- L4 control-to-source crosswalk updated to record the bounded custody scope and assurance limitation: commit `be003f35c79934833e3edbfd1af1a5da9eae0f2d`; blob `9781c299a8fd5536a9a1ff03b703ff6a5ff3dc49`.
+- This resolves CR-01 at owner-governance/contract level. It does not promote any L4 control. L4-Minimum remains BLOCKED / NOT VERIFIED pending actual per-location custody evidence/readback, signer/anchor separation, authenticated trust bootstrap, signed anchor-chain verification, offline verification and separate owner acceptance.
+- A1 remains DRAFT / NOT FROZEN pending final consistency verification and qualifying independent review. The prior static consistency review is not an independent review. Production algorithm/profile, root ceremony, signer/anchor identities, anchor concurrency and trusted-time/TSA decisions remain open.
+- No implementation, code/test/workflow/CI, key generation/signing, trust-root/policy/anchor instance, provider, VPS/SSH/runtime, SQLite or canonical T0 data operation was performed or authorized. No destructive action was authorized.
+- Next permitted step: re-read the amended contract, A1 and crosswalk for exact consistency; then request a qualifying independent review of the frozen contract and negative-verification test matrix. Implementation remains blocked pending that review and a separate explicit approval.
