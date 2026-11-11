@@ -1521,3 +1521,19 @@ Important: this is a proposal, not a frozen configuration. The candidate bundle'
 No dataset read/export/copy, T0 DB/runtime access or mutation, feature computation, label generation, model/calibration training, backtest, tests/workflow, code, DB/schema/migration, T0/T1/T2 runtime, VPS, deployment, exchange connectivity, feature activation, order or destructive data operation occurred. No test run or artifact produced. R2 remains NOT AUTHORIZED; GREEN-1..5 remain NOT AUTHORIZED. Strategy Core unchanged; AI DCA disabled v1; paper-only and `AI_EXECUTION_ENABLED=false` remain.
 
 Next: owner review D1-D6 in the R1 proposal. Do not freeze numerical values or run R2 until source evidence is available and the complete R1 configuration plus separate R2 scope are explicitly approved.
+
+
+### R1 owner decision — dataset integrity policy (2026-11-11)
+
+Owner approved in principle a minimal SHA-256 + manifest policy for AI Research dataset identity, integrity comparison and provenance:
+- Stable dataset ID and manifest for each immutable bundle.
+- SHA-256 per bundle file and manifest digest recorded with each experiment's source-code SHA/configuration.
+- Dataset changes produce a new immutable version; no silent overwrite.
+- SHA-256 alone does not prove source authenticity, correctness, completeness or statistical suitability.
+- Keep implementation lightweight; no new service/infrastructure solely for this.
+
+Recorded in R1 proposal commit `29139c86772320f52007dd1c2aed5487e2414f9c` and evidence commit `eb4316b22c6ae5a26880fff688a83f02d8196e81`.
+
+Decision scope is limited to the integrity/provenance policy. It does not verify `T0_M15_H1_DATASET_BUNDLE_V1`, authorize T0 data access/export/copy, or freeze exact bundle digest/coverage/quality. D1 is PARTIALLY DECIDED; R1 remains NOT FROZEN; R2 remains NOT AUTHORIZED. No T0 data/runtime was accessed or changed; no tests/workflow were run.
+
+Next: request a separately scoped approval for read-only verification of the candidate bundle's manifest, digest, coverage and quality. Do not begin feature extraction or R2 experiments.
