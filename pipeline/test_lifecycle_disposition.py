@@ -126,6 +126,17 @@ class LifecycleDispositionTests(unittest.TestCase):
             rebuildability={"required":True,"proven":False}))
         self.assertEqual(out["disposition"], "BLOCKED_UNKNOWN")
 
+    def test_t1_cannot_disable_rebuildability_or_omit_producer_provenance(self):
+        base = {"data_class":"T1_RAW_OBSERVATION","review_group":"T1_RAW_OBSERVATION",
+                "rebuildability":{"required":False,"proven":False}}
+        missing_provenance = evaluate_disposition(record(**base))
+        verified = evaluate_disposition(record(**base,
+            rebuildability={"required":True,"proven":True,"evidence_ref":"rebuild-proof"},
+            producer_provenance_verified=True))
+        self.assertEqual(missing_provenance["disposition"], "BLOCKED_UNKNOWN")
+        self.assertIn("UNK_SOURCE_LINEAGE", missing_provenance["reason_codes"])
+        self.assertEqual(verified["disposition"], "REVIEWABLE_NONCANONICAL")
+
     def test_ack_heartbeat_and_storage_pressure_do_not_change_disposition(self):
         a = evaluate_disposition(record())
         b = evaluate_disposition(record(storage_pressure=False, consumer_ack=False, heartbeat_lost=False))
