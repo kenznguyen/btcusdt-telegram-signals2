@@ -104,6 +104,8 @@ def resolve_order_strategy(db_path, order_id):
         if row is None:
             raise ValueError("Unknown paper order")
     owner = row[0]
+    if owner is None:
+        raise ValueError("PAPER_ORDER_OWNER_UNVERIFIED")
     if owner not in {"MANUAL", "STRATEGY_CORE", "AI_FREQAI"}:
         raise ValueError("PAPER_ORDER_STRATEGY_SCOPE_UNSUPPORTED")
     return owner
