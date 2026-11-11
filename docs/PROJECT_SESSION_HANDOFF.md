@@ -1350,3 +1350,19 @@ Next: perform only the approved test-source refinement on this existing branch, 
 - Current disposition: Gate A **APPROVED**; Gate B test-source refinement **WRITTEN / CI NOT VERIFIED**; GREEN **NOT AUTHORIZED**.
 
 Next: retrieve the push-triggered AI RED workflow result for exact SHA `dd1b088a763276f5510f99166ba175c13f70e0d9`, inspect compile and test logs, correct test-only defects, record exact run/artifact, and stop before GREEN.
+
+
+## AI Strategy RED exact-SHA verification — 2026-11-11
+
+- Gate A remains **APPROVED**; Gate B remains **TEST-ONLY**. No GREEN authority.
+- Refined RED workflow run [42991140429](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42991140429), event `push`, branch `feature/t0-centralized-data-feeder-p1-20261101`, exact checkout SHA `dd1b088a763276f5510f99166ba175c13f70e0d9`.
+- Job `130424044648`: setup/checkout/Python 3.12/paper-only preflight/dependency installation/compile/artifact upload **PASS**; focused RED test step **FAILURE as expected**.
+- Compile `AI_STRATEGY_RED_COMPILE=PASS`; test result **45 tests, 52 assertion failures, 0 errors**. Current missing behaviors confirmed by RED include the `admission_context` decision boundary, explicit AI admitted leverage API, and AI ledger [1x,3x] bounds. Positive BUY/sizing/mapping tests remain RED until GREEN implementation.
+- In the same run, Core fixed-13x regression **PASS** and AI BUY while Core WAIT → AI ledger only → Shared Risk Engine rejects unready account risk → no reservation **PASS**.
+- Artifact ID `13841349049`, name `ai-strategy-contract-red-dd1b088a763276f5510f99166ba175c13f70e0d9`, 4,143 bytes, GitHub digest `sha256:7e2e5048db147243eaade59aebdb01ce0245fdcf1a9062abd7dc416cb7ac64e4`, expires `2026-11-18T08:57:31Z`. Payload bytes not independently downloaded/re-hashed.
+- Evidence report commit: `34b30d942580541e24ffdec9345835beb1c9ebee`; evidence blob `dd0f40923f0fb332d70edae51e15dc97ab7b845c`.
+- Fixture `confidenceMin=0.6`, sample count `100`, calibration period `100ms`, and max age `60000ms` are test-only values, not production defaults or owner selection. Trusted artifact registry, exact manifest matching, AI DCA v1 eligibility and immutable snapshot/idempotency remain deferred until their providers/contracts are resolved.
+- No production code, database/schema, migration, T0/T1/T2 runtime, VPS, deployment, credentials, exchange state or live orders changed.
+- Disposition: Gate A **APPROVED**; Gate B **RED TESTS EXECUTED / INITIAL SUITE NEEDS REFINEMENT**; GREEN **NOT AUTHORIZED**.
+
+Next: review test log for brittle/overbroad RED assertions, refine only test sources and re-run exact-SHA GitHub Actions; do not cross into GREEN or select C_min.
