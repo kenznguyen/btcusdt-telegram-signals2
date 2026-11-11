@@ -41,7 +41,7 @@ _COMMIT = re.compile(r"[0-9a-f]{40}\Z")
 _UNSIGNED = re.compile(r"(?:0|[1-9][0-9]*)\Z")
 _TIMESTAMP = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z\Z")
 # Canonical non-exponent decimal representation; this is not a metric policy.
-_DECIMAL = re.compile(r"(?:0|-?(?:[1-9][0-9]*)(?:\.[0-9]*[1-9])?)\Z")
+_DECIMAL = re.compile(r"(?:0|-?(?:0\.[0-9]*[1-9]|[1-9][0-9]*(?:\.[0-9]*[1-9])?))\Z")
 _DIRECTIONS = frozenset({"LOWER_IS_BETTER", "HIGHER_IS_BETTER", "DESCRIPTIVE_ONLY"})
 _UINT64_MAX = 18_446_744_073_709_551_615
 
