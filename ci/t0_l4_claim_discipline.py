@@ -54,7 +54,8 @@ def _control_rows(crosswalk: str) -> dict[str, tuple[str, str]]:
         control_id = match.group(1)
         if control_id in rows:
             _fail("DUPLICATE_CONTROL")
-        status = cells[-1].strip().strip("* ").upper()
+        status_match = re.search(r"\\*\\*(.*?)\\*\\*", cells[-1])
+        status = (status_match.group(1) if status_match else cells[-1]).strip().upper()
         rows[control_id] = (status, line)
     return rows
 
