@@ -597,8 +597,8 @@ Reconcile the four-artifact Actions allowlist with all eligible source artifacts
 
 
 ## A2.2 signature-contract correction and adversarial self-review — 2026-11-11
-- User said "tiếp theo" following the proposal to prepare a new A2.2 documentation-only candidate; work was limited to drafting and self-review. No implementation approval is implied.
-- New candidate: `docs/architecture/T0_SIGNATURE_TRUST_POLICY_MONOTONIC_ANCHOR_AMENDMENT_A2_2_2026-11-11.md`.
+
+- User said "tiếp theo" following the proposal to prepare a new A2.2 documentation-only candidate; work was limited to drafting and self-review. No implementation approval is implied.- New candidate: `docs/architecture/T0_SIGNATURE_TRUST_POLICY_MONOTONIC_ANCHOR_AMENDMENT_A2_2_2026-11-11.md`.
 - A2.2 create commit: `c3bf12457d5d81ec0e4a86c279c2e5f75b821e02`. Subsequent documentation correction commits: `6c91b7e709888afa147bc4fb5c359a59e965c572`, `56d698148c18cce2ede624f75cfb2c32098195dd`, `4b1bb83ae6aa17c8676a228d273dce222948ff3c`, `67122890358691aee25f3233448023984b3818df`, `bfb27bd11a8665248d9afea505baa52e8899fed1`, `94eb0bb578391f429b4f6a4eab1c3c23922ffad4`, `e02971b1ce4d6ee16b3782b1dcd41f4cc69b127a`, final fixture clarification commit `3a3bbcb802f72904e789e4f6a94bc64986fc3bee`.
 - Final A2.2 blob: `2090112370e3b4a9925e78cf1ab0e2bb8428640c`.
 - A2.2 addresses A2.1 second-review findings R2-01..R2-05:
@@ -1196,9 +1196,9 @@ This is the current disposition and supersedes the earlier historical NOT RUN / 
   validation checks predictedReturn, model/data provenance and doPredict.
 - `pipeline/api.py`: AI decision path uses `decide()`; AI ledger leverage
   comes from generic `LEVERAGE`; dual-mode submission selects
-  `ledger(strategy_id="AI_FREQAI")`.- `paper_execution/ledger.py`: account admission uses 1% current equity and
-  the ledger's `self.leverage`; Core is now pinned to 13x, but AI has no
-  min/max leverage enforcement.
+  `ledger(strategy_id="AI_FREQAI")`.
+- `paper_execution/ledger.py`: account admission uses 1% current equity and
+  the ledger's `self.leverage`; Core is now pinned to 13x, but AI has no  min/max leverage enforcement.
 - `freqai_bridge/exporter.py`: prediction artifact has predictedReturn and
   training provenance, no calibrated confidence.
 - `freqai_bridge/ChartProFreqaiResearch.py`: dry-run research strategy with
@@ -1795,10 +1795,10 @@ Next: if owner wants to proceed beyond planning, first approve a bounded provisi
 ## G0.14 — Lifecycle Evaluator Code Review and Contract-Gap Assessment (2026-11-11)
 
 - Evidence report: `docs/evidence/G0_14_LIFECYCLE_EVALUATOR_CODE_REVIEW_2026-11-11.md`, created in commit `7f335b56f0349dcd11dfd4f8b631c68a28cd1850`.
-- Review target source HEAD: `7ddf48c83edffd76b339ca1be6e09b1e300eb73a`.- Reviewed evaluator blob: `a528861c342c7c20ae48a9042338fec4ee2afa24`; tests blob: `068a22f833ebe922da422df5fba520e36b77586a`; G0.12 contract blob: `fa4e595126fe0c59ed2f9d91f274d7707d636b51`.
+- Review target source HEAD: `7ddf48c83edffd76b339ca1be6e09b1e300eb73a`.
+- Reviewed evaluator blob: `a528861c342c7c20ae48a9042338fec4ee2afa24`; tests blob: `068a22f833ebe922da422df5fba520e36b77586a`; G0.12 contract blob: `fa4e595126fe0c59ed2f9d91f274d7707d636b51`.
 - Scope: source/spec review only. No source/test/schema/workflow/runtime change. G0.13 focused 20/20 tests and compile are referenced from its report, not rerun during G0.14.
-- Verdict: **REQUEST CHANGES — REQUIRED FINDINGS OPEN**.
-- R1 REQUIRED: malformed unhashable copy state can raise TypeError instead of fail-closed BLOCKED_UNKNOWN; add type guard and regression tests.
+- Verdict: **REQUEST CHANGES — REQUIRED FINDINGS OPEN**.- R1 REQUIRED: malformed unhashable copy state can raise TypeError instead of fail-closed BLOCKED_UNKNOWN; add type guard and regression tests.
 - R2 REQUIRED: COPY_SPECIFIC_REVIEW does not require a matching exact copy/version in complete copies inventory or bind the copy identity to the evaluated object; define canonical relation and test empty/mismatched/duplicate inventory.
 - R3 REQUIRED: protected early return omits applicable UNK_* codes for missing hold/dependency/lineage/copy/process metadata; preserve PROTECTED while collecting required unknown codes.
 - R4 REQUIRED: no sensitivity-label field/validation and no class-to-policy/version mapping; policy allowlist is global rather than class-specific. Remediation must use exact owner-ratified values only; do not invent a vocabulary or mapping.
