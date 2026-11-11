@@ -105,3 +105,22 @@ The current `test_dual_ledger_red.py` contains 61 test methods. The workflow is 
 - No canonical T0 SQLite/lease/fencing mutation, data deletion, credential changes, or trust/custody state mutation.
 - This read-only assessment does not itself authorize source-code fixes, schema changes, workflow dispatch, runtime activation or trading.
 - Stage II A2.3 remains PAUSED BY OWNER.
+
+
+## Addendum — shared API surfaces after dual-ledger migration (2026-11-11)
+
+A second static pass over the same pinned source snapshot identified additional consequences of DS-01:
+
+- `/v1/paper/cancel` also calls the MANUAL `ledger()` instance. In the dual-ledger-aware `cancel()` implementation, the MANUAL compatibility path rejects an order whose document is owned by `STRATEGY_CORE` or `AI_FREQAI`. The API therefore lacks a correctly strategy-scoped cancellation path for dual-ledger orders.
+- `equity_snapshot()` calls `ledger().record_equity()` on the MANUAL instance. `record_equity()` uses legacy `paper_state` and legacy equity history; it is not an account-scoped dual-ledger mark/equity update. The evaluate route also calls this legacy method before and after submit. A dedicated account-level mark/equity update path is therefore required before shared risk readiness can be relied upon after migration.
+- The MANUAL instance remains appropriate only for explicitly supported legacy/account-wide controls whose implementation is designed to operate on the shared risk latch. It must not be reused as a Core/AI order writer or strategy-scoped cancel/read path.
+
+Expanded DS-01 acceptance scope:
+1. ENTRY/DCA/EXIT submission is constructed with the exact strategy identity and cannot be downgraded to MANUAL.
+2. Cancellation verifies and uses the owning strategy identity; cross-strategy cancellation is rejected.
+3. Core read path explicitly requests `STRATEGY_CORE`; AI read path explicitly requests `AI_FREQAI`.
+4. Account mark/equity updates reconcile both strategy ledgers, legacy adjustments, funding and active reservations under the account-level transaction; missing inputs fail closed.
+5. `/v1/paper`, `/v1/equity`, `/v1/signals`, `/v1/paper/evaluate` and cancellation responses expose clearly separated account aggregate and strategy-specific read models.
+6. Kill Switch/pause behavior remains account-scoped and serializes atomically with strategy-scoped admission; valid reductions remain available under the defined policy.
+
+These are source-level findings and proposed acceptance requirements only. No endpoint or test was executed during this review.
