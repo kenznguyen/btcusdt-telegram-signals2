@@ -68,7 +68,14 @@ Do not provide private keys, seed phrases, credentials, account identifiers, sec
 - No signer identity, custody or recovery proof accepted.
 - No tests, key generation/import/export/rotation, signing, provider calls, permission probes, workflow dispatch, runtime/VPS/database/network changes or owner-system access performed.
 - No source code or trust policy changed.
-- Option C — No Destructive Authority — ACTIVE.
+- Option C — No Destructive Authority — REVOKED by owner decision 2026-11-11; see the owner governance update below.
 - Paper-only; `AI_EXECUTION_ENABLED=false`; no live orders.
 
 This assessment does not authorize a future signing design or operation. Any implementation, key/provider selection, permission change or isolated execution requires separate explicit owner approval.
+
+
+## Owner governance update — Option C revoked (2026-11-11)
+
+The owner explicitly revoked **Option C — No Destructive Authority** on 2026-11-11. Its former ACTIVE status in this document is historical and is superseded by this decision. Option C is now **REVOKED**; do not apply it as a blanket prohibition.
+
+This governance revocation is not a blanket instruction to execute deletion or cleanup. Any specific destructive operation still requires a separately scoped plan identifying exact target/data class, operation, retention/impact, preconditions, verification, recovery/rollback and explicit approval. T0 canonical data, lease/fencing state, ledgers, audit/reconstruction/recovery evidence and owner custody records remain protected unless an exact operation is separately approved. Paper-only posture and `AI_EXECUTION_ENABLED=false` remain unchanged. Revocation does not promote any L4 control or establish custody/signature/offline-verification assurance.
