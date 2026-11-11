@@ -158,7 +158,10 @@ class AIStrategyContractRedTest(unittest.TestCase):
                          "ai-policy-fixture-v1")
 
     def test_missing_calibrated_confidence_blocks_an_otherwise_valid_ai_prediction(self):
-        self.assert_contract_wait(self.evaluate())
+        prediction = dict(self.fixture.prediction)
+        prediction["calibration"] = dict(prediction["calibration"])
+        prediction["calibration"].pop("calibratedConfidence")
+        self.assert_contract_wait(self.evaluate(prediction=prediction))
 
     def test_confidence_outside_unit_interval_and_nonfinite_values_fail_closed(self):
         for confidence in ("-0.01", "1.01", "NaN", "Infinity", "-Infinity", True):
