@@ -2353,3 +2353,18 @@ Next: if owner wants to proceed beyond planning, first approve a bounded provisi
 - G0.41 corpus generation/measurement remains **NOT AUTHORIZED / NOT RUN**. D11 numeric ceilings remain **OPEN / NOT RATIFIED**. No standalone measurement was run.
 - No T0/T1/T2, market data, model/training, CORE_LEDGER, AI_LEDGER, Shared Risk Engine, Kill Switch, VPS/runtime, external provider/database/network, lifecycle or destructive change. T0 remains independent/protected; CORE_LEDGER and AI_LEDGER remain separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
 - Next gate: prepare a separate G0.41 owner decision package; do not measure the corpus or propose/ratify numeric D11 ceilings until that scope is explicitly approved.
+
+
+### G0.41 — S1 single-measurement owner decision package (2026-11-11)
+
+- Baseline HEAD before package: `377023bbd56b651879d5a57e341a94a4b431e159`; baseline handoff blob `58f676d97104852d231fc276a9997ad0fffefe45`.
+- G0.40-B results report blob: `cc9894cc3d48f4df5f98b62ab7608359e1b7366e`; G0.40-B exact verification run [43050706119](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43050706119), exact source checkout `0e757114e738a2330ad4cc96b6cf8d9da7d17c7b`, job `130626755285`, 29/29 focused tests PASS and py_compile PASS.
+- G0.41 owner package: `docs/evidence/G0_41_S1_SINGLE_MEASUREMENT_OWNER_DECISION_PACKAGE_2026-11-11.md`; package commit `ed37acab60df5f35d303f4e352cf474bcae339be`; package blob recorded in the package commit/readback.
+- Package proposes exactly one 22-fixture in-memory measurement invocation using the existing frozen harness/runner; two measurement passes are internal determinism checks within that one invocation. It requests a new exact-path workflow `.github/workflows/g041-s1-single-measurement.yml`, a narrow D14 amendment for that path, and one report-only artifact.
+- Frozen Python source blobs required by the package: harness `e8db71c11e0503ea6d9a2480d75470185c4d5100`; runner `23a35aab7f7aeacd8a3f63d630a875fe76b1ff6a`; tests `d06a5b533af14378ed284051e5b057cf57377876`.
+- G0.41 package preparation was documentation-only. No corpus generation, measurement function, test, workflow dispatch, benchmark or runtime action was performed.
+- G0.41 measurement: **PENDING EXPLICIT OWNER APPROVAL / NOT RUN**. Workflow creation and D14 amendment: **PENDING exact-path approval**. D11 numeric ceilings: **OPEN / NOT RATIFIED**.
+- One-shot constraints: no retry/rerun/second attempt; report-only artifact, no raw parser-input or oracle payload persistence; no numeric ceiling proposal or enforcement. Failure after invocation begins consumes the one-time authorization.
+- Explicit exclusions remain: parser/verifier production implementation, cryptography/trust changes, T0/T1/T2, market/model data, CORE_LEDGER/AI_LEDGER, Shared Risk Engine, Kill Switch, PostgreSQL, VPS/runtime, provider/database/network/exchange and destructive lifecycle operations.
+- T0 remains independent/protected; CORE_LEDGER and AI_LEDGER remain separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
+- Next gate: owner must explicitly approve or reject the exact G0.41 scope in the package. No measurement is authorized by the package's preparation or by a generic continuation request.
