@@ -89,7 +89,7 @@ jobs:
           from pathlib import Path
           log = Path("stage-i-evidence/tests.log").read_text()
           summary_pattern = re.compile(
-              r"^Ran (\\d+) tests?(?: in [0-9]+(?:\\.[0-9]+)?s)?$",
+              r"^Ran (\d+) tests?(?: in [0-9]+(?:\.[0-9]+)?s)?$",
               re.MULTILINE,
           )
           # Guard both unittest's singular and timed plural summary formats.
