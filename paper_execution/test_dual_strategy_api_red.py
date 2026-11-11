@@ -242,7 +242,7 @@ class DualStrategyApiScopeRedTest(unittest.TestCase):
     def test_cancel_api_cancels_the_persisted_owner_without_cross_strategy_write(self):
         self.activate_dual_schema()
         order = {
-            "orderId": "api-core-pending", "createdAtMs": 1_799_999_000_000,
+            "orderId": "api-core-pending", "createdAtMs": 1,
             "status": "OPEN", "filledBase": "0",
             "strategyId": "STRATEGY_CORE",
         }
@@ -261,7 +261,7 @@ class DualStrategyApiScopeRedTest(unittest.TestCase):
                 "/v1/paper/cancel", {"orderId": "api-core-pending"}
             )
 
-        self.assertEqual(status, 200)
+        self.assertEqual(status, 200, result)
         self.assertEqual(result["status"], "CANCELED")
         self.assertEqual(result["strategyId"], "STRATEGY_CORE")
         with sqlite3.connect(self.db) as connection:
