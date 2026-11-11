@@ -1971,3 +1971,17 @@ Next: if owner wants to proceed beyond planning, first approve a bounded provisi
 - No source/test module/fixture/schema/API/registry/adapter/runner/oracle/workflow/scheduler/permission/credential/key/database/storage/market-data/model/ledger/VPS/runtime changes; no test or workflow dispatch; no network/provider/database/VPS access, inventory or secret scan; no archive, quarantine, cleanup, expiry, compaction, VACUUM or deletion.
 - Next: owner/security decision package for open cryptographic, trust-root, canonical encoding, revocation/freshness, registry, schema and resource-limit choices. Verifier implementation and executable synthetic tests require separate approval. G0.24 adapter, TEST-01–07, runtime inventory and any executor remain separate gates.
 - T0 remains independent/protected; CORE_LEDGER and AI_LEDGER remain separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
+
+
+## G0.24 — Owner/Security Decision Package (2026-11-11)
+
+- Owner requested continuation after G0.23; prepared a documentation-only decision worksheet.
+- Baseline HEAD: `9d46abb937fa553523e2f5c2dc564826f7a96b74`; branch compare confirmed the active branch was identical to this SHA before the G0.24 change.
+- Report: `docs/evidence/G0_24_OWNER_SECURITY_DECISION_PACKAGE_2026-11-11.md`.
+- Report commit: `cf78562c62187775bd00f3e15d700ab19e618c47`.
+- Decision register D01–D14 covers cryptographic integrity/authenticity, canonical representation, trust roots/delegation, key lifecycle, envelope schema, evidence authorities, inventory closure, freshness/revocation, owner authentication, data-class vocabulary, resource limits, audit custody, verified-facts binding and review/release gates.
+- Candidate approaches and decision criteria are documented; **no option is ratified**. All D01–D14 remain OPEN and block dependent implementation.
+- G0.24 verdict: **DECISION PACKAGE DRAFTED — owner/security ratification pending; trust profile NOT ESTABLISHED**.
+- Documentation-only. No source/test/fixture/schema/API/registry/adapter/runner/workflow/permission/credential/key/database/storage/market-data/model/ledger/VPS/runtime change; no tests or workflow dispatch; no network/provider/database/VPS access or inventory; no archive, quarantine, cleanup, expiry, compaction, VACUUM or deletion.
+- Next: owner/security review and explicit exact-scope decisions. Verifier/parser/schema/registry/adapter, real keys, evidence-source integration, CI permission changes, TEST-01–07, runtime inventory and any executor remain separate gates.
+- T0 remains independent/protected; CORE_LEDGER and AI_LEDGER remain separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
