@@ -179,3 +179,12 @@ The previous contract's blanket positive-only validation for all tick/filter val
 - Calibration design: architecture recommendation available; trusted provider/key owner and policy remain unresolved. G0-01/02/03 BLOCKED.
 - Instrument rules: official filter semantics reviewed and contract corrected; Binance exchangeInfo candidate remains unaccepted and no endpoint data fetched. G0-05 BLOCKED.
 - No code/tests/workflow, API request, exchange connection, database/schema/migration, T0/T1/T2 runtime, VPS, deployment, calibration/model or live order action occurred.
+
+
+## Owner approval recorded — calibration registry direction (2026-11-11)
+
+The owner approved **GitHub append-only Registry + offline Ed25519 signing** as the selected architecture direction for the future calibration trust boundary.
+
+The approved direction requires immutable versioned manifests/artifacts/evaluation evidence, offline signing of canonical manifest digests, pinned public-key verification by future read-only consumers, append-only promotion/revocation/supersession records and explicit key lifecycle evidence. Private signing material must remain offline and outside repository, CI/GitHub Actions, VPS and runtime.
+
+Approval is limited to architecture direction. No implementation, registry creation, key generation, CI workflow, provider, calibration pipeline, model change or activation is authorized. Manifest schema/canonicalization, key ceremony/rotation/revocation, calibration/OOS method, provenance and numerical thresholds remain unresolved. G0-01/02/03 remain BLOCKED.
