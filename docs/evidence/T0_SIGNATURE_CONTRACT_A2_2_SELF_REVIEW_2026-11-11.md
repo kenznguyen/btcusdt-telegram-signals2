@@ -107,7 +107,18 @@ The owner decision recorded in `docs/evidence/OWNER_DECISION_WAIVE_INDEPENDENT_R
 
 After that decision, the A2.2 document was updated from its previously self-reviewed blob `2090112370e3b4a9925e78cf1ab0e2bb8428640c` to the current blob `f9138497e4b3d846260fef3c88c88d89e2ee1123`. The delta is limited to replacing the mandatory independent-review sentence with the owner-waiver reference and updating the disposition label. The technical clauses, negative-test matrix, bootstrap restrictions, profile bindings and implementation prohibitions were not changed in that delta. This is a targeted same-session delta check, not an independent review and not a fresh full re-review of all technical content.
 
-Current A2.2 source blob: `f9138497e4b3d846260fef3c88c88d89e2ee1123`.  
+Current A2.2 source blob after the complete waiver-gate cleanup: `41d41cd23f73a6e552b9ceca5ebbb39c46934e7d`.  
 Owner waiver record: `docs/evidence/OWNER_DECISION_WAIVE_INDEPENDENT_REVIEW_A2_2_2026-11-11.md`.  
 Independent review: **WAIVED / NOT PERFORMED**.  
 Implementation: **NOT APPROVED**.
+
+
+## 9. Follow-up exact-blob delta check
+
+A further consistency pass found that A2.2 retained older mandatory-review wording in its overview, implementation-approval definition and acceptance-gate list. Those remaining normative references were corrected so that independent review is consistently optional and not a prerequisite under the owner waiver. Historical A1/A2/A2.1 statements were preserved as historical records.
+
+- Previous A2.2 blob: `f9138497e4b3d846260fef3c88c88d89e2ee1123`.
+- Current A2.2 blob: `41d41cd23f73a6e552b9ceca5ebbb39c46934e7d`.
+- Delta scope: review-gate wording only; no signature preimage, digest, profile, trust policy schema, bootstrap trust path, negative-test fixture, state machine or implementation permission changed.
+- Check: **PASS** for removal of remaining A2.2 mandatory independent-review wording; historical A1/A2/A2.1 status references remain.
+- This is a targeted same-session consistency check, not an independent review or full fresh technical review.
