@@ -12,6 +12,28 @@ PROTECTED = {
 REVIEW = {"T4_DETERMINISTIC_CACHE", "T2_EPHEMERAL_INFERENCE_OUTPUT",
           "T1_RAW_OBSERVATION", "NONCANONICAL_COPY"}
 POLICIES = {("RET-01", "B"), ("RET-02", "B")}
+SENSITIVITY_ORDER = {
+    "PUBLIC": 0,
+    "INTERNAL": 1,
+    "CONFIDENTIAL": 2,
+    "RESTRICTED": 3,
+}
+# Explicit mapping only for identifiers already accepted by this evaluator.
+# Values are the exact G0.17 semantic-domain minimums.
+SENSITIVITY_MINIMUMS = {
+    "T0_CANONICAL": "RESTRICTED",
+    "CORE_LEDGER": "RESTRICTED",
+    "AI_LEDGER": "RESTRICTED",
+    "T3_PROTECTED_EVIDENCE": "RESTRICTED",
+    "GOVERNANCE_EVIDENCE": "RESTRICTED",
+    "T4_DETERMINISTIC_CACHE": "INTERNAL",
+    "T2_EPHEMERAL_INFERENCE_OUTPUT": "CONFIDENTIAL",
+    "T1_RAW_OBSERVATION": "CONFIDENTIAL",
+}
+SENSITIVITY_STATES = {
+    "CLASSIFIED", "UNCLASSIFIED", "CONFLICTED", "PENDING_OWNER_DECISION",
+}
+
 OBLIGATIONS = {"REPLAY_RECOVERY": "RET_REPLAY_RECOVERY_OPEN",
                "MODEL_REPRODUCTION": "RET_MODEL_REPRODUCTION_OPEN",
                "VALIDATION_REPROCESS": "RET_VALIDATION_REPROCESS_OPEN"}
@@ -43,6 +65,52 @@ def _unknowns(record, codes):
         codes.add("UNK_INTEGRITY_MISMATCH")
     if not _text(record.get("evidence_revision")):
         codes.add("UNK_EVIDENCE_REVISION")
+
+
+
+def _sensitivity_unknowns(record, kind, codes):
+    sensitivity = record.get("sensitivity")
+    if not isinstance(sensitivity, Mapping):
+        codes.add("UNK_SENSITIVITY_METADATA")
+        return
+
+    state = sensitivity.get("state")
+    label = sensitivity.get("label")
+    if not isinstance(state, str) or state not in SENSITIVITY_STATES:
+        codes.add("UNK_SENSITIVITY_STATE")
+    elif state != "CLASSIFIED":
+        codes.add("UNK_SENSITIVITY_STATE")
+        if label is not None:
+            codes.add("UNK_SENSITIVITY_LABEL")
+    elif not isinstance(label, str) or label not in SENSITIVITY_ORDER:
+        codes.add("UNK_SENSITIVITY_LABEL")
+
+    if (not _text(sensitivity.get("evidence_ref"))
+            or not _text(sensitivity.get("evidence_revision"))):
+        codes.add("UNK_SENSITIVITY_EVIDENCE")
+
+    if not isinstance(state, str) or state != "CLASSIFIED":
+        return
+    if not isinstance(label, str) or label not in SENSITIVITY_ORDER:
+        return
+
+    if kind == "NONCANONICAL_COPY":
+        inherited = sensitivity.get("inherited_labels")
+        if (not isinstance(inherited, list) or not inherited
+                or any(not isinstance(item, str) or item not in SENSITIVITY_ORDER
+                       for item in inherited)):
+            codes.add("UNK_SENSITIVITY_INHERITANCE")
+            return
+        minimum_rank = max(SENSITIVITY_ORDER[item] for item in inherited)
+        if SENSITIVITY_ORDER[label] < minimum_rank:
+            codes.add("UNK_SENSITIVITY_BELOW_INHERITED")
+        return
+
+    minimum = SENSITIVITY_MINIMUMS.get(kind) if isinstance(kind, str) else None
+    if minimum is None:
+        codes.add("UNK_SENSITIVITY_CLASS_MAPPING")
+    elif SENSITIVITY_ORDER[label] < SENSITIVITY_ORDER[minimum]:
+        codes.add("UNK_SENSITIVITY_BELOW_CLASS_MINIMUM")
 
 
 def evaluate_disposition(record):
@@ -78,6 +146,7 @@ def evaluate_disposition(record):
     if not isinstance(kind, str) or (kind not in PROTECTED and kind not in REVIEW):
         codes.add("UNK_CLASSIFICATION")
     _unknowns(record, codes)
+    _sensitivity_unknowns(record, kind, codes)
 
     lineage = record.get("lineage")
     if not isinstance(lineage, Mapping) or lineage.get("complete") is not True or not all(
