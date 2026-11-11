@@ -1774,3 +1774,21 @@ Next: if owner wants to proceed beyond planning, first approve a bounded provisi
 - No source/test/fixture/schema/API/registry/adapter/runner/oracle/workflow/scheduler/permission/credential/database/storage/VPS/data/model/ledger/runtime changes. No compile, tests, dry-run, dispatch, inventory, provider/runtime probe, archive, quarantine, cleanup, expiry, compaction, vacuum or deletion. T0 remains independent; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
 - Next gate: separate bounded approval for pure evaluator implementation and in-memory synthetic unit tests, with exact code/test paths and command. CI dispatch, broader TEST-01–07 harness and destructive operations remain separate approvals.
 
+
+
+## G0.13 — Pure Lifecycle Disposition Evaluator and In-Memory Unit Tests (2026-11-11)
+
+- Evidence report: `docs/evidence/G0_13_PURE_LIFECYCLE_DISPOSITION_EVALUATOR_2026-11-11.md`, created in commit `fb8fd8ba6c738024524ba0f53913ab9680558134`.
+- Implementation: `pipeline/lifecycle_disposition.py`, blob `a528861c342c7c20ae48a9042338fec4ee2afa24`.
+- Tests: `pipeline/test_lifecycle_disposition.py`, blob `068a22f833ebe922da422df5fba520e36b77586a`.
+- Scope: pure evaluator over one supplied metadata mapping and 20 in-memory synthetic unit tests. Standard library only. No filesystem/database/network/provider/clock/process/runner/executor capability.
+- Dispositions: PROTECTED, RETAIN_UNTIL_OBLIGATIONS_CLOSE, BLOCKED_UNKNOWN, COPY_SPECIFIC_REVIEW, REVIEWABLE_NONCANONICAL. Output fixes `mutation_performed=false` and `execution_authorized=false`.
+- Protected T0, CORE_LEDGER, AI_LEDGER, protected T3 and governance evidence take precedence on positive exact identity assertion. Verified binding hold is PROTECTED. Unknown facts fail closed. Known open obligations/process/material T2 use RETAIN. Exact copy review is object-scoped. T4/T1 require rebuildability proof; T1 additionally requires a supplied producer-provenance assertion; T2 requires explicit non-material-use assertion.
+- Storage pressure, consumer ACK and heartbeat loss do not change disposition. No TTL/age heuristic or numeric retention policy introduced.
+- TDD local focused result: initial RED due missing module; final `python -m unittest pipeline.test_lifecycle_disposition -v` **20 PASS**, 0 failures/errors. `python -m py_compile pipeline/lifecycle_disposition.py pipeline/test_lifecycle_disposition.py` PASS. Local file Git blob hashes matched committed GitHub blob hashes.
+- Important trust limitation: evaluator consumes `identity_verified`, `producer_provenance_verified`, dependency/hold/process/rebuildability/material-use facts as supplied assertions; it does not authenticate them. Digest format/length are checked but digest is not recomputed against payload bytes. Review dispositions are not deletion/archive authorization.
+- Repository-wide tests NOT RUN. GitHub Actions NOT DISPATCHED; no run/artifact. TEST-01–07 harness NOT IMPLEMENTED/NOT VERIFIED; 0/87 vectors executed; TEST-08 NOT GRANTED. Runtime/VPS NOT VERIFIED.
+- No workflow/fixture/schema/API/registry/adapter/runner/oracle/scheduler/service/permission/credential/database/storage/VPS/data/model/ledger/runtime changes; no production inventory, provider/network/database access, archive, quarantine, cleanup, expiry, compaction, vacuum or deletion.
+- Branch remains `feature/t0-centralized-data-feeder-p1-20261101`; final source HEAD before evidence/handoff append: `8751c4505c600267559e402801ef37c689781824`.
+- Next step: code-level review and contract-gap assessment against G0.10/G0.12. Independent fact authentication, payload digest verification, Stage C TEST-01–07 harness, CI workflow, production inventory and destructive executor require separate bounded approvals.
+
