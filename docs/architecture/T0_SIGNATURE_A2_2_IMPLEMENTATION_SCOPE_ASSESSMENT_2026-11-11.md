@@ -90,7 +90,7 @@ A passing Stage I result means only **synthetic contract plumbing/conformance PA
 
 ## 6. Recommendation
 
-Recommend approving **Stage I only**, as a separate synthetic-only implementation increment after the owner explicitly approves:
+Stage I is now **OWNER APPROVED** by `docs/decisions/OWNER_APPROVAL_T0_SIGNATURE_A2_2_STAGE_I_2026-11-11.md` (approval commit `b79424ad86b5f4d78da610da3c81c9e90e92fee6`). The approval is limited to the synthetic-only scope below:
 - exact A2.2 blob `41d41cd23f73a6e552b9ceca5ebbb39c46934e7d`;
 - an isolated package/test directory (to be named in the implementation authorization);
 - parser/canonicalization/U64/base64url/digest/profile/reason-code fixture scope;
@@ -115,9 +115,9 @@ Do not combine Stage I with production cryptography, bootstrap, anchor persisten
 
 ## 8. Status
 
-- Assessment: **COMPLETE — DOCUMENTATION ONLY**.
+- Assessment: **COMPLETE — DOCUMENTATION ONLY**; owner has subsequently approved Stage I in a separate decision record.
 - A2.2 self-review: **PASS WITH RESIDUAL GATES**; independent review waived/not performed.
-- Stage I implementation: **PROPOSED — NOT APPROVED**.
+- Stage I implementation: **OWNER APPROVED — EXECUTION BLOCKED pending an isolated local working tree/test runtime**.
 - Stages II–V: **BLOCKED / NOT APPROVED**.
-- CI/workflow: **NOT RUN**.
+- CI/workflow: **NOT RUN**; the approval record does not authorize CI/workflow changes or execution.
 - Runtime/T0: **UNCHANGED**.
