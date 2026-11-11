@@ -1,11 +1,12 @@
 """Owner-approved AI Strategy contract tests. Intentionally RED until implementation exists."""
 
+import inspect
 import os
 import tempfile
 import unittest
 from unittest.mock import patch
 
-from pipeline import api
+from pipeline import api, decision
 from pipeline.test_decision import DecisionTest
 
 
@@ -67,6 +68,7 @@ class AIStrategyContractRedTest(unittest.TestCase):
                 self.assertIsNone(result["intent"], result)
 
     def test_ai_ledger_uses_ai_policy_leverage_not_generic_leverage(self):
+        self.assertIn("admitted_leverage", inspect.signature(api.ledger).parameters)
         with tempfile.TemporaryDirectory() as directory:
             db = os.path.join(directory, "paper.sqlite3")
             environment = {
@@ -84,6 +86,8 @@ class AIStrategyContractRedTest(unittest.TestCase):
             self.assertEqual(constructor.call_args.kwargs["leverage"], "2.25")
 
     def test_ai_entry_is_sized_from_reconciled_equity_leverage_limit_price_and_lot_step(self):
+        required = {"account_equity_quote", "confidence_min", "lot_size", "current_position_base"}
+        self.assertTrue(required.issubset(inspect.signature(decision.evaluate).parameters))
         prediction = self.calibrated_prediction("0.8")
         result = self.evaluate(
             prediction=prediction,
@@ -97,7 +101,23 @@ class AIStrategyContractRedTest(unittest.TestCase):
         self.assertEqual(result["intent"]["leverage"], "2")
         self.assertEqual(result["intent"]["marginBudgetQuote"], "10")
 
+    def test_ai_ledger_rejects_leverage_outside_approved_one_to_three_range(self):
+        from paper_execution.ledger import PaperLedger
+
+        self.fixture.setUp()
+        self.activate_ai_ledger_schema = None
+        for leverage in ("0.99", "3.01", "13"):
+            with self.subTest(leverage=leverage):
+                with tempfile.TemporaryDirectory() as directory:
+                    db = os.path.join(directory, "paper.sqlite3")
+                    with self.assertRaises(ValueError):
+                        PaperLedger(
+                            db, strategy_id="AI_FREQAI", leverage=leverage,
+                        )
+
     def test_missing_or_stale_reconciled_equity_never_creates_an_ai_intent(self):
+        required = {"account_equity_quote", "confidence_min", "lot_size", "current_position_base"}
+        self.assertTrue(required.issubset(inspect.signature(decision.evaluate).parameters))
         prediction = self.calibrated_prediction("0.8")
         for equity in (None, "0", "-1"):
             with self.subTest(equity=equity):
