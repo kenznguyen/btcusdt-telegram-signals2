@@ -454,3 +454,12 @@ Reconcile the four-artifact Actions allowlist with all eligible source artifacts
   - Repository inventory `13818163804`, 4,483 bytes; ZIP SHA-256 `98fc7fca7123ae0a9e72bcf1f209032a57c24d97aa898aaa075eb7212f04c0fa`; JSON member SHA-256 `4f57be4a46cac1703135d43dd5a99cc3ffb7e56aa1d71d2bdd87ab87085b9f0b`, sidecar matches; 40 paths / 559,566 bytes; exact source commit `8bda3c987e2145a636bbcc9d8609c5ea15a492b9`.
 - The latest handoff-only commit is not the source SHA tested by run `42937191664`; that run validates the crosswalk commit immediately preceding it. No source/runtime changes were made in the handoff-only update.
 - Current governance status remains Option C REVOKED. Revocation is not blanket permission to perform any specific destructive action. L4 aggregate remains BLOCKED / NOT VERIFIED.
+
+
+### Branch boundary snapshot — 2026-11-11
+
+- Active branch: `feature/t0-centralized-data-feeder-p1-20261101`.
+- Branch HEAD at comparison time: `49c5449c9b2a243bdcc3144265ec6debf1003872`.
+- Compared with `main`: GitHub compare reports **DIVERGED**, 2,708 commits ahead and 55 behind; merge base `f5b74affb8777953fa66d241784965fbb0e577ba`.
+- This divergence predates any merge/rebase action in this increment. No merge, rebase, force-push or branch switch was performed. Preserve the active branch and investigate divergence separately before any integration decision.
+- The handoff-only update after run `42937191664` is not itself CI-tested; that run tested crosswalk commit `8bda3c987e2145a636bbcc9d8609c5ea15a492b9`. Do not claim CI tested the final handoff-only HEAD.
