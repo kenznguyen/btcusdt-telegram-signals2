@@ -128,21 +128,22 @@ def validate_oracle_separation(inputs, oracle):
             return False
     return True
 
-def validate_manifest(inputs, oracle, expected_ids, expected_cases, expected_types):
-    if not validate_oracle_separation(inputs,oracle): return False
-    if len(expected_ids)!=len(set(expected_ids)) or set(inputs)!=set(expected_ids): return False
-    if len(expected_types)!=len(D10_TYPES) or set(expected_types)!=D10_TYPES: return False
-    required_cases={"SYN-01","SYN-29","SYN-30","SYN-31","SYN-32"}
-    if len(expected_cases)!=5 or set(expected_cases)!=required_cases: return False
-    observed_cases=set(); observed_types=set()
-    for fixture_id,raw in inputs.items():
-        parsed=parse_json_bytes(raw)
-        if parsed.value is None or parsed.reason_code is not None or validate_fixture_value(parsed.value): return False
-        data=_dict(parsed.value)
-        if data["fixture_id"]!=fixture_id: return False
-        observed_cases.add(data["case_id"]); observed_types.add(data["fixture_type"])
-    return observed_cases==required_cases and observed_types==D10_TYPES
-
+def validate_manifest(inputs, oracle, manifest, expected_ids, expected_cases, expected_types):
+    """Validate frozen inventory metadata independently of parser-input validity."""
+    if not validate_oracle_separation(inputs, oracle): return False
+    if not isinstance(manifest, Mapping) or set(manifest) != set(inputs): return False
+    if len(expected_ids) != len(set(expected_ids)) or set(inputs) != set(expected_ids): return False
+    if len(expected_types) != len(D10_TYPES) or set(expected_types) != D10_TYPES: return False
+    required_cases = {"SYN-01", "SYN-29", "SYN-30", "SYN-31", "SYN-32"}
+    if len(expected_cases) != 5 or set(expected_cases) != required_cases: return False
+    observed_cases, observed_types = set(), set()
+    for fixture_id, record in manifest.items():
+        if not isinstance(record, Mapping) or set(record) != {"case_id", "fixture_type"}: return False
+        case_id, fixture_type = record["case_id"], record["fixture_type"]
+        if type(case_id) is not str or type(fixture_type) is not str: return False
+        if case_id not in required_cases or fixture_type not in D10_TYPES: return False
+        observed_cases.add(case_id); observed_types.add(fixture_type)
+    return observed_cases == required_cases and observed_types == D10_TYPES
 def validate_d05_corpus(inputs, oracle, claims_schemas=None):
     if not validate_oracle_separation(inputs,oracle): return False
     schemas=claims_schemas or {}
@@ -276,7 +277,7 @@ def validate_report_readback(report_bytes):
 
 def evaluate_assertions(e):
     checks={
-      "A-01":lambda:validate_manifest(e["parser_inputs"],e["oracle_records"],e["expected_fixture_ids"],e["expected_case_ids"],e["expected_fixture_types"]),
+      "A-01":lambda:validate_manifest(e["parser_inputs"],e["oracle_records"],e["manifest"],e["expected_fixture_ids"],e["expected_case_ids"],e["expected_fixture_types"]),
       "A-02":lambda:validate_d05_corpus(e["parser_inputs"],e["oracle_records"],e.get("claims_schemas")),
       "A-03":lambda:bool(e["parser_inputs"]) and all(not _reserved(raw) for raw in e["parser_inputs"].values()),
       "A-04":lambda:bool(e["parser_inputs"]) and validate_oracle_separation(e["parser_inputs"],e["oracle_records"]),
