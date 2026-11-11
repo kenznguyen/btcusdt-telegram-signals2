@@ -1,0 +1,87 @@
+# AI Strategy GREEN-0 — Provider and Contract Inventory
+
+**Status:** INVENTORY COMPLETE / POLICY AND PROVIDER FREEZE PARTIAL — OWNER DECISIONS REQUIRED  
+**Date:** 2026-11-11  
+**Branch:** `feature/t0-centralized-data-feeder-p1-20261101`  
+**Reviewed HEAD before this report:** `e24e866eb2eb13cb0ff5efb54980b401a44ea101`  
+**Scope authorization:** GREEN-0 inspection and documentation only. No production edits, tests, workflow, schema, migration, calibration, runtime or deployment.
+
+## 1. Executive result
+
+The repository already contains useful account-wide paper-risk primitives and strategy-scoped ledger reads. These should be reused rather than replaced by a parallel risk engine.
+
+However, GREEN-0 cannot freeze a complete AI admission context yet. Calibration trust/compatibility, instrument trading rules, a versioned risk-policy snapshot, and AI DCA eligibility do not have an identified authoritative provider/contract in the reviewed implementation paths. These remain explicit blockers. No defaults are selected.
+
+## 2. Provider map
+
+| Contract input | Existing source/path | Observed behavior | GREEN-0 disposition |
+|---|---|---|---|
+| AI prediction artifact | `pipeline/api.py::context` → `load_report("FREQAI_REPORT_PATH")` | Server loads prediction artifact; caller cannot substitute it. | Existing source identified; artifact schema needs additive calibration evidence. |
+| Model/training provenance | `freqai_bridge/exporter.py::make_prediction`; `pipeline/decision.py::_prediction` | Carries/checks model and strategy version, training dataset hash, trained-through and training-completion times, inference dataset/candle match. | Partial foundation only; no calibration provenance or calibration registry. |
+| Calibrated confidence | Reviewed `freqai_bridge/exporter.py`, `pipeline/decision.py`, and prediction path | No calibrated confidence object, calibration version/method/hash, calibration dataset, sample/period or calibrated-at fields identified. | **BLOCKED — trusted calibration provider and artifact contract not found.** |
+| Account risk / equity | `paper_execution.ledger::read_account_risk_snapshot(db_path, now_ms=...)` | Read-only account-wide snapshot; validates applied migration checksums, equity/mark/funding provenance and freshness; returns `riskReady`, `accountEquityQuote`, gross/reserved exposure, mark observation, dataset version, Kill Switch state and positions. | Existing provider identified for paper risk. It currently enforces a 30-minute mark freshness bound; do not silently replace it with the test fixture's 60-second value. |
+| Account mark update | `pipeline.api::equity_snapshot` → `PaperLedger.record_account_mark` → `paper_execution.account_equity.record_account_mark` | Writes/reconciles an account-wide mark using canonical closed M15 data; this is a mutating update path, not the decision-time read provider. | Identified but not invoked in GREEN-0. Do not run or alter account state. |
+| Shared Risk Engine | `paper_execution.ledger::PaperLedger._submit_scoped`; `paper_execution.equity`; `paper_execution.risk_control` | Under `BEGIN IMMEDIATE`, checks account equity/risk readiness, configured drawdown/day-loss/gross-exposure limits, 1% margin budget, strategy leverage, pending orders and Kill Switch/pause before reservation/fill. | Existing final admission authority identified. Extend/reuse it; do not build a parallel engine. |
+| Kill Switch | `paper_execution.risk_control::snapshot/risk_block_reason`; account snapshot's `killSwitch` | Exposes paused/killed state; new exposure is blocked while risk-reducing operations remain possible. | Existing provider identified. |
+| Risk policy version | `risk_policy.py`; `paper_execution.equity.parse_limits` | Constants include Core 13x and 1% margin budget; risk limits come from environment. No immutable `riskConfigVersion` or versioned AI policy snapshot identified. | **PARTIAL — source values exist, but no versioned policy identity.** Owner/provider contract needed before persistence or replay design. |
+| AI ledger position | `paper_execution.ledger::read_snapshot(db_path, strategy_id="AI_FREQAI")` | Strategy-scoped read; dual-ledger snapshot exposes position and strategy state. | Existing provider identified; preserve AI-only position isolation. |
+| Instrument rules | Reviewed AI decision/book and ledger admission paths | Book validation checks source, symbol, timestamps, bid/ask price and quantity. No authoritative BTCUSDT tick size, lot step, min quantity or minimum-notional provider identified in these paths. | **BLOCKED — instrument-rule source/version/freshness unresolved.** Do not derive filters from visible book depth. |
+| AI DCA eligibility | `pipeline/decision.py::evaluate`; `PaperLedger._submit_scoped` | Decision currently proposes a fixed target base; ledger supports ENTRY/DCA/EXIT event semantics and guards DCA state, but no independent AI DCA signal/trigger policy is defined in the reviewed decision path. | **BLOCKED — owner must choose disabled for v1 or approve a separate AI DCA trigger contract.** |
+| Intent idempotency | `PaperLedger._submit_scoped` | Existing intent identity/payload hash returns the original persisted order on exact replay and rejects reuse with a different payload. | Existing primitive identified; does not yet prove immutable calibration/equity/risk/instrument snapshot replay. |
+| Reservation snapshot | Existing dual-ledger reservation/order path | Account-level reservation and exposure checks exist; full approved AI calibration/policy/equity/instrument snapshot fields and version references were not identified in the inspected API/decision contract. | **PARTIAL/BLOCKED — owner must choose full immutable snapshot vs versioned references; schema implications need separate approval.** |
+
+## 3. Confirmed interface observations
+
+### 3.1 AI decision boundary
+
+- `pipeline.api::decide(data, timestamp)` calls `pipeline.decision.evaluate(..., target_base=...)`.
+- `pipeline.decision::_prediction` validates prediction schema/timeframe, inference dataset, model/strategy identifiers, candle identity, trained-through cutoff, prediction freshness and training dataset hash.
+- The current decision interface has no `admission_context` input and does not validate calibrated confidence or calibration registry evidence.
+- The existing prediction exporter is a raw prediction/provenance boundary, not a calibration service.
+
+### 3.2 Account risk and final admission
+
+- The read-only `read_account_risk_snapshot` is the suitable existing account-risk read boundary to evaluate for GREEN wiring.
+- It enforces the repository's current 30-minute mark freshness bound and returns account equity/risk readiness and Kill Switch state. The actual reservation path performs its own transaction-time checks.
+- `PaperLedger._submit_scoped` currently recomputes account-level equity/exposure and applies `ORDER_MARGIN_BUDGET_PCT = 0.01`; it also checks strategy leverage and the risk latch before accepting exposure.
+- `risk_policy.py` contains `CORE_LEVERAGE = 13` and `ORDER_MARGIN_BUDGET_PCT = 0.01`. The account risk limits are loaded from environment by `parse_limits`; a versioned immutable policy identifier was not identified.
+- `read_snapshot(..., strategy_id="AI_FREQAI")` is available for the isolated AI position. Core and AI ledger identities must remain distinct.
+
+### 3.3 Instrument rules and calibration
+
+- The inspected order-book contract validates observed price levels and quantities. These are market-depth observations, not exchange trading filters.
+- No trusted calibration artifact registry or calibration object is currently emitted by the inspected prediction exporter/decision path.
+- No authoritative lot/tick/minimum-notional metadata provider was identified in the reviewed AI admission paths. This is a discovery result for the inspected paths, not proof that no unrelated repository file mentions exchange metadata.
+
+## 4. GREEN-0 decision register
+
+| ID | Required owner decision | Current state | Safe default until decided |
+|---|---|---|---|
+| G0-01 | Select trusted calibration registry/manifest and digest verification source | OPEN | No calibrated AI intent |
+| G0-02 | Freeze exact model/strategy/training dataset/label/horizon compatibility rules | OPEN | Mismatch or absent provenance blocks |
+| G0-03 | Set numerical `C_min`, minimum samples, calibration period and max age based on OOS evidence | OPEN | No AI intent; fixture values are not policy |
+| G0-04 | Confirm account-risk provider and freshness semantics; add/identify versioned policy identity | Provider identified; version identity OPEN | Reuse existing snapshot and ledger recheck; do not invent version |
+| G0-05 | Select authoritative BTCUSDT tick/lot/minimum-notional rules source and version/freshness | OPEN | No AI order intent |
+| G0-06 | Decide AI DCA v1 disabled or approve independent trigger/eligibility contract | OPEN | No AI DCA |
+| G0-07 | Choose full reservation snapshot persistence vs immutable version references | OPEN | No schema changes or migration |
+
+## 5. Recommended contract freeze proposal
+
+1. Reuse `read_account_risk_snapshot` as the read-only account-risk provider, subject to explicit owner confirmation of its existing 30-minute freshness semantics; do not introduce a second equity calculator.
+2. Keep `PaperLedger._submit_scoped` and its account-scoped transaction as the final Shared Risk Engine admission boundary. It must independently recalculate at reservation time.
+3. Reuse `read_snapshot(..., strategy_id="AI_FREQAI")` for AI position only.
+4. Keep calibration registry, instrument rules and AI DCA as unresolved blockers until authoritative providers/policies are named.
+5. Do not add a synthetic risk-config version, calibration registry, exchange filters, C_min, thresholds or DCA trigger merely to make the interface complete.
+6. Do not implement or migrate reservation snapshot fields until G0-07 is explicitly decided and any schema work is separately approved.
+
+## 6. Verification and limits
+
+- Method: read-only source inspection at the exact branch HEAD and fetch of the named source files.
+- No tests were run because this gate is provider/contract discovery only.
+- No workflow was dispatched.
+- No production code or tests changed.
+- No database was opened or modified; no account mark, risk state, Kill Switch, order or reservation was touched.
+- No T0/T1/T2 runtime, VPS, exchange endpoint, credentials, calibration training, backtest, migration, deployment or live trading was accessed or performed.
+- This report does not certify runtime provider health, current account equity readiness, calibration quality, exchange filter accuracy or production readiness.
+
+**Disposition:** GREEN-0 source inventory **COMPLETE**; provider/policy freeze **PARTIAL / BLOCKED ON OWNER DECISIONS G0-01–G0-07**. GREEN-1 through GREEN-5 remain NOT AUTHORIZED.
