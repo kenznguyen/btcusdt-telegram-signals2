@@ -83,7 +83,8 @@ def ledger(strategy_id="MANUAL"):
                        risk_limits=limits, require_risk_limits=True,
                        leverage=os.environ.get("LEVERAGE", "13"),
                        strategy_id=strategy_id,
-                       source_sha=os.environ.get("PAPER_SOURCE_SHA") or os.environ.get("GITHUB_SHA"))
+                       source_sha=os.environ.get("PAPER_SOURCE_SHA") or os.environ.get("GITHUB_SHA"),
+                       initial_capital=os.environ.get("PAPER_INITIAL_CAPITAL", "100"))
 
 
 def resolve_order_strategy(db_path, order_id):
