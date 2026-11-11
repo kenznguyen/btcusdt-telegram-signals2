@@ -127,5 +127,28 @@ class DualStrategyApiScopeRedTest(unittest.TestCase):
 
 
 
+
+    def test_first_dual_ledger_mark_is_persisted_but_risk_stays_blocked_without_cutover(self):
+        api.ledger(strategy_id="AI_FREQAI")
+        account = api.ledger()
+        observed = 1_800_000_000_000
+        result = account.record_account_mark(
+            "100", observed-60_000, observed, "sha256:" + "f"*64, "100",
+        )
+
+        self.assertTrue(result["available"])
+        self.assertFalse(result["riskReady"])
+        self.assertEqual(
+            result["unavailableReason"], "ACCOUNT_EQUITY_CUTOVER_NOT_ESTABLISHED"
+        )
+        self.assertEqual(result["accountEquityQuote"], "100")
+        with sqlite3.connect(self.db) as connection:
+            risk = connection.execute(
+                """SELECT last_equity_quote,high_water_mark_quote,last_mark_price,
+                          mark_observed_at_ms,risk_ready,daily_baseline_utc_day_ms
+                   FROM paper_account_risk_state WHERE account_id=1"""
+            ).fetchone()
+        self.assertEqual(risk, ("100", "100", "100", observed, 0, None))
+
 if __name__ == "__main__":
     unittest.main()
