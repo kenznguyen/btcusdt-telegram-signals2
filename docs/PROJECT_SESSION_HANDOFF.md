@@ -2188,3 +2188,16 @@ Next: if owner wants to proceed beyond planning, first approve a bounded provisi
 - No raw payload/oracle files persisted; no parser/tests/CI, benchmark, external/network/provider/database/VPS/runtime, T0/T1/T2, market data, model, ledger or lifecycle change. No numeric D11 ceiling proposed or ratified.
 - Next gate: prepare a new owner decision package before any further measurement. Do not rerun or repair the consumed attempt. D11 remains OPEN / NOT RATIFIED.
 - T0 remains independent/protected; CORE_LEDGER and AI_LEDGER remain separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
+
+## G0.38 — G0.37-A Failure Analysis and Corrected Harness Design (2026-11-11)
+
+- Baseline HEAD: `b3fc29d44622f4b4ce7bce00f26ea41c8dd9c547`; baseline handoff blob: `ec6a9d210b7b6c6bee54db2eafe49b43db630158`.
+- Report: `docs/evidence/G0_38_G0_37A_FAILURE_ANALYSIS_AND_HARNESS_REDSEIGN_2026-11-11.md`.
+- Report creation commit: `575d41e2413ddcda09f0e36866429503e20fcdcf`.
+- G0.38 analyzes the consumed G0.37-A failure and specifies future harness controls: executable assertions (no hard-coded PASS), duplicate-aware JSON validation, frozen harness provenance, separate evidence layers, deterministic two-pass checks and independent report readback.
+- G0.37-A remains FAILED / INCOMPLETE and its one-attempt authorization remains consumed. No retry, repair-and-rerun or new measurement was performed.
+- G0.37-A intermediate metrics/digest remain NOT VERIFIED for D11 policy use. G0.34 historical metrics also remain NOT VERIFIED. Numeric D11 ceilings remain OPEN / NOT RATIFIED.
+- G0.38 verdict: **ANALYSIS PASS — failure causes and preventive controls documented; no new execution authority**.
+- Documentation-only: no corpus generation/measurement, harness/parser/tests/CI/benchmark, dependencies, external/network/provider/database/VPS/runtime, T0/T1/T2, market-data, model, ledger, lifecycle or destructive changes.
+- Next gate: optionally prepare a new owner decision package for a distinct future attempt, after preflight requirements are reviewed. No execution until a separate explicit approval. Parser/tests/CI remain NOT AUTHORIZED.
+- T0 remains independent/protected; CORE_LEDGER and AI_LEDGER remain separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
