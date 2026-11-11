@@ -10,8 +10,9 @@ from paper_execution import equity as equity_history
 
 def record_account_mark(ledger, mark_price, candle_close_ms, observed_at_ms, dataset_version, initial_capital="100"):
     """Atomically reconcile one account-wide mark across all strategy ledgers."""
+    # Late import avoids a cycle because PaperLedger delegates to this module.
     from paper_execution.ledger import (
-        MIGRATION_VERSION, _funding_provenance_ready,
+        _dual_ledger_migrations_ready, _funding_provenance_ready,
         read_account_risk_snapshot, stored_state, text,
     )
     if ledger.strategy_id != "MANUAL":
@@ -25,14 +26,7 @@ def record_account_mark(ledger, mark_price, candle_close_ms, observed_at_ms, dat
 
     with closing(ledger.connect()) as connection, connection:
         connection.execute("BEGIN IMMEDIATE")
-        migration_table = connection.execute(
-            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='paper_schema_migrations'"
-        ).fetchone()
-        migration = connection.execute(
-            "SELECT 1 FROM paper_schema_migrations WHERE version=? AND status='APPLIED'",
-            (MIGRATION_VERSION,),
-        ).fetchone() if migration_table else None
-        if not migration_table:
+        if not _dual_ledger_migrations_ready(connection):
             position, average, realized, fees, _ = stored_state(connection)
             return equity_history.record(
                 connection, initial_capital=initial_capital, position=position, average=average,
@@ -40,8 +34,6 @@ def record_account_mark(ledger, mark_price, candle_close_ms, observed_at_ms, dat
                 candle_close_ms=candle_at, observed_at_ms=observed_at,
                 dataset_version=dataset_version,
             )
-        if not migration:
-            raise sqlite3.DatabaseError("DUAL_LEDGER_MIGRATION_NOT_APPLIED")
 
         risk = connection.execute(
             """SELECT high_water_mark_quote,daily_baseline_utc_day_ms,
