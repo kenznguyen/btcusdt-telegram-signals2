@@ -82,7 +82,8 @@ def ledger(strategy_id="MANUAL"):
                        max_spread_bps=os.environ.get("PAPER_MAX_SPREAD_BPS", "50"),
                        risk_limits=limits, require_risk_limits=True,
                        leverage=os.environ.get("LEVERAGE", "13"),
-                       strategy_id=strategy_id)
+                       strategy_id=strategy_id,
+                       source_sha=os.environ.get("PAPER_SOURCE_SHA") or os.environ.get("GITHUB_SHA"))
 
 
 def resolve_order_strategy(db_path, order_id):
