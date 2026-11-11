@@ -332,5 +332,27 @@ class DualStrategyApiScopeRedTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "PAPER_ORDER_OWNER_UNVERIFIED"):
             resolve_order_strategy(str(legacy_db), "legacy-order")
 
+
+    def test_account_mark_fails_closed_on_partial_or_checksum_mismatched_migration(self):
+        account = api.ledger()
+        with sqlite3.connect(self.db) as connection:
+            connection.execute(
+                """CREATE TABLE paper_schema_migrations (
+                    version INTEGER PRIMARY KEY, checksum TEXT NOT NULL,
+                    status TEXT NOT NULL
+                )"""
+            )
+            connection.execute(
+                "INSERT INTO paper_schema_migrations VALUES (1,'wrong-checksum','APPLIED')"
+            )
+
+        with self.assertRaisesRegex(
+            sqlite3.DatabaseError, "DUAL_LEDGER_MIGRATION_CHECKSUM_MISMATCH"
+        ):
+            account.record_account_mark(
+                "100", 1_799_999_940_000, 1_800_000_000_000,
+                "sha256:" + "a"*64, "100",
+            )
+
 if __name__ == "__main__":
     unittest.main()
