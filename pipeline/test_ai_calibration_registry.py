@@ -312,5 +312,14 @@ class CalibrationRegistryVerifierTest(unittest.TestCase):
         self.assertNotIn("admission_eligible", result)
 
 
+    def test_manifest_utf8_bom_is_rejected_with_explicit_reason(self):
+        with self.assertRaisesRegex(CalibrationVerificationError, "MANIFEST_BOM_NOT_ALLOWED"):
+            self.verify(manifest_bytes=b"\\xef\\xbb\\xbf" + self.manifest_bytes)
+
+    def test_transform_utf8_bom_is_rejected_with_explicit_reason(self):
+        with self.assertRaisesRegex(CalibrationVerificationError, "ARTIFACT_BOM_NOT_ALLOWED"):
+            apply_calibration_transform(b"\\xef\\xbb\\xbf" + self.artifact, "0.015")
+
+
 if __name__ == "__main__":
     unittest.main()
