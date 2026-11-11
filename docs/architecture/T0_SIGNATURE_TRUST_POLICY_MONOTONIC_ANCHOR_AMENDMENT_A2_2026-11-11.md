@@ -201,18 +201,18 @@ A test MUST NOT pass by accepting alternative verdicts. Compound attacks MUST be
 | A2-NV-30 | Valid key is not authorized for declared audience/stream | Signer UNTRUSTED | UNTRUSTED | `SIGNER_AUDIENCE_UNAUTHORIZED` |
 | A2-NV-31 | Missing or altered signing build identity/digest | Provenance INVALID | INVALID | `SIGNING_BUILD_PROVENANCE_INVALID` |
 | A2-NV-32 | Missing signing request or decision reference | Authorization BLOCKED | BLOCKED | `SIGNING_DECISION_MISSING` |
-| A2-NV-33 | Signer authority evidence missing or digest mismatch | Authorization BLOCKED/INVALID respectively; separate fixtures | BLOCKED / INVALID | `SIGNER_AUTHORITY_EVIDENCE_MISSING` / `SIGNER_AUTHORITY_DIGEST_MISMATCH` |
+| A2-NV-33 | Required signer authority evidence is missing | Authorization BLOCKED | BLOCKED | `SIGNER_AUTHORITY_EVIDENCE_MISSING` |
 | A2-NV-34 | Signature envelope ID reused with different bytes | Envelope identity INVALID | INVALID | `SIGNATURE_ENVELOPE_ID_REUSE` |
 | A2-NV-35 | Owner-approval claim made without a separately trusted Owner Authorization object | Owner claim UNTRUSTED | UNTRUSTED | `OWNER_AUTHORIZATION_MISSING` |
 | A2-NV-36 | U64 decimal has a leading zero, sign or non-decimal character | Wire parse INVALID | INVALID | `U64_NONCANONICAL` |
 | A2-NV-37 | U64 value exceeds 2^64-1 | Wire parse INVALID | INVALID | `U64_OVERFLOW` |
 | A2-NV-38 | Base64url uses padding, standard alphabet or whitespace | Wire parse INVALID | INVALID | `BASE64URL_NONCANONICAL` |
 | A2-NV-39 | Crash after VPS publication but before GitHub publication | Anchor transition pending; accepted head unchanged | BLOCKED | `ANCHOR_PUBLICATION_INCOMPLETE` |
-| A2-NV-40 | Crash after both readbacks but before head commit | Recovery resumes same reserved transition; no N+1 | BLOCKED until recovered; then PASS for same transition | `ANCHOR_COMMIT_PENDING` |
+| A2-NV-40 | Crash after both readbacks but before head commit | Before recovery: transition pending and accepted head unchanged. After recovery: same reserved transition commits; no N+1 or duplicate sequence | Before recovery BLOCKED; after recovery PASS | `ANCHOR_COMMIT_PENDING` before recovery; `ANCHOR_RECOVERY_COMMITTED` after recovery |
 | A2-NV-41 | Missing or invalid root bootstrap owner authorization | Bootstrap BLOCKED | BLOCKED | `ROOT_BOOTSTRAP_UNAUTHORIZED` |
-| A2-NV-42 | Missing owner delegation for an explicit owner-approval purpose | Owner authorization UNTRUSTED | UNTRUSTED | `OWNER_DELEGATION_INVALID` |
+| A2-NV-42 | Missing owner delegation for an explicit owner-approval purpose | Owner authorization UNTRUSTED | UNTRUSTED | `OWNER_DELEGATION_INVALID` |\n| A2-NV-43 | Signer authority evidence is present but its digest does not match exact bytes | Authorization INVALID | INVALID | `SIGNER_AUTHORITY_DIGEST_MISMATCH` |
 
-For A2-NV-33 and A2-NV-40, the named subconditions MUST be separate test fixtures. The table gives the allowed reason-code pair for the two separate fixtures; no single fixture may accept both outcomes.
+A2-NV-40 is a stateful recovery test with two ordered assertions: pending before recovery, then successful commit of the same reserved transition after recovery. A2-NV-33 and A2-NV-43 are separate single-fault fixtures; no fixture may combine missing evidence with a digest mismatch.
 
 ### 5.3 Known undetectable boundary assertion (not a detection test)
 
