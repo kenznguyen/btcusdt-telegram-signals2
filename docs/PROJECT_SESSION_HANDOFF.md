@@ -905,3 +905,15 @@ This is the current disposition and supersedes the earlier historical NOT RUN / 
 - Detailed Authorization Evidence Object schema, signature domain/signer trust chain, descriptor schema/ID namespace and retry rules, Verification Record schema, resource ceilings, pinned dependency/build provenance, and independent security review remain open. Thus **architecture pattern approved; detailed contract NOT FROZEN; implementation BLOCKED / NOT AUTHORIZED**.
 - Ed25519 adapter remains exact-bytes-only and stateless. No tests were run (documentation-only). No code, dependencies, keys, trust root, Trust Policy/Monotonic Anchor state, CI dispatch, VPS/T0/runtime, trading, or destructive operation changed.
 - Next step: define the detailed object and descriptor schemas in a bounded contract draft, then run A1/A2.2 consistency review and independent security review before seeking separate implementation approval.
+
+
+### Stage II — Authorization Evidence Object + detached envelope descriptor schema draft (2026-11-11)
+
+- Following the owner's approval to proceed with the bounded documentation step, created `docs/evidence/T0_SIGNATURE_A2_2_STAGE_II_AUTHORIZATION_OBJECT_AND_DETACHED_DESCRIPTOR_SCHEMA_DRAFT_2026-11-11.md`.
+- Draft commit: `3bcc8023d3205e8121af094c8e27e9385999f082`; verified blob: `6a47509fc902cfe40188f890d06f20af23cffeec`.
+- Defines proposed AEO body/descriptor fields, separate AEO signature-statement requirements, main-statement binding, detached E2 envelope descriptor, non-circular lifecycle, ID/idempotency proposal, Verification Record references, validation rules and negative-test cases.
+- Static source comparison pins: Checkpoint Contract v1 blob `a6825270d59bde274bfe765d5f942144b66a84de`; A1 blob `00fdad293e129562145ab930507a4e6b9c2bf23d`; A2.2 blob `d9f93bf390d107381b7135c3073aeca0d14894d4`; prior Stage II adapter contract blob `e1b12fc1fc4b463fc82ff8b6b5f0b2701af5888b`.
+- **Important consistency blocker found:** A1 §14.4 permits B and A1 §4.4 is compatible with detached E2; however A2.2 §3.1 still puts provenance fields directly in the main Signature Statement and A2.2 §3.3 still embeds a preassigned envelope ID in the signed statement (E1). The draft records these conflicts and requires a normative successor/amendment (expected A2.3) before contract freeze. Existing A2.2 negative cases must be remapped, not silently dropped.
+- Status: **SCHEMA DRAFT CREATED / NOT NORMATIVE / NOT FROZEN; A1-A2.2 CONSISTENCY BLOCKED ON EXPLICIT CONFLICT RESOLUTION; IMPLEMENTATION NOT AUTHORIZED**.
+- No tests run (documentation-only). No code, dependencies, keys, trust roots, policy/anchor/verification state, CI dispatch, VPS/T0/runtime, trading or destructive operations changed.
+- Next step: perform a focused consistency review of the draft against A1/A2.2, produce a bounded A2.3 amendment proposal for the explicit B/E2 conflicts, and preserve unresolved cryptographic-domain/trust-chain decisions as blockers. Do not implement or dispatch workflows.
