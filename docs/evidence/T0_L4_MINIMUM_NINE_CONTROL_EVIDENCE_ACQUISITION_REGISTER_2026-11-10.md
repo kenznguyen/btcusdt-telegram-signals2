@@ -115,3 +115,21 @@ Register/evidence update. GitHub-hosted lineage and three-artifact inventory/man
 The owner explicitly revoked **Option C — No Destructive Authority** on 2026-11-11. Its former ACTIVE status in this document is historical and is superseded by this decision. Option C is now **REVOKED**; do not apply it as a blanket prohibition.
 
 This governance revocation is not a blanket instruction to execute deletion or cleanup. Any specific destructive operation still requires a separately scoped plan identifying exact target/data class, operation, retention/impact, preconditions, verification, recovery/rollback and explicit approval. T0 canonical data, lease/fencing state, ledgers, audit/reconstruction/recovery evidence and owner custody records remain protected unless an exact operation is separately approved. Paper-only posture and `AI_EXECUTION_ENABLED=false` remain unchanged. Revocation does not promote any L4 control or establish custody/signature/offline-verification assurance.
+
+
+## 11. Exact readback of three current-run GitHub output artifacts — run 42937191664
+
+Owner-approved scope: read-only download of the three output artifacts from [run 42937191664](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42937191664), ZIP integrity inspection and independent SHA-256 recomputation. Exact workflow source SHA: `8bda3c987e2145a636bbcc9d8609c5ea15a492b9`.
+
+| Output artifact ID | Name | Bytes | ZIP SHA-256 (independent exact readback) | Result |
+|---|---|---:|---|---|
+| `13819680374` | `t0-l4-artifact-manifest-42937191664` | 3,267 | `3509f2ce14aa174a45e4200ab44d13c7ae532841a74886256e9f6fe20ea55f71` | PASS |
+| `13818967476` | `t0-l4-minimum-lineage-42937191664` | 1,150 | `155986f0f35d875fad02b6c50d0aab7aa43afdcd9191391f9ee0b832e975b67e` | PASS |
+| `13818163804` | `t0-l4-repository-file-inventory-42937191664` | 4,483 | `98fc7fca7123ae0a9e72bcf1f209032a57c24d97aa898aaa075eb7212f04c0fa` | PASS |
+
+- All three complete ZIP byte streams were downloaded and independently hashed; each matched GitHub's artifact digest. ZIP CRC/read checks passed and no duplicate or unsafe member paths were found.
+- Manifest and repository-inventory JSON payload hashes matched their sidecars. Inventory reports 40 unique paths / 559,566 bytes. Lineage payload identifies exact source SHA `8bda3c987e2145a636bbcc9d8609c5ea15a492b9` and records 12/12 tests. The three workflow jobs passed 12/12 + 19/19 + 10/10 = 41/41.
+- These are output artifacts from this run, not additions to the six-item source-artifact allowlist and not proof of owner custody or VPS copy. The pass is narrowly scoped to exact readback/integrity of these three GitHub artifacts.
+- L4M-01 remains PARTIAL / NOT VERIFIED; L4M-03 remains PARTIAL — SYNTHETIC/DESIGN ONLY; aggregate L4-Minimum remains BLOCKED / NOT VERIFIED. No control is promoted to PASS by this increment.
+- Detailed report: `docs/evidence/T0_L4_GITHUB_ARTIFACT_EXACT_READBACK_2026-11-11.md`, commit `a42a45060718d7c4bbce63f4c2756687a8231c6a`.
+- No VPS/SSH, T0 API/SQLite, canonical data/runtime, signing/key operation, workflow dispatch, cleanup/deletion or trading action occurred. T0 unchanged; paper-only and `AI_EXECUTION_ENABLED=false` remain.
