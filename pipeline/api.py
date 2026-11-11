@@ -333,13 +333,14 @@ def control_readiness(timestamp):
     candle_ready = bool(candles and candles.get("coverage", {}).get("complete") is True)
     book_ready = data.get("book") is not None
     from paper_execution.ledger import (
-        dual_ledger_ready, read_account_risk_snapshot, read_snapshot,
+        dual_ledger_ready, has_pending_orders, read_account_risk_snapshot,
+        read_snapshot,
     )
     db_path = os.environ.get("MARKET_DATA_DB", "")
     if dual_ledger_ready(db_path):
-        core = read_snapshot(db_path, strategy_id="STRATEGY_CORE")
-        ai = read_snapshot(db_path, strategy_id="AI_FREQAI")
-        orders = core.get("orders", []) + ai.get("orders", [])
+        read_snapshot(db_path, strategy_id="STRATEGY_CORE")
+        read_snapshot(db_path, strategy_id="AI_FREQAI")
+        no_pending = not has_pending_orders(db_path)
         try:
             account = read_account_risk_snapshot(db_path, now_ms=timestamp)
             account_risk_ready = bool(account.get("riskReady"))
@@ -347,9 +348,10 @@ def control_readiness(timestamp):
             account_risk_ready = False
     else:
         orders = ledger().snapshot().get("orders", [])
+        no_pending = not any(
+            order.get("status") in ("OPEN", "PARTIALLY_FILLED") for order in orders
+        )
         account_risk_ready = True
-    no_pending = not any(order.get("status") in ("OPEN", "PARTIALLY_FILLED")
-                         for order in orders)
     checks = {
         "closedCandles": candle_ready, "orderBook": book_ready,
         "noPendingPaperOrders": no_pending,
