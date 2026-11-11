@@ -1,0 +1,112 @@
+name: T0 Signature A2.2 Stage I
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  stage-i-synthetic-only:
+    name: Stage I isolated contract tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      DATABASE_URL: ""
+      DATABASE_PATH: ""
+      SQLITE_PATH: ""
+      MARKET_DATA_DB: ""
+      MARKET_DATA_POSTGRES_DSN: ""
+      T0_FEEDER_LEASE_DB: ""
+      PAPER_DB: ""
+      BINANCE_API_KEY: ""
+      BINANCE_API_SECRET: ""
+      OKX_API_KEY: ""
+      OKX_API_SECRET: ""
+      EXCHANGE_API_KEY: ""
+      EXCHANGE_API_SECRET: ""
+      AI_EXECUTION_ENABLED: "false"
+      PYTHONDONTWRITEBYTECODE: "1"
+
+    steps:
+      - name: Checkout exact triggering source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Enforce isolated environment and record source
+        shell: bash
+        run: |
+          set -euo pipefail
+          for key in DATABASE_URL DATABASE_PATH SQLITE_PATH \
+            MARKET_DATA_DB MARKET_DATA_POSTGRES_DSN T0_FEEDER_LEASE_DB \
+            PAPER_DB BINANCE_API_KEY BINANCE_API_SECRET \
+            OKX_API_KEY OKX_API_SECRET EXCHANGE_API_KEY EXCHANGE_API_SECRET; do
+            test -z "${!key:-}"
+          done
+          test "${AI_EXECUTION_ENABLED}" = "false"
+          mkdir -p stage-i-evidence
+          git rev-parse HEAD | tee stage-i-evidence/source-sha.txt
+          printf '%s\n' \
+            "SCOPE=STAGE_I_SYNTHETIC_ONLY" \
+            "AI_EXECUTION_ENABLED=false" \
+            "DATABASE_AND_EXCHANGE_CREDENTIALS=EMPTY" \
+            "RUNTIME_INTEGRATION=NOT_AUTHORIZED" \
+            > stage-i-evidence/preflight.txt
+
+      - name: Compile isolated Stage I package
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -d t0_signature_stage1
+          test -d t0_signature_stage1/tests
+          python -m compileall -q t0_signature_stage1
+          echo "STAGE_I_COMPILE=PASS" \
+            | tee stage-i-evidence/compile.txt
+
+      - name: Run Stage I synthetic tests
+        shell: bash
+        run: |
+          set -uo pipefail
+          set +e
+          python -m unittest discover \
+            -s t0_signature_stage1/tests \
+            -p 'test_*.py' -v \
+            2>&1 | tee stage-i-evidence/tests.log
+          test_rc=${PIPESTATUS[0]}
+          set -e
+          TEST_RC="${test_rc}" python - <<'PY'
+          import os
+          import re
+          from pathlib import Path
+          log = Path("stage-i-evidence/tests.log").read_text()
+          match = re.search(r"^Ran (\d+) tests?$", log, re.MULTILINE)
+          if not match:
+              raise SystemExit("TEST_COUNT_NOT_RECORDED")
+          count = int(match.group(1))
+          if count <= 0:
+              raise SystemExit("EMPTY_TEST_SUITE")
+          rc = int(os.environ["TEST_RC"])
+          verdict = "PASS" if rc == 0 else "FAIL"
+          Path("stage-i-evidence/verdict.txt").write_text(
+              f"STAGE_I_TESTS={verdict}\nTEST_COUNT={count}\nEXIT_CODE={rc}\n"
+          )
+          if rc:
+              raise SystemExit(rc)
+          PY
+
+      - name: Upload Stage I execution evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: t0-signature-a2-2-stage-i-${{ github.sha }}
+          if-no-files-found: error
+          path: stage-i-evidence/
