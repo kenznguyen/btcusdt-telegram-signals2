@@ -184,3 +184,17 @@ These are design proposals, not implementation specifications frozen for coding.
 - Binance USDⓈ-M official documentation review corrected the instrument proposal: PRICE_FILTER zero fields disable individual rules; LOT_SIZE uses `(quantity - minQty) % stepSize == 0`; MARKET_LOT_SIZE is market-only; PERCENT_PRICE needs fresh mark-price data; USDⓈ-M MIN_NOTIONAL uses its own documented `notional` field. Order-count filters are account/open-order-state constraints, not static sizing filters.
 - The official documentation was reviewed, but no live `/fapi/v1/exchangeInfo` call or BTCUSDT filter retrieval occurred. G0-05 remains BLOCKED; live source/response validation NOT VERIFIED.
 - GREEN-0 design review only; no adapter, calibration pipeline, code/tests/workflow, schema/DB, network/exchange, T0/T1/T2, VPS or deployment action. GREEN-1..5 remain NOT AUTHORIZED.
+
+
+## Owner decision — calibration registry direction approved (2026-11-11)
+
+Owner approved the **GitHub append-only Registry + offline Ed25519 signing** architecture direction.
+
+Scope of approval:
+- versioned immutable manifest/artifact/evaluation records in GitHub;
+- offline Ed25519 signing of canonical manifest digest;
+- pinned public-key verification by future read-only consumers;
+- append-only promotion, revocation, supersession and key lifecycle evidence;
+- private signing key excluded from repository, CI/GitHub Actions, VPS and runtime.
+
+This is not implementation authorization. Registry path, manifest schema/canonicalization, key ceremony and rotation/revocation details, verifier workflow/provider, calibration method/OOS protocol and numerical thresholds remain open. No keys or registry were created. G0-01/02/03 remain BLOCKED pending full contract freeze and later implementation approval.
