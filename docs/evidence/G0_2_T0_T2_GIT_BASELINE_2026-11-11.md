@@ -74,7 +74,7 @@ CI status for the inspected source SHA: **NOT VERIFIED** (no exact-SHA run).
 - Branch reconciliation: BLOCKED pending classification and owner decision.
 - Do not use PR #139 as the active T0/T2 branch baseline.
 - Do not merge the active branch wholesale into `main`.
-- The 76 `main)-only commits require semantic classification before any integration choice.
+- The 76 `main`-only commits require semantic classification before any integration choice.
 - No branch-history mutation was performed.
 
 ## 6. Work performed in G0.2
@@ -88,7 +88,7 @@ CI status for the inspected source SHA: **NOT VERIFIED** (no exact-SHA run).
 Verification: documentation content and GitHub metadata only. No automated tests were run because no executable behavior changed. No workflow/artifact was generated.
 
 **G0.2 disposition: PASS — documentation-only baseline recorded.**  
-**G0 branch reconciliation: BLOCKED** until G0.3 classifies the 76 `main)-only commits and the owner decides whether any specific changes should be adopted.
+**G0 branch reconciliation: BLOCKED** until G0.3 classifies the 76 `main`-only commits and the owner decides whether any specific changes should be adopted.
 
 ## 7. Next step and restrictions
 
