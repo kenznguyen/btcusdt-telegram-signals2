@@ -954,3 +954,17 @@ This is the current disposition and supersedes the earlier historical NOT RUN / 
 - No reviewer was assigned because no qualified independent reviewer identity was established from repository context. Do not treat issue creation as review completion.
 - **Current Stage II disposition: BLOCKED at qualifying independent security review and exact contract freeze.** Same-session self-review is not independent. No Stage II implementation, test fixtures, dependency installation, lockfile change, workflow dispatch, key operation, trust bootstrap, VPS/T0/runtime or trading action is authorized/performed.
 - Next action: wait for a qualified independent reviewer to review the exact pinned blobs and record PASS/REQUEST CHANGES/BLOCKED. If reviewer requests changes, address findings on the same branch, update exact blobs and request review of the new snapshot. Only after review PASS and owner freeze may the narrowly scoped adapter implementation/test/CI step proceed under the existing Stage II approval boundaries.
+
+
+
+### Stage II — owner decision: withdraw mandatory independent review gate (2026-11-11)
+
+- Owner explicitly withdrew the prior decision that a qualifying independent security review is mandatory before Stage II contract freeze/implementation.
+- Independent review is **NOT a required gate** unless the owner re-approves it later. This supersedes the earlier handoff entries that made independent review a hard blocker.
+- GitHub issue #143 is closed as not planned because the requested mandatory review is withdrawn. It received zero comments/reviewer findings before closure; therefore there are no external reviewer findings to claim as closed.
+- The existing A2.3 self-review remains an author self-review only: PARTIAL PASS WITH BLOCKERS. This decision does not relabel it as independent review or as G3.
+- Remaining gates are unchanged: close the documented substantive findings (including exact Trust Policy crosswalk/status and revocation semantics, canonical descriptor schemas/namespace authority, owner decision on distinct AEO issuer principal/key and resource ceilings); verify the exact PyCA artifact hash, provenance attestation, transitive dependency closure, runner compatibility and offline build; then obtain an explicit owner freeze of exact A2.3 and adapter-contract blobs.
+- After those gates, proceed with the narrowly scoped stateless Ed25519 adapter, TDD tests and CI verification within the approved Stage II boundary. Do not infer approval for key custody/bootstrap, Trust Policy/Monotonic Anchor runtime, VPS/T0 integration, trading, live orders or destructive operations.
+- No code, dependency, lockfile, workflow, runtime or canonical data changes were made by this decision update.
+- Status: **INDEPENDENT REVIEW GATE WITHDRAWN BY OWNER / CONTRACT NOT FROZEN / IMPLEMENTATION NOT YET PASS**.
+- Branch at decision time: `feature/t0-centralized-data-feeder-p1-20261101`; pre-update HEAD: `eb9ed7784d8db7db517bd145b0380ba166d01c8d`.
