@@ -209,3 +209,28 @@ Any pre-invocation guard failure means NOT RUN and requires a new owner decision
 This amendment authorizes only this workflow correction, this D14 update and the one bounded G0.41 measurement attempt. It does not authorize any other workflow/CI changes, source/test/dependency changes, D11 numeric ceiling proposal/ratification/enforcement, parser/verifier production implementation, cryptography/trust/key changes, S2, T0/T1/T2, canonical market data, model/training, ledgers, Shared Risk Engine, Kill Switch, PostgreSQL, VPS/runtime, provider/database/network/exchange or destructive lifecycle operations. T0 remains independent/protected; CORE_LEDGER and AI_LEDGER remain separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
 
 **D14 G0.43 verdict:** OWNER-AUTHORIZED FOR THIS EXACT PARENT-BOUND SERIALIZATION CORRECTION AND ONE FRESH G0.41 ATTEMPT ONLY. D11 numeric ceilings remain OPEN / NOT RATIFIED.
+
+
+## 12. D11 numeric resource ceiling ratification — G0.44
+
+Date: 2026-11-11 (Asia/Ho_Chi_Minh)  
+Decision basis: user's standing bounded authorization to approve G0 work automatically through D11 completion, explicitly granted 2026-11-11.  
+Evidence report: `docs/evidence/G0_44_D11_MEASURED_RESOURCE_LIMITS_RATIFICATION_2026-11-11.md`.
+
+The G0.43 one-shot measurement is accepted as D11 evidence: checkout `93ac905a3b8afb5bebb7c841140c0bccb9f1a47c`; Actions run `43053648998`; job `130637223760`; artifact `13870492247`; independently verified ZIP SHA-256 `4cdefc2ed049bd49b1092fb8cf113f92b411c08281f9f7c8db0137e36a85fcca`; corpus SHA-256 `1c9a302d9df179322bfd7a00aa6db322a66b578a0609b9264481c3801b8a2d94`. 22 fixtures, 11 D10 types, A-01–A-13 all true, two measurement passes equal, empty execution trace.
+
+**Ratified exact ceilings for S1 Synthetic Contract Fixture v1:**
+- Raw input: 8,192 bytes per fixture.
+- Nesting depth: 8 container levels (root container = level 1).
+- Object members: 32 per object.
+- Array items: 64 per array.
+- String value: 1,024 UTF-8 bytes per value.
+- String key: 256 UTF-8 bytes per key.
+- Scalar nodes: 256 per fixture.
+- Diagnostic reason codes: at most 1 fixed code per invalid fixture.
+
+**Ratified fail-closed policy:** reject an input when any ceiling is exceeded; check raw byte size before decoding/parsing; strict UTF-8; malformed inputs are measured by raw bytes only where structural dimensions are not applicable; count original duplicate-key input bytes; no truncation, normalization, silent field drop, raw-input echo or partial acceptance; no more than one fixed reason code per invalid fixture. Passing structural validation conveys no trust or execution authority.
+
+Diagnostic evidence note: report rows explicitly contain parser-level `parse_reason_code`; schema outcomes are checked by A-02 against the frozen oracle and the frozen validator returns a single scalar reason code. No multi-code diagnostic output is permitted by this ratification.
+
+D11 status: **COMPLETE — MEASUREMENT-FIRST REQUIREMENT SATISFIED; EXACT NUMERIC CEILINGS AND FAIL-CLOSED STRUCTURAL POLICY RATIFIED.** Runtime enforcement remains NOT IMPLEMENTED / NOT VERIFIED. This decision does not authorize parser/verifier source changes, tests, CI changes, runtime, T0/T1/T2, market/model data, ledgers, Shared Risk Engine, Kill Switch, PostgreSQL, VPS, external services or destructive lifecycle operations. Existing D14 implementation scope remains separate and unchanged. D01–D04, D06–D09 and D12–D13 remain OPEN / NOT RATIFIED.

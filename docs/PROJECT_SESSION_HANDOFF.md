@@ -2453,3 +2453,14 @@ Next: if owner wants to proceed beyond planning, first approve a bounded provisi
 - Observed diagnostic maxima: raw bytes 6,418; depth 6; object members 8; array items 4; key bytes 19; value bytes 100; scalar nodes 13. These are measured values only, not D11 limits.
 - Evidence report: `docs/evidence/G0_43_G041_REPORT_SERIALIZATION_CORRECTION_RESULTS_2026-11-11.md`. G0.43 PASS for the exact workflow correction, one measurement and artifact verification. D11 numeric ceilings remain OPEN / NOT RATIFIED. Next: build evidence-based D11 measured-limit proposal, document assumptions/headroom and failure modes, then apply standing authorization only within the established bounded G0 governance scope.
 - No T0/T1/T2, canonical data, model/training, ledgers, Shared Risk Engine, Kill Switch, PostgreSQL, VPS/runtime, provider/database/network/exchange or destructive lifecycle operations. T0 protected; ledgers separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
+
+
+### G0.44 — D11 measured resource limits ratified and complete (2026-11-11)
+
+- Accepted G0.43 evidence: checkout `93ac905a3b8afb5bebb7c841140c0bccb9f1a47c`; Actions run `43053648998`, job `130637223760`; artifact `13870492247`; independently verified ZIP SHA-256 `4cdefc2ed049bd49b1092fb8cf113f92b411c08281f9f7c8db0137e36a85fcca`; corpus SHA-256 `1c9a302d9df179322bfd7a00aa6db322a66b578a0609b9264481c3801b8a2d94`.
+- 22 synthetic fixtures, all 11 D10 types; A-01–A-13 all true; two passes equal; empty execution trace. Observed maxima: raw bytes 501 per fixture; depth 6; object members 8; array items 4; string value 100 UTF-8 bytes; key 19 UTF-8 bytes; scalar nodes 13; one fixed reason code per invalid fixture (scalar return contract; A-02 oracle validation).
+- Ratified D11 ceilings: raw input 8,192 bytes; depth 8 (root container level 1); object members 32/object; array items 64/array; string value 1,024 UTF-8 bytes; string key 256 UTF-8 bytes; scalar nodes 256/fixture; diagnostic reason codes 1/invalid fixture.
+- Ratified fail-closed policy: reject any over-limit input; raw-byte check before decode/parse; strict UTF-8; malformed input structural metrics N/A; measure duplicate keys from original bytes; no truncation/normalization/silent drop/raw-input echo/partial acceptance; no more than one fixed reason code.
+- Decision recorded under user's standing bounded authorization through D11. Full table and rationale: `docs/evidence/G0_44_D11_MEASURED_RESOURCE_LIMITS_RATIFICATION_2026-11-11.md`.
+- D11: **COMPLETE — MEASUREMENT-FIRST REQUIREMENT SATISFIED; NUMERIC CEILINGS AND FAIL-CLOSED STRUCTURAL POLICY RATIFIED.**
+- Runtime enforcement: **NOT IMPLEMENTED / NOT VERIFIED**. No parser/verifier source, tests, CI, runtime, T0/T1/T2, data, ledgers, risk engine, VPS, external services or destructive lifecycle changes. D14 implementation scope remains separate. D01–D04, D06–D09 and D12–D13 remain OPEN / NOT RATIFIED.
