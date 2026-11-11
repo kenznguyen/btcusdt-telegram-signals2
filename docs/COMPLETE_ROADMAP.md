@@ -291,7 +291,7 @@ Use these records as the starting evidence set; each result remains bounded to i
 
 - `docs/PROJECT_SESSION_HANDOFF.md` — controlling session handoff and current owner decisions.
 - `docs/T0_ACTIVE_SCOPE_INDEX.md` — canonical T0 scope and parked backend boundaries.
-- `docs/architecture/T0_READ_ONLY_CANDLE_CONTRACT_V1_2026-11-08.md` — T0 consumer contract (verify exact path before linking).
+- `docs/architecture/T0_READ_ONLY_CANDLE_CONTRACT_V1.md` — T0 consumer contract.
 - `docs/architecture/T0_T1_T2_DATA_CONSUMPTION_ARCHITECTURE_2026-11-08.md` — data delivery architecture.
 - `docs/architecture/DUAL_LEDGER_CONTRACT.md` — separate ledger contract.
 - `docs/architecture/AI_STRATEGY_CONTRACT.md` — independent AI strategy contract.
