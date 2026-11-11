@@ -42,7 +42,7 @@ A descriptor or ID is not itself proof of authority. All object bytes, digests, 
 ### 3.1 Identity and canonicalization
 
 - `object_type`: exact string `T0-AUTHORIZATION-EVIDENCE-V1`.
-- `authorization_evidence_id`: immutable opaque identifier in the AEO namespace.
+- `authorization_evidence_id`: immutable opaque identifier in the AEO namespace, formatted `urn:uuid:<lowercase-canonical-UUIDv4>`; allocated with a CSPRNG and checked against an append-only namespace registry before publication.
 - `schema_version`: exact integer discriminator `1`.
 - `canonicalization_profile`: exact identifier `T0-JCS-1`.
 - AEO body bytes are the exact canonical T0-JCS-1 UTF-8 serialization.
@@ -92,6 +92,51 @@ The `scope` object MUST include exact `actions`, `audience`, `object_types`, `ch
 4. The AEO issuer MUST NOT establish its own authority by assertions inside the AEO. Its role and key authorization come only from the already accepted Trust Policy chain.
 5. AEO issuer authorization is not owner authorization and MUST NOT be represented as owner approval. A2.2 §2.2 remains unchanged.
 6. AEO signature verification does not recursively require another AEO. The narrowly scoped exception is that the AEO issuer's own Signature Statement is authorized directly by the accepted Trust Policy role `AUTHORIZATION_EVIDENCE_ISSUER`; it MUST NOT be used as a checkpoint issuer statement. This exception MUST be explicit in the verifier's statement-purpose dispatch.
+
+
+### 3.4 Exact nested evidence-reference shapes
+
+The following shapes are mandatory for v1; each referenced object descriptor binds exact bytes and cannot be replaced by a mutable URL or display label.
+
+**Request descriptor**
+- `request_id`: immutable ID in its declared namespace;
+- `object_type`, `schema_version`, `canonicalization_profile`;
+- `digest_algorithm`, `content_digest`, `byte_length`;
+- `audience` and exact request purpose.
+
+**Decision descriptor**
+- `decision_id`: immutable ID in its declared namespace;
+- `object_type`, `schema_version`, `canonicalization_profile`;
+- `digest_algorithm`, `content_digest`, `byte_length`;
+- `audience`, exact request ID, exact subject signer fingerprint and exact checkpoint ID/sequence;
+- `outcome`: exactly `APPROVED_FOR_THIS_SIGNATURE` for acceptance.
+
+**Authority evidence reference**
+- `evidence_id`, `object_type`, `schema_version`, `canonicalization_profile`;
+- `digest_algorithm`, `content_digest`, `byte_length`;
+- `issuer_id`, `issuer_role`, `audience`;
+- `authorized_subject_fingerprint`, `authorized_role`, `authorized_actions`, `authorized_streams`, `authorized_object_types`;
+- exact validity/status evidence reference where required by the accepted Trust Policy.
+
+**Custody evidence reference**
+- The same immutable descriptor fields as authority evidence, plus `custody_subject_fingerprint`, `custody_scope`, and explicit custody status.
+- AEO v1 does not infer custody from possession of a public key, filesystem access, a GitHub commit or a successful signature.
+- If policy explicitly permits no custody reference, encode `signer_custody_evidence` as an empty array and include a separate `custody_exception` object with exact policy ID/digest and registered reason. No null, omitted field or free-text waiver is permitted.
+
+All referenced bytes MUST be included in the frozen offline verification input set or be explicitly BLOCKED as unresolved. The verifier MUST compare the request/decision subject fields with the AEO and main statement, and validate authority/custody scope against the exact subject signer and operation.
+
+### 3.5 AEO issuer Trust Policy entry
+
+A Trust Policy that authorizes AEO issuance MUST contain an explicit signer entry binding:
+- issuer key fingerprint and role `AUTHORIZATION_EVIDENCE_ISSUER`;
+- exact AEO profile ID/version and algorithm `Ed25519`;
+- exact purpose `T0_AUTHORIZATION_EVIDENCE_ISSUER_ATTESTATION`;
+- exact audience;
+- allowed AEO object type and authorization purpose;
+- allowed checkpoint stream IDs and action set;
+- issuer status and any applicable revocation/supersession evidence.
+
+Wildcard roles, purposes, audiences, object types, streams or actions are forbidden. The AEO statement's policy ID/sequence/digest MUST exactly match the AEO body's issuer-policy fields and the verifier's accepted policy snapshot. The policy entry MUST NOT authorize the AEO issuer to act as a checkpoint signer unless a separate explicit checkpoint-signer entry independently grants that role.
 
 ## 4. AEO signature and package binding
 
