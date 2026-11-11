@@ -96,3 +96,15 @@ The original D14 parser boundary and all exclusions remain unchanged. This amend
 Next gate: obtain an exact-source focused verification of the final GitHub HEAD and blobs, within the already approved G0.39-A test/compile commands. After that, prepare a separate G0.40 owner decision package; do not generate or measure a corpus until a distinct G0.40 approval exists.
 
 T0 remains independent and protected. CORE_LEDGER and AI_LEDGER remain separate. Paper-only posture and `AI_EXECUTION_ENABLED=false` remain unchanged.
+
+## 7. G0.39-B exact-source verification attempt
+
+- Owner request: “chạy tự động”, applied to the previously stated G0.39-B exact-source verification gate only.
+- Target HEAD: `30fa54e6a24e95a275c4fbfd27170371e1d56d78`.
+- Attempted a read-only Git clone of the public repository followed by checkout of the exact target HEAD, then the two already-approved focused commands.
+- Clone failed before checkout: `fatal: unable to access 'https://github.com/kenznguyen/btcusdt-telegram-signals2.git/': Could not resolve host: github.com` (exit status 128).
+- Consequently, neither focused unit tests nor py_compile ran against the exact target checkout in this attempt. No test result is inferred from the failure.
+- No GitHub Actions workflow, artifact, source change, corpus generation, measurement, or runtime action was initiated.
+- G0.39-B status: **BLOCKED — source checkout unavailable due DNS/network resolution failure**.
+- G0.39-A remains PARTIAL / NOT VERIFIED. The earlier 24/24 and compile PASS results apply only to the isolated local working copy described in Section 3, not to the exact final GitHub blobs.
+- Retry only the same read-only checkout and two focused commands when GitHub DNS/network access is available; do not broaden the scope. G0.40 remains NOT AUTHORIZED.
