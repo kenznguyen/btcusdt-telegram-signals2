@@ -68,6 +68,12 @@ class MeasurementHarnessTests(unittest.TestCase):
   self.assertFalse(validate_manifest(inputs,oracle,manifest,ids,cases,kinds[:-1]))
   malformed=dict(inputs); malformed[ids[0]]=b"\\xff"
   self.assertTrue(validate_manifest(malformed,oracle,manifest,ids,cases,kinds))
+  bad_manifest=dict(manifest); bad_manifest["production-id"]=bad_manifest.pop(ids[0])
+  bad_inputs=dict(malformed); bad_inputs["production-id"]=bad_inputs.pop(ids[0])
+  bad_oracle=dict(oracle); bad_oracle["production-id"]=bad_oracle.pop(ids[0])
+  self.assertFalse(validate_manifest(bad_inputs,bad_oracle,bad_manifest,list(bad_inputs),cases,kinds))
+  malformed=dict(inputs); malformed[ids[0]]=b"\\xff"
+  self.assertTrue(validate_manifest(malformed,oracle,manifest,ids,cases,kinds))
  def test_d05_accepts_declared_parse_negative_and_positive_controls(self):
   inputs,oracle,manifest,ids,cases,kinds=valid_corpus(); self.assertTrue(validate_d05_corpus(inputs,oracle))
   fid=ids[0]; inputs[fid]=b'{"x":1,"x":2}'; oracle[fid]={"expected_reason_code":"PARSE_DUPLICATE_KEY"}
@@ -108,6 +114,8 @@ class MeasurementHarnessTests(unittest.TestCase):
   self.assertFalse(validate_report_readback(json.dumps(broken).encode()))
   duplicate=report.replace(b'"report_schema":',b'"report_schema":"S1-MEASUREMENT-REPORT-V1","report_schema":',1)
   self.assertFalse(validate_report_readback(duplicate))
+  unsafe=json.loads(report); unsafe["measurement"]["rows"][0]["raw_payload"]="must-not-be-reported"
+  self.assertFalse(validate_report_readback(json.dumps(unsafe).encode()))
  def test_assertion_registry_has_thirteen_executable_checks_and_missing_fails_closed(self):
   results=evaluate_assertions({})
   self.assertEqual(set(results),{f"A-{i:02d}" for i in range(1,14)})
