@@ -19,7 +19,6 @@ class DualStrategyApiScopeRedTest(unittest.TestCase):
             connection.execute("CREATE TABLE seed (id INTEGER PRIMARY KEY)")
         self.environment = patch.dict(os.environ, {
             "MARKET_DATA_DB": str(self.db),
-            "PAPER_SOURCE_SHA": "b" * 40,
             "MARKET_DATA_TOKEN": "read-token",
             "CONTROL_TOKEN": "control-token",
             "PAPER_MAX_DRAWDOWN_PCT": "50",
