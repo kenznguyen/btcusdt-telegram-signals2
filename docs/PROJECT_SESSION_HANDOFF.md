@@ -2716,3 +2716,13 @@ Critical limits:
 - No independent runtime, local checkout test, artifact, model, calibration data, key, registry event, provider, database, T0/T1/T2, VPS, trading or destructive operation was performed.
 - Review: narrow correctness fix; existing verifier boundaries and failure semantics preserved. No new dependency or public API.
 - **Disposition: implementation committed; verification NOT VERIFIED.** Next: obtain a GitHub Actions run against exact SHA `9be4c7061db2eef3b521e966bee89296b5de45f9` and inspect the focused verifier job before promoting this increment to PASS.
+
+## Calibration verifier path-separator hardening — 2026-11-12
+
+- Scope: enforce the frozen artifact-path rule by rejecting any backslash character in artifact_path; no manifest schema, trust, signature, registry, admission or runtime semantics changed.
+- TDD regression test added for a single-backslash path containing dot-dot-like segments. Test commit: 47adb6f4d952167142ef2646e57267dbb4619f0b, superseded test correction commit: dbe492580d4d13e492394ffc1a23b0d4c7119519; latest test blob: a5c36c7b32fc5bee16ca2c619c96f9270d22b8ff.
+- Fix: pipeline/calibration_registry.py now checks for any single backslash. Code commit: 2ccff7a55c8572125a9e8c50fd575f97e7082f70; blob: 691ef04d69b5aad6362fc9f2024ca300b39150e1.
+- Exact GitHub Actions workflow run: 43069684925, job 130693994891, source SHA 2ccff7a55c8572125a9e8c50fd575f97e7082f70; at handoff update time the run was QUEUED, so test result is NOT VERIFIED. No local test execution was available in this session. Do not claim RED/GREEN or PASS until the focused registry test log is inspected.
+- Scope review: the frozen v1 contract restricts artifact paths to the registry artifact subtree; rejecting backslashes removes cross-platform path interpretation ambiguity while retaining valid POSIX registry paths.
+- No production key, registry event chain, trusted-time/OOS provider, calibration data/artifact, model training, database, T0/T1/T2, VPS, runtime, or live trading change.
+- **Disposition: code committed; CI QUEUED / NOT VERIFIED.** Next: inspect run 43069684925; then continue only verifier-v1-safe correctness fixes. Active/revocation chain, trusted-time, OOS evidence schema/lineage and numerical policy remain blocked by their separate approval/evidence gates.
