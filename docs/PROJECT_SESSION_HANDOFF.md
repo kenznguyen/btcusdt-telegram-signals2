@@ -2946,3 +2946,16 @@ Critical limits:
 - Exact wheel download into the review environment failed. No independent hash of downloaded bytes, Sigstore bundle verification or offline provenance verification was completed.
 - **Disposition: OFFICIAL RELEASE METADATA / DECLARED HASH / PROVENANCE PRESENCE — CORROBORATED; EXACT WHEEL PAYLOAD / ATTESTATION CRYPTOGRAPHIC VERIFICATION — NOT VERIFIED.** No package installation, lockfile change or CI dependency change.
 - Next: prepare an Owner decision package for the remaining AEO issuer separation, resource ceilings, exact schemas/ID namespace and Verification Record contract. Keep package installation, key/trust operations, Stage II implementation and CI changes blocked pending explicit contract freeze and exact-scope authorization.
+
+
+### Owner decision package prepared — A2.3 / Stage II contract freeze (2026-11-12)
+
+- Decision package: `docs/decisions/T0_L4_SIGNATURE_CONTRACT_FREEZE_OWNER_DECISION_PACKAGE_2026-11-12.md`; commit `ef3a97418f2c45c91371767d024e7e31b8e38e12`.
+- D1: whether AEO issuer principal and SPKI fingerprint must be distinct from the subject checkpoint signer (recommended: MUST be distinct).
+- D2: whether to freeze the A2.3 proposed bounded resource ceilings as normative v1 limits.
+- D3: whether to freeze the AEO body/statement/package descriptor/detached descriptor schemas, with the authorized descriptor namespace explicitly resolved.
+- D4: whether to approve a schema-only append-only Verification Record contract, with no storage/runtime implementation.
+- Non-owner technical gates remain: exact PyCA wheel byte hash and Sigstore attestation verification; transitive dependency/build provenance; exact cross-contract mapping; frozen deterministic vectors/state-immutability tests; exact-scope implementation request.
+- The Owner's independent-review waiver remains in force for Stage II A2.3; it does not establish independent assurance/G3 and does not waive technical gates.
+- **Disposition: DECISION PACKAGE PREPARED; OWNER DECISIONS PENDING; A2.3 NOT FROZEN; STAGE II IMPLEMENTATION NOT AUTHORIZED; L4-MINIMUM BLOCKED / NOT VERIFIED.**
+- Next: wait for Owner decisions on D1–D4. Do not infer approval or proceed to code/dependency/CI changes from the package itself.
