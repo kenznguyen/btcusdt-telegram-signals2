@@ -99,5 +99,27 @@ class DualStrategyApiScopeRedTest(unittest.TestCase):
         )
 
 
+    def test_equity_snapshot_uses_shared_account_mark_path(self):
+        from unittest.mock import Mock
+
+        window = {
+            "candles": [{"close": "105", "closeTimeMs": 1_799_999_940_000}],
+            "coverage": {"complete": True},
+            "datasetVersion": "sha256:" + "e" * 64,
+        }
+        account = Mock()
+        account.record_account_mark.return_value = {"accountEquityQuote": "100"}
+        with patch.object(api, "market_window", return_value=window), \
+             patch.object(api, "ledger", return_value=account):
+            result = api.equity_snapshot(1_800_000_000_000)
+        self.assertEqual(result["accountEquityQuote"], "100")
+        account.record_account_mark.assert_called_once_with(
+            "105", 1_799_999_940_000, 1_800_000_000_000,
+            "sha256:" + "e" * 64,
+        )
+        account.record_equity.assert_not_called()
+
+
+
 if __name__ == "__main__":
     unittest.main()
