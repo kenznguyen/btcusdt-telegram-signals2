@@ -1578,3 +1578,14 @@ Next: obtain sanitized owner/operator-supplied bounded API response metadata, or
 - Disposition: GitHub exact-readback of these three artifacts **PASS**. L4M-01 remains PARTIAL / NOT VERIFIED because owner custody, complete package and VPS/copy assertions are absent. L4M-03 remains PARTIAL — SYNTHETIC/DESIGN ONLY because no signed canonical T0 checkpoint or authenticated latest-head anchor was verified. Aggregate L4-Minimum remains BLOCKED / NOT VERIFIED.
 - No VPS/SSH, T0 API/SQLite, canonical data/runtime, signing/key operation, workflow dispatch, cleanup/deletion, or trading action occurred. T0 unchanged; paper-only and `AI_EXECUTION_ENABLED=false` remain.
 - Next: reconcile this exact-readback result into the controlling L4 crosswalk/register, then continue only with separately authorized evidence acquisition. Do not infer owner custody or freshness from GitHub artifact integrity.
+
+
+## L4 crosswalk/register reconciliation — GitHub exact-readback (2026-11-11)
+
+- Owner-approved documentary reconciliation propagated the exact-readback result for workflow run [42937191664](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42937191664) into the controlling evidence records.
+- Updated crosswalk: `docs/evidence/T0_L4_CONTROL_TO_SOURCE_CROSSWALK_2026-11-11.md`.
+- Updated register: `docs/evidence/T0_L4_MINIMUM_NINE_CONTROL_EVIDENCE_ACQUISITION_REGISTER_2026-11-10.md`.
+- Detailed exact-readback report: `docs/evidence/T0_L4_GITHUB_ARTIFACT_EXACT_READBACK_2026-11-11.md`, commit `a42a45060718d7c4bbce63f4c2756687a8231c6a`.
+- Three output artifacts were independently downloaded and ZIP-hashed; all matched GitHub digests. This is a GitHub-side exact-readback PASS for those three outputs only, not a new source-allowlist entry or owner custody proof.
+- L4M-01 remains PARTIAL / NOT VERIFIED; L4M-03 remains PARTIAL — SYNTHETIC/DESIGN ONLY; aggregate L4-Minimum remains BLOCKED / NOT VERIFIED. No control promoted.
+- No VPS/SSH, T0 API/SQLite, canonical data/runtime, signing/key operation, workflow dispatch, cleanup/deletion or trading action occurred. T0 unchanged; paper-only and `AI_EXECUTION_ENABLED=false` remain.
