@@ -1,0 +1,102 @@
+name: G0.20 Lifecycle Evaluator Verification
+
+on:
+  push:
+    branches:
+      - feature/t0-centralized-data-feeder-p1-20261101
+    paths:
+      - ".github/workflows/g0-20-lifecycle-evaluator-verification.yml"
+  workflow_dispatch:
+    inputs:
+      source_sha:
+        description: "Exact commit SHA to verify (must contain the approved G0.19 source blobs)"
+        required: true
+        type: string
+        default: "a22e189ee18ff7ad7a5d2efa8f6a895f8335843a"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: g0-20-lifecycle-evaluator-verification
+  cancel-in-progress: false
+
+jobs:
+  focused-verification:
+    name: G0.20 focused pure evaluator tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+      PIP_NO_INDEX: "1"
+      PIP_DISABLE_PIP_VERSION_CHECK: "1"
+    steps:
+      - name: Select and validate exact source SHA
+        id: source
+        shell: bash
+        env:
+          DISPATCH_SOURCE_SHA: ${{ inputs.source_sha }}
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            source_sha="${DISPATCH_SOURCE_SHA}"
+          else
+            source_sha="${GITHUB_SHA}"
+          fi
+          [[ "${source_sha}" =~ ^[0-9a-f]{40}$ ]]
+          echo "source_sha=${source_sha}" >> "${GITHUB_OUTPUT}"
+          echo "G0_20_REQUESTED_SOURCE_SHA=${source_sha}" | tee g0-20-preflight.log
+
+      - name: Checkout exact source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.source.outputs.source_sha }}
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Verify exact approved source blobs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ steps.source.outputs.source_sha }}"
+          evaluator_blob="$(git rev-parse HEAD:pipeline/lifecycle_disposition.py)"
+          test "${evaluator_blob}" = "cf22385a718c6b5b08cd50c2a45578b4180c2c4d"
+          test_blob="$(git rev-parse HEAD:pipeline/test_lifecycle_disposition.py)"
+          test "${test_blob}" = "d54d0523d6388df448cbec7c2fb9e2e092f72920"
+          {
+            echo "G0_20_CHECKED_OUT_COMMIT=$(git rev-parse HEAD)"
+            echo "G0_20_EVALUATOR_BLOB=${evaluator_blob}"
+            echo "G0_20_TEST_BLOB=${test_blob}"
+            echo "G0_20_EXTERNAL_SERVICES=NONE"
+            echo "G0_20_SECRETS_REQUIRED=NONE"
+          } | tee g0-20-source-verification.log
+
+      - name: Compile focused modules
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile pipeline/lifecycle_disposition.py pipeline/test_lifecycle_disposition.py 2>&1 | tee g0-20-compile.log
+          echo "G0_20_COMPILE=PASS" | tee -a g0-20-compile.log
+
+      - name: Run focused synthetic unit tests
+        shell: bash
+        run: |
+          set -o pipefail
+          python -m unittest pipeline.test_lifecycle_disposition -v 2>&1 | tee g0-20-unittest.log
+
+      - name: Upload exact-SHA verification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: g0-20-lifecycle-verification-${{ steps.source.outputs.source_sha }}
+          if-no-files-found: warn
+          retention-days: 7
+          path: |
+            g0-20-preflight.log
+            g0-20-source-verification.log
+            g0-20-compile.log
+            g0-20-unittest.log
