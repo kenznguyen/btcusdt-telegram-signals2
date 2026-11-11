@@ -793,3 +793,10 @@ Verification boundary:
 - Option C remains in force; T0 canonical data and recovery copies remain protected; `AI_EXECUTION_ENABLED=false`; paper-only; no live orders.
 
 **Final status: T0 EVIDENCE OBJECT / CHECKPOINT CONTRACT v1 DRAFTED — G0.2–G0.4 CONTRACT DESIGN PASS; G0.5/G0.6 PROTOCOLS SPECIFIED BUT NOT IMPLEMENTED/QUALIFIED; G1 PASS FOR A CLAIM/ROLE BOUNDARIES; G2 SYNTHETIC FIXTURES ADDED, LOCAL DRAFT TESTS 28/28 PASS, EXACT COMMITTED-SHA ACTIONS NOT VERIFIED; G0 STATIC CROSSWALK/REVIEW AND G3 INDEPENDENT REVIEW REMAIN OPEN; CURRENT BACKEND DURABILITY AND PROVIDER/IDENTITY ENROLLMENT NOT VERIFIED; NO G4/G5 AUTHORITY.**
+
+
+## Superseding owner governance decision — Option C revoked (2026-11-11)
+
+The owner revoked **Option C — No Destructive Authority** on 2026-11-11. Any earlier statement in this historical record that Option C is ACTIVE, remains in force, is unchanged/current, or prohibits all destructive authority is superseded. Current status: **REVOKED**.
+
+This revocation removes Option C as a blanket prohibition but does not authorize any particular destructive operation. Deletion, archive, cleanup, expiry, vacuum, compaction, backup/replica removal, export mutation or provider operation still requires a separately explicit, scoped approval with exact target/data class, preconditions, expected effect, dependencies, verification and recovery/rollback plan. T0 canonical data, lease/fencing, ledgers, audit/reconstruction/recovery, custody and trust evidence remain protected unless separately approved. Paper-only and `AI_EXECUTION_ENABLED=false` remain unchanged. No L4 control or technical-enforcement status is promoted by this decision.
