@@ -10,7 +10,10 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-from ci.t0_l4_claim_discipline import audit_crosswalk
+if __package__:
+    from .t0_l4_claim_discipline import audit_crosswalk
+else:
+    from t0_l4_claim_discipline import audit_crosswalk
 
 ACTIVE_CONTROL_IDS = tuple(
     [f"L4M-{number:02d}" for number in range(1, 9)] + ["L4M-10"]
