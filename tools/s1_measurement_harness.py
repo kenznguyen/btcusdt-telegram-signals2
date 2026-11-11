@@ -277,7 +277,10 @@ def _safe_report_measurement(measurement):
     except (KeyError, TypeError, ValueError): return False
 
 def build_report(corpus_revision,measurement,assertions,provenance):
+    if type(corpus_revision) is not str or not corpus_revision.strip(): raise ValueError("invalid corpus revision")
     if not _safe_report_measurement(measurement): raise ValueError("invalid or unsafe measurement shape")
+    required_provenance={"corpus_revision","source_commit","source_blob_sha256","command","python_version","platform","measurement_definition_revision"}
+    if not isinstance(provenance,Mapping) or set(provenance)!=required_provenance: raise ValueError("invalid provenance schema")
     ids={f"A-{i:02d}" for i in range(1,14)}
     if not isinstance(assertions,Mapping) or set(assertions)!=ids or any(type(v) is not bool for v in assertions.values()):
         raise ValueError("all A-01..A-13 boolean assertions are required")
@@ -293,8 +296,9 @@ def validate_report_readback(report_bytes):
     if report["report_schema"]!="S1-MEASUREMENT-REPORT-V1": return False
     if not _safe_report_measurement(report["measurement"]): return False
     ids={f"A-{i:02d}" for i in range(1,14)}
+    provenance_fields={"corpus_revision","source_commit","source_blob_sha256","command","python_version","platform","measurement_definition_revision"}
     return isinstance(report["assertions"],dict) and set(report["assertions"])==ids and all(
-        type(v) is bool for v in report["assertions"].values()) and isinstance(report["provenance"],dict)
+        type(v) is bool for v in report["assertions"].values()) and isinstance(report["provenance"],dict) and set(report["provenance"])==provenance_fields
 def evaluate_assertions(e):
     checks={
       "A-01":lambda:validate_manifest(e["parser_inputs"],e["oracle_records"],e["manifest"],e["expected_fixture_ids"],e["expected_case_ids"],e["expected_fixture_types"]),
