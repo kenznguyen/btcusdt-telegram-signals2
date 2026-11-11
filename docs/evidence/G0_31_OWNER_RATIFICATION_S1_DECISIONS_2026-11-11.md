@@ -162,3 +162,25 @@ If an exact source assertion or pre-invocation environment guard fails, no measu
 
 **D14 amendment verdict:** OWNER-APPROVED FOR THIS EXACT G0.41 ONE-SHOT WORKFLOW ONLY. All other D14 exclusions remain in force. Numeric D11 ceilings remain OPEN / NOT RATIFIED. This amendment grants no production parser/verifier or runtime authority.
 
+
+
+## 10. D14 narrow amendment — G0.42 admission correction and one fresh attempt
+
+Date: 2026-11-11 (Asia/Ho_Chi_Minh)  
+Owner decision: explicit approval of `docs/evidence/G0_42_G041_WORKFLOW_ADMISSION_CORRECTION_OWNER_PACKAGE_2026-11-11.md`  
+Package commit: `91478d3382bdde22bcc9f251d72aff20f8d96a83`  
+Exact implementation parent / approved `github.event.before`: `8f9f854cad4ec460ad10e850613af4d880d0c357`
+
+The owner approves one correction to the existing `.github/workflows/g041-s1-single-measurement.yml` and one fresh G0.41 one-shot measurement attempt. This amendment supersedes the earlier "adds exact workflow file" admission condition only for this exact correction push and fresh attempt.
+
+The single implementation push must have exact parent SHA `8f9f854cad4ec460ad10e850613af4d880d0c357`. The job may enter only when all are true: event is `push`; ref is exactly `refs/heads/feature/t0-centralized-data-feeder-p1-20261101`; `github.event.before` equals `8f9f854cad4ec460ad10e850613af4d880d0c357`; `github.event.head_commit.id == github.sha`; and `github.run_attempt == 1`. The existing branch/path trigger remains limited to this exact workflow path. The `contains(github.event.head_commit.added, ...)` condition is prohibited. A pre-measurement step must independently assert exact event-before SHA, event-head SHA, checkout SHA, branch, first run attempt, Python 3.14.4 and all three frozen Python Git blobs.
+
+If all pre-invocation guards pass, the workflow may make exactly one call to the frozen `tools.s1_measurement_runner.prepare_preflight(...)` and persist exactly one bounded JSON report artifact with seven-day retention. Existing report assertions, no-payload-persistence/no-external-access requirements, read-only permissions, pinned actions, no package installation, no network/provider/database/VPS/exchange access and five-minute timeout remain unchanged.
+
+Frozen source blobs remain exact: harness `e8db71c11e0503ea6d9a2480d75470185c4d5100`; runner `23a35aab7f7aeacd8a3f63d630a875fe76b1ff6a`; tests `d06a5b533af14378ed284051e5b057cf57377876`. No Python source, test, dependency, other workflow or application file may change.
+
+Any pre-invocation guard failure means NOT RUN and requires a new owner decision. Any failure after invocation begins consumes this authorization and is FAILED/INCOMPLETE. No rerun, retry, manual dispatch, repair-and-rerun, second invocation or replacement attempt. Run attempts greater than one must skip before any step.
+
+This amendment authorizes only the existing workflow correction, this D14 record update and the single bounded measurement attempt. All prior exclusions remain, including no D11 numeric ceiling proposal/ratification/enforcement; no parser/verifier production implementation, cryptography, trust/key work or S2; no T0/T1/T2, market/model data, CORE_LEDGER, AI_LEDGER, Shared Risk Engine, Kill Switch, PostgreSQL, VPS/runtime, provider/database/network/exchange or destructive lifecycle operation.
+
+**D14 G0.42 verdict:** OWNER-APPROVED FOR THIS EXACT PARENT-BOUND CORRECTION AND ONE FRESH G0.41 ATTEMPT ONLY. D11 numeric ceilings remain OPEN / NOT RATIFIED.
