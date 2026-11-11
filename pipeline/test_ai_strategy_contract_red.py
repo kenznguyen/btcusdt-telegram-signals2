@@ -87,19 +87,25 @@ class AIStrategyContractRedTest(unittest.TestCase):
             context[section].update(values)
         return context
 
+    def calibration_evidence(self, prediction):
+        calibration = prediction.get("calibration")
+        if not isinstance(calibration, dict):
+            return None
+        return {
+            "verificationStatus": "SIGNATURE_VERIFIED_ONLY",
+            "manifestDigest": "sha256:" + "d" * 64,
+            **calibration,
+        }
+
     def evaluate(self, prediction=None, admission_context=None, **changes):
         selected_prediction = self.fixture.prediction if prediction is None else prediction
         selected_context = (
             self.admission_context() if admission_context is None else admission_context
         )
         if "calibration_evidence" not in selected_context:
-            calibration = selected_prediction.get("calibration")
-            if isinstance(calibration, dict):
-                selected_context["calibration_evidence"] = {
-                    "verificationStatus": "SIGNATURE_VERIFIED_ONLY",
-                    "manifestDigest": "sha256:" + "d" * 64,
-                    **calibration,
-                }
+            selected_context["calibration_evidence"] = self.calibration_evidence(
+                selected_prediction
+            )
         """Exercise the decision boundary; report unsupported contract as a RED result.
 
         Catch only Python's explicit unsupported-keyword error so missing API behavior
@@ -171,6 +177,7 @@ class AIStrategyContractRedTest(unittest.TestCase):
             prediction=prediction, admission_context=context
         ))
         context = self.admission_context()
+        context["calibration_evidence"] = self.calibration_evidence(prediction)
         context["calibration_evidence"]["verificationStatus"] = "UNVERIFIED"
         self.assert_contract_wait(self.evaluate(
             prediction=prediction, admission_context=context
