@@ -101,7 +101,7 @@ class CalibrationRegistryVerifierTest(unittest.TestCase):
             "manifest_size_bytes": str(len(raw)),
             "key_id": self.trust["key_id"],
             "signer_role": "CALIBRATION_SIGNER",
-            "publisher_id": payload["publisher_id"],
+            "publisher_id": self.trust["publisher_id"],
         }
         signature = key.sign(signature_message(statement))
         return {
