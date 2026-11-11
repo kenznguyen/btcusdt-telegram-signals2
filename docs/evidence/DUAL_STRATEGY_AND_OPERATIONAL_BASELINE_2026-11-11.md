@@ -124,3 +124,53 @@ Expanded DS-01 acceptance scope:
 6. Kill Switch/pause behavior remains account-scoped and serializes atomically with strategy-scoped admission; valid reductions remain available under the defined policy.
 
 These are source-level findings and proposed acceptance requirements only. No endpoint or test was executed during this review.
+
+
+## Owner-approved DS-01 / DS-02 TDD implementation and verification — 2026-11-11
+
+### Authority and scope
+- Owner explicitly approved bounded TDD implementation for DS-01 and DS-02, including account Equity/mark and cancellation paths, paper-only, with no VPS/runtime changes, no canonical T0 data changes and no real orders.
+- No approval was given for DS-03 sizing/leverage changes, account cutover, migration execution on VPS, runtime activation, deployment or live trading.
+- Preserve the earlier Stage II A2.3 PAUSED decision and all prior evidence.
+
+### Exact source and changed files
+- Repository: `kenznguyen/btcusdt-telegram-signals2`
+- Branch: `feature/t0-centralized-data-feeder-p1-20261101`
+- Implementation/test source SHA: `4c8007e40f5c951a7644764756bf120c8b65c6d9`
+- Relevant latest blobs at that source:
+  - `pipeline/api.py`: `bbca4617c7e4d51b358dd07c914308dfc392e6cd`
+  - `paper_execution/ledger.py`: `0588a141f13a88895c2ac84e1b53d4edf6b2466a`
+  - `paper_execution/test_dual_strategy_api_red.py`: `c893a131c7c79e4b4ea021badb04a264a23cddee`
+  - `paper_execution/test_dual_ledger_red.py`: `fc7c72a6603614beb8add40298ee286982851d05`
+  - `pipeline/test_api.py`: `a5f4fcc78b189f3c3797e6d49eda744c31a85077`
+  - `.github/workflows/dual-ledger-red.yml`: `f9a2ee5e38a633de5f6a45e5d9023bdd0c648c13`
+
+### Implemented behavior
+- API strategy writer selects `STRATEGY_CORE` or `AI_FREQAI` only when the complete nine-version Dual Ledger migration set is already applied with exact checksums. Scoped API construction is read-only and does not apply/repair migrations.
+- If migration is absent, the existing legacy path remains in place. If migration evidence is partial or checksum-mismatched, API paths fail closed; they do not fall back to legacy or auto-migrate.
+- Core decision reads the explicit Core ledger after migration; before migration it retains the legacy read path. AI and Core submission use their matching scoped writer only after owner-activated migration.
+- Cancellation resolves the persisted `paper_orders.strategy_id`, then calls the matching scoped ledger. Missing/null/unverified owners and unsupported strategy identities are rejected; cancellation does not trust the order document alone.
+- Account mark/equity update reconciles Core, AI and legacy-unattributed ledger values, legacy PnL/fee adjustments, funding and active/partial reservation balances in one account-level transaction. Persisted numeric values are bounded and invalid reservation states fail closed.
+- Before a verified account equity cutover/daily baseline exists, the mark can be recorded but risk readiness remains false; no cutover or daily baseline is synthesized. Shared risk admission therefore remains blocked until the separately governed reconciliation is complete.
+- `/v1/paper` exposes account, Core and AI read models separately after migration; legacy response is preserved before migration.
+- Kill-switch reset readiness checks both strategy ledgers, all account pending orders (including unassigned legacy rows), and shared account risk readiness.
+
+### CI evidence
+- Dual Ledger workflow: [run 42970058846](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42970058846)
+  - Exact source SHA: `4c8007e40f5c951a7644764756bf120c8b65c6d9`
+  - Compile: PASS
+  - Focused DS-01/DS-02 contract: PASS
+  - Full `paper_execution` regression: **298 tests PASS**
+  - Artifact ID: `13832762848`
+  - Artifact SHA-256: `13a2f8ed2757beb61cdeb63f082725e82b8c66158c99b53479462482a403a81e`
+- T0 Single Writer Gateway workflow: [run 42969831047](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42969831047), exact source SHA `978f27b6418b0e350ebe851c74bcc498c350e7ba`: all jobs PASS, including paper consumer, static Gateway, T1 offline fixtures, provider bootstrap and TimescaleDB integration.
+- T2 Freqtrade 2026.9 strategy-load smoke: [run 42969831103](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42969831103), exact source SHA `978f27b6418b0e350ebe851c74bcc498c350e7ba`: PASS.
+- T0/T2 workflow SHAs are recorded separately and are not represented as the exact DS-01/DS-02 source SHA.
+
+### Disposition and limits
+- DS-01 API writer, cancellation, account mark/equity and separate read-model implementation: **PASS — source/CI scope only**.
+- DS-02 Core strategy-scoped read path: **PASS — source/CI scope only**.
+- Runtime activation / account migration / cutover / funding readiness: **NOT AUTHORIZED / NOT PERFORMED / NOT VERIFIED**. Risk readiness remains fail-closed until the owner separately approves and completes the cutover/funding evidence process.
+- DS-03 Core sizing/leverage reconciliation: **BLOCKED**, unchanged.
+- DS-04 contract-document status reconciliation: **OPEN**.
+- No VPS process, T0 canonical DB, lease/fencing state, T1 activation, exchange credential, live order or deployment setting was changed. CI tests used isolated temporary paper databases only.
