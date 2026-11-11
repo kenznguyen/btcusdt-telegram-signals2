@@ -354,5 +354,21 @@ class DualStrategyApiScopeRedTest(unittest.TestCase):
                 "sha256:" + "a"*64, "100",
             )
 
+
+    def test_legacy_account_mark_fallback_preserves_equity_history_without_migration(self):
+        account = api.ledger()
+        result = account.record_account_mark(
+            "100", 1_799_999_940_000, 1_800_000_000_000,
+            "sha256:" + "a"*64, "100",
+        )
+
+        self.assertTrue(result["available"])
+        self.assertEqual(result["latest"]["equity"], "100")
+        with sqlite3.connect(self.db) as connection:
+            migration_table = connection.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='paper_schema_migrations'"
+            ).fetchone()
+        self.assertIsNone(migration_table)
+
 if __name__ == "__main__":
     unittest.main()
