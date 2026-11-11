@@ -77,14 +77,16 @@ def ledger(strategy_id="MANUAL"):
     if not path:
         raise ValueError("Unconfigured store")
     limits = parse_limits(os.environ)
+    if strategy_id in {"STRATEGY_CORE", "AI_FREQAI"}:
+        from paper_execution.ledger import dual_ledger_ready
+        if not dual_ledger_ready(path):
+            raise sqlite3.DatabaseError("DUAL_LEDGER_MIGRATION_NOT_READY")
     return PaperLedger(path, max_position_base=os.environ.get("PAPER_MAX_POSITION_BASE", "0.01"),
                        fee_rate=os.environ.get("PAPER_FEE_RATE", "0.0005"),
                        max_spread_bps=os.environ.get("PAPER_MAX_SPREAD_BPS", "50"),
                        risk_limits=limits, require_risk_limits=True,
                        leverage=os.environ.get("LEVERAGE", "13"),
-                       strategy_id=strategy_id,
-                       source_sha=os.environ.get("PAPER_SOURCE_SHA") or os.environ.get("GITHUB_SHA"),
-                       initial_capital=os.environ.get("PAPER_INITIAL_CAPITAL", "100"))
+                       strategy_id=strategy_id, apply_migrations=False)
 
 
 def resolve_order_strategy(db_path, order_id):
@@ -189,11 +191,11 @@ def core_decide(timestamp, book=None):
                             book, timestamp,
                             initial_capital=os.environ.get("PAPER_INITIAL_CAPITAL", "100"),
                             max_position_base=os.environ.get("PAPER_MAX_POSITION_BASE", "0.01"))
-        from paper_execution.ledger import read_snapshot
-        # Establish the additive dual-ledger schema before reading strategy-owned state.
-        ledger(strategy_id="STRATEGY_CORE")
-        paper = read_snapshot(
-            os.environ.get("MARKET_DATA_DB", ""), strategy_id="STRATEGY_CORE"
+        from paper_execution.ledger import dual_ledger_ready, read_snapshot
+        db_path = os.environ.get("MARKET_DATA_DB", "")
+        paper = (
+            read_snapshot(db_path, strategy_id="STRATEGY_CORE")
+            if dual_ledger_ready(db_path) else read_snapshot(db_path)
         )
         state = paper["strategyState"]
         book = book_snapshot(timestamp) if book is None else book
@@ -416,10 +418,12 @@ def application(environ, start_response):
             if path == "/v1/paper/pause" and set(payload) == {"paused"} and type(payload["paused"]) is bool:
                 result = ledger().set_paused(payload["paused"], timestamp)
             elif path == "/v1/paper/cancel" and set(payload) == {"orderId"} and isinstance(payload["orderId"], str) and 0 < len(payload["orderId"]) <= 100:
-                # Apply the additive migration before resolving the persisted post-cutover owner.
-                ledger(strategy_id="STRATEGY_CORE")
-                owner = resolve_order_strategy(os.environ["MARKET_DATA_DB"], payload["orderId"])
-                result = ledger(strategy_id=owner).cancel(payload["orderId"], timestamp)
+                from paper_execution.ledger import dual_ledger_ready
+                if dual_ledger_ready(os.environ["MARKET_DATA_DB"]):
+                    owner = resolve_order_strategy(os.environ["MARKET_DATA_DB"], payload["orderId"])
+                    result = ledger(strategy_id=owner).cancel(payload["orderId"], timestamp)
+                else:
+                    result = ledger().cancel(payload["orderId"], timestamp)
             elif path == "/v1/paper/kill" and set(payload) == {"enabled"} and payload["enabled"] is True:
                 result = ledger().set_killed(True, timestamp, "OPERATOR_KILL_SWITCH")
             elif path == "/v1/paper/reset-kill" and set(payload) == {"acknowledge"} and payload["acknowledge"] is True:
@@ -430,7 +434,9 @@ def application(environ, start_response):
             elif path == "/v1/paper/evaluate" and (not payload or payload in ({"source": "AI"}, {"source": "CORE"})):
                 source = payload.get("source", "AI")
                 source_id = "STRATEGY_CORE" if source == "CORE" else "AI_FREQAI"
-                strategy_ledger = ledger(strategy_id=source_id)
+                from paper_execution.ledger import dual_ledger_ready
+                dual_active = dual_ledger_ready(os.environ["MARKET_DATA_DB"])
+                strategy_ledger = ledger(strategy_id=source_id) if dual_active else ledger()
                 if source == "CORE":
                     data = {"book": book_snapshot(timestamp)}
                     decision = core_decide(timestamp, data["book"])
