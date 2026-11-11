@@ -16,39 +16,12 @@ run-name: T0 manual gate - ${{ inputs.gate }} (${{ github.sha }})
           - kraken-spot-sqlite
           - kraken-spot-read-api
           - timescaledb-integration
-          - scaleway-ssh-preflight
-          - scaleway-ssh-contract-only
           - sqlite-lease-fencing
   push:
     branches:
       - feature/t0-centralized-data-feeder-p1-20261101
     paths:
       - .github/workflows/t0-manual-validation.yml
-      - ci/test_t0_ssh_preflight_contract.py
-      - ci/t0_runtime_acceptance.py
-      - ci/test_t0_runtime_acceptance.py
-      - market_data/feeder.py
-      - market_data/store.py
-      - market_data/write_gateway.py
-      - market_data/test_feeder_lease.py
-      - market_data/test_write_gateway.py
-      - market_data/test_feeder_lifecycle.py
-      - market_data/feeder_service.py
-      - market_data/test_feeder_recovery.py
-      - market_data/test_feeder_scheduler.py
-      - market_data/sync.py
-      - market_data/api.py
-      - market_data/storage.py
-      - market_data/test_sync.py
-      - market_data/test_api.py
-      - market_data/test_e2e_data_flow.py
-      - freqai_bridge/context.py
-      - freqai_bridge/http_candles.py
-      - freqai_bridge/test_http_candles.py
-  pull_request:
-    paths:
-      - .github/workflows/t0-manual-validation.yml
-      - ci/test_t0_ssh_preflight_contract.py
       - ci/t0_runtime_acceptance.py
       - ci/test_t0_runtime_acceptance.py
       - market_data/feeder.py
@@ -114,11 +87,6 @@ jobs:
           done
           git rev-parse HEAD | tee ci-source-sha.txt
           echo "T0_SQLITE_LEASE_FENCING_AUTO=ISOLATED" | tee sqlite-lease-fencing-scope.txt
-      - name: Run automatic trigger and isolation contract tests
-        shell: bash
-        run: |
-          set -euo pipefail
-          python -m unittest ci.test_t0_ssh_preflight_contract -v 2>&1 | tee sqlite-lease-fencing-workflow-contract-tests.log
       - name: Run SQLite lease and fencing tests
         shell: bash
         run: |
@@ -179,7 +147,7 @@ jobs:
           git diff --name-only "$BASE_SHA" "$HEAD_SHA" > recovery-changed-files.txt
           cat recovery-changed-files.txt
           changed=false
-          for path in .github/workflows/t0-manual-validation.yml ci/test_t0_ssh_preflight_contract.py ci/t0_runtime_acceptance.py ci/test_t0_runtime_acceptance.py market_data/feeder.py market_data/feeder_service.py market_data/test_feeder_recovery.py market_data/test_feeder_scheduler.py market_data/test_feeder_lifecycle.py market_data/sync.py market_data/api.py market_data/storage.py market_data/test_sync.py market_data/test_api.py market_data/test_e2e_data_flow.py freqai_bridge/context.py freqai_bridge/http_candles.py freqai_bridge/test_http_candles.py; do
+          for path in .github/workflows/t0-manual-validation.yml ci/t0_runtime_acceptance.py ci/test_t0_runtime_acceptance.py market_data/feeder.py market_data/feeder_service.py market_data/test_feeder_recovery.py market_data/test_feeder_scheduler.py market_data/test_feeder_lifecycle.py market_data/sync.py market_data/api.py market_data/storage.py market_data/test_sync.py market_data/test_api.py market_data/test_e2e_data_flow.py freqai_bridge/context.py freqai_bridge/http_candles.py freqai_bridge/test_http_candles.py; do
             if grep -Fxq "$path" recovery-changed-files.txt; then changed=true; fi
           done
           echo "changed=$changed" >> "$GITHUB_OUTPUT"
@@ -280,7 +248,7 @@ jobs:
           git diff --name-only "$BASE_SHA" "$HEAD_SHA" > data-flow-changed-files.txt
           cat data-flow-changed-files.txt
           changed=false
-          for path in .github/workflows/t0-manual-validation.yml ci/test_t0_ssh_preflight_contract.py ci/t0_runtime_acceptance.py ci/test_t0_runtime_acceptance.py market_data/sync.py market_data/store.py market_data/write_gateway.py market_data/feeder.py market_data/api.py market_data/storage.py market_data/test_sync.py market_data/test_api.py market_data/test_e2e_data_flow.py freqai_bridge/context.py freqai_bridge/http_candles.py freqai_bridge/test_http_candles.py; do
+          for path in .github/workflows/t0-manual-validation.yml ci/t0_runtime_acceptance.py ci/test_t0_runtime_acceptance.py market_data/sync.py market_data/store.py market_data/write_gateway.py market_data/feeder.py market_data/api.py market_data/storage.py market_data/test_sync.py market_data/test_api.py market_data/test_e2e_data_flow.py freqai_bridge/context.py freqai_bridge/http_candles.py freqai_bridge/test_http_candles.py; do
             if grep -Fxq "$path" data-flow-changed-files.txt; then changed=true; fi
           done
           echo "changed=$changed" >> "$GITHUB_OUTPUT"
@@ -340,7 +308,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python -m unittest ci.test_t0_ssh_preflight_contract market_data.test_e2e_data_flow market_data.test_sync market_data.test_api freqai_bridge.test_http_candles -v 2>&1 | tee sqlite-data-flow-tests.log
+          python -m unittest market_data.test_e2e_data_flow market_data.test_sync market_data.test_api freqai_bridge.test_http_candles -v 2>&1 | tee sqlite-data-flow-tests.log
           echo "SQLITE_T0_TO_T2_DATA_FLOW=PASS" | tee sqlite-data-flow-verdict.txt
       - name: Upload automatic data-flow evidence
         if: always()
@@ -437,7 +405,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python -m unittest ci.test_t0_ssh_preflight_contract ci.test_t0_runtime_acceptance -v 2>&1 | tee g4-runtime-contract-tests.log
+          python -m unittest ci.test_t0_runtime_acceptance -v 2>&1 | tee g4-runtime-contract-tests.log
           echo "G4_READ_ONLY_SQLITE_CONTRACT=PASS" | tee g4-verdict.txt
       - name: Upload G4 contract evidence
         if: always()
@@ -452,7 +420,7 @@ jobs:
             g4-verdict.txt
 
   manual-gate:
-    if: ${{ github.event_name == 'workflow_dispatch' && inputs.gate != 'scaleway-ssh-preflight' && inputs.gate != 'scaleway-ssh-contract-only' }}
+    if: ${{ github.event_name == 'workflow_dispatch' }}
     name: T0 manual isolated acceptance
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -559,240 +527,3 @@ jobs:
             timescaledb-tests.log
             timescaledb-verdict.txt
 
-  ssh-preflight-contract:
-    if: ${{ (github.event_name == 'workflow_dispatch' && (inputs.gate == 'scaleway-ssh-preflight' || inputs.gate == 'scaleway-ssh-contract-only')) || github.event_name == 'pull_request' }}
-    name: P1 SSH preflight contract checks
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    permissions:
-      contents: read
-    steps:
-      - name: Checkout exact source commit
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.sha }}
-          persist-credentials: false
-      - name: Validate read-only remote command and workflow contract
-        run: |
-          set -euo pipefail
-          bash -n ops/ssh/t0-readonly-preflight.sh
-          python -m unittest ci.test_t0_ssh_preflight_contract -v
-          python - <<'PY'
-          from pathlib import Path
-          workflow = Path(".github/workflows/t0-manual-validation.yml").read_text()
-          required = (
-              "preflight-ssh-diagnostic.txt",
-              "preflight-ssh-exit-code.txt",
-              "SSH_STDERR_CLASS=",
-              "HOST_KEY_REJECTED",
-              "AUTHENTICATION_REJECTED",
-              "NETWORK_UNREACHABLE",
-              "NON_EMPTY_UNCLASSIFIED",
-          )
-          missing = [item for item in required if item not in workflow]
-          assert not missing, f"Missing sanitized SSH diagnostic contract: {missing}"
-          assert "ssh-client-stderr.log" not in workflow.rsplit("path: |", 1)[-1]
-          PY
-
-  ssh-preflight:
-    if: ${{ github.event_name == 'workflow_dispatch' && inputs.gate == 'scaleway-ssh-preflight' }}
-    name: P1 authenticated Scaleway read-only preflight
-    needs: ssh-preflight-contract
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    environment:
-      name: scaleway-preflight
-    permissions:
-      contents: read
-    steps:
-      - name: Checkout exact source commit
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.sha }}
-          persist-credentials: false
-      - name: Validate protected SSH inputs
-        shell: bash
-        env:
-          SCW_SSH_HOST: ${{ secrets.SCW_SSH_HOST }}
-          SCW_SSH_PORT: ${{ secrets.SCW_SSH_PORT }}
-          SCW_SSH_USER: ${{ secrets.SCW_SSH_USER }}
-        run: |
-          set -euo pipefail
-          for key in SCW_SSH_HOST SCW_SSH_PORT SCW_SSH_USER; do
-            if [[ -z "${!key:-}" ]]; then echo "Missing required environment secret: $key"; exit 1; fi
-          done
-          [[ "$SCW_SSH_PORT" =~ ^[0-9]{1,5}$ ]] || { echo "Invalid SSH port"; exit 1; }
-          (( SCW_SSH_PORT >= 1 && SCW_SSH_PORT <= 65535 )) || { echo "Invalid SSH port"; exit 1; }
-          [[ "$SCW_SSH_HOST" =~ ^[A-Za-z0-9.-]+$ ]] || { echo "Invalid SSH host"; exit 1; }
-          [[ "$SCW_SSH_USER" =~ ^[a-z_][a-z0-9_-]*[$]?$ ]] || { echo "Invalid SSH user"; exit 1; }
-          git rev-parse HEAD > ci-source-sha.txt
-      - name: Establish pinned-key SSH and run forced read-only command
-        shell: bash
-        env:
-          SCW_SSH_HOST: ${{ secrets.SCW_SSH_HOST }}
-          SCW_SSH_PORT: ${{ secrets.SCW_SSH_PORT }}
-          SCW_SSH_USER: ${{ secrets.SCW_SSH_USER }}
-          SCW_SSH_PRIVATE_KEY: ${{ secrets.SCW_SSH_PRIVATE_KEY }}
-          SCW_SSH_KNOWN_HOSTS: ${{ secrets.SCW_SSH_KNOWN_HOSTS }}
-          SCW_SSH_KEY_PASSPHRASE: ${{ secrets.SCW_SSH_KEY_PASSPHRASE }}
-        run: |
-          set -euo pipefail
-          umask 077
-          key_file="$RUNNER_TEMP/scw_preflight_ed25519"
-          known_hosts_file="$RUNNER_TEMP/scw_known_hosts"
-          passphrase_file="$RUNNER_TEMP/scw_ssh_passphrase"
-          askpass_file="$RUNNER_TEMP/scw_ssh_askpass"
-          public_key_file="$RUNNER_TEMP/scw_preflight_ed25519.pub"
-          remote_log="preflight-remote.log"
-
-          cleanup() {
-            if [[ -n "${SSH_AGENT_PID:-}" ]]; then
-              ssh-agent -k >/dev/null 2>&1 || true
-            fi
-            rm -f -- "$key_file" "$known_hosts_file" "$passphrase_file" "$askpass_file" "$public_key_file" "$RUNNER_TEMP/ssh-add-stderr.log" "$RUNNER_TEMP/ssh-client-stderr.log"
-          }
-          trap cleanup EXIT
-          trap 'exit 130' INT
-          trap 'exit 143' TERM
-
-          for key in SCW_SSH_PRIVATE_KEY SCW_SSH_KNOWN_HOSTS; do
-            if [[ -z "${!key:-}" ]]; then
-              echo "Missing required protected SSH input: $key"
-              printf '%s\n' 'SSH_PRIVATE_KEY_SETUP=BLOCKED_MISSING_INPUT' > preflight-ssh-diagnostic.txt
-              printf '%s\n' '1' > preflight-ssh-exit-code.txt
-              exit 1
-            fi
-          done
-
-          if [[ -z "${SCW_SSH_KEY_PASSPHRASE:-}" ]]; then
-            echo "SCW_SSH_KEY_PASSPHRASE secret is required for the encrypted deployment key"
-            printf '%s\n' 'SSH_PRIVATE_KEY_UNLOCK=BLOCKED_MISSING_PASSPHRASE' > preflight-ssh-diagnostic.txt
-            printf '%s\n' '1' > preflight-ssh-exit-code.txt
-            exit 1
-          fi
-
-          printf '%s\n' "$SCW_SSH_PRIVATE_KEY" > "$key_file"
-          printf '%s\n' "$SCW_SSH_KNOWN_HOSTS" > "$known_hosts_file"
-          printf '%s' "$SCW_SSH_KEY_PASSPHRASE" > "$passphrase_file"
-          chmod 600 "$key_file" "$known_hosts_file" "$passphrase_file"
-
-          cat > "$askpass_file" <<'ASKPASS'
-          #!/usr/bin/env bash
-          set -euo pipefail
-          cat -- "$SCW_SSH_PASSPHRASE_FILE"
-          ASKPASS
-          chmod 700 "$askpass_file"
-          export SCW_SSH_PASSPHRASE_FILE="$passphrase_file"
-
-          eval "$(ssh-agent -s -t 300)"
-          if SSH_ASKPASS="$askpass_file" SSH_ASKPASS_REQUIRE=force DISPLAY=:0 \
-              ssh-add -t 300 "$key_file" </dev/null 2>"$RUNNER_TEMP/ssh-add-stderr.log"; then
-            echo "SSH_PRIVATE_KEY_UNLOCK=PASS"
-          else
-            printf '%s\n' 'SSH_PRIVATE_KEY_UNLOCK=FAILED' > preflight-ssh-diagnostic.txt
-            printf '%s\n' '1' > preflight-ssh-exit-code.txt
-            exit 1
-          fi
-
-          unset SCW_SSH_PRIVATE_KEY SCW_SSH_KNOWN_HOSTS SCW_SSH_KEY_PASSPHRASE
-          rm -f -- "$key_file" "$passphrase_file"
-          unset SCW_SSH_PASSPHRASE_FILE SSH_ASKPASS SSH_ASKPASS_REQUIRE DISPLAY
-
-          ssh-add -L > "$public_key_file"
-          if [[ "$(wc -l < "$public_key_file")" -ne 1 ]]; then
-            printf '%s\n' 'SSH_KEY_FINGERPRINT=BLOCKED_UNEXPECTED_IDENTITY_COUNT' > preflight-ssh-diagnostic.txt
-            printf '%s\n' '1' > preflight-ssh-exit-code.txt
-            exit 1
-          fi
-          fingerprint="$(ssh-keygen -lf "$public_key_file" -E sha256 | awk '{print $2}')"
-          expected_fingerprint="SHA256:z6b+FNalGgXhZvT9dc9TszFeUjB3Z/1z5SiWCgWQq/w"
-          if [[ "$fingerprint" != "$expected_fingerprint" ]]; then
-            printf '%s\n' 'SSH_KEY_FINGERPRINT=MISMATCH' > preflight-ssh-diagnostic.txt
-            printf '%s\n' '1' > preflight-ssh-exit-code.txt
-            exit 1
-          fi
-          printf '%s\n' 'SSH_PRIVATE_KEY_UNLOCK=PASS' 'SSH_KEY_FINGERPRINT=PASS' > preflight-ssh-diagnostic.txt
-
-          if timeout 60s ssh -T \
-            -p "$SCW_SSH_PORT" \
-            -i "$public_key_file" \
-            -o BatchMode=yes \
-            -o IdentitiesOnly=yes \
-            -o StrictHostKeyChecking=yes \
-            -o UserKnownHostsFile="$known_hosts_file" \
-            -o GlobalKnownHostsFile=/dev/null \
-            -o HostKeyAlgorithms=ssh-ed25519 \
-            -o PasswordAuthentication=no \
-            -o KbdInteractiveAuthentication=no \
-            -o ForwardAgent=no \
-            -o ClearAllForwardings=yes \
-            -o RequestTTY=no \
-            -o LogLevel=ERROR \
-            "$SCW_SSH_USER@$SCW_SSH_HOST" 2>"$RUNNER_TEMP/ssh-client-stderr.log" | tee "$remote_log"; then
-            ssh_status=0
-          else
-            ssh_status=$?
-          fi
-          printf '%s\n' "$ssh_status" > preflight-ssh-exit-code.txt
-          python - "$RUNNER_TEMP/ssh-client-stderr.log" "$ssh_status" <<'PY'
-          import pathlib
-          import sys
-
-          stderr = pathlib.Path(sys.argv[1]).read_text(errors="replace")
-          rules = (
-              ("HOST_KEY_REJECTED", ("host key verification failed", "remote host identification has changed", "no matching host key")),
-              ("AUTHENTICATION_REJECTED", ("permission denied", "no supported authentication methods")),
-              ("DNS_RESOLUTION_FAILED", ("could not resolve hostname", "name or service not known", "temporary failure in name resolution")),
-              ("CONNECTION_TIMED_OUT", ("connection timed out", "operation timed out")),
-              ("CONNECTION_REFUSED", ("connection refused",)),
-              ("NETWORK_UNREACHABLE", ("no route to host", "network is unreachable")),
-              ("SSH_KEY_FORMAT_OR_LOAD_ERROR", ("load key", "error in libcrypto", "invalid format")),
-              ("SSH_HANDSHAKE_OR_KEX_ERROR", ("kex_exchange_identification", "ssh_exchange_identification", "connection closed")),
-          )
-          found = [label for label, needles in rules if any(n in stderr.lower() for n in needles)]
-          if not stderr.strip():
-              found = ["STDERR_EMPTY"]
-          elif not found:
-              found = ["NON_EMPTY_UNCLASSIFIED"]
-          lines = pathlib.Path("preflight-ssh-diagnostic.txt").read_text().splitlines()
-          lines.extend(f"SSH_STDERR_CLASS={label}" for label in found)
-          lines.append(f"SSH_EXIT_CODE={sys.argv[2]}")
-          pathlib.Path("preflight-ssh-diagnostic.txt").write_text("\n".join(lines) + "\n")
-          PY
-          if [[ "$ssh_status" -ne 0 ]]; then
-            exit "$ssh_status"
-          fi
-          if ! grep -Fxq 'P1_SSH_PREFLIGHT_VERSION=1' "$remote_log" || ! grep -Fxq 'P1_SSH_PREFLIGHT_END=1' "$remote_log"; then
-            printf '%s\n' 'SSH_STDERR_CLASS=REMOTE_PROTOCOL_NOT_CONFIRMED' >> preflight-ssh-diagnostic.txt
-            exit 1
-          fi
-      - name: Classify preflight evidence
-        if: always()
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [[ -f preflight-remote.log ]] && grep -q '^API_8788=NON_LOOPBACK_LISTENER$' preflight-remote.log; then
-            echo 'P1_SSH_PREFLIGHT=BLOCKED_NON_LOOPBACK_API_LISTENER' | tee preflight-verdict.txt
-            exit 1
-          fi
-          if [[ ! -f preflight-remote.log ]] || ! grep -Eq '^SOURCE_SHA=[0-9a-f]{40}$' preflight-remote.log || ! grep -Fxq 'SQLITE_INTEGRITY=PASS' preflight-remote.log; then
-            echo 'P1_SSH_PREFLIGHT=PARTIAL_OR_BLOCKED_EVIDENCE' | tee preflight-verdict.txt
-            exit 1
-          fi
-          if grep -Fxq 'FEEDER_PIDS=NONE' preflight-remote.log || grep -Fxq 'API_8788=NOT_LISTENING' preflight-remote.log; then
-            echo 'P1_SSH_PREFLIGHT=PARTIAL_RUNTIME_COMPONENT_NOT_PRESENT' | tee preflight-verdict.txt
-          else
-            echo 'P1_SSH_PREFLIGHT=PASS_READ_ONLY_PREFLIGHT' | tee preflight-verdict.txt
-          fi
-      - name: Upload sanitized preflight evidence
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: p1-scaleway-ssh-preflight-${{ github.run_id }}
-          if-no-files-found: warn
-          path: |
-            ci-source-sha.txt
-            preflight-remote.log
-            preflight-verdict.txt
-            preflight-ssh-diagnostic.txt
-            preflight-ssh-exit-code.txt
