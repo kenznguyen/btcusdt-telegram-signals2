@@ -8,7 +8,10 @@ from pipeline.values import number, stamp
 from paper_execution import equity as equity_history
 
 
-def record_account_mark(ledger, mark_price, candle_close_ms, observed_at_ms, dataset_version, initial_capital="100"):
+def record_account_mark(
+    ledger, mark_price, candle_close_ms, observed_at_ms, dataset_version,
+    initial_capital="100",
+):
     """Atomically reconcile one account-wide mark across all strategy ledgers."""
     # Late import avoids a cycle because PaperLedger delegates to this module.
     from paper_execution.ledger import (
@@ -156,11 +159,13 @@ def record_account_mark(ledger, mark_price, candle_close_ms, observed_at_ms, dat
             bool(risk[5]) and funding_ready and bool(cutover)
             and risk[1] == utc_day and risk[2] is not None
         )
-        unavailable = risk[6]
-        if not cutover:
+        unavailable = None if risk_ready else risk[6]
+        if not risk_ready and not cutover:
             unavailable = "ACCOUNT_EQUITY_CUTOVER_NOT_ESTABLISHED"
-        elif not funding_ready:
+        elif not risk_ready and not funding_ready:
             unavailable = "FUNDING_PROVENANCE_INCOMPLETE"
+        elif not risk_ready and not unavailable:
+            unavailable = "ACCOUNT_RISK_NOT_READY"
         connection.execute(
             """UPDATE paper_account_risk_state
                SET last_equity_quote=?,high_water_mark_quote=?,last_mark_price=?,
