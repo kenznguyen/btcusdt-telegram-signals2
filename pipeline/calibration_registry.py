@@ -6,8 +6,9 @@ not establish registry promotion, revocation state, OOS quality or admission.
 """
 import base64
 import binascii
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import hashlib
+from decimal import Decimal, InvalidOperation, localcontext
 import json
 import re
 from pathlib import PurePosixPath
@@ -325,4 +326,163 @@ def verify_calibration_manifest(manifest_bytes, signature_envelope, artifact_byt
         "key_id": signature_envelope["key_id"],
         "signer_role": signature_envelope["signer_role"],
         "registry_namespace": payload["registry_namespace"],
+    }
+
+
+_TRANSFORM_FIELDS = frozenset({
+    "artifact_schema", "transform_schema", "calibration_method", "method_version",
+    "input_semantics", "output_semantics", "label_definition_id",
+    "forecast_horizon_value", "forecast_horizon_unit", "knots",
+})
+_DECIMAL = re.compile(r"(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?\\Z")
+
+
+def _canonical_transform(artifact_bytes):
+    if not isinstance(artifact_bytes, bytes) or not artifact_bytes:
+        _fail("INVALID_ARTIFACT_BYTES")
+    try:
+        decoded = artifact_bytes.decode("utf-8", errors="strict")
+        if decoded.startswith("\\ufeff"):
+            _fail("ARTIFACT_BOM_NOT_ALLOWED")
+        transform = json.loads(
+            decoded,
+            object_pairs_hook=_unique_object,
+            parse_int=_reject_number,
+            parse_float=_reject_number,
+            parse_constant=_reject_constant,
+        )
+        canonical_bytes = rfc8785.dumps(transform)
+    except CalibrationVerificationError:
+        raise
+    except Exception:
+        _fail("INVALID_CALIBRATION_TRANSFORM_JSON")
+    if not isinstance(transform, dict) or canonical_bytes != artifact_bytes:
+        _fail("NONCANONICAL_CALIBRATION_TRANSFORM")
+    if set(transform) != _TRANSFORM_FIELDS:
+        _fail("CALIBRATION_TRANSFORM_SCHEMA_MISMATCH")
+    for name in _TRANSFORM_FIELDS - {"knots"}:
+        if not isinstance(transform[name], str) or not transform[name]:
+            _fail("CALIBRATION_TRANSFORM_FIELD_INVALID:" + name)
+    if transform["artifact_schema"] != "ai-calibration-transform/v1" or transform[
+        "transform_schema"
+    ] != "score-probability-map/v1":
+        _fail("CALIBRATION_TRANSFORM_SCHEMA_UNSUPPORTED")
+    if transform["input_semantics"] != "absolute_predicted_return" or transform[
+        "output_semantics"
+    ] != "direction_correct_probability":
+        _fail("CALIBRATION_TRANSFORM_SEMANTICS_MISMATCH")
+    if transform["forecast_horizon_unit"] not in {"ms", "s", "m", "h"}:
+        _fail("CALIBRATION_TRANSFORM_HORIZON_INVALID")
+    if _UNSIGNED.fullmatch(transform["forecast_horizon_value"]) is None:
+        _fail("CALIBRATION_TRANSFORM_HORIZON_INVALID")
+    knots = transform["knots"]
+    if not isinstance(knots, list) or len(knots) < 2 or len(knots) > 4096:
+        _fail("CALIBRATION_TRANSFORM_KNOTS_INVALID")
+    parsed = []
+    previous_score = None
+    previous_probability = None
+    for knot in knots:
+        if not isinstance(knot, dict) or set(knot) != {"score", "probability"}:
+            _fail("CALIBRATION_TRANSFORM_KNOT_INVALID")
+        values = []
+        for name in ("score", "probability"):
+            raw = knot[name]
+            if not isinstance(raw, str) or _DECIMAL.fullmatch(raw) is None:
+                _fail("CALIBRATION_TRANSFORM_DECIMAL_INVALID")
+            try:
+                values.append(Decimal(raw))
+            except InvalidOperation:
+                _fail("CALIBRATION_TRANSFORM_DECIMAL_INVALID")
+        score, probability = values
+        if not Decimal("0") <= probability <= Decimal("1"):
+            _fail("CALIBRATION_TRANSFORM_PROBABILITY_INVALID")
+        if previous_score is not None and score <= previous_score:
+            _fail("CALIBRATION_TRANSFORM_SCORE_NOT_STRICTLY_INCREASING")
+        if previous_probability is not None and probability < previous_probability:
+            _fail("CALIBRATION_TRANSFORM_NOT_MONOTONIC")
+        parsed.append((score, probability))
+        previous_score, previous_probability = score, probability
+    return transform, parsed
+
+
+def _decimal_text(value):
+    text = format(value.normalize(), "f")
+    if "." in text:
+        text = text.rstrip("0").rstrip(".")
+    return text or "0"
+
+
+def apply_calibration_transform(artifact_bytes, raw_score):
+    """Apply a verified-format monotone score/probability map without extrapolation."""
+    transform, knots = _canonical_transform(artifact_bytes)
+    if not isinstance(raw_score, str) or _DECIMAL.fullmatch(raw_score) is None:
+        _fail("RAW_DIRECTION_SCORE_INVALID")
+    score = Decimal(raw_score)
+    if score < knots[0][0] or score > knots[-1][0]:
+        _fail("RAW_DIRECTION_SCORE_OUTSIDE_CALIBRATION_RANGE")
+    for knot_score, probability in knots:
+        if score == knot_score:
+            return _decimal_text(probability)
+    for (left_score, left_probability), (right_score, right_probability) in zip(knots, knots[1:]):
+        if left_score < score < right_score:
+            with localcontext() as context:
+                context.prec = 40
+                value = left_probability + (score-left_score) * (
+                    right_probability-left_probability
+                ) / (right_score-left_score)
+            return _decimal_text(value)
+    _fail("RAW_DIRECTION_SCORE_NOT_CALIBRATABLE")
+
+
+def calibrate_verified_prediction(
+    manifest_bytes, signature_envelope, artifact_bytes, trust_config, raw_direction_score
+):
+    """Verify the signed bundle and derive per-inference confidence from its exact transform."""
+    verification = verify_calibration_manifest(
+        manifest_bytes, signature_envelope, artifact_bytes, trust_config
+    )
+    manifest = _validate_manifest(_canonical_manifest(manifest_bytes))
+    transform, _ = _canonical_transform(artifact_bytes)
+    if transform["transform_schema"] != manifest["transform_schema"] or transform[
+        "calibration_method"
+    ] != manifest["calibration_method"] or transform["method_version"] != manifest[
+        "method_version"
+    ]:
+        _fail("CALIBRATION_TRANSFORM_MANIFEST_MISMATCH")
+    if transform["label_definition_id"] != manifest["label_definition_id"] or transform[
+        "forecast_horizon_value"
+    ] != manifest["forecast_horizon_value"] or transform[
+        "forecast_horizon_unit"
+    ] != manifest["forecast_horizon_unit"]:
+        _fail("CALIBRATION_TRANSFORM_LABEL_HORIZON_MISMATCH")
+    horizon_ms = int(manifest["forecast_horizon_value"]) * {
+        "ms": 1, "s": 1_000, "m": 60_000, "h": 3_600_000
+    }[manifest["forecast_horizon_unit"]]
+
+    def epoch_ms(value):
+        return int(datetime.strptime(value, "%Y-%m-%dT%H:%M:%SZ").replace(
+            tzinfo=timezone.utc
+        ).timestamp() * 1000)
+
+    confidence = apply_calibration_transform(artifact_bytes, raw_direction_score)
+    return {
+        "verificationStatus": verification["verification_status"],
+        "manifestId": manifest["manifest_id"],
+        "manifestDigest": verification["manifest_digest"],
+        "calibrationVersion": manifest["calibration_version"],
+        "calibrationMethod": manifest["calibration_method"],
+        "calibrationArtifactHash": verification["artifact_digest"],
+        "calibrationDatasetVersion": manifest["calibration_dataset_digest"],
+        "calibrationSampleCount": int(manifest["sample_count"]),
+        "calibrationStartMs": epoch_ms(manifest["calibration_start"]),
+        "calibrationEndMs": epoch_ms(manifest["calibration_end"]),
+        "calibratedAtMs": epoch_ms(manifest["created_at"]),
+        "modelVersion": manifest["model_version"],
+        "strategyVersion": manifest["strategy_version"],
+        "trainingDatasetVersion": manifest["training_dataset_digest"],
+        "labelDefinition": manifest["label_definition_id"],
+        "forecastHorizonMs": horizon_ms,
+        "calibratedConfidence": confidence,
+        "registryNamespace": manifest["registry_namespace"],
+        "publisherId": manifest["publisher_id"],
     }
