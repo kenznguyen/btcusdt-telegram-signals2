@@ -185,6 +185,13 @@ class CalibrationRegistryVerifierTest(unittest.TestCase):
         with self.assertRaisesRegex(CalibrationVerificationError, "MANIFEST_SCHEMA_MISMATCH"):
             self.verify(manifest_bytes=raw, envelope=self.make_envelope(raw, invalid))
 
+    def test_artifact_path_rejects_single_backslash(self):
+        invalid = copy.deepcopy(self.manifest)
+        invalid["artifact_path"] = r"docs/registry/ai-calibration/artifacts\\..\\outside.json"
+        raw = canonical(invalid)
+        with self.assertRaisesRegex(CalibrationVerificationError, "ARTIFACT_PATH_OUTSIDE_REGISTRY"):
+            self.verify(manifest_bytes=raw, envelope=self.make_envelope(raw, invalid))
+
     def test_manifest_mutation_and_signature_mutation_are_rejected(self):
         changed = copy.deepcopy(self.manifest)
         changed["model_version"] = "attacker-model"
