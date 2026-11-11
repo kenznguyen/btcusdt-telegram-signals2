@@ -456,3 +456,5 @@ jobs:
             ci-source-sha.txt
             preflight-remote.log
             preflight-verdict.txt
+            preflight-ssh-diagnostic.txt
+            preflight-ssh-exit-code.txt
