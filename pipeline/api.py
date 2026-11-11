@@ -188,6 +188,8 @@ def core_decide(timestamp, book=None):
                             initial_capital=os.environ.get("PAPER_INITIAL_CAPITAL", "100"),
                             max_position_base=os.environ.get("PAPER_MAX_POSITION_BASE", "0.01"))
         from paper_execution.ledger import read_snapshot
+        # Establish the additive dual-ledger schema before reading strategy-owned state.
+        ledger(strategy_id="STRATEGY_CORE")
         paper = read_snapshot(
             os.environ.get("MARKET_DATA_DB", ""), strategy_id="STRATEGY_CORE"
         )
@@ -412,6 +414,8 @@ def application(environ, start_response):
             if path == "/v1/paper/pause" and set(payload) == {"paused"} and type(payload["paused"]) is bool:
                 result = ledger().set_paused(payload["paused"], timestamp)
             elif path == "/v1/paper/cancel" and set(payload) == {"orderId"} and isinstance(payload["orderId"], str) and 0 < len(payload["orderId"]) <= 100:
+                # Apply the additive migration before resolving the persisted post-cutover owner.
+                ledger(strategy_id="STRATEGY_CORE")
                 owner = resolve_order_strategy(os.environ["MARKET_DATA_DB"], payload["orderId"])
                 result = ledger(strategy_id=owner).cancel(payload["orderId"], timestamp)
             elif path == "/v1/paper/kill" and set(payload) == {"enabled"} and payload["enabled"] is True:
@@ -423,6 +427,8 @@ def application(environ, start_response):
                 result = ledger().reset_kill(True, True, timestamp)
             elif path == "/v1/paper/evaluate" and (not payload or payload in ({"source": "AI"}, {"source": "CORE"})):
                 source = payload.get("source", "AI")
+                source_id = "STRATEGY_CORE" if source == "CORE" else "AI_FREQAI"
+                strategy_ledger = ledger(strategy_id=source_id)
                 if source == "CORE":
                     data = {"book": book_snapshot(timestamp)}
                     decision = core_decide(timestamp, data["book"])
@@ -440,13 +446,12 @@ def application(environ, start_response):
                         mark = mark_window["candles"][-1]
                         ledger().record_account_mark(mark["close"],mark["closeTimeMs"],timestamp,
                             mark_window["datasetVersion"],os.environ.get("PAPER_INITIAL_CAPITAL","100"))
-                    source_id = "STRATEGY_CORE" if source == "CORE" else "AI_FREQAI"
                     reason = decision.get("reason")
                     event = "ENTRY" if reason in ("RSI_ADX_ENTRY","ALIGNED_PAPER_SIGNAL") else "DCA" if reason == "DCA" else "EXIT" if reason in ("EMERGENCY_SL","SOFT_SL","TAKE_PROFIT","CLOSE") else None
-                    order = ledger(strategy_id=source_id).submit(decision["intent"], data["book"], timestamp,
+                    order = strategy_ledger.submit(decision["intent"], data["book"], timestamp,
                         strategy_id=source_id, strategy_event=event)
                     if mark_window["candles"] and mark_window["coverage"]["complete"]:
-                        ledger().record_equity(mark["close"],mark["closeTimeMs"],timestamp,
+                        ledger().record_account_mark(mark["close"],mark["closeTimeMs"],timestamp,
                             mark_window["datasetVersion"],os.environ.get("PAPER_INITIAL_CAPITAL","100"))
                 result = {"decision": decision, "order": order}
             else:
