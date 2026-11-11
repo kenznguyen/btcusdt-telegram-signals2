@@ -2027,3 +2027,16 @@ Next: if owner wants to proceed beyond planning, first approve a bounded provisi
 - Documentation-only. No source/test/fixture/schema/API/registry/adapter/runner/workflow/permission/credential/key/trust-root/database/storage/market-data/model/ledger/VPS/runtime changes; no tests or workflow dispatch; no key operations, signing, anchor creation, provider/network/database/VPS access or inventory; no archive, quarantine, cleanup, expiry, compaction, VACUUM or deletion.
 - Next: owner/security review of evidence-class boundaries; then explicitly ratify/modify/reject only the applicable D01–D14 decisions. Synthetic executable verification, verifier implementation, real evidence adapters, owner authorization and any executor remain separate gates and approvals.
 - T0 remains independent/protected; CORE_LEDGER and AI_LEDGER remain separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
+
+
+## G0.28 — Owner Decision Closure and Dependency Matrix (2026-11-11)
+
+- Baseline HEAD: `12f781b077526eae3b5856fdb3c6a9ceba724ce4`; baseline handoff blob: `803a47772461d4d510718e5c088f746fc512f18a`.
+- Report: `docs/evidence/G0_28_OWNER_DECISION_CLOSURE_DEPENDENCY_MATRIX_2026-11-11.md`.
+- Report creation commit: `b118101eca29c1a17fc2e5aa6ae55c22a11aab06`.
+- Mapped D01–D14 into claim/stage dependencies, conditional deferral rules, and closure evidence. Defined staged minimum decision sets for documentation-only, synthetic logical tests, synthetic cryptographic tests, real evidence verification, owner authorization and guarded execution.
+- Key distinction: a decision may be deferred only by explicitly excluding every dependent capability/claim from that stage. D01–D04 are coupled for real issuer authenticity; D05/D10/D11 are prerequisites for bounded synthetic executable contract work; D06–D08 govern real-source authority/completeness/freshness; D09/D12/D13 gate owner authorization and trust-boundary binding; D14 controls transitions.
+- G0.28 verdict: **DEPENDENCY ANALYSIS PASS — decision scope reduced and dependencies mapped; all D01–D14 remain OPEN / NOT RATIFIED; implementation and operational authority NOT GRANTED**.
+- Documentation-only. No source/test/fixture/schema/API/registry/adapter/runner/workflow/permission/credential/key/trust-root/database/storage/market-data/model/ledger/VPS/runtime changes; no tests or workflow dispatch; no cryptographic operations, provider/network/database/VPS access or inventory; no archive, quarantine, cleanup, expiry, compaction, VACUUM or deletion.
+- Next: owner must explicitly choose the scope of the first executable milestone, including supported evidence classes and claims. Do not infer this scope decision or any D01–D14 ratification from a continuation request.
+- T0 remains independent/protected; CORE_LEDGER and AI_LEDGER remain separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
