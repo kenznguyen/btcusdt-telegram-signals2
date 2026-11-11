@@ -236,6 +236,9 @@ class FiveLayerApiTest(unittest.TestCase):
         self.assertEqual(result["dailyLossUsdt"],"0")
         with sqlite3.connect(self.db) as connection:
             self.assertEqual(connection.execute("SELECT COUNT(*) FROM paper_equity_history").fetchone()[0],1)
+            self.assertIsNone(connection.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='paper_schema_migrations'"
+            ).fetchone())
 
     def test_audit_and_data_quality_endpoints_return_real_store_state(self):
         self.request("/v1/paper/pause","POST",{"paused":True})
