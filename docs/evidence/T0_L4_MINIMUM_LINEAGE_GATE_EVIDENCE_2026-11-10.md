@@ -65,3 +65,10 @@ Verify the new L4-Minimum GitHub Actions lineage workflow, diagnose failures, an
 Implement the GitHub-only artifact inventory/readback collector and deterministic SHA-256 manifest as a separate, test-first increment. Require explicit artifact/run allowlisting, source SHA binding, artifact name/ID/expiry capture, exact ZIP byte download and independent digest calculation. Fail closed on missing, expired, substituted, ambiguous or mismatched artifacts. Do not perform signature or offline verification in this increment.
 
 Historical source snapshot note (2026-11-10): this record captures the Evidence Register blob `cee949666da611a4efca7e7b51aea47ab4b13eff` as it existed when this lineage-gate evidence was first assembled. That register revision is superseded by current register blob `4379b5f115c5dac5a2779b857ab8fababf88e4f3`; the old reference is retained only to preserve the exact historical source snapshot, not as a current binding.
+
+
+## Superseding owner governance decision — Option C revoked (2026-11-11)
+
+The owner revoked **Option C — No Destructive Authority** on 2026-11-11. Any earlier statement in this historical record that Option C is ACTIVE, remains in force, is unchanged/current, or prohibits all destructive authority is superseded. Current status: **REVOKED**.
+
+This revocation removes Option C as a blanket prohibition but does not authorize any particular destructive operation. Deletion, archive, cleanup, expiry, vacuum, compaction, backup/replica removal, export mutation or provider operation still requires a separately explicit, scoped approval with exact target/data class, preconditions, expected effect, dependencies, verification and recovery/rollback plan. T0 canonical data, lease/fencing, ledgers, audit/reconstruction/recovery, custody and trust evidence remain protected unless separately approved. Paper-only and `AI_EXECUTION_ENABLED=false` remain unchanged. No L4 control or technical-enforcement status is promoted by this decision.
