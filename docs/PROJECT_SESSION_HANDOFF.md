@@ -14,7 +14,7 @@ Updated: 2026-11-11 (Asia/Ho_Chi_Minh)
 - Repository: `kenznguyen/btcusdt-telegram-signals2`.
 - Active branch: `feature/t0-centralized-data-feeder-p1-20261101`.
 - Default branch: `main`. Do not switch branches or create a parallel PR without a task-specific reason and approval.
-- Latest repository HEAD before this handoff update: `b584cc218833bfa6f5d0345b55639c0448961a8e` (test-first repository-file inventory contract; run #42912485814 has an intentional RED result for the missing implementation module).
+- Latest repository HEAD before this handoff update: `3384e751d6bf4af79d443f6d314a33f4a538af60` (A2.2 Stage I synthetic harness evidence recorded; see current A2.2 workstream below).
 - Full previous handoff preserved verbatim in `docs/archive/PROJECT_SESSION_HANDOFF_HISTORY_2026-11-10.md`; archive commit: `2fcad94aef8b15002cdba58aafe62ad208dc818b`.
 - PR #139 is OPEN / DRAFT / NOT MERGED. It concerns SSH passphrase handling and targets this active branch. Do not merge or alter it as part of unrelated work.
 
@@ -706,3 +706,36 @@ Reconcile the four-artifact Actions allowlist with all eligible source artifacts
 - **Execution status: BLOCKED / NOT STARTED.** The available execution environment cannot resolve `github.com` for a local clone (clone attempt failed with DNS resolution error). GitHub content APIs can read/write repository documents but do not provide a local Python test runtime; no untested source was committed. A local isolated checkout/test runtime is required before starting TDD.
 - No source code, tests, workflow, keys, signatures, trust roots, policy/anchor state, VPS/runtime, SQLite/canonical T0 data or trading behavior changed. No CI/workflow run or artifact exists.
 - Next step: obtain an isolated local working tree for this exact branch/head, inspect the project test conventions, write the Stage I failing tests first, then implement the smallest passing code and run focused plus full relevant test suites. Keep all changes on this existing branch.
+
+
+## 7. Current workstream — T0 Signature A2.2 Stage I synthetic harness
+
+**Governing contract and approval**
+- A2.2 source blob: `41d41cd23f73a6e552b9ceca5ebbb39c46934e7d`.
+- Owner Stage I approval record blob: `04c6deb7b04c6cef10a8e696c9bd63af69264c2a`.
+- Scope is limited to isolated synthetic/offline parsing, canonicalization, U64/U64BE, base64url, domain-separated digest helpers, profile binding, deterministic reason/verdict fixtures, 27 negative cases, in-memory state snapshots and a verifier stub labelled `MOCK / NOT CRYPTOGRAPHIC`.
+- Independent review is waived as a mandatory gate; not performed; G3 NOT ESTABLISHED.
+
+**Workflow**
+- Dedicated manual-only workflow: `.github/workflows/t0-signature-a2-2-stage-i.yml`, blob `90560d0257ca6cf52e6626616769a0abab8ce10b`.
+- Workflow addition commit: `56909f4da6d6c00ec9629132dc5bfdce4a266098`.
+- Workflow inspection evidence commit: `e5efd27a4f325351c923b8e2436b202589e91074`.
+- Workflow dispatch remains NOT AUTHORIZED / NOT RUN; no run or artifact exists.
+
+**Stage I package/tests added**
+- Package: `t0_signature_stage1/`, isolated from `synthetic_evidence/`.
+- Source/test commits culminate at `40b338336fcad59f058fac320bffe6182b4485f8`.
+- Evidence report: `docs/evidence/T0_SIGNATURE_A2_2_STAGE_I_SYNTHETIC_HARNESS_2026-11-11.md`, blob `d756fd16aa9bc23db4ebc54001380e95d82a1557`, commit `3384e751d6bf4af79d443f6d314a33f4a538af60`.
+- Local TDD: initial RED due missing implementation modules; subsequent GREEN **32/32 tests PASS**, 0 failures/errors/skips. `compileall` PASS.
+- Local test runtime was Python 3.13.5 in an isolated temporary tree with source files matching committed Git blobs. Python 3.12 parity is NOT VERIFIED.
+- The tests cover strict UTF-8/duplicate-key/BOM/canonical-byte behavior, UTF-16 key ordering, safe-integer JSON subset, U64 boundaries, base64url vectors, Evidence Object digest, five-location profile binding, bootstrap reason precedence, all 27 fixture records, single-mutation leaf assertions, immutable state snapshots and mock-only verifier labelling.
+
+**Current disposition: PARTIAL PASS / STAGE I ACCEPTANCE BLOCKED**
+- A1/A2.2 domain strings are inconsistent: Evidence Object uses a single-backslash `\\0` form; Trust Policy body, Monotonic Anchor object and A2.2 Signature Envelope domains are written with double-backslash `\\\\0` in source text. Their exact preimage bytes are ambiguous. The three corresponding digest helpers fail closed with `DOMAIN_SEPARATOR_ENCODING_UNRESOLVED`; do not silently select NUL or literal backslash-plus-zero.
+- T0-JCS-1 numeric-domain coverage is limited: floating-point JSON tokens are rejected and JSON integer tokens are limited to IEEE-754 safe integers; broader numeric-domain conformance remains NOT VERIFIED.
+- These are contract blockers, not crypto implementation findings. Passing 32 local tests proves only the implemented synthetic subset and fail-closed behavior, not full Stage I acceptance.
+- No production crypto, real keys, bootstrap, Path A/B, durable Trust Policy/Anchor, VPS/SSH, Feeder/API, SQLite/canonical T0, custody publication, CI secrets, deployment, trading, or destructive operation was changed or exercised.
+
+**Next permitted step**
+- Prepare an exact contract-only correction proposal that fixes the domain-separator byte strings and clarifies the T0-JCS-1 numeric subset. Obtain explicit owner approval of that amendment before changing the digest helpers or claiming full Stage I acceptance.
+- After the contract correction, update the exact tests and helpers, rerun local focused tests, then request separate explicit authorization before dispatching the manual GitHub Actions workflow. Do not dispatch while this blocker remains.
