@@ -57,3 +57,9 @@ Next step: compare the historical evidence to owner-supplied current sanitized s
 - T0 canonical SQLite, CORE_LEDGER, AI_LEDGER, audit/reconstruction and recovery evidence remain protected.
 - Option C remains REVOKED; revocation does not itself authorize destructive operations.
 - PostgreSQL/TimescaleDB remains PARKED.
+
+## G0.6 current-state addendum — 2026-11-11
+
+The historical observations above remain valid only for their bounded 2026-11-09 test window. The Scaleway VPS used for that test was fully deleted on 2026-11-11, per the owner’s project update. Consequently, the former host is no longer available for current runtime verification. No replacement VPS or current T0/T2 deployment has been established by this evidence review.
+
+**Historical 2026-11-09 bounded loopback test: PASS. Current deployment parity: NOT VERIFIED. Former VPS: DELETED 2026-11-11.** No new runtime probe, workflow dispatch, test, or database access was performed for this addendum. A replacement VPS, deployment, or service activation requires separate explicit approval.
