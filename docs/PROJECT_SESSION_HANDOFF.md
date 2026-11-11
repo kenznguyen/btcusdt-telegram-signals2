@@ -945,3 +945,12 @@ This is the current disposition and supersedes the earlier historical NOT RUN / 
 - Adapter contract updated with candidate: blob `8ec916c152c51e75c5a3852e7977dd7f1239d8fe`; current self-review report blob `038b17c9f2cc699b3db54f4ce06d517cf61fa665`.
 - Important: the wheel hash is corroborated by published lockfile records but was NOT recomputed from the downloaded PyPI artifact in this environment. The wheel itself was not installed. Transitive dependency closure, exact runner glibc, provenance attestation verification, license review and offline install remain NOT VERIFIED. No dependency file, lockfile, CI workflow or VPS package state changed.
 - Stage II remains **PARTIAL / BLOCKED AT INDEPENDENT SECURITY REVIEW AND CONTRACT FREEZE**. No tests or code implementation have been run.
+
+
+### Stage II — independent security review request opened (2026-11-11)
+
+- Created GitHub issue #143 requesting independent security review of exact A2.3 + Stage II adapter contract blobs: https://github.com/kenznguyen/btcusdt-telegram-signals2/issues/143.
+- Review issue pins A2.3 blob `41d6abfc9df20047af4668b80a6ce2edb7e07117`, adapter contract blob `8ec916c152c51e75c5a3852e7977dd7f1239d8fe`, self-review blob `038b17c9f2cc699b3db54f4ce06d517cf61fa665`, dependency candidate blob `9092b2cf5a9e9308d28e8436c8b91e2f9566ef4e`.
+- No reviewer was assigned because no qualified independent reviewer identity was established from repository context. Do not treat issue creation as review completion.
+- **Current Stage II disposition: BLOCKED at qualifying independent security review and exact contract freeze.** Same-session self-review is not independent. No Stage II implementation, test fixtures, dependency installation, lockfile change, workflow dispatch, key operation, trust bootstrap, VPS/T0/runtime or trading action is authorized/performed.
+- Next action: wait for a qualified independent reviewer to review the exact pinned blobs and record PASS/REQUEST CHANGES/BLOCKED. If reviewer requests changes, address findings on the same branch, update exact blobs and request review of the new snapshot. Only after review PASS and owner freeze may the narrowly scoped adapter implementation/test/CI step proceed under the existing Stage II approval boundaries.
