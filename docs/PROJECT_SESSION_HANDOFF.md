@@ -1120,3 +1120,20 @@ This is the current disposition and supersedes the earlier historical NOT RUN / 
   policy or await another explicit scope. Do not perform account migration,
   cutover, runtime activation, T0 changes, deployment or live execution without
   separate approval.
+
+
+
+## DS-03 Core sizing/leverage policy proposal prepared — 2026-11-11
+
+- Proposal: `docs/architecture/CORE_SIZING_LEVERAGE_POLICY_PROPOSAL.md`.
+- Proposal commit: `e76499d34d791e1592823bf52935ab0af80d15b2`.
+- Read-only source basis:
+  - `pipeline/core_strategy.py` blob
+    `b4266fc05ea41355ba9dcf6f15cb7b5a6d3800b0`;
+  - `paper_execution/ledger.py` blob
+    `38f71f974068eb12c56dd2174a4200d07c4c98bf`.
+- Confirmed static mismatch: Core defaults to 13x leverage and 50% ENTRY margin basis; shared risk admission separately caps each exposure-increasing order at 1% of current account equity and derives notional using ledger leverage.
+- Core leverage also affects ROE-based TP, DCA and stop trigger price thresholds. Therefore a leverage decision may alter behavior even if RSI/ADX predicates are untouched.
+- Proposal asks owner to decide Core leverage policy, ROE threshold semantics and explicit per-ENTRY/per-DCA sizing contract. No numerical Core leverage range is assumed; AI 1x–3x policy is not automatically transferred to Core.
+- DS-03 remains BLOCKED. No source/test/workflow/runtime change was made for this proposal.
+- Next gate: owner decision on D1-D3 in the proposal. Only then prepare the bounded TDD implementation plan; do not change Core sizing/leverage or run backtests without separate approval.
