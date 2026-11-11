@@ -39,7 +39,7 @@ The future normalized object should include, at minimum:
 | `contract_type` | Must match expected USD-M perpetual contract |
 | `status` | Must permit new order admission |
 | `base_asset` / `quote_asset` / `margin_asset` | Expected BTC/USDT contract identity |
-| `price_tick_size` | Positive tick increment from applicable price filter |
+| `price_tick_size` | Tick increment and explicit enabled/disabled state from applicable price filter |
 | `quantity_step_size` | Positive quantity increment from applicable lot filter |
 | `min_quantity` / `max_quantity` | Applicable quantity bounds |
 | `min_notional` | Applicable minimum notional constraint, with its source filter semantics |
@@ -58,10 +58,11 @@ Exact serialized schema, digest canonicalization and freshness threshold remain 
 
 The adapter must parse actual filter entries, not infer values from display precision.
 
-- `PRICE_FILTER`: validate and expose applicable `tickSize` and any applicable min/max price bounds.
-- `LOT_SIZE`: validate and expose `stepSize`, `minQty`, and `maxQty` for limit/regular quantity validation.
+- `PRICE_FILTER`: preserve `minPrice`, `maxPrice`, and `tickSize` independently. Binance documents zero for each field as disabling that individual rule; do not reject zero as malformed and do not invent a replacement. When enabled, enforce the documented price alignment `(price - minPrice) % tickSize == 0`, plus enabled min/max bounds.
+- `LOT_SIZE`: validate and expose `stepSize`, `minQty`, and `maxQty` for limit/regular quantity validation. Enforce `quantity >= minQty`, `quantity <= maxQty`, and `(quantity - minQty) % stepSize == 0`. Do not replace this with `quantity % stepSize == 0` unless minQty is zero.
 - `MARKET_LOT_SIZE`: preserve separately and apply only if a market-order path is explicitly in scope; do not silently substitute it for `LOT_SIZE`.
-- `MIN_NOTIONAL` or the current applicable notional filter: preserve exact filter type and semantics, including whether it applies to market orders and any averaging/price-reference requirements.
+- `PERCENT_PRICE`: preserve `multiplierUp`, `multiplierDown` and `multiplierDecimal`; for limit orders, validation also needs a fresh mark-price observation because the allowed price band is dynamic.
+- `MIN_NOTIONAL` or the current applicable notional filter: preserve exact filter type and semantics. For a limit ENTRY, validate notional using the contractually defined limit price and quantity. Do not assume Spot `NOTIONAL` fields or market-order averaging semantics apply to USD-M Futures without USD-M documentation.
 - Preserve other symbol filters in the source evidence. If an additional filter affects the intended order type and its semantics are unsupported, fail closed rather than ignore it.
 
 Do not assume that filter names, fields or semantics remain static across exchange API revisions. Provider version and contract tests must make supported variants explicit.
@@ -72,7 +73,7 @@ Reject the metadata snapshot if:
 - response or symbol entry is missing, malformed or duplicated;
 - symbol, contract type, status or asset identity is unexpected;
 - any required applicable filter is absent or duplicated ambiguously;
-- tick size, step size, minimum quantity or minimum notional is non-finite, non-positive or unparsable;
+- required enabled tick size, LOT_SIZE step size, minimum quantity or applicable notional is malformed, non-finite, negative where not allowed, or unparsable; zero-valued PRICE_FILTER fields are treated as disabled per Binance's documented semantics;
 - min/max bounds are inconsistent;
 - a relevant filter type or semantic change is not understood;
 - response is stale under the owner-approved policy;
@@ -86,7 +87,9 @@ The instrument provider supplies constraints; it does not decide strategy direct
 
 For a future AI ENTRY:
 - use the exact same execution limit price for risk sizing, notional validation and ledger admission;
-- ensure price is aligned to the applicable tick size; any rounding direction must be specified by the execution contract, not improvised by the provider;
+- apply enabled `PRICE_FILTER` min/max constraints and align price using `(price - minPrice) / tickSize` as an integer when `tickSize` is enabled; if the corresponding rule is disabled by a zero field, do not enforce that rule;
+- validate applicable `PERCENT_PRICE` against a fresh mark-price observation and fail closed if the dynamic reference is missing/stale;
+- any price rounding direction must be specified by the execution contract, not improvised by the provider;
 - floor quantity to the applicable quantity step so the rounded quantity does not exceed the risk budget;
 - enforce min/max quantity and applicable minimum notional after rounding;
 - if the rounded quantity is zero, below minimum quantity, below minimum notional or otherwise invalid, emit no AI trade intent;
@@ -126,3 +129,21 @@ Still unresolved:
 6. Whether any later consumer requires market-order filters; v1 AI scope is limit ENTRY only unless separately approved.
 
 **Disposition:** design proposal only. G0-05 remains BLOCKED pending owner confirmation of source/filter/freshness policy and future implementation/test gates. No adapter or network activity is authorized by this document.
+
+
+## 10. Official USDⓈ-M documentation verification — 2026-11-11
+
+The official Binance USDⓈ-M Futures common-definition page was checked (Chinese localized page, updated 2026-08-08):
+- Contract type/status definitions distinguish `PERPETUAL` and `TRADING`; the provider must check the exact BTCUSDT symbol, contract type and status.
+- `PRICE_FILTER` explicitly permits each of `minPrice`, `maxPrice` and `tickSize` to be zero to disable that individual condition. Enabled price alignment is `(price - minPrice) % tickSize == 0`.
+- `LOT_SIZE` explicitly checks `quantity >= minQty`, `quantity <= maxQty`, and `(quantity - minQty) % stepSize == 0`.
+- `MARKET_LOT_SIZE` applies to market orders, not as a replacement for the limit-order `LOT_SIZE` rule.
+- `PERCENT_PRICE` constrains limit price relative to mark price, so exchangeInfo metadata alone is insufficient to validate this dynamic rule; a fresh mark-price input and separate freshness policy would be required.
+- `MIN_NOTIONAL` is documented with a `notional` field; do not import Spot filter schema or assume Spot `NOTIONAL` semantics for USDⓈ-M Futures.
+- The page also lists `MAX_NUM_ORDERS` and `MAX_NUM_ALGO_ORDERS`; these depend on open-order/account state and are not static lot/tick sizing rules. A future exchange-parity simulator must decide whether to model them separately.
+
+Source: Binance Developer Documentation, Futures (USDⓈ-M), Public API Parameters / Filters: https://developers.binance.com/zh-CN/docs/products/derivatives-trading-usds-futures/common-definition
+
+**Design correction:** the earlier proposal's blanket requirement that every tick/step/minimum field be strictly positive was too broad. Zero is explicitly a disable sentinel for PRICE_FILTER fields; LOT_SIZE remains subject to its own documented step arithmetic. Filter validation must be field- and filter-specific.
+
+**Disposition:** documentation verified for the above semantics; live endpoint response and current BTCUSDT filter values have NOT been fetched or verified. G0-05 remains BLOCKED pending owner approval of the exact source, dynamic mark-price dependency, freshness policy, canonical schema and implementation gate.
