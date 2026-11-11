@@ -125,3 +125,9 @@ This section supersedes the earlier "Next step" disposition above. The proposal 
 
 ### Scope and boundaries
 No production cryptography, real keys, trust-root enrollment, Path A/B activation, durable policy/anchor state, VPS/SSH/runtime, canonical T0, custody publication, CI secrets, deployment, trading or destructive operation was changed. Independent review remains waived/not performed; G3 is not established.
+
+
+### Contract disposition consistency correction
+- A2.2 §19 wording was reconciled with the subsequent owner approval so it no longer describes all implementation as unapproved.
+- Current A2.2 contract blob: `d9f93bf390d107381b7135c3073aeca0d14894d4`; update commit: `96caa617ef1f5bb16b1c631ef164f4d34959592c`.
+- The only implementation approval remains the bounded synthetic Stage I scope. Production cryptography, keys, trust bootstrap, durable trust state, runtime and workflow dispatch remain outside authorization.
