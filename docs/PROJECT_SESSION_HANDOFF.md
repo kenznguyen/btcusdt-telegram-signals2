@@ -580,3 +580,14 @@ Reconcile the four-artifact Actions allowlist with all eligible source artifacts
 - A2 negative matrix currently has A2-NV-01 through A2-NV-43. A2-NV-40 is a stateful recovery test with pre-/post-recovery assertions; A2-NV-33 and A2-NV-43 isolate missing authority evidence versus digest mismatch.
 - Status: **DRAFT A2 — DOCUMENTATION ONLY — NOT IMPLEMENTATION-APPROVED — NOT INDEPENDENTLY REVIEWED**. The user-approved scope was limited to drafting A2. Do not create keys, signatures, trust roots, policy/anchor instances; do not implement or exercise runtime/VPS/SQLite/T0/provider operations.
 - Next: adversarial self-review A2 against the exact current A2 blob and A1/base-contract/crosswalk source pins; record findings without mutating the reviewed candidate. If corrections are required, create a new A2 candidate revision and re-review. Qualifying independent review and separate implementation approval remain mandatory.
+
+
+## A2 adversarial self-review result (2026-11-11)
+
+- Self-review report: `docs/evidence/T0_SIGNATURE_CONTRACT_A2_SELF_REVIEW_2026-11-11.md`; report commit `a1781226db723b6edd2b24aaf64c810cb61d395f`; blob `c65f94165c0df0e323daf78ba77fdb5e88480fcd`.
+- Exact reviewed A2 blob: `e15a90b779bd86b39729208db938e9de9471ef26`. Other source pins: A1 `00fdad293e129562145ab930507a4e6b9c2bf23d`; Checkpoint Contract v1 `a6825270d59bde274bfe765d5f942144b66a84de`; L4 crosswalk `e560f084642b5f81c78179ef673e5df116fc5f42`.
+- Static content checks: all A2-NV-01..43 present; no malformed escaped newline; issuer-attestation/owner-authorization boundary, provenance fields, anchor transition states/linearization point, U64/base64url vectors and bootstrap schema present. These are document checks, not executable tests.
+- Prior SR-01–SR-07 are addressed at draft contract level; SR-08 is partial. New findings: A2-SR-01 HIGH — A2 verifier/Trust Policy does not explicitly reject legacy owner-attestation purpose for A2 objects; A2-SR-02 MEDIUM — bootstrap owner-authorization evidence lacks a fully independent verification contract and could be circular if the enrolled root authenticates its own enrollment.
+- Disposition: **REQUEST CHANGES**. Preserve the reviewed A2 blob. Any fix must create a new A2 candidate blob and repeat self-review. This same-session review is not independent and does not satisfy G3.
+- Implementation remains **BLOCKED**. User approval covered documentation-only A2 drafting, not implementation. No code/tests/workflow/CI, keys/signatures/trust roots/policy/anchor instances, provider/TSA, VPS/SSH/runtime, SQLite/canonical T0 data or destructive operation was changed or exercised.
+- Next permitted step: prepare A2 correction for A2-SR-01/02, then self-review the new exact blob. Qualifying independent review and separate explicit implementation approval remain required.
