@@ -2937,3 +2937,12 @@ Critical limits:
 - L4 custody remains BLOCKED/NOT VERIFIED: VPS + GitHub is the bounded approved scope, but the former VPS was deleted and no replacement host is established. GitHub-only inventory/artifacts do not prove owner-controlled two-location custody, signed latest-head, offline verification or trust bootstrap.
 - **Disposition: DESIGN PARTIAL; CONTRACT FREEZE BLOCKED; DEPENDENCY/BUILD PROVENANCE NOT VERIFIED; STAGE II IMPLEMENTATION NOT AUTHORIZED; L4-MINIMUM AGGREGATE BLOCKED / NOT VERIFIED.**
 - Next: close the remaining contract decisions (AEO issuer separation, AEO/preimage schema, descriptor ID/namespace semantics, resource ceilings, Verification Record and reason codes), verify exact dependency/build provenance, freeze exact contract blobs and a bounded implementation scope, then obtain separate Owner implementation authorization. Do not generate/use real keys, bootstrap trust, persist anchors, access VPS/T0, deploy runtime, activate T1, train/calibrate or trade.
+
+
+### L4 signature dependency provenance spot-check (2026-11-12)
+
+- Added the PyPI provenance spot-check to `docs/evidence/T0_L4_SIGNATURE_NEGATIVE_VERIFICATION_REFRESH_2026-11-12.md`; report update commit `4f07d2a3ad55d4556e154bed657fe1200b46d433`; report blob `a483b21b5e6b919545bfa37d88b08bf62af99764`.
+- Official PyPI metadata for `cryptography==50.0.2` confirms the candidate CPython 3.11+ abi3 / manylinux_2_34 x86-64 wheel, declared SHA-256 `9dab55f57c74c3cad24c323bacbbd04be4705ba6eb0d92e920b1fc4837ed5079`, and PyPI provenance metadata showing GitHub Actions publishing from `pyca/cryptography`, commit `fe12d283180ea89ceed622021242fddb31d27f84`, workflow `.github/workflows/pypi-publish.yml`, run `36731020563`.
+- Exact wheel download into the review environment failed. No independent hash of downloaded bytes, Sigstore bundle verification or offline provenance verification was completed.
+- **Disposition: OFFICIAL RELEASE METADATA / DECLARED HASH / PROVENANCE PRESENCE — CORROBORATED; EXACT WHEEL PAYLOAD / ATTESTATION CRYPTOGRAPHIC VERIFICATION — NOT VERIFIED.** No package installation, lockfile change or CI dependency change.
+- Next: prepare an Owner decision package for the remaining AEO issuer separation, resource ceilings, exact schemas/ID namespace and Verification Record contract. Keep package installation, key/trust operations, Stage II implementation and CI changes blocked pending explicit contract freeze and exact-scope authorization.
