@@ -2131,3 +2131,16 @@ Next: if owner wants to proceed beyond planning, first approve a bounded provisi
 - G0.34 verdict: **MEASUREMENT PASS — G0.33-A completed within scope; numeric D11 ceilings OPEN/NOT RATIFIED; parser implementation and tests NOT AUTHORIZED**.
 - No tests, CI, crypto/verifier, external access, inventory, runtime/VPS/database/network, T0/T1/T2, ledger or lifecycle mutation. T0 remains independent/protected; CORE_LEDGER and AI_LEDGER remain separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
 - Next gate: present the exact candidate numeric ceiling table for owner ratification or amendment. Do not begin S1 parser implementation/tests until a separate explicit implementation authorization.
+
+## G0.35 — G0.34 Measurement Evidence Integrity Correction (2026-11-11)
+
+- Baseline HEAD: `807381f03e25fc5a816d0d847f2458a240d411fd`; baseline handoff blob: `cc625179dc34e49455711c13124b143e3a410ce4`.
+- Report: `docs/evidence/G0_35_G0_34_MEASUREMENT_EVIDENCE_INTEGRITY_CORRECTION_2026-11-11.md`.
+- Report creation commit: `8d02051cb24032b1b1eda6215c78669243f30261`; report blob: `642f35dea186dfb0e5fce7017e92902595b60982`.
+- Review found the G0.34 recorded generator serialized the `expected` oracle field into the measured payload, contrary to G0.31 D05 parser-input/oracle separation.
+- The execution cell then failed at a namespace assertion comparing bytes to text and terminated before emitting the final aggregate summary object. Intermediate metrics had been computed, but the captured run did not complete its final output/acceptance path.
+- Accordingly, G0.34's aggregate metrics, corpus digest and candidate ceilings are **NOT VERIFIED for D11 policy use**. The prior G0.34 MEASUREMENT PASS is superseded by this correction; retain the historical report unchanged.
+- G0.33-A authorized exactly one run. That attempt is consumed; no rerun, repaired rerun, persistent fixture creation, parser/test implementation, CI, CPU/RAM benchmark or external/runtime access is authorized. Any further measurement needs a new explicit owner approval.
+- G0.35 verdict: **EVIDENCE CORRECTION PASS — G0.34 assurance downgraded to NOT VERIFIED; D05 separation FAIL; numeric D11 ceilings remain OPEN/NOT RATIFIED; parser/tests NOT AUTHORIZED**.
+- Next gate: documentation-only proposal for a corrected measurement authorization with oracle/input separation and completion assertions specified before any new separately approved run.
+- T0 remains independent/protected; CORE_LEDGER and AI_LEDGER remain separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
