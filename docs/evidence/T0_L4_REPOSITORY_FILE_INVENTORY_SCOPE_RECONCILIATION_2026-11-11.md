@@ -79,3 +79,10 @@ These exclusions do not invalidate the documents or their separate engineering g
 **L4-Minimum aggregate: BLOCKED / NOT VERIFIED.** No L4 control is promoted. Signature/negative verification and network-disabled offline verification remain downstream until the complete source and Actions-artifact inventories are reconciled and stable.
 
 Option C — No Destructive Authority — remains ACTIVE. No VPS access, canonical T0 SQLite access, signer/key operation, trust-root mutation, cleanup, archive, expiry, vacuum, compaction, backup expiry, replica removal or deletion is authorized or performed.
+
+
+## Superseding owner governance decision — Option C revoked (2026-11-11)
+
+The owner revoked **Option C — No Destructive Authority** on 2026-11-11. Any earlier statement in this historical record that Option C is ACTIVE, remains in force, is unchanged/current, or prohibits all destructive authority is superseded. Current status: **REVOKED**.
+
+This revocation removes Option C as a blanket prohibition but does not authorize any particular destructive operation. Deletion, archive, cleanup, expiry, vacuum, compaction, backup/replica removal, export mutation or provider operation still requires a separately explicit, scoped approval with exact target/data class, preconditions, expected effect, dependencies, verification and recovery/rollback plan. T0 canonical data, lease/fencing, ledgers, audit/reconstruction/recovery, custody and trust evidence remain protected unless separately approved. Paper-only and `AI_EXECUTION_ENABLED=false` remain unchanged. No L4 control or technical-enforcement status is promoted by this decision.
