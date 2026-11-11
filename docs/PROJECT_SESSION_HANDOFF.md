@@ -1601,7 +1601,7 @@ Owner approved documentation-only baseline capture on the existing branch `featu
 - Branch comparison: active branch is 3,015 commits ahead and 76 commits behind `main`; status `diverged`. The 76 main-only commits affect 13 paths. Their semantic classification is pending G0.3.
 - PR #139 remains OPEN / DRAFT / NOT MERGED; head `7e635a6462c29456f1adb2e7ddcd01443909a5ac`, base `ff1f1768cab1b899494910df1b9ba0d98d35835f`, GitHub mergeable=false. Do not alter or merge it as part of this work.
 - Exact-SHA Actions query for audit starting HEAD returned 0 workflow runs. CI for this SHA: NOT VERIFIED.
-- Baseline evidence: `docs/evidence/G0_2_T0_T2_GIT_BASELINE_2026-11-11.md`, commit `b433573415c816215af84e4184b0c0fde2af5724`.
+- Baseline evidence: `docs/evidence/G0_2_T0_T2_GIT_BASELINE_2026-11-11.md`, initial commit `b433573415c816215af84e4184b0c0fde2af5724`, wording-correction commit `e08b7b542b55db2221a2cb8740d9024d9e6497ad` (current baseline document).
 - This handoff update commit: recorded in the G0.2 completion message; it is the new active branch HEAD after this update.
 - G0.2: **PASS — documentation-only baseline recorded**. No source/test/workflow, T0/T1/T2 data/runtime, VPS, deployment, training, exchange, or trading changes. No workflow or artifact produced.
 - G0 reconciliation remains **BLOCKED** pending G0.3 read-only semantic classification of the 76 main-only commits and a separate owner decision.
