@@ -1285,3 +1285,20 @@ Next: execute both focused RED test files in GitHub Actions against exact SHA `5
 - Combined GitHub commit-status query for this SHA returned no checks. Test execution remains **NOT VERIFIED**; container could not resolve `github.com` to clone the repository. No RED result, workflow run or artifact is claimed.
 - Evidence report final revision: `aa4eb61b86a80a51aa2eaa940778d63a334750b5`.
 - Next step remains: run the focused test files in GitHub Actions against exact SHA `550a529c2a726f82911602aee207f0df32c78eb9`, inspect/repair test-only issues, then seek separate approval before any GREEN implementation.
+
+
+## AI Strategy automated RED workflow and first verified execution — 2026-11-11
+
+- Owner approved automated test execution. Added `.github/workflows/ai-strategy-contract-red.yml` on the existing branch; no new branch or PR.
+- Workflow commit: `be4e59d0ca0c8d764ea2fffe63234d18cd9497fc`; final workflow blob: `c0b82a4d9ef222c836b7081889206e2b4c12459b`.
+- Trigger: push changes to either focused AI RED test or related AI decision/API/ledger/risk modules on this branch; manual `workflow_dispatch` supported. Python 3.12, exact `${{ github.sha }}` checkout, compile, focused unittest, and SHA-named artifact. Read-only GitHub token; empty DB/exchange credential environment; no external services.
+- Test-only correction commits after initial workflow run: `14e532d4f3de6bcdec8c73c079e5521835cd1ff7`, `084b13df016dcc455f9567b9898420e7e9f91c4c`, `0c049a9b37c69cefb6a5117531c64ac579075f5e`, `747dba7e0b264547b72edc52c941357362696804`, final test SHA `aa7897520b5435ff4c981b3f2ab8a6710f811eea`. No production code changed.
+- Final AI RED workflow run [42989566675](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42989566675), exact SHA `aa7897520b5435ff4c981b3f2ab8a6710f811eea): paper-only preflight PASS; dependency install PASS; compile PASS; **36 tests, 23 assertion failures, 0 errors**. Workflow conclusion FAILURE is expected because the tests are intentionally RED before GREEN implementation.
+- RED findings confirmed: calibrated confidence/provenance is not enforced; AI admitted-leverage interface is missing; AI ledger does not enforce 1x–3x bounds; equity-based AI sizing and stale-equity fail-closed interface are missing. The E2E AI BUY while Core WAIT → AI ledger only → Shared Risk Engine rejection test passes at isolated test scope.
+- AI RED artifact ID `13841700390`, digest `sha256:bcddb274a58013060af6293604abee08a5d11d304dc2c4a0e50ebeb852df3445`.
+- Existing Dual Ledger workflow [42989566780](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42989566780) at the same exact SHA: focused 238 tests PASS; full `paper_execution` regression 301 tests PASS; compile and isolated paper-only preflight PASS. Artifact ID `13841126612`, digest `sha256:aaa0c3c4a9ccd59360c718b2748cfd7077190a84c29dd8e8b298a9ada35963c0`.
+- Evidence report update commit: `e96ea5d8857e7367f49fad857f710580df7e5644`.
+- Current disposition: workflow automation PASS; AI contract RED confirmed; E2E independence/ledger/risk-denial test PASS; Dual Ledger regression PASS. GREEN implementation remains NOT AUTHORIZED / NOT STARTED. No numerical `C_min`, calibration/OOS acceptance, migration/cutover, backtest acceptance, feature activation, VPS/runtime, deployment or live execution is authorized.
+- No T0 canonical data, T1 activation, T2 runtime, DB, credentials, exchange state or deployment state changed.
+
+Next: review and prioritize the 23 RED assertions, freeze remaining AI API contract details, then request separate owner approval before GREEN implementation.
