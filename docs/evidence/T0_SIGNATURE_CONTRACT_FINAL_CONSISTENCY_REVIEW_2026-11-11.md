@@ -8,13 +8,13 @@ Disposition: **CONSISTENCY CHECKS PASS — REVIEW CANDIDATE FROZEN FOR INDEPENDE
 
 Repository: `kenznguyen/btcusdt-telegram-signals2`  
 Branch: `feature/t0-centralized-data-feeder-p1-20261101`  
-Source HEAD at review freeze: `887f5ed6a71c31c5412e061bef58695323903512`
+Source HEAD at review freeze: `838f912139562eb185ad6035e95fd08810071525`
 
 | Source | Exact blob SHA | Purpose |
 |---|---|---|
 | `docs/architecture/T0_EVIDENCE_OBJECT_CHECKPOINT_CONTRACT_V1.md` | `a6825270d59bde274bfe765d5f942144b66a84de` | Base contract plus owner-approved bounded custody addendum |
-| `docs/architecture/T0_SIGNATURE_TRUST_POLICY_MONOTONIC_ANCHOR_AMENDMENT_A1_2026-11-11.md` | `d8643e52a874c406339dad8f62bfe3a9ecda0577` | Signature statement, trust policy, anchor and 30 negative cases |
-| `docs/evidence/T0_L4_CONTROL_TO_SOURCE_CROSSWALK_2026-11-11.md` | `28689ea74a4047e11e51e80e61fd0123ff424aa0` | Current control dispositions and exact contract/A1 pins |
+| `docs/architecture/T0_SIGNATURE_TRUST_POLICY_MONOTONIC_ANCHOR_AMENDMENT_A1_2026-11-11.md` | `00fdad293e129562145ab930507a4e6b9c2bf23d` | Signature statement, trust policy, anchor and 30 negative cases |
+| `docs/evidence/T0_L4_CONTROL_TO_SOURCE_CROSSWALK_2026-11-11.md` | `e560f084642b5f81c78179ef673e5df116fc5f42` | Current control dispositions and exact contract/A1 pins |
 
 This snapshot is frozen for review. Any change to these three source documents requires a new snapshot and renewed review of the changed bytes.
 
@@ -99,3 +99,8 @@ The general L4M-09 waiver remains in force for the L4 baseline; it does not waiv
 - Aggregate L4-Minimum: **BLOCKED / NOT VERIFIED**.
 
 No code, test, workflow, CI, key, signature, trust root, policy instance, anchor, provider, TSA, VPS/SSH/runtime, SQLite database, canonical T0 data or destructive operation was changed or exercised. Paper-only posture and `AI_EXECUTION_ENABLED=false` remain unchanged.
+
+
+### FC-08 — Anchor retention strength aligned
+
+A1 §2.1 and §6.4 were tightened from SHOULD to MUST for retaining/publishing the exact anchor record and predecessor chain at both approved custody locations, matching the base contract's two-copy requirement. The crosswalk source pin was refreshed. This is a normative alignment correction; no publication/readback was executed.
