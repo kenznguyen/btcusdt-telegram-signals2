@@ -2328,3 +2328,28 @@ Next: if owner wants to proceed beyond planning, first approve a bounded provisi
 - This is docs-only. **G0.40-B implementation and workflow are NOT AUTHORIZED pending owner approval.**
 - G0.41 corpus generation/measurement remains NOT AUTHORIZED; numeric D11 ceilings OPEN / NOT RATIFIED.
 - No T0/T1/T2, market data, model, ledger, runtime/VPS, external/provider/database/network, lifecycle, or destructive changes. T0 remains independent/protected; CORE_LEDGER and AI_LEDGER separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
+
+
+### G0.40-B — Exact-source assurance corrections implementation and verification (2026-11-11)
+
+- Owner explicitly approved the exact four-path G0.40-B package (`8f273495b334c8dca35a2dfaa1d59bea12b27867`).
+- Implementation was limited to:
+  - `tools/s1_measurement_harness.py`
+  - `tools/s1_measurement_runner.py`
+  - `tools/test_s1_measurement_runner.py`
+  - `.github/workflows/g040-b-exact-source-verification.yml`
+- R1: focused tests now read actual checked-out harness/runner bytes and hash those bytes; workflow independently asserts checkout HEAD equals `GITHUB_SHA`, approved branch, and exact source blobs; commit mismatch and source-digest negative tests added.
+- R2: conservative AST import/syntax allowlist replaces incomplete denylist; negative probes cover aliased `io.open`, ZIP/TAR extraction and `smtplib`, plus existing direct `open` and `socket` probes. Claim is explicitly static source-policy validation, **not** OS-level/runtime isolation.
+- R3: report readback requires the canonical 22 ordered fixture IDs, exact parser-input inventory and bytes, and recomputes complete rows, aggregates and corpus digest from those bytes. Negative tests cover duplicate, reordered, missing/extra, modified raw-byte counts, altered digest and noncanonical expected inventory.
+- Final exact source checkout: `0e757114e738a2330ad4cc96b6cf8d9da7d17c7b`.
+- Final source blobs: harness `e8db71c11e0503ea6d9a2480d75470185c4d5100`; runner `23a35aab7f7aeacd8a3f63d630a875fe76b1ff6a`; tests `d06a5b533af14378ed284051e5b057cf57377876`; workflow `d42b57e78cd545099474e9256381f8c428997b1e`.
+- Final GitHub Actions run [43050706119](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43050706119), job `130626755285`, exact checkout assertion PASS, **29/29 tests PASS**, focused `py_compile` PASS, Python 3.14.4.
+- Artifact `g040-b-exact-source-verification`, ID `13869536480`, 1,469 bytes, GitHub-reported SHA-256 `9ba9734367b41a3e677fb547cf23d91c5d8cef53a4c1f4db1a7dc71e40c74c23`, expiry `2026-11-18T15:40:29Z`. Payload was not independently downloaded/re-hashed.
+- Intermediate failures remain recorded in Actions: run `43050375099` (duplicate test keyword syntax error), `43050453674` (stale test blob pin), `43050625804` (stale harness blob pin), and `43050692431` (stale test blob pin). All were corrected before the final successful run.
+- Compare from pre-implementation handoff HEAD `a81a92bda4eca626ca002b8399ef008d3526c46e` to verification source: ahead 15 / behind 0; exactly the four approved paths changed.
+- Evidence report: `docs/evidence/G0_40B_EXACT_SOURCE_ASSURANCE_CORRECTIONS_RESULTS_2026-11-11.md`; report commit `1ad963fae98c8ba6aafcb4aa4cae302181d00b48`.
+- G0.40-B bounded implementation and exact-source focused verification: **PASS**; R1–R3 **CLOSED** within the stated static-source and frozen S1-report boundary.
+- TDD pre-implementation RED run: **NOT VERIFIED**. Independent reviewer sign-off: **NOT PERFORMED**. Artifact payload hash: **NOT VERIFIED**.
+- G0.41 corpus generation/measurement remains **NOT AUTHORIZED / NOT RUN**. D11 numeric ceilings remain **OPEN / NOT RATIFIED**. No standalone measurement was run.
+- No T0/T1/T2, market data, model/training, CORE_LEDGER, AI_LEDGER, Shared Risk Engine, Kill Switch, VPS/runtime, external provider/database/network, lifecycle or destructive change. T0 remains independent/protected; CORE_LEDGER and AI_LEDGER remain separate; paper-only and `AI_EXECUTION_ENABLED=false` unchanged.
+- Next gate: prepare a separate G0.41 owner decision package; do not measure the corpus or propose/ratify numeric D11 ceilings until that scope is explicitly approved.
