@@ -3787,3 +3787,23 @@ These findings make the current stop condition explicit: completing Trusted Admi
 - Disposition: **PASS — ENTRY and DCA admission are linearized against the shared Kill Switch in the tested SQLite paper ledger.** A committed fill may precede the Kill Switch transaction; subsequent risk-increasing admission is blocked. No source behavior changes were needed.
 - Remaining NOT VERIFIED: runtime under sustained multi-process load, crash/power-loss behavior, live exchange execution, real-market OOS and production readiness.
 - Next bounded step: verify account-wide reservation/exposure accounting under multiple independent Core clients and mixed ENTRY/DCA attempts, including that aggregate reservations never exceed the shared account budget. Keep AI offline and do not modify production logic unless a failing test identifies a concrete defect.
+
+
+## 2026-11-12 — Account-wide Core reservation/exposure under concurrent mixed ENTRY/DCA
+
+- Work branch: `feature/core-operational-proof-20261112`.
+- Test commits: initial mixed-concurrency test `f8128d91c05ff985ed1ea1be84a6a7cb0c0e704b`; Decimal assertion precision correction and exact tested source SHA `0052b5cf87b4b985e7bed1f0d854d5aa023c5604`.
+- Added `test_concurrent_mixed_core_entry_dca_preserves_account_risk_budget` in `paper_execution/test_core_first_operational.py`. Two independent Core ledger clients concurrently submit an ENTRY and a DCA increase against one disposable shared account database.
+- Valid serialized outcomes:
+  - If DCA obtains the transaction before the initial ENTRY, DCA is rejected as `DCA_REQUIRES_EXISTING_POSITION`, then ENTRY fills.
+  - If ENTRY commits first, DCA may proceed against the resulting Core position, subject to the normal one-time DCA guard, shared Kill Switch, equity freshness, margin and exposure controls.
+- Assertions cover final single Core net position, AI ledger/order count zero, at most one pending Core order, each persisted ENTRY/DCA reservation's reserved margin <= 1% of its admission-time equity basis, and account gross exposure plus all active/partial reservation notional <= configured account max exposure (1000 USDT in this fixture).
+- Initial CI run [43203856841](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43203856841), SHA `f8128d91c05ff985ed1ea1be84a6a7cb0c0e704b`, failed only because the test's expected 1% threshold was multiplied under Python Decimal's default precision 28 while persisted reservation values retained greater precision. No product code was implicated. Test comparison was corrected to use precision 80, matching the ledger arithmetic.
+- Final CI run [43203935156](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43203935156), exact checkout SHA `0052b5cf87b4b985e7bed1f0d854d5aa023c5604`, conclusion SUCCESS.
+- Evidence from job logs: live-data probe contracts 4/4 PASS; Core + signal regressions 12/12 PASS; Core operational group 17/17 PASS; Shared Risk + Paper Ledger regressions 24/24 PASS; total **57/57 PASS**. Python compile PASS. Existing LONG/SHORT lifecycle verdicts remain PASS.
+- Artifact: `core-first-code-operational-proof-43203935156`, ID `13935694427`, size 3,577 bytes, SHA-256 `693cb3168894df200868a5b7877168cdb470a3ffc08c5e9045b9952d62f834fb`, expires `2026-11-19T10:50:46Z`. Digest is GitHub artifact metadata; payload has not been independently downloaded and re-hashed.
+- Safety: `AI_EXECUTION_ENABLED=false`; disposable fixture SQLite only; no AI paper orders; no T0/T1/T2 mutation; no exchange credentials; no real orders; no VPS/persistent runtime.
+- Policy interpretation retained: 1% Account Equity is the maximum margin budget **per ENTRY/DCA admission**, not a newly invented 1% aggregate lifetime/portfolio cap. Fully consumed reservations are not active reservations; active/partial remaining reservation notional is included in account-wide projected exposure.
+- Disposition: **PASS — concurrent mixed Core ENTRY/DCA admission is serialized and the tested account-wide reservation/exposure invariants hold.** No production logic or schema changes were needed.
+- Remaining NOT VERIFIED: sustained multi-process stress/load, process crash/power-loss recovery, other concurrently active strategy ledgers under AI operation, real-market OOS, exchange execution and production readiness.
+- Next bounded step: stress the same Core-only account path with multiple concurrent clients and repeated unique intents across separate disposable SQLite databases/runs, asserting no duplicate fills, no orphan/duplicate reservations, and stable risk invariants. Do not activate AI or change the approved 1%-per-order policy.
