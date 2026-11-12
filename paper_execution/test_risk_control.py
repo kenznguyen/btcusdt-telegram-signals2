@@ -70,5 +70,11 @@ class PersistentRiskControlTest(unittest.TestCase):
                 risk_block_reason(db)
 
 
+    def test_read_only_snapshot_fails_closed_when_kill_state_is_missing(self):
+        with self.connect() as db:
+            with self.assertRaisesRegex(sqlite3.DatabaseError, "RISK_CONTROL_STATE_MISSING"):
+                snapshot(db)
+
+
 if __name__ == "__main__":
     unittest.main()
