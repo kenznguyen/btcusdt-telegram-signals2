@@ -11,6 +11,7 @@ on:
       - "pipeline/api.py"
       - "paper_execution/test_core_first_operational.py"
       - "paper_execution/test_core_short_lifecycle.py"
+      - "paper_execution/test_risk_control.py"
       - "paper_execution/test_dual_ledger_red.py"
       - "pipeline/core_signal.py"
       - "paper_execution/risk_control.py"
