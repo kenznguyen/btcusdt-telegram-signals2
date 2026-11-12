@@ -661,11 +661,13 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
         self.assertEqual(len(reservations), 1 if dca_order["status"] == "REJECTED" else 2)
         self.assertLessEqual(pending_count, 1)
         self.assertEqual(ai_orders, 0)
-        for _, _, reserved_margin, _, _, _, equity_basis in reservations:
-            self.assertLessEqual(
-                Decimal(reserved_margin),
-                Decimal(equity_basis) * Decimal("0.01"),
-            )
+        with localcontext() as context:
+            context.prec = 80
+            for _, _, reserved_margin, _, _, _, equity_basis in reservations:
+                self.assertLessEqual(
+                    Decimal(reserved_margin),
+                    Decimal(equity_basis) * Decimal("0.01"),
+                )
 
         with localcontext() as context:
             context.prec = 80
