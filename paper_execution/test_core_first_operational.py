@@ -197,7 +197,7 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
         from paper_execution.ledger import dual_ledger_ready, read_snapshot
         self.assertTrue(dual_ledger_ready(self.path))
         self.assertEqual(
-            read_snapshot(self.path, strategy_id="STRATEGY_CORE")["strategyId"],
+            read_snapshot(self.path, strategy_id="STRATEGY_CORE")["strategyState"]["strategyId"],
             "STRATEGY_CORE",
         )
 
