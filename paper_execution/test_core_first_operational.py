@@ -130,7 +130,8 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
         ]
         return m15_values, h1_values
 
-    def decide(self, *, m15=None, book=None, adx=30.0):
+    def decide(self, *, m15=None, book=None, adx=30.0, indicator_values=None, now_ms=None):
+        decision_at = self.now if now_ms is None else now_ms
         with patch.dict(os.environ, {
             "MARKET_DATA_DB": str(self.path),
             "PAPER_MAX_POSITION_BASE": "1",
@@ -138,9 +139,10 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
         }, clear=False), patch(
             "pipeline.api.market_window", side_effect=[m15 or self.m15, self.h1]
         ), patch(
-            "pipeline.core_strategy.indicators", side_effect=self.core_indicators(adx)
+            "pipeline.core_strategy.indicators",
+            side_effect=indicator_values if indicator_values is not None else self.core_indicators(adx)
         ):
-            return core_decide(self.now, book or self.book)
+            return core_decide(decision_at, book or self.book)
 
     def test_core_signal_flows_through_shared_risk_into_paper_ledger(self):
         signal = self.decide()
@@ -260,6 +262,157 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
                 self.assertGreater(Decimal(margin), Decimal(basis) * Decimal("0.0099"))
                 self.assertEqual(Decimal(notional), Decimal(margin) * Decimal("13"))
             self.assertEqual(status, "CONSUMED")
+
+
+    def test_full_core_position_lifecycle_exit_pnl_fees_equity_and_post_exit_kill(self):
+        # ENTRY through the real Core signal adapter and shared paper ledger.
+        entry_signal = self.decide()
+        self.assertEqual(entry_signal["action"], "BUY", entry_signal)
+        entry = self.core.submit(
+            entry_signal["intent"], self.book, self.now, strategy_event="ENTRY"
+        )
+        self.assertEqual(entry["status"], "FILLED", entry)
+
+        # Smart DCA through the real RSI/ADX decision path.
+        dca_rows = [dict(row) for row in self.m15_rows]
+        dca_close = self.close * 0.97
+        dca_rows[-1].update(
+            open=str(self.close * 0.975),
+            high=str(self.close * 0.98),
+            low=str(self.close * 0.96),
+            close=str(dca_close),
+        )
+        dca_window = window(dca_rows, "15m")
+        dca_window["datasetVersion"] = "sha256:" + "f" * 64
+        dca_book = {
+            "source": "hummingbot", "connector": "binance_perpetual",
+            "symbol": "BTCUSDT", "observedAtMs": self.now,
+            "bids": [{"price": str(dca_close - 0.01), "quantity": "1"}],
+            "asks": [{"price": str(dca_close + 0.01), "quantity": "1"}],
+        }
+        dca_signal = self.decide(m15=dca_window, book=dca_book, adx=50.0)
+        self.assertEqual(dca_signal["action"], "BUY", dca_signal)
+        self.assertEqual(dca_signal["reason"], "DCA", dca_signal)
+        dca = self.core.submit(
+            dca_signal["intent"], dca_book, self.now, strategy_event="DCA"
+        )
+        self.assertEqual(dca["status"], "FILLED", dca)
+        self.assertTrue(self.core.strategy_state()["dcaUsed"])
+
+        # Mark the still-open position above its weighted cost basis and prove
+        # unrealized PnL is included in account equity before EXIT.
+        from paper_execution.ledger import read_account_risk_snapshot
+        average = Decimal(self.core.snapshot()["averageEntryPrice"])
+        mark_price = average * Decimal("1.05")
+        mark_at = self.now + 1
+        account_ledger = PaperLedger(
+            self.path, max_position_base="1", fee_rate="0.001",
+            source_sha="c" * 40,
+        )
+        account_ledger.record_account_mark(
+            str(mark_price), self.now - 60_000, mark_at,
+            "sha256:" + "9" * 64, "100",
+        )
+        risk_before_exit = read_account_risk_snapshot(self.path, now_ms=mark_at)
+        self.assertTrue(risk_before_exit["riskReady"], risk_before_exit)
+        self.assertGreater(
+            Decimal(risk_before_exit["positions"]["STRATEGY_CORE"]["unrealizedPnlQuote"]),
+            Decimal("0"),
+        )
+
+        # Ask Strategy Core itself to emit FLAT/CLOSE via its take-profit rule.
+        exit_rows = [dict(row) for row in self.m15_rows]
+        exit_rows[-1].update(
+            open=str(mark_price * Decimal("0.999")),
+            high=str(mark_price * Decimal("1.001")),
+            low=str(mark_price * Decimal("0.998")),
+            close=str(mark_price),
+        )
+        exit_window = window(exit_rows, "15m")
+        exit_window["datasetVersion"] = "sha256:" + "8" * 64
+        exit_now = self.now + 2
+        exit_book = {
+            "source": "hummingbot", "connector": "binance_perpetual",
+            "symbol": "BTCUSDT", "observedAtMs": exit_now,
+            "bids": [{"price": str(mark_price), "quantity": "1"}],
+            "asks": [{"price": str(mark_price + Decimal("0.01")), "quantity": "1"}],
+        }
+        exit_m15_indicators = [
+            {"rsi": 20.0, "adx": 25.0} for _ in self.m15_rows
+        ]
+        exit_m15_indicators[-2] = {"rsi": 70.0, "adx": 25.0}
+        exit_m15_indicators[-1] = {"rsi": 90.0, "adx": 25.0}
+        exit_h1_indicators = [
+            {"plus_di": 40.0, "minus_di": 10.0, "adx": 30.0}
+            for _ in self.h1_rows
+        ]
+        exit_signal = self.decide(
+            m15=exit_window, book=exit_book, now_ms=exit_now,
+            indicator_values=(exit_m15_indicators, exit_h1_indicators),
+        )
+        self.assertEqual(exit_signal["action"], "CLOSE", exit_signal)
+        self.assertEqual(exit_signal["reason"], "TAKE_PROFIT", exit_signal)
+        self.assertEqual(exit_signal["intent"]["targetPositionBase"], "0")
+        exit_order = self.core.submit(
+            exit_signal["intent"], exit_book, exit_now, strategy_event="EXIT"
+        )
+        self.assertEqual(exit_order["status"], "FILLED", exit_order)
+        self.assertEqual(self.core.snapshot()["positionBase"], "0")
+        self.assertEqual(self.core.snapshot()["averageEntryPrice"], "0")
+        self.assertFalse(self.core.strategy_state()["dcaUsed"])
+
+        # Reconcile realized PnL, all three execution fees, and final equity.
+        risk_after_exit = read_account_risk_snapshot(self.path, now_ms=exit_now)
+        self.assertTrue(risk_after_exit["riskReady"], risk_after_exit)
+        self.assertEqual(
+            risk_after_exit["positions"]["STRATEGY_CORE"]["unrealizedPnlQuote"],
+            "0",
+        )
+        with sqlite3.connect(self.path) as connection:
+            realized_raw, fees_raw, funding_raw = connection.execute(
+                """SELECT realized_pnl_quote,fees_quote,funding_quote
+                   FROM paper_strategy_ledgers
+                   WHERE account_id=1 AND strategy_id='STRATEGY_CORE'"""
+            ).fetchone()
+        realized, fees, funding = map(Decimal, (realized_raw, fees_raw, funding_raw))
+        expected_fees = sum(
+            (Decimal(order["feeQuote"]) for order in (entry, dca, exit_order)),
+            Decimal("0"),
+        )
+        self.assertGreater(realized, Decimal("0"))
+        self.assertEqual(fees, expected_fees)
+        self.assertEqual(funding, Decimal("0"))
+        with localcontext() as context:
+            context.prec = 80
+            expected_equity = Decimal("100") + realized - fees - funding
+            self.assertEqual(Decimal(risk_after_exit["accountEquityQuote"]), expected_equity)
+
+        # Latch the shared Kill Switch only after the position is flat; it must
+        # survive the EXIT and reject a fresh Core ENTRY without new exposure.
+        kill_at = exit_now + 1
+        self.core.set_killed(True, kill_at, "CORE_EXIT_LIFECYCLE_COMPLETE")
+        killed_snapshot = self.core.snapshot()
+        self.assertTrue(killed_snapshot["riskControl"]["killed"])
+        next_entry_intent = dict(entry_signal["intent"])
+        next_entry_intent.update({
+            "intentId": "core-entry-after-exit-kill",
+            "decisionAtMs": kill_at + 1,
+            "validUntilMs": kill_at + 30_001,
+            "inputSnapshotId": "fixture:entry-after-exit-kill",
+        })
+        next_book = {
+            "source": "hummingbot", "connector": "binance_perpetual",
+            "symbol": "BTCUSDT", "observedAtMs": kill_at + 1,
+            "bids": [{"price": str(mark_price - Decimal("0.01")), "quantity": "1"}],
+            "asks": [{"price": str(mark_price), "quantity": "1"}],
+        }
+        blocked = self.core.submit(
+            next_entry_intent, next_book, kill_at + 1, strategy_event="ENTRY"
+        )
+        self.assertEqual(blocked["status"], "REJECTED", blocked)
+        self.assertEqual(blocked["reason"], "KILL_SWITCH", blocked)
+        self.assertEqual(self.core.snapshot()["positionBase"], "0")
+        self.assertEqual(self.ai.snapshot()["positionBase"], "0")
 
     def test_kill_switch_rejects_core_entry_without_creating_exposure(self):
         signal = self.decide()
