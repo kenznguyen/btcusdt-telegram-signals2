@@ -217,8 +217,8 @@ class CoreDecisionInputBundleContractTest(unittest.TestCase):
         with self.assertRaisesRegex(Error, "CORE_STATE_INVALID"):
             validate(bundle, max_book_age_ms=5_000)
         bundle = valid_bundle()
-        bundle["accountRisk"]["snapshot"]["riskReady"] = False
-        with self.assertRaisesRegex(Error, "RISK_STATE_BLOCKED"):
+        bundle["accountRisk"]["snapshot"]["available"] = False
+        with self.assertRaisesRegex(Error, "RISK_SNAPSHOT_UNAVAILABLE"):
             validate(bundle, max_book_age_ms=5_000)
 
     def test_bundle_digest_uses_rfc8785_excludes_bundle_id_and_is_key_order_independent(self):
