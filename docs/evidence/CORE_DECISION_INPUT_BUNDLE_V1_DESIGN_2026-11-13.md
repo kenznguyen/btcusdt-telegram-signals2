@@ -1,196 +1,189 @@
-# Core Decision Input Bundle v1 — Design Review
+# Core Decision Input Bundle v1 — Frozen Contract
 
 - Date: 2026-11-13
 - Repository: `kenznguyen/btcusdt-telegram-signals2`
 - Branch: `feature/core-operational-proof-20261112`
-- Design baseline HEAD: `5280a2b97ced53d1c8c12aff18610470e970a2c7`
-- Status: **DRAFT — DESIGN REVIEWED; NOT FROZEN; NOT IMPLEMENTED**
-- Scope: define a versioned, immutable input boundary for one Core paper decision cycle. Documentation only.
-
-## 1. Decision boundary
-
-The one-shot runner must consume one self-consistent bundle. It must not assemble inputs from implicit defaults, stale caches, multiple untracked sources, or direct T0 database access.
-
-The bundle is a decision-input record, not a signal, admission, order, fill, or execution authorization. Its existence does not imply that the Core producer will emit an actionable intent or that Shared Risk Engine will admit it.
-
-R0 remains deterministic and offline: CI fixtures and disposable paper-ledger state only. No T0 endpoint, T1 feed, Hummingbot runtime, exchange connection, or live network provider is included in this contract gate.
-
-## 2. Proposed contract identity
-
-- Contract name: `CORE_DECISION_INPUT_BUNDLE`
-- Contract version: `1.0.0-draft`
+- Approval: user approved all six design decisions on 2026-11-13.
+- Contract: `CORE_DECISION_INPUT_BUNDLE`
+- Contract version: `1.0.0`
 - Schema version: `1`
-- Market identity: `binance / USDT_PERPETUAL / BTCUSDT`
-- Core timeframe: `15m`
-- Required higher timeframe: `1h`
-- Strategy identity: `STRATEGY_CORE`
-- Execution mode: `PAPER`
-- AI execution: `false`
+- Status: **FROZEN — IMPLEMENTATION NOT STARTED**
+- Scope: immutable input contract for one Core PAPER decision cycle. This does not authorize runner implementation, runtime provider integration, VPS use or live trading.
 
-Breaking changes to required fields, units, identity, or validation semantics require a new major version. Additive optional metadata may be minor-versioned. Unknown required-field extensions and unsupported major versions must fail closed.
+## 1. Purpose and boundaries
 
-## 3. Proposed top-level envelope
+One invocation consumes one self-consistent immutable bundle. The bundle is a decision input only; it is not a strategy signal, risk admission, order, fill or execution authorization.
 
-```json
-{
-  "contract": "CORE_DECISION_INPUT_BUNDLE",
-  "contractVersion": "1.0.0-draft",
-  "schemaVersion": 1,
-  "bundleId": "sha256:<canonical-bundle-digest>",
-  "createdAtMs": 0,
-  "decisionAtMs": 0,
-  "mode": "PAPER",
-  "aiExecutionEnabled": false,
-  "strategyId": "STRATEGY_CORE",
-  "market": {
-    "exchange": "binance",
-    "marketType": "USDT_PERPETUAL",
-    "symbol": "BTCUSDT",
-    "decisionTimeframe": "15m"
-  },
-  "marketData": {
-    "sourceContract": "T0_READ_ONLY_CANDLE_V1",
-    "m15": {},
-    "h1": {}
-  },
-  "orderBook": {},
-  "paperState": {},
-  "accountRisk": {}
-}
-```
+The bundle carries T0 M15/H1 candle response payloads, one visible order-book snapshot, a Core-scoped paper-state snapshot and the account-wide risk snapshot. It preserves source provenance and does not permit implicit defaults, stale-cache fallback, synthetic candles, direct canonical T0 database access or cross-source substitution.
 
-All timestamp values are UTC Unix milliseconds. The example is structural only; zero values and placeholder digest are not valid runtime data.
+Strategy Core remains unchanged: RSI + ADX + Smart DCA. Core and AI ledgers remain separate. This runner contract is Core-only; `aiExecutionEnabled=false` is mandatory.
 
-## 4. Required input sections
+## 2. Frozen envelope
 
-### 4.1 Market data
+Required top-level fields:
 
-Each timeframe window must preserve the T0 candle contract v1 response provenance and satisfy the existing Core producer window shape:
+- `contract`: exactly `CORE_DECISION_INPUT_BUNDLE`.
+- `contractVersion`: exactly `1.0.0`.
+- `schemaVersion`: exactly integer `1`.
+- `bundleId`: `sha256:` followed by 64 lowercase hexadecimal characters.
+- `createdAtMs`, `decisionAtMs`: nonnegative safe UTC Unix millisecond integers; created time cannot be after decision time.
+- `mode`: exactly `PAPER`.
+- `aiExecutionEnabled`: exactly boolean `false`.
+- `strategyId`: exactly `STRATEGY_CORE`.
+- `market`: exactly Binance / USDT perpetual / BTCUSDT / 15m.
+- `marketData`: source contract `T0_READ_ONLY_CANDLE_V1`, plus complete M15 and H1 T0 response envelopes.
+- `orderBook`: validated visible depth snapshot.
+- `paperState`: read-only Core ledger projection.
+- `accountRisk`: digest and exact account-wide risk snapshot returned by `read_account_risk_snapshot()`.
 
-- `timeframe`: exactly `15m` or `1h`.
-- `datasetVersion`: copied exactly from the source response; never recomputed or replaced by a consumer.
-- `candles`: ascending closed candles, no duplicates, no missing intervals, no synthetic/forward-filled rows.
-- `coverage`: `complete=true`, `expected=returned=len(candles)`.
-- Every candle: `openTimeMs`, `closeTimeMs`, decimal-string OHLCV, `isClosed=true`, `availableAtMs`, `availabilityKind=FIRST_OBSERVED`, `quality=VALIDATED`, source identity.
-- At least 100 rows per timeframe, because the current `pipeline.core_strategy._valid_window()` enforces this.
-- Latest M15 and H1 candles must satisfy the existing Core closed-candle and interval freshness checks. The H1 feature used for a decision must be the latest eligible fully closed H1 candle before the current M15 bucket.
+All timestamp values are integer UTC Unix milliseconds. All monetary, quantity and price values are decimal strings. JSON floating-point values are prohibited throughout the bundle. Safe integer timestamps and schema counters must be in the IEEE-754 safe integer range (absolute value <= `9007199254740991`).
 
-No change to T0's canonical storage or API is implied. The runner must consume through an approved read-only boundary; direct SQLite access to canonical T0 remains prohibited.
+Unknown top-level fields are rejected in v1. Optional/null behavior is explicit per field; absent and null are not interchangeable. Arrays preserve order.
 
-### 4.2 Order book
+## 3. Frozen source payloads
 
-The existing Core producer consumes `bids`, `asks`, and `observedAtMs`; current disposable operational fixtures also carry `source`, `connector`, and `symbol`.
+### 3.1 T0 M15/H1 candle envelopes
 
-Proposed required fields:
+Embed the bounded T0 response payloads in the bundle; do not reference a mutable URL or only a digest. Each embedded response must conform to T0 Read-only Candle Contract v1:
 
-- `source`: non-empty source identifier.
-- `connector`: non-empty connector/market identifier.
-- `symbol`: exactly `BTCUSDT`.
-- `observedAtMs`: UTC Unix milliseconds, not in the future relative to `decisionAtMs`.
-- `bids` and `asks`: non-empty ordered arrays of positive decimal-string `price` and `quantity`; bids descending, asks ascending; best bid must be below best ask.
+- `contractVersion=1.0.0`, `schemaVersion=1`.
+- `exchange=binance`, `marketType=USDT_PERPETUAL`, `symbol=BTCUSDT`.
+- `timeframe=15m` or `1h`, `volumeUnit=BTC_BASE_ASSET`, `source=ccxt.binanceusdm`.
+- Exact source `datasetVersion` retained unchanged.
+- Candle fields: `openTimeMs`, `closeTimeMs`, decimal-string `open/high/low/close/volume`, `isClosed=true`, `availableAtMs`, `availabilityKind=FIRST_OBSERVED`, `quality=VALIDATED`, `source=ccxt.binanceusdm`.
+- Strictly ascending, unique, contiguous candle sequence; no synthetic or forward-filled rows.
+- `coverage.complete=true`, `expected=returned=len(candles)`, `gaps=[]`.
+- At least 100 candles per timeframe to satisfy the current Core producer; no more than 2,000 candles per timeframe, matching the T0 response bound.
+- Existing Core closed-candle/freshness rules must pass. H1 must be the latest eligible fully closed H1 candle before the current M15 bucket.
 
-The contract requires an explicit maximum book age in runner configuration and rejects missing/invalid age policy. **The numeric max-age threshold is not approved by this design** and remains a freeze blocker. Do not silently choose a threshold.
+The T0 `datasetVersion` values remain source-owned identities; they are never replaced by the bundle digest. No direct SQLite access to canonical T0 is permitted.
 
-The current producer does not independently enforce full order-book provenance, ordering, or age. A bundle validator must enforce these before calling `produce()`; do not modify Strategy Core as part of the bundle-contract increment.
+### 3.2 Order book
 
-### 4.3 Paper strategy state
+Required fields: `source`, `connector`, `symbol=BTCUSDT`, `observedAtMs`, non-empty `bids` and `asks`.
 
-This section is derived from the read-only `read_snapshot(db_path, strategy_id="STRATEGY_CORE")` result, not caller-supplied free-form values.
+Each level contains positive decimal-string `price` and `quantity`. Bids are descending; asks are ascending; best bid must be strictly below best ask. Observation time cannot be after `decisionAtMs`.
 
-Minimum producer inputs:
+**Freshness decision (resolved):** runner configuration must provide explicit positive integer `maxBookAgeMs`. Missing, boolean, non-integer, zero or negative values are invalid. The bundle validator rejects an order book when `decisionAtMs - observedAtMs > maxBookAgeMs`. No built-in default or invented numeric threshold exists; the caller must choose a threshold based on the selected source cadence and operational evidence. The configured value is recorded in decision evidence.
+
+The current Strategy Core producer does not independently enforce all book provenance, ordering or age rules. The bundle validator owns those checks before producer invocation. Strategy Core itself remains unchanged.
+
+### 3.3 Core paper-state projection
+
+Derived only from the existing read-only `read_snapshot(db_path, strategy_id="STRATEGY_CORE")` path; caller-supplied state is not authoritative.
+
+Required projection:
 
 - `positionBase`: finite signed decimal string.
-- `averageEntryPrice`: finite nonnegative decimal string; zero iff flat, positive iff a position exists.
-- `strategyState.owner`: preserve the ledger value.
+- `averageEntryPrice`: finite nonnegative decimal string; zero iff flat, positive iff non-flat.
+- `strategyState.owner`: exact ledger value, including null where the ledger has no owner.
 - `strategyState.dcaUsed`: strict boolean.
-- `strategyState.strategyId`: exactly `STRATEGY_CORE`.
+- `strategyState.strategyId=STRATEGY_CORE`.
 
-The full ledger snapshot may be retained in protected execution evidence, but the strategy input projection must be explicit and minimal. Do not accept a caller-injected position or DCA state that differs from the read-only ledger snapshot.
+No caller may override this projection with manually supplied position or DCA state. The read path must remain read-only and must not create or migrate a database.
 
-### 4.4 Account-wide risk state
+### 3.4 Account-wide risk snapshot
 
-This section is read from `read_account_risk_snapshot(db_path, now_ms=decisionAtMs)` and is independent of the Core strategy ledger snapshot.
+Embed the exact read-only return value from `read_account_risk_snapshot(db_path, now_ms=decisionAtMs)` under `accountRisk.snapshot`, unchanged. Preserve all fields returned by that reader, including:
 
-Required fields for an exposure-increasing decision:
+- mode, live-trading support, availability, readiness and unavailable reason;
+- account equity, gross/filled exposure, reserved notional and reserved margin;
+- drawdown, daily PnL/loss, high-water mark and daily baseline;
+- mark price/time and source dataset version;
+- Kill Switch snapshot, per-strategy positions and update time.
 
-- `riskReady=true`.
-- `accountEquityQuote`: positive finite decimal value with its original precision preserved.
-- Current account-wide exposure/reservation and Kill Switch state must be available to the shared admission path.
+`accountRisk.snapshotDigest` is SHA-256 over the RFC 8785 canonical JSON bytes of the exact snapshot object. Do not reconstruct, normalize, round or selectively rewrite financial values before digesting.
 
-A preflight snapshot is not an admission reservation. The PaperLedger/Shared Risk Engine must transactionally recheck current account state when submitting an intent.
+The snapshot is observational, not an admission reservation. The existing PaperLedger/Shared Risk Engine must transactionally recheck current account state on every submission. No custom bypass is permitted. If the read-only snapshot cannot be obtained or is unavailable, no decision bundle is admissible and no submission occurs. If the snapshot exists but `riskReady=false`, the runner must not bypass the existing ledger/risk admission policy: exposure-increasing ENTRY/DCA is blocked; reduction-only EXIT may be attempted only through the existing PaperLedger/Shared Risk Engine path and only if that path itself accepts it. The runner must not create a parallel EXIT exception.
 
-Do not turn risk snapshot unavailability into a blanket prohibition on position-reducing EXIT behavior without verifying the existing shared-risk policy. Entry/DCA exposure increases must fail closed when account readiness/equity is unavailable. EXIT/FLAT behavior remains subject to existing transactional Kill Switch and risk controls.
+## 4. Canonical bundle identity — RFC 8785
 
-## 5. Bundle identity and provenance
+Use RFC 8785 JSON Canonicalization Scheme (JCS), implemented by the pinned `rfc8785` dependency already present in `requirements-web.txt`.
 
-- `bundleId` is a SHA-256 digest of a canonical serialization of the entire immutable bundle, excluding the `bundleId` field itself.
-- Canonical serialization rules (key ordering, UTF-8 encoding, number representation, decimal-string normalization and treatment of optional/null fields) must be specified and tested before implementation. **This is not yet frozen.**
-- `datasetVersion` values remain source-provided T0 identities and must not be replaced by `bundleId`.
-- The producer's `inputSnapshotId` remains generated by the existing Strategy Core producer from its current inputs. The runner/adapter must not synthesize or overwrite it.
-- Record the exact source SHA and contract version alongside the resulting decision evidence. Never insert credentials or secrets into the bundle or evidence.
+- Encode canonical JSON as UTF-8 bytes.
+- Compute SHA-256 over the entire bundle object after removing only the top-level `bundleId` field.
+- Format as `sha256:<64 lowercase hex>`.
+- Object key ordering follows RFC 8785; arrays retain original order.
+- Decimal financial values remain exact strings; do not convert them to binary floats or normalize their textual precision.
+- Reject all JSON float values and unsafe integer values before canonicalization. Only safe integer timestamps/schema counters are numeric.
+- Preserve explicit nulls; absent optional fields remain absent. The validator rejects unknown fields rather than silently dropping them.
+- Recompute and compare `bundleId` during validation; mismatch fails closed.
+- `datasetVersion` and producer `inputSnapshotId` are independent source/producer identities and must not be synthesized or overwritten by `bundleId`.
 
-## 6. Deterministic validation order
+## 5. Validation and decision order
 
-1. Validate envelope version, required keys, PAPER mode, AI disabled, and market/strategy identity.
-2. Validate both T0-derived candle windows, source provenance, coverage, ordering, closure, continuity and the existing Core timeframe constraints.
-3. Validate order-book identity, decimal values, spread/order, observation timestamp and configured max age.
-4. Read Core ledger state through the existing read-only snapshot path; require exact strategy scope and valid position/DCA state.
-5. Read account-wide risk snapshot through the tested read-only path; require readiness and positive equity for exposure increases.
-6. Build the immutable `produce()` arguments without altering source values.
-7. Call `pipeline.core_strategy.produce()` exactly once.
-8. Translate only known outcomes through `producer_report_to_signal()`, then call `pipeline.core_signal.validate()`.
-9. If WAIT/no intent, do not submit. If actionable, submit only through Core-scoped PaperLedger so Shared Risk Engine/Kill Switch recheck transactionally.
-10. Emit a result that distinguishes strategy decision, signal validation, risk admission and simulated fill.
+1. Validate exact envelope keys, contract/schema version, timestamp types/range, PAPER mode, AI disabled, strategy and market identity.
+2. Validate both embedded T0 response envelopes, exact provenance, coverage, candle count, decimal strings, ordering, continuity, closure, OHLC bounds and existing Core timeframe freshness constraints.
+3. Validate explicit `maxBookAgeMs`; then validate order-book identity, decimal levels, ordering, spread and observation age.
+4. Read Core paper state through the read-only Core-scoped ledger snapshot; validate the projection.
+5. Read account-wide risk snapshot through the read-only reader; preserve and digest the exact result. If unavailable, stop without invoking the producer or submitting anything.
+6. Recompute and verify bundle digest.
+7. Construct exact `produce()` arguments without source substitution or provenance synthesis.
+8. Call `pipeline.core_strategy.produce()` once.
+9. Translate only known producer outcomes through `producer_report_to_signal()`, then call `pipeline.core_signal.validate()`.
+10. WAIT/no-intent never submits. Actionable intent goes only to Core-scoped PaperLedger; the Shared Risk Engine and Kill Switch recheck transactionally.
+11. Emit separate decision, signal validation, admission and simulation outcomes. Never report admission/fill before the ledger returns that outcome.
 
-Any invalid/missing/stale input produces `INPUT_BLOCKED` or `RISK_STATE_BLOCKED`; it must not be coerced into a valid signal or silently replaced by fallback data.
+Invalid input returns a stable blocked diagnostic and never silently falls back to another source. A valid bundle is not evidence that a signal exists or that admission/fill will succeed.
 
-## 7. Explicit result semantics
+## 6. Stable CLI exit-code mapping
 
-The result record must distinguish at least:
+The future one-shot CLI must use this mapping:
 
-- `decision`: Core producer action and reason.
-- `validation`: validator action and reason.
-- `admission`: `NOT_ATTEMPTED`, `ADMITTED`, or `REJECTED`.
-- `simulation`: `NOT_RUN`, `PAPER_ORDER_CREATED`, or the actual ledger simulation result.
-- `bundleId`, source `datasetVersion` values, producer `inputSnapshotId`, source SHA, decision time and stable diagnostic code.
+| Code | Meaning |
+|---:|---|
+| 0 | Cycle completed; not a promise of trade, admission or fill |
+| 2 | Invalid configuration or input bundle |
+| 3 | Risk snapshot unavailable/invalid or risk state blocks the attempted action |
+| 4 | Core signal invalid |
+| 5 | Shared Risk Engine / PaperLedger admission rejected |
+| 6 | Infrastructure/storage/unexpected runtime error |
 
-A process exit code of zero is not proof of a trade, fill, or runtime readiness. No result may label an intent as admitted before PaperLedger returns the actual admission outcome.
+WAIT is a completed cycle and returns 0 with explicit `decision=WAIT`, `admission=NOT_ATTEMPTED`, `simulation=NOT_RUN`. No new exit code implies a successful trade.
 
-## 8. Freeze blockers
+## 7. Frozen module API for the validator increment
 
-The following must be decided and contract-tested before marking v1 frozen:
+The first implementation target is a pure module `core_runtime/input_bundle.py` with:
 
-1. Numeric maximum age for order-book snapshot, with source cadence and decision-time semantics.
-2. Canonical JSON/digest algorithm for `bundleId`, including decimal strings, optional fields and nested arrays.
-3. Exact projection of `read_snapshot()` and `read_account_risk_snapshot()` into the bundle, including whether the raw risk snapshot is retained or only a minimal verified projection.
-4. Exact policy for reduction-only EXIT when the account risk snapshot is unavailable or `riskReady=false`, consistent with transactional Shared Risk Engine/Kill Switch behavior.
-5. Whether M15/H1 windows are embedded in the bundle artifact or referenced by immutable source response digests plus bounded fixture payloads; no unbounded payloads.
-6. Stable exit-code mapping for `INPUT_BLOCKED`, `RISK_STATE_BLOCKED`, WAIT, PAPER admission rejection and infrastructure errors.
+- `BundleValidationError(ValueError)`: stable diagnostic code in its message.
+- `compute_bundle_id(bundle) -> str`: RFC 8785 + SHA-256 as specified above.
+- `validate_bundle(bundle, *, max_book_age_ms) -> dict`: validates the immutable bundle and returns a small verified summary; it performs no I/O, ledger reads/writes, network calls, producer invocation or risk admission.
 
-Until all six are resolved, the contract remains **DRAFT / NOT FROZEN**.
+Read-only ledger/risk snapshot acquisition and bundle assembly belong to a later runner orchestration increment. The pure validator must not import or initialize PaperLedger.
 
-## 9. Verified source alignment
+## 8. Contract test gate and current RED status
 
-- T0 source candle interface: `docs/architecture/T0_READ_ONLY_CANDLE_CONTRACT_V1_2026-11-08.md`.
-- Strategy Core producer: `pipeline/core_strategy.py`; current `_valid_window()` requires at least 100 closed, contiguous candles with complete coverage and latest timeframe freshness.
-- Signal validator: `pipeline/core_signal.py`; accepts schema v1 Core LONG/SHORT/FLAT/WAIT, fixed Binance USDT perpetual BTCUSDT 15m identity, provenance and a 60-second decision validity window.
-- Producer adapter: `core_runtime/adapter.py`; known mapping only BUY→LONG, SELL→SHORT, CLOSE→FLAT, WAIT→WAIT; copies existing provenance only.
-- Ledger read: `paper_execution.read_snapshot(..., strategy_id="STRATEGY_CORE")`; returns Core position and DCA ownership state without creating/migrating the database.
-- Account risk read: `read_account_risk_snapshot()`; read-only/fail-closed tests passed 3/3 in workflow run #87.
-- Prior one-shot entrypoint contract: `docs/evidence/CORE_PAPER_RUNTIME_ENTRYPOINT_CONTRACT_2026-11-12.md`.
+The RED suite is `core_runtime/test_input_bundle_contract.py`. It covers:
 
-## 10. Safety and scope
+- valid PAPER bundle and explicit order-book age policy;
+- missing/invalid max-book-age configuration;
+- stale/future order-book timestamps;
+- PAPER-only and AI-disabled invariants;
+- candle coverage and decimal-string integrity;
+- order-book level validity and spread;
+- Core state identity and unavailable account-risk snapshot;
+- RFC 8785 digest stability, bundleId exclusion, key-order independence;
+- rejection of floats and unsafe integers;
+- array order and decimal-string precision preservation.
 
-- Documentation-only design increment; no application code, strategy thresholds, leverage, ledger schema, migration, risk policy or workflow behavior changed.
-- No canonical T0 access, T1 activation, network data acquisition, exchange credentials, real orders, VPS provisioning, deployment, daemon, systemd or autostart.
-- `AI_EXECUTION_ENABLED=false`; Core paper-only direction retained.
-- This design does not approve implementation of the runner or any production/runtime provider.
+The test module API is frozen as specified in Section 7. At this stage the implementation module is intentionally absent: the suite is expected to fail at import until the next separately authorized implementation increment. A RED CI result is therefore expected and is not a release PASS.
 
-## 11. Disposition
+## 9. Safety and scope
 
-- Existing interface inspection: **PASS**.
-- Proposed bundle shape and data ownership boundaries: **DESIGN REVIEWED**.
-- Bundle v1 freeze: **BLOCKED** by six explicit decisions in Section 8.
-- Bundle validator/tests: **NOT IMPLEMENTED**.
+- Core strategy RSI/ADX/Smart DCA logic, thresholds and fixed Core leverage are unchanged.
+- AI strategy execution remains disabled; no AI ledger admission is included.
+- Shared Risk Engine, Kill Switch and PaperLedger remain authoritative and unchanged.
+- No schema/migration changes, order execution, exchange credentials, real orders, T0/T1 runtime access, canonical T0 DB access, VPS commands, persistent installation, systemd/autostart or daemon.
+- No automatic data deletion or cleanup behavior.
+- Tests use deterministic in-memory fixtures only; any future ledger integration tests must use disposable local DB fixtures.
+
+## 10. Disposition
+
+- Six design decisions: **APPROVED BY USER**.
+- Core Decision Input Bundle v1: **FROZEN**.
+- Contract test suite: **RED TESTS WRITTEN; EXECUTION PENDING CI**.
+- Validator implementation: **NOT IMPLEMENTED**.
 - Core one-shot decision cycle: **NOT IMPLEMENTED**.
-- Next bounded step: resolve the six freeze blockers explicitly, then write RED contract tests for bundle validation before implementing any runtime integration.
+- VPS runtime: **NOT STARTED / NOT AUTHORIZED**.
+
+Next bounded increment: execute the RED suite in the existing GitHub Actions workflow, record exact source SHA and expected failure evidence, then seek/observe the separate GREEN implementation gate. No runner or VPS integration is authorized by this contract freeze.
