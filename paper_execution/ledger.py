@@ -1315,6 +1315,8 @@ def cancel_dual_order(db_path, order_id, now_ms, *, expected_strategy_id=None):
                 (target_intent_id,),
             ).fetchone()
         if row is None:
+            if target_order_id is not None:
+                raise ValueError("Unknown paper order")
             raise sqlite3.DatabaseError("RISK_RESERVATION_ORDER_STATE_MISMATCH")
         intent_id, persisted_order_id, status, raw_document, account_id, strategy_id, reservation_id = row
         try:
