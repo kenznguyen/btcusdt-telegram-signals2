@@ -149,6 +149,12 @@ def valid_bundle():
     return bundle
 
 
+def _rehash(bundle):
+    digest_input = dict(bundle)
+    digest_input.pop("bundleId")
+    bundle["bundleId"] = "sha256:" + hashlib.sha256(rfc8785.dumps(digest_input)).hexdigest()
+
+
 class CoreDecisionInputBundleContractTest(unittest.TestCase):
     def test_valid_paper_bundle_passes_with_explicit_book_age_policy(self):
         _, _, validate = contract_api()
@@ -167,10 +173,12 @@ class CoreDecisionInputBundleContractTest(unittest.TestCase):
         Error, _, validate = contract_api()
         stale = valid_bundle()
         stale["orderBook"]["observedAtMs"] -= 5_001
+        _rehash(stale)
         with self.assertRaisesRegex(Error, "ORDER_BOOK_STALE"):
             validate(stale, max_book_age_ms=5_000)
         future = valid_bundle()
         future["orderBook"]["observedAtMs"] += 1
+        _rehash(future)
         with self.assertRaisesRegex(Error, "ORDER_BOOK_TIMESTAMP_INVALID"):
             validate(future, max_book_age_ms=5_000)
 
@@ -191,7 +199,7 @@ class CoreDecisionInputBundleContractTest(unittest.TestCase):
             validate(bundle, max_book_age_ms=5_000)
         bundle = valid_bundle()
         bundle["marketData"]["h1"]["candles"][10]["close"] = 50000.0
-        with self.assertRaisesRegex(Error, "CANDLE_DECIMAL_INVALID"):
+        with self.assertRaisesRegex(Error, "JSON_FLOAT_NOT_ALLOWED"):
             validate(bundle, max_book_age_ms=5_000)
 
     def test_order_book_requires_positive_ordered_decimal_levels_and_valid_spread(self):

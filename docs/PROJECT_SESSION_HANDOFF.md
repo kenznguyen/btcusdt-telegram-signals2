@@ -4143,3 +4143,13 @@ These findings make the current stop condition explicit: completing Trusted Admi
 - Next: inspect the implementation commit's exact-SHA GitHub Actions run; require validator 15/15 PASS and all downstream existing regression steps PASS; record artifact ID/digest/expiry and update this handoff.
 - Core one-shot decision cycle remains NOT IMPLEMENTED. No runner, ledger/schema changes, strategy or leverage changes, AI admission, provider integration, T0/T1/VPS access, canonical DB access, persistent runtime, systemd/autostart or live orders.
 - `AI_EXECUTION_ENABLED=false`; paper-only posture remains.
+
+
+### CI correction record — run #93
+- Implementation commit `81c91e2131774ef8e4d2bc5ed97783bec10fb8e9` triggered run [#93](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43268766381).
+- Run #93 conclusion: **FAIL**. Compile, live-data probe (4), Core strategy/signal (12), preflight (5) passed. Validator suite executed all 15 tests and exposed 3 assertion mismatches; downstream regression steps were skipped by fail-fast.
+- Findings: unavailable risk snapshot was checked after its digest (diagnostic precedence); float-valued candle mutation correctly failed at the global JSON-float guard but the test expected the narrower decimal error; stale/future order-book tests mutated bundle content without recomputing bundleId, so digest validation correctly failed first.
+- Corrections committed for the next run: check risk availability before digest comparison; expect `JSON_FLOAT_NOT_ALLOWED`; recompute the test bundle identity after changing order-book timestamps.
+- Run #93 artifact: `core-first-code-operational-proof-43268766381`, ID `13967212176`, 3,762 bytes, expiry `2026-11-19T17:22:35Z`, upload digest `sha256:0d051dd70c880d7fa3b4948265a8b8c08d801135c2df21d3f7dd84b0c058ea45`. Payload not independently downloaded/re-hashed.
+- Corrected validator source blob: `497b94505862fd5d41411c4273e3e7c79340d588`; corrected test blob: `a196466680eb1b9015e2d9039b390089a61dfcb5`.
+- Next run result is pending. Do not promote validator or Core operational status to GREEN until the corrected run completes all steps successfully.

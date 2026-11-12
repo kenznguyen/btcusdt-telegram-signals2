@@ -260,13 +260,13 @@ def _validate_account_risk(account_risk):
         actual = "sha256:" + hashlib.sha256(rfc8785.dumps(snapshot)).hexdigest()
     except (TypeError, ValueError, OverflowError):
         _fail("RISK_SNAPSHOT_INVALID")
-    if actual != digest_value:
-        _fail("RISK_SNAPSHOT_DIGEST_MISMATCH")
     if (snapshot.get("mode") != "PAPER"
             or snapshot.get("liveTradingSupported") is not False
             or snapshot.get("available") is not True
             or type(snapshot.get("riskReady")) is not bool):
         _fail("RISK_SNAPSHOT_UNAVAILABLE")
+    if actual != digest_value:
+        _fail("RISK_SNAPSHOT_DIGEST_MISMATCH")
 
 
 def validate_bundle(bundle, *, max_book_age_ms):

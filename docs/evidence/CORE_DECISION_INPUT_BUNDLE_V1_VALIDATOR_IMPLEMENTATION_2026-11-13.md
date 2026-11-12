@@ -44,3 +44,19 @@ No runner/one-shot decision cycle, no ledger or schema changes, no strategy/thre
 - Release readiness: **NOT CLAIMED**.
 
 Next gate: run the updated existing GitHub Actions workflow against the exact implementation commit. Accept GREEN only if all 15 validator tests and all existing regression steps pass.
+
+
+## CI #93 findings and correction
+Run [#93](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43268766381), exact source `81c91e2131774ef8e4d2bc5ed97783bec10fb8e9`, failed in the validator test step after 3 of 15 assertion mismatches. Compilation and the earlier four suites passed; downstream steps were skipped by fail-fast.
+
+Corrections:
+1. Risk snapshot availability is checked before digest comparison so unavailable snapshots return `RISK_SNAPSHOT_UNAVAILABLE`.
+2. The float-in-candle test now expects the global `JSON_FLOAT_NOT_ALLOWED` guard.
+3. Stale/future order-book mutation tests recompute the top-level bundle identity so they exercise the intended timestamp checks.
+
+Corrected source blob: `497b94505862fd5d41411c4273e3e7c79340d588`.
+Corrected test blob: `a196466680eb1b9015e2d9039b390089a61dfcb5`.
+
+Run #93 artifact ID `13967212176`, upload SHA-256 `0d051dd70c880d7fa3b4948265a8b8c08d801135c2df21d3f7dd84b0c058ea45`; payload hash not independently verified.
+
+Disposition: validator implementation remains **BLOCKED pending corrected CI**. No downstream runtime scope is opened.
