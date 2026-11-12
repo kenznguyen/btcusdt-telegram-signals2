@@ -74,7 +74,7 @@ class DualStrategyApiScopeRedTest(unittest.TestCase):
 
         with patch.object(ledger_module, "dual_ledger_ready", return_value=True), \
              patch.object(ledger_module, "PaperLedger") as constructor:
-            instance = api.ledger(strategy_id="AI_FREQAI")
+            instance = api.ledger(strategy_id="AI_FREQAI", admitted_leverage="2")
 
         self.assertIs(instance, constructor.return_value)
         self.assertEqual(constructor.call_args.kwargs["strategy_id"], "AI_FREQAI")
@@ -310,7 +310,7 @@ class DualStrategyApiScopeRedTest(unittest.TestCase):
                 connection.execute("SELECT COUNT(*) FROM paper_audit").fetchone()[0],
             )
 
-        scoped = api.ledger(strategy_id="AI_FREQAI")
+        scoped = api.ledger(strategy_id="AI_FREQAI", admitted_leverage="2")
         self.assertEqual(scoped.strategy_id, "AI_FREQAI")
 
         with sqlite3.connect(self.db) as connection:
@@ -380,7 +380,7 @@ class DualStrategyApiScopeRedTest(unittest.TestCase):
         from paper_execution.ledger import PaperLedger, read_snapshot
 
         self.activate_dual_schema()
-        PaperLedger(self.db, strategy_id="AI_FREQAI", source_sha="e" * 40)
+        PaperLedger(self.db, strategy_id="AI_FREQAI", source_sha="e" * 40, leverage="3")
         timestamp = 1_800_000_000_000
         book = {
             "source": "hummingbot", "connector": "binance_perpetual",
