@@ -85,7 +85,20 @@ class FiveLayerApiTest(unittest.TestCase):
         self.assertIn(("X-Content-Type-Options", "nosniff"), headers)
         return int(status.split()[0]), json.loads(data)
 
-    def test_collector_to_canonical_prediction_to_paper_and_read_api(self):
+    def valid_ai_decision(self):
+        """Isolate paper risk/ledger tests from the unavailable production admission provider."""
+        return {"source": "AI_FREQAI", "action": "BUY", "reason": "ALIGNED_PAPER_SIGNAL",
+                "intent": {
+                    "intentId": f"api-test-ai-{self.prediction['availableAtMs']}",
+                    "symbol": "BTCUSDT", "exchange": "binance",
+                    "marketType": "USDT_PERPETUAL", "strategyVersion": "fixture-strategy",
+                    "modelVersion": "fixture-model", "datasetVersion": self.window["datasetVersion"],
+                    "targetPositionBase": "0.001", "limitPrice": "100.02",
+                    "decisionAtMs": self.now-1000, "validUntilMs": self.now+20_000,
+                    "inputSnapshotId": "sha256:"+"d"*64, "mode": "PAPER",
+                }}
+
+    def test_missing_trusted_calibration_context_blocks_ai_paper_execution(self):
         code, intelligence = self.request("/v1/intelligence")
         self.assertEqual(code, 200, intelligence)
         self.assertEqual(intelligence["netTakerQuote"], "100")
@@ -93,19 +106,21 @@ class FiveLayerApiTest(unittest.TestCase):
         self.assertEqual(len(intelligence["inputFiles"]["trades"][0]["sha256"]), 64)
         code, result = self.request("/v1/paper/evaluate", "POST", {})
         self.assertEqual(code, 200, result)
-        self.assertEqual(result["decision"]["action"], "BUY")
-        self.assertEqual(result["order"]["status"], "FILLED")
-        self.assertEqual(result["order"]["filledBase"], "0.001")
+        self.assertEqual(result["decision"]["action"], "WAIT")
+        self.assertEqual(result["decision"]["reason"], "AI_CALIBRATION_ADMISSION_CONTEXT_UNAVAILABLE")
+        self.assertIsNone(result["decision"]["intent"])
+        self.assertIsNone(result["order"])
         _, state = self.request("/v1/paper")
-        self.assertEqual(state["positionBase"], "0.001")
+        self.assertEqual(state["positionBase"], "0")
         self.assertFalse(state["liveTradingSupported"])
-        self.assertGreater(float(state["feesQuote"]), 0)
+        self.assertEqual(float(state["feesQuote"]), 0)
 
     def test_retries_do_not_duplicate_positions_or_fees(self):
-        _, first = self.request("/v1/paper/evaluate", "POST", {})
-        _, before = self.request("/v1/paper")
-        _, retry = self.request("/v1/paper/evaluate", "POST", {})
-        _, after = self.request("/v1/paper")
+        with patch.object(api, "decide", return_value=self.valid_ai_decision()):
+            _, first = self.request("/v1/paper/evaluate", "POST", {})
+            _, before = self.request("/v1/paper")
+            _, retry = self.request("/v1/paper/evaluate", "POST", {})
+            _, after = self.request("/v1/paper")
         self.assertEqual(first["order"], retry["order"])
         self.assertEqual(before, after)
 
@@ -122,7 +137,8 @@ class FiveLayerApiTest(unittest.TestCase):
         code, result = self.request("/v1/paper/pause", "POST", {"paused": True})
         self.assertEqual(code, 200)
         self.assertTrue(result["paused"])
-        _, result = self.request("/v1/paper/evaluate", "POST", {})
+        with patch.object(api, "decide", return_value=self.valid_ai_decision()):
+            _, result = self.request("/v1/paper/evaluate", "POST", {})
         self.assertEqual(result["order"]["status"], "REJECTED")
         self.assertEqual(result["order"]["reason"], "PAUSED")
         self.assertEqual(self.request("/v1/paper")[1]["positionBase"], "0")
@@ -218,7 +234,9 @@ class FiveLayerApiTest(unittest.TestCase):
             code, signals = self.request("/v1/signals")
             self.assertEqual(code, 200)
             self.assertEqual(signals["strategyCore"]["action"], "BUY")
-            self.assertEqual(signals["aiStrategy"]["action"], "BUY")
+            self.assertEqual(signals["aiStrategy"]["action"], "WAIT")
+            self.assertEqual(signals["aiStrategy"]["reason"], "AI_CALIBRATION_ADMISSION_CONTEXT_UNAVAILABLE")
+            self.assertIsNone(signals["aiStrategy"]["intent"])
             self.assertEqual(signals["strategyCore"]["source"], "STRATEGY_CORE")
             self.assertEqual(signals["aiStrategy"]["source"], "AI_FREQAI")
             code, result = self.request("/v1/paper/evaluate", "POST", {"source": "CORE"})
@@ -295,28 +313,33 @@ class FiveLayerApiTest(unittest.TestCase):
         with sqlite3.connect(self.db) as connection:
             connection.execute("UPDATE paper_state SET realized='-25' WHERE id=1")
         with patch.dict(os.environ,{"PAPER_MAX_DRAWDOWN_PCT":"20","PAPER_MAX_DAILY_LOSS_USDT":"10","PAPER_MAX_EXPOSURE_USDT":"1000"}):
-            code, result = self.request("/v1/paper/evaluate","POST",{})
+            with patch.object(api, "decide", return_value=self.valid_ai_decision()):
+                code, result = self.request("/v1/paper/evaluate","POST",{})
         self.assertEqual(code,200)
         self.assertEqual(result["order"]["reason"],"MAX_DRAWDOWN_LIMIT")
         self.assertTrue(self.request("/v1/paper")[1]["riskControl"]["killed"])
 
     def test_unconfigured_risk_limits_fail_closed(self):
         with patch.dict(os.environ,{"PAPER_MAX_DRAWDOWN_PCT":"","PAPER_MAX_DAILY_LOSS_USDT":"","PAPER_MAX_EXPOSURE_USDT":""}):
-            _, result = self.request("/v1/paper/evaluate","POST",{})
+            with patch.object(api, "decide", return_value=self.valid_ai_decision()):
+                _, result = self.request("/v1/paper/evaluate","POST",{})
         self.assertEqual(result["order"]["reason"],"RISK_LIMITS_UNCONFIGURED")
 
     def test_core_producer_waits_on_incomplete_history_without_suppressing_ai(self):
         _, signals = self.request("/v1/signals")
         self.assertEqual(signals["strategyCore"]["action"], "WAIT")
         self.assertEqual(signals["strategyCore"]["reason"], "CORE_CANDLE_WINDOW_INCOMPLETE")
-        self.assertEqual(signals["aiStrategy"]["action"], "BUY")
+        self.assertEqual(signals["aiStrategy"]["action"], "WAIT")
+        self.assertEqual(signals["aiStrategy"]["reason"], "AI_CALIBRATION_ADMISSION_CONTEXT_UNAVAILABLE")
+        self.assertIsNone(signals["aiStrategy"]["intent"])
 
     def test_api_kill_switch_requires_control_token_and_blocks_paper_evaluation(self):
         self.assertEqual(self.request("/v1/paper/kill", "POST", {"enabled": True}, token="read-token")[0], 401)
         code, state = self.request("/v1/paper/kill", "POST", {"enabled": True})
         self.assertEqual(code, 200)
         self.assertTrue(state["riskControl"]["killed"])
-        _, result = self.request("/v1/paper/evaluate", "POST", {})
+        with patch.object(api, "decide", return_value=self.valid_ai_decision()):
+            _, result = self.request("/v1/paper/evaluate", "POST", {})
         self.assertEqual(result["order"]["status"], "REJECTED")
         self.assertEqual(result["order"]["reason"], "KILL_SWITCH")
         self.assertEqual(self.request("/v1/paper/reset-kill", "POST",
@@ -339,7 +362,8 @@ class FiveLayerApiTest(unittest.TestCase):
     def test_kill_switch_cannot_be_cleared_by_generic_resume_or_malformed_reset(self):
         self.request("/v1/paper/kill", "POST", {"enabled": True})
         self.request("/v1/paper/pause", "POST", {"paused": False})
-        _, result = self.request("/v1/paper/evaluate", "POST", {})
+        with patch.object(api, "decide", return_value=self.valid_ai_decision()):
+            _, result = self.request("/v1/paper/evaluate", "POST", {})
         self.assertEqual(result["order"]["reason"], "KILL_SWITCH")
         self.assertEqual(self.request("/v1/paper/reset-kill", "POST",
                                       {"acknowledge": True, "ready": False})[0], 400)
