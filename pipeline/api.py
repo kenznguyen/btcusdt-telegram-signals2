@@ -454,10 +454,10 @@ def application(environ, start_response):
             if path == "/v1/paper/pause" and set(payload) == {"paused"} and type(payload["paused"]) is bool:
                 result = ledger().set_paused(payload["paused"], timestamp)
             elif path == "/v1/paper/cancel" and set(payload) == {"orderId"} and isinstance(payload["orderId"], str) and 0 < len(payload["orderId"]) <= 100:
-                from paper_execution.ledger import dual_ledger_ready
-                if dual_ledger_ready(os.environ["MARKET_DATA_DB"]):
-                    owner = resolve_order_strategy(os.environ["MARKET_DATA_DB"], payload["orderId"])
-                    result = ledger(strategy_id=owner).cancel(payload["orderId"], timestamp)
+                from paper_execution.ledger import cancel_dual_order, dual_ledger_ready
+                db_path = os.environ["MARKET_DATA_DB"]
+                if dual_ledger_ready(db_path):
+                    result = cancel_dual_order(db_path, payload["orderId"], timestamp)
                 else:
                     result = ledger().cancel(payload["orderId"], timestamp)
             elif path == "/v1/paper/kill" and set(payload) == {"enabled"} and payload["enabled"] is True:
