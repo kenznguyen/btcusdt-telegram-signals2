@@ -1312,27 +1312,76 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
         self.assertEqual(dca_order["status"], "FILLED", dca_order)
         self.assertGreater(Decimal(dca_order["filledBase"]), Decimal("0"))
 
-        post_dca = Decimal(ledger.snapshot()["positionBase"])
-        kill_at = dca_at + 1
-        ledger.set_killed(True, kill_at, "MIXED_WRITER_STRESS_KILL_SWITCH")
-        blocked_intent = dict(dca_intent)
+        snapshot = ledger.snapshot()
+        post_dca = Decimal(snapshot["positionBase"])
+        self.assertLess(post_dca, Decimal("1"))
+        with localcontext() as decimal_context:
+            decimal_context.prec = 80
+            account_exposure = abs(post_dca) * Decimal(snapshot["averageEntryPrice"])
+            self.assertLessEqual(account_exposure, Decimal("1000"))
+
+        # Use a separate flat-account fixture so the Kill Switch check reaches
+        # the risk gate before the one-DCA-per-position guard.
+        kill_path = Path(self.temp.name) / "core-mixed-writer-kill-switch.sqlite3"
+        with sqlite3.connect(self.path) as source, sqlite3.connect(kill_path) as target_db:
+            source.backup(target_db)
+        kill_ledger = PaperLedger(
+            kill_path, max_position_base="1", fee_rate="0.001",
+            strategy_id="STRATEGY_CORE", source_sha="d" * 40,
+            risk_limits={
+                "maxDrawdownPct": "50",
+                "maxDailyLossUsdt": "50",
+                "maxExposureUsdt": "1000",
+            },
+            require_risk_limits=True, apply_migrations=False,
+        )
+        kill_entry_intent = dict(entry_intent)
+        kill_entry_intent.update({
+            "intentId": "core-mixed-writer-kill-entry",
+            "decisionAtMs": self.now,
+            "validUntilMs": self.now + 60_000,
+            "inputSnapshotId": "fixture:core-mixed-writer-kill-entry",
+        })
+        kill_entry = kill_ledger.submit(
+            kill_entry_intent, dict(self.book), self.now, strategy_event="ENTRY"
+        )
+        self.assertEqual(kill_entry["status"], "FILLED", kill_entry)
+        kill_position = Decimal(kill_ledger.snapshot()["positionBase"])
+        kill_at = self.now + 2
+        kill_ledger.set_killed(True, kill_at, "MIXED_WRITER_STRESS_KILL_SWITCH")
+        blocked_intent = dict(kill_entry_intent)
         blocked_intent.update({
             "intentId": "core-mixed-writer-killed-dca",
-            "targetPositionBase": str(post_dca * Decimal("1.05")),
+            "targetPositionBase": str(kill_position * Decimal("1.05")),
             "decisionAtMs": kill_at,
             "validUntilMs": kill_at + 30_000,
             "inputSnapshotId": "fixture:core-mixed-writer-killed-dca",
         })
         blocked_book = dict(self.book)
         blocked_book["observedAtMs"] = kill_at
-        blocked = ledger.submit(
+        blocked = kill_ledger.submit(
             blocked_intent, blocked_book, kill_at, strategy_event="DCA"
         )
         self.assertEqual(blocked["status"], "REJECTED", blocked)
         self.assertEqual(blocked["reason"], "KILL_SWITCH", blocked)
-        snapshot = ledger.snapshot()
-        self.assertTrue(snapshot["riskControl"]["killed"])
-        self.assertEqual(snapshot["positionBase"], str(post_dca))
+        kill_snapshot = kill_ledger.snapshot()
+        self.assertTrue(kill_snapshot["riskControl"]["killed"])
+        self.assertEqual(kill_snapshot["positionBase"], str(kill_position))
+
+        with sqlite3.connect(kill_path) as connection:
+            self.assertEqual(connection.execute("PRAGMA integrity_check").fetchone()[0], "ok")
+            self.assertEqual(connection.execute(
+                "SELECT COUNT(*) FROM paper_orders WHERE strategy_id='STRATEGY_CORE'"
+            ).fetchone()[0], 1)
+            self.assertEqual(connection.execute(
+                "SELECT COUNT(*) FROM paper_risk_reservations WHERE strategy_id='STRATEGY_CORE'"
+            ).fetchone()[0], 1)
+            self.assertEqual(connection.execute(
+                "SELECT COUNT(*) FROM paper_account_event_journal WHERE strategy_id='STRATEGY_CORE' AND event_type='FILL'"
+            ).fetchone()[0], 1)
+            self.assertEqual(connection.execute(
+                "SELECT COUNT(*) FROM paper_orders WHERE strategy_id='AI_FREQAI'"
+            ).fetchone()[0], 0)
 
         with sqlite3.connect(stress_path) as connection:
             self.assertEqual(connection.execute("PRAGMA integrity_check").fetchone()[0], "ok")
@@ -1355,7 +1404,7 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
             ai_orders = connection.execute(
                 "SELECT COUNT(*) FROM paper_orders WHERE strategy_id='AI_FREQAI'"
             ).fetchone()[0]
-        self.assertEqual(len(orders), 3, orders)
+        self.assertEqual(len(orders), 2, orders)
         self.assertEqual(fills, 2)
         self.assertEqual(len(reservations), 2)
         self.assertEqual(orphan_reservations, 0)
