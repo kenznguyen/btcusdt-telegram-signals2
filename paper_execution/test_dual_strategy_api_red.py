@@ -296,6 +296,41 @@ class DualStrategyApiScopeRedTest(unittest.TestCase):
         self.assertEqual(reservation, ("RELEASED", "0", "0"))
 
 
+    def test_manual_order_cancel_remains_compatible_on_dual_schema(self):
+        self.activate_dual_schema()
+        order = {
+            "orderId": "api-manual-pending",
+            "createdAtMs": 1,
+            "status": "OPEN",
+            "filledBase": "0",
+            "strategyId": "MANUAL",
+        }
+        with sqlite3.connect(self.db) as connection:
+            connection.execute(
+                """INSERT INTO paper_orders
+                   (intent_id,payload_hash,order_id,status,document,account_id,
+                    strategy_id,strategy_event,reservation_id,created_schema_version)
+                   VALUES (?,?,?,?,?,1,'MANUAL','ENTRY',NULL,1)""",
+                ("api-manual-intent", "manual-payload", order["orderId"], "OPEN",
+                 json.dumps(order)),
+            )
+
+        with patch.object(api, "control_permit", return_value=True):
+            status, result = self.request(
+                "/v1/paper/cancel", {"orderId": "api-manual-pending"}
+            )
+
+        self.assertEqual(status, 200, result)
+        self.assertEqual(result["status"], "CANCELED")
+        self.assertEqual(result["strategyId"], "MANUAL")
+        with sqlite3.connect(self.db) as connection:
+            stored = connection.execute(
+                "SELECT status,strategy_id FROM paper_orders WHERE order_id=?",
+                ("api-manual-pending",),
+            ).fetchone()
+        self.assertEqual(stored, ("CANCELED", "MANUAL"))
+
+
     def test_reset_readiness_blocks_unassigned_pending_order_and_unready_shared_risk(self):
         self.activate_dual_schema()
         order = {
