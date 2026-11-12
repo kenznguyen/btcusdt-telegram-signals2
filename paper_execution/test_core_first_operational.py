@@ -1,4 +1,5 @@
 import os
+from concurrent.futures import ThreadPoolExecutor, Barrier
 import sqlite3
 import tempfile
 from decimal import Decimal, localcontext
@@ -461,6 +462,104 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
         self.assertEqual(order["reason"], "KILL_SWITCH")
         self.assertEqual(self.core.snapshot()["positionBase"], "0")
         self.assertEqual(self.ai.snapshot()["positionBase"], "0")
+
+
+    def test_concurrent_core_intents_share_one_net_position_and_kill_switch(self):
+        signal = self.decide()
+        self.assertEqual(signal["action"], "BUY", signal)
+        first_intent = dict(signal["intent"])
+        second_intent = dict(signal["intent"])
+        second_intent.update({
+            "intentId": "core-concurrent-competing-intent",
+            "inputSnapshotId": "fixture:core-concurrent-competing-intent",
+        })
+
+        competing_core = PaperLedger(
+            self.path, max_position_base="1", fee_rate="0.001",
+            strategy_id="STRATEGY_CORE", source_sha="c" * 40,
+            risk_limits={
+                "maxDrawdownPct": "50",
+                "maxDailyLossUsdt": "50",
+                "maxExposureUsdt": "1000",
+            },
+            require_risk_limits=True, apply_migrations=False,
+        )
+        gate = Barrier(2)
+
+        def submit(ledger_instance, intent):
+            gate.wait(timeout=5)
+            return ledger_instance.submit(
+                intent, dict(self.book), self.now, strategy_event="ENTRY"
+            )
+
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            first_future = pool.submit(submit, self.core, first_intent)
+            second_future = pool.submit(submit, competing_core, second_intent)
+            orders = [first_future.result(timeout=15), second_future.result(timeout=15)]
+
+        target = Decimal(first_intent["targetPositionBase"])
+        self.assertEqual(self.core.snapshot()["positionBase"], str(target))
+        self.assertEqual(self.ai.snapshot()["positionBase"], "0")
+        self.assertEqual(sum((Decimal(order["filledBase"]) for order in orders), Decimal("0")), target)
+        self.assertEqual(sum(1 for order in orders if Decimal(order["filledBase"]) > 0), 1)
+
+        with sqlite3.connect(self.path) as connection:
+            persisted = connection.execute(
+                """SELECT intent_id,status,document,reservation_id
+                   FROM paper_orders
+                   WHERE intent_id IN (?,?)
+                   ORDER BY intent_id""",
+                (first_intent["intentId"], second_intent["intentId"]),
+            ).fetchall()
+            fill_events = connection.execute(
+                """SELECT COUNT(*) FROM paper_account_event_journal
+                   WHERE account_id=1 AND strategy_id='STRATEGY_CORE'
+                     AND event_type='FILL'"""
+            ).fetchone()[0]
+            reservations = connection.execute(
+                """SELECT COUNT(*) FROM paper_risk_reservations
+                   WHERE account_id=1 AND strategy_id='STRATEGY_CORE'
+                     AND intent_id IN (?,?)""",
+                (first_intent["intentId"], second_intent["intentId"]),
+            ).fetchone()[0]
+            ai_orders = connection.execute(
+                "SELECT COUNT(*) FROM paper_orders WHERE strategy_id='AI_FREQAI'"
+            ).fetchone()[0]
+
+        self.assertEqual(len(persisted), 2)
+        self.assertEqual(fill_events, 1)
+        self.assertEqual(reservations, 1)
+        self.assertEqual(ai_orders, 0)
+        for intent_id, status, document, reservation_id in persisted:
+            order_document = __import__("json").loads(document)
+            self.assertEqual(order_document["intentId"], intent_id)
+            if Decimal(order_document["filledBase"]) > 0:
+                self.assertEqual(status, "FILLED")
+                self.assertIsNotNone(reservation_id)
+            else:
+                self.assertEqual(status, "FILLED")
+                self.assertIsNone(reservation_id)
+
+        kill_at = self.now + 1
+        self.core.set_killed(True, kill_at, "CORE_CONCURRENT_ADMISSION_TEST")
+        blocked_intent = dict(first_intent)
+        blocked_intent.update({
+            "intentId": "core-entry-after-concurrent-kill",
+            "targetPositionBase": str(target + Decimal("0.01")),
+            "decisionAtMs": kill_at + 1,
+            "validUntilMs": kill_at + 30_001,
+            "inputSnapshotId": "fixture:core-entry-after-concurrent-kill",
+        })
+        blocked_book = dict(self.book)
+        blocked_book["observedAtMs"] = kill_at + 1
+        blocked = self.core.submit(
+            blocked_intent, blocked_book, kill_at + 1, strategy_event="ENTRY"
+        )
+        self.assertEqual(blocked["status"], "REJECTED", blocked)
+        self.assertEqual(blocked["reason"], "KILL_SWITCH")
+        self.assertEqual(self.core.snapshot()["positionBase"], str(target))
+        self.assertTrue(self.core.snapshot()["riskControl"]["killed"])
+
 
 
 if __name__ == "__main__":
