@@ -8,6 +8,8 @@ on:
       - "ops/live_market_data_probe.py"
       - "ops/test_live_market_data_probe.py"
       - "pipeline/core_strategy.py"
+      - "pipeline/api.py"
+      - "paper_execution/test_core_first_operational.py"
       - "pipeline/core_signal.py"
       - "paper_execution/risk_control.py"
       - "paper_execution/ledger.py"
@@ -81,6 +83,11 @@ jobs:
           set -euo pipefail
           python -m unittest pipeline.test_core_strategy pipeline.test_core_signal -v 2>&1 | tee core-strategy-tests.log
 
+      - name: Run Core-First end-to-end paper operational proof
+        run: |
+          set -euo pipefail
+          python -m unittest paper_execution.test_core_first_operational -v 2>&1 | tee core-first-operational-tests.log
+
       - name: Run shared risk and paper ledger regressions
         run: |
           set -euo pipefail
@@ -118,5 +125,6 @@ jobs:
             live-data-probe-tests.log
             core-strategy-tests.log
             shared-risk-paper-ledger-tests.log
+            core-first-operational-tests.log
             core-live-market-data-report.json
             core-operational-verdict.txt
