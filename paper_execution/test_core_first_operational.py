@@ -156,6 +156,9 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
             self.core.snapshot()["positionBase"],
             signal["intent"]["targetPositionBase"],
         )
+        from paper_execution.ledger import read_account_risk_snapshot
+        post_entry_risk = read_account_risk_snapshot(self.path, now_ms=self.now)
+        self.assertTrue(post_entry_risk["riskReady"], post_entry_risk)
 
         # A distinct closed M15 dataset moves price far enough against the
         # Core position to satisfy Smart DCA's ROE and ADX gates.
