@@ -392,8 +392,8 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
                 account_equity_quote=exit_account_risk["accountEquityQuote"],
                 max_position_base="1",
             )
-        self.assertEqual(exit_report["action"], "FLAT", exit_report)
-        exit_signal = validate(exit_report, exit_now)
+        self.assertEqual(exit_report["action"], "CLOSE", exit_report)
+        exit_signal = validate(exit_report["intent"], exit_now)
         self.assertEqual(exit_signal["action"], "CLOSE", exit_signal)
         self.assertEqual(exit_signal["reason"], "TAKE_PROFIT", exit_signal)
         self.assertEqual(exit_signal["intent"]["targetPositionBase"], "0")
