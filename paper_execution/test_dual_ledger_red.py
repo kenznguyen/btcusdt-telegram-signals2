@@ -2668,6 +2668,10 @@ os._exit(0)
 
         with sqlite3.connect(self.path) as connection:
             connection.execute(
+                "DELETE FROM paper_risk_reservations WHERE reservation_id=?",
+                (ai_pending["reservationId"],),
+            )
+            connection.execute(
                 "UPDATE paper_risk_reservations SET intent_id=? WHERE reservation_id=?",
                 (ai_pending["intentId"], core_pending["reservationId"]),
             )
