@@ -3703,3 +3703,20 @@ These findings make the current stop condition explicit: completing Trusted Admi
 - No VPS, runtime, service restart, exchange collection, deployment, live trading or real orders are authorized. Keep `AI_EXECUTION_ENABLED=false`.
 - This was a documentation-only increment. Tests/workflows: NOT RUN. Runtime readiness and Core/Risk behavior: NOT VERIFIED. AI production admission: DEFERRED / BLOCKED.
 - Next permitted step: prepare a bounded Core-first readiness plan. T0 data collection still requires its own explicit approval; do not start collection or provision runtime based on this architecture decision.
+
+
+## 2026-11-12 — Core-First readiness source inventory and plan
+
+- Owner requested continuation under the approved Core-First architecture. Read-only inventory performed on branch `feature/t0-centralized-data-feeder-p1-20261101`, exact pre-plan HEAD `c7748adca424ea9d56004bcdb9669dd8db88d570`, tree `8572ebe397506a9c1b7c94101c44b131c3ff4d8e` (recursive, not truncated).
+- Read-only source inventory and exact blobs:
+  - `pipeline/core_strategy.py`: `c14e76f2cecb9f8aca54db263ded1ff17881cb24`; `pipeline/test_core_strategy.py`: `a0d5b46845d3fde006ed817fe21bdd8b6546c1d1` (6 tests).
+  - `pipeline/core_signal.py`: `df5fbb59611bdd4fbb8224665f79655dd4433455`; `pipeline/test_core_signal.py`: `a946716604e2e1a74b0e32f0aae5d07b820f2cbf` (6 tests).
+  - `paper_execution/risk_control.py`: `3c76e462b0b4d924c2418842d95ed74285e2315d`; `paper_execution/test_risk_control.py`: `69c9177a249369f52d0c81e442c9c4583c9f5b77` (4 tests).
+  - `paper_execution/ledger.py`: `37c0aeb9dd28514dd19b87667b762c5592baf61f`; `paper_execution/test_ledger.py`: `0c05ae1ed0d9526978f8a90c983957dbd7baed5a` (19 tests).
+- Existing CI inspected:
+  - `.github/workflows/p5-3-11-g2-integration-green.yml` blob `3b75fdbf34768a315e5ed025b2ba0015ce138b17` runs Core signal/producer tests with blank DB/exchange credential env and `AI_EXECUTION_ENABLED=false`; excludes canonical runtime/exchange connectivity.
+  - `.github/workflows/dual-ledger-red.yml` blob `8b1620482dabd59d46e6f3f4e7ad66c178e520e8` runs focused Core/API tests and full paper_execution unittest discovery, including ledger/risk tests, in isolated environment.
+- Readiness plan: `docs/architecture/CORE_FIRST_READINESS_PLAN_2026-11-12.md`, commit `3a286f5433f245b231a6732c562671136cdcd3ef`. It sequences R0 source freeze, R1 separately approved T0 data availability/reacquisition, R2 Core CI, R3 Risk/Ledger CI, R4 Core-to-Risk integration CI, R5 separately approved data-backed paper evaluation.
+- Disposition: source inventory PASS (static only); Core/risk test presence PASS (static only); workflows NOT RUN; Core-to-Risk integration NOT VERIFIED; real data/performance NOT VERIFIED; T0 reacquisition BLOCKED pending separate owner decision; runtime paper NOT AUTHORIZED by this plan.
+- No source, tests, workflow, dependencies, schemas, canonical data, runtime or trading behavior changed. No workflow run IDs or artifacts exist for this increment. Documentation-only.
+- Next: obtain owner approval to dispatch the existing isolated CI workflows at an exact SHA. T0 data collection/runtime and paper operation remain separate approval gates.
