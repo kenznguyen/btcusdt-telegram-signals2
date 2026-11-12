@@ -4,7 +4,10 @@ The implementation module is intentionally absent in this RED increment.
 """
 
 import copy
+import hashlib
 import unittest
+
+import rfc8785
 
 
 def contract_api():
@@ -147,10 +150,13 @@ def valid_bundle():
             },
         },
         "accountRisk": {
-            "snapshotDigest": "sha256:" + "c" * 64,
+            "snapshotDigest": "sha256:" + hashlib.sha256(rfc8785.dumps(risk)).hexdigest(),
             "snapshot": risk,
         },
     }
+    digest_input = dict(bundle)
+    digest_input.pop("bundleId")
+    bundle["bundleId"] = "sha256:" + hashlib.sha256(rfc8785.dumps(digest_input)).hexdigest()
     return bundle
 
 
