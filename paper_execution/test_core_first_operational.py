@@ -1,7 +1,7 @@
 import os
 import sqlite3
 import tempfile
-from decimal import Decimal
+from decimal import Decimal, localcontext
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -254,9 +254,11 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
             ).fetchall()
         self.assertEqual(len(reservations), 2)
         for basis, margin, notional, status in reservations:
-            self.assertLessEqual(Decimal(margin), Decimal(basis) * Decimal("0.01"))
-            self.assertGreater(Decimal(margin), Decimal(basis) * Decimal("0.0099"))
-            self.assertEqual(Decimal(notional), Decimal(margin) * Decimal("13"))
+            with localcontext() as context:
+                context.prec = 80
+                self.assertLessEqual(Decimal(margin), Decimal(basis) * Decimal("0.01"))
+                self.assertGreater(Decimal(margin), Decimal(basis) * Decimal("0.0099"))
+                self.assertEqual(Decimal(notional), Decimal(margin) * Decimal("13"))
             self.assertEqual(status, "CONSUMED")
 
     def test_kill_switch_rejects_core_entry_without_creating_exposure(self):
