@@ -2652,5 +2652,39 @@ os._exit(0)
         self.assertEqual(audit_after_second, audit_after_first)
 
 
+    def test_cancel_fails_closed_when_reservation_intent_does_not_match_order(self):
+        core_pending = self.core.submit(
+            self.intent("core-cancel-wrong-reservation-intent", "0.12", "100.1", "cancel-wrong-intent-core"),
+            {**self.book(self.now), "asks": [{"price": "100.1", "quantity": "0.05"}]},
+            self.now,
+        )
+        ai_pending = self.ai.submit(
+            self.intent("ai-reservation-intent-target", "-0.02", "100", "cancel-wrong-intent-ai"),
+            {**self.book(self.now + 1), "bids": [{"price": "100", "quantity": "0.005"}]},
+            self.now + 1,
+        )
+        self.assertEqual(core_pending["status"], "PARTIALLY_FILLED", core_pending)
+        self.assertEqual(ai_pending["status"], "PARTIALLY_FILLED", ai_pending)
+
+        with sqlite3.connect(self.path) as connection:
+            connection.execute(
+                "UPDATE paper_risk_reservations SET intent_id=? WHERE reservation_id=?",
+                (ai_pending["intentId"], core_pending["reservationId"]),
+            )
+
+        with self.assertRaisesRegex(sqlite3.DatabaseError, "RISK_RESERVATION_OWNERSHIP_MISMATCH"):
+            self.core.cancel(core_pending["orderId"], self.now + 2)
+
+        with sqlite3.connect(self.path) as connection:
+            core_status = connection.execute(
+                "SELECT status FROM paper_orders WHERE order_id=?", (core_pending["orderId"],)
+            ).fetchone()
+            ai_status = connection.execute(
+                "SELECT status FROM paper_orders WHERE order_id=?", (ai_pending["orderId"],)
+            ).fetchone()
+        self.assertEqual(core_status, ("PARTIALLY_FILLED",))
+        self.assertEqual(ai_status, ("PARTIALLY_FILLED",))
+
+
 if __name__ == "__main__":
     unittest.main()
