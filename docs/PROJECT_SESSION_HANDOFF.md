@@ -4212,6 +4212,20 @@ These findings make the current stop condition explicit: completing Trusted Admi
 - Updated `docs/evidence/CORE_ONE_SHOT_DECISION_CYCLE_V1_DESIGN_2026-11-13.md`: C2 now targets a T1-owned exact-decimal, continuity-verified, read-only contract. Hummingbot removed from the proposed source path and remains PAUSED / OUT OF SCOPE.
 - C2 remains **BLOCKED**: no frozen T1 → T2 contract or trusted reader exists. Do not use T1 dashboard API or float-derived periodic snapshots for Core decisions. Required contract: exact decimal strings; trusted seed and declared update watermark; verified `U/u/pu` continuity; reconnect/gap state; source/observation timestamps; bounded depth; consistent read semantics; fail-closed behavior.
 - Documentation-only change. No tests/workflow rerun (no executable code changed). No T1/T0 code, canonical DB, VPS, collector runtime, service, network/provider, credentials, trading endpoint, Core runner, AI execution or live orders touched. `AI_EXECUTION_ENABLED=false`; paper-only.
-- Next bounded step: freeze the T1 → T2 read-only contract and decide the smallest source-side re-anchor requirement. Any T1 implementation/activation or Core runner implementation requires separate explicit approval.
+- Next bounded step at that point: freeze the T1 → T2 read-only contract and decide the smallest source-side re-anchor requirement. This was advanced by the 2026-11-13 contract-design increment below. Any T1 implementation/activation or Core runner implementation requires separate explicit approval.
 
 - Documentation consistency correction: removed the superseded Hummingbot-specific C2 wording from Section 9 of the Core one-shot design; C2 now consistently records the T1 source-contract blocker. No code or test behavior changed.
+
+
+## 2026-11-13 — T1 → T2 Order Book Contract V1 design freeze
+
+- Evidence: `docs/evidence/T1_T2_ORDERBOOK_CONTRACT_V1_DESIGN_2026-11-13.md`.
+- Evidence commit: `522314bdd7aade63a86ec692ad22003e58fc9ff2`.
+- Core one-shot design cross-reference update commit: `24a362d3e85f07e6a33ac5d65a400a4dfc324dd3`; design blob `fb0f4915589584ea4527f71b0de5258656154653`.
+- Frozen-for-review contract: `T1_T2_ORDERBOOK_V1`; BTCUSDT Binance USD-M perpetual; exact Decimal strings; immutable/atomic snapshot; REST `lastUpdateId` anchor; verified first-event bridge and subsequent `pu == previous u`; generation/snapshotId/watermark; source and observation timestamps; fail-closed acceptance.
+- V1 proposed/frozen test thresholds: 20 bid and 20 ask levels; max source and observation age 2,000 ms at decision time; max future timestamp skew 250 ms; invalidate and re-anchor on every reconnect or sequence gap; maximum 3 consecutive attempts per trigger; publish only after full verification.
+- Re-anchor specification: invalidate current generation; fetch fresh exact-decimal REST anchor; buffer diffs; require first event to bridge anchor+1; require subsequent `pu` continuity; rebuild and validate; publish new generation atomically only on success. After three failed attempts remain BROKEN and publish no trusted snapshot.
+- Isolated test matrix OB-01–OB-18 specified, including continuity, reconnect, bounded retries, Decimal preservation, depth, freshness, atomic read/write race, generation fencing and no-fallback behavior.
+- Status: contract semantics/thresholds **DESIGN FROZEN FOR REVIEW**; tests **SPECIFIED / NOT IMPLEMENTED / NOT RUN**; T1 implementation **NOT IMPLEMENTED**; T1 runtime trust **NOT VERIFIED**; T2 reader/integration **BLOCKED**; Core one-shot runner **NOT IMPLEMENTED**.
+- Documentation-only increment. No workflow/CI run was triggered; no executable code changed. No T1/T0 code, canonical DB, VPS, collector runtime, provider/network, credentials, Hummingbot, Core runner, AI execution or live orders touched. `AI_EXECUTION_ENABLED=false`; paper-only.
+- Next bounded step: seek separate authorization for isolated T2-side contract tests using deterministic synthetic fixtures only, with no T1/T0/VPS access. Passing those tests would prove only parser/contract behavior, not T1 runtime readiness. T1 source implementation/activation and Core runner implementation remain separate approval gates.
