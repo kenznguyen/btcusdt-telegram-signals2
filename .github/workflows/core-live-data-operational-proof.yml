@@ -122,7 +122,7 @@ jobs:
       - name: Verify account-wide risk snapshot is read-only and fail-closed
         run: |
           set -euo pipefail
-          python -m unittest paper_execution.test_account_risk_snapshot_read_only -v 2>&1 | tee account-risk-snapshot-read-only-tests.log
+          python -m unittest paper_execution.test_account_risk_snapshot_read_only.AccountRiskSnapshotReadOnlyTest -v 2>&1 | tee account-risk-snapshot-read-only-tests.log
           echo "ACCOUNT_RISK_SNAPSHOT_READ_ONLY=PASS" | tee account-risk-snapshot-status.txt
           echo "ACCOUNT_RISK_SNAPSHOT_TESTS=3_PASS" | tee -a account-risk-snapshot-status.txt
 
