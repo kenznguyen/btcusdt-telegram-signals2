@@ -89,10 +89,10 @@ def _active_reservation_totals(connection):
     ):
         status, raw_notional, raw_margin, raw_original_notional, raw_original_margin = row
         try:
-            remaining_notional = number(raw_notional)
-            remaining_margin = number(raw_margin)
-            original_notional = number(raw_original_notional)
-            original_margin = number(raw_original_margin)
+            remaining_notional = _ledger_decimal(raw_notional)
+            remaining_margin = _ledger_decimal(raw_margin)
+            original_notional = _ledger_decimal(raw_original_notional)
+            original_margin = _ledger_decimal(raw_original_margin)
         except ValueError:
             raise sqlite3.DatabaseError("ACCOUNT_RISK_RESERVATION_INVALID") from None
         if remaining_notional > original_notional or remaining_margin > original_margin:
