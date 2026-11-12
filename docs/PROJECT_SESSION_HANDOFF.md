@@ -3174,3 +3174,18 @@ Critical limits:
 - No T1 source code, T0 contract, T2 code, Dashboard, sidecar, runtime or configuration changed. No tests run. No VPS, live Binance, training, trading, retention, cleanup, or deletion.
 - Architecture remains: T0 → T2 through existing Candle Contract v1; T1 → T2 through a separate future adapter. **No T1 → T0 path.**
 - Next design gate: resolve order-book record subtype/snapshot grouping and trade/liquidation event identity before proposing a frozen schema contract. Implementation remains unauthorized until explicit owner approval.
+
+
+### T1 → T2 schema freeze v1.0.0 — 2026-11-12
+
+- Owner approved automatic continuation through completion of schema freeze. This approval is bounded to resolving schema decisions, recording the frozen contract, and updating evidence/handoff. It does not authorize producer or adapter implementation, VPS/runtime, live Binance, trading, T0 mutation, or data deletion.
+- Frozen contract: `docs/evidence/T1_T2_SCHEMA_FREEZE_V1_2026-11-12.md`.
+- Final schema document commit: `0ec2271bf4a4a9525da447c92c1d5b171203b8ac`; final blob SHA: `0f20078ac536fbef32a847bceccd8dcd1e29e081`. GitHub readback verified, including the decimal grammar and final status section.
+- T1 source baseline remains `53ffed3979429ed9f28529cf27d6e508f74ba6f2` on `feature/t1-connection-sidecar-integration-20261107`. Read-only inspection covered models/constants, REST collector, order-book manager, CSV writer, decimal utility, and SCHEMA/ORDERBOOK docs.
+- Resolutions frozen: retain `datatype=orderbooks` and use manifest `record_kind`; group snapshots by contiguous same-timestamp/event-type/update-ID row ranges within an immutable file; enforce update-ID continuity and mark gaps; use aggTrade ID for trade identity; use file digest + row ordinal for liquidations because persisted rows lack a stable exchange event ID; define 1m bar-open intervals and require producer closure attestation; preserve source ratios without invented recomputation/rounding; define bounded exact-decimal parsing and RFC4180-compatible CSV parsing; record market-universe provenance and timestamp semantics.
+- Explicit limitations frozen into the contract: periodic order-book snapshots are not automatically trusted after continuity gaps; liquidation semantic cross-batch dedup is unavailable in v1; OI notional is indicative because mark-price timestamp is not persisted; current REST price-index bars need manifest closure attestation. These are not hidden as PASS claims.
+- Schema status: **FROZEN v1.0.0** for the T1 CSV compatibility profile and T2 interpretation. No T1 producer schema was changed.
+- Implementation status: immutable sealed batches/manifest **NOT IMPLEMENTED**; T1 → T2 adapter **NOT IMPLEMENTED**; producer conformance **NOT VERIFIED**. No tests were run in this docs-only freeze increment.
+- The previous datatype review's “next design gate: resolve order-book subtype/snapshot grouping and event identity” is superseded by this freeze record.
+- Architecture remains T0 and T1 independent; T0 → T2 Candle Contract v1 unchanged; **no T1 → T0 path**. T1 inactive; no VPS, live Binance, trading, T0/T2 strategy/risk changes, retention, cleanup, or deletion.
+- Next authorized step: report the schema freeze completion and await a separate implementation scope/approval for contract tests, immutable manifest publication, and T1 → T2 adapter. Do not begin implementation under this schema-freeze approval.
