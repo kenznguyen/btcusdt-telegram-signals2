@@ -109,7 +109,7 @@ class DualLedgerRedTest(unittest.TestCase):
             self.now,
         )
         ai_order = self.ai.submit(
-            self.intent("ai-short", "-0.1", "100", "ai-book"),
+            self.intent("ai-short", "-0.02", "100", "ai-book"),
             self.book(self.now + 1),
             self.now + 1,
         )
@@ -121,7 +121,7 @@ class DualLedgerRedTest(unittest.TestCase):
             self.core.snapshot()["positionBase"], "0.1"
         )
         self.assertEqual(
-            self.ai.snapshot()["positionBase"], "-0.1"
+            self.ai.snapshot()["positionBase"], "-0.02"
         )
 
         reopened_core = PaperLedger(self.path, max_position_base="1", strategy_id="STRATEGY_CORE", source_sha="a" * 40)
@@ -130,7 +130,7 @@ class DualLedgerRedTest(unittest.TestCase):
             reopened_core.snapshot()["positionBase"], "0.1"
         )
         self.assertEqual(
-            reopened_ai.snapshot()["positionBase"], "-0.1"
+            reopened_ai.snapshot()["positionBase"], "-0.02"
         )
 
     def test_entry_and_dca_reserve_one_percent_of_admission_time_equity_per_ledger(self):
@@ -216,19 +216,19 @@ class DualLedgerRedTest(unittest.TestCase):
 
     def test_shared_book_depth_is_reserved_across_core_and_ai(self):
         shared_book = self.book(self.now)
-        shared_book["asks"] = [{"price": "100.1", "quantity": "0.15"}]
+        shared_book["asks"] = [{"price": "100.1", "quantity": "0.105"}]
         core = self.core.submit(
             self.intent("book-core", "0.1", "100.1", "book-core"),
             shared_book, self.now,
         )
         ai = self.ai.submit(
-            self.intent("book-ai", "0.1", "100.1", "book-ai"),
+            self.intent("book-ai", "0.02", "100.1", "book-ai"),
             shared_book, self.now,
         )
         self.assertEqual(core["filledBase"], "0.1")
         self.assertEqual(ai["status"], "PARTIALLY_FILLED", ai)
-        self.assertEqual(ai["filledBase"], "0.05")
-        self.assertEqual(self.ai.snapshot()["positionBase"], "0.05")
+        self.assertEqual(ai["filledBase"], "0.005")
+        self.assertEqual(self.ai.snapshot()["positionBase"], "0.005")
         with sqlite3.connect(self.path) as connection:
             used = connection.execute(
                 """SELECT SUM(CAST(reserved_quantity AS REAL))
@@ -238,7 +238,7 @@ class DualLedgerRedTest(unittest.TestCase):
                     "SELECT book_id FROM paper_book_level_reservations LIMIT 1"
                 ).fetchone()[0],),
             ).fetchone()[0]
-        self.assertAlmostEqual(used, 0.15)
+        self.assertAlmostEqual(used, 0.105)
 
     def test_concurrent_core_ai_admissions_cannot_breach_gross_exposure(self):
         self.core.risk_limits["maxExposureUsdt"] = "15"
@@ -678,7 +678,7 @@ class DualLedgerRedTest(unittest.TestCase):
             require_risk_limits=True,
         )
         expiry_now = self.now + 30_001
-        ai_intent = self.intent("ai-after-core-expiry", "-0.1", "100", "ai-after-expiry")
+        ai_intent = self.intent("ai-after-core-expiry", "-0.02", "100", "ai-after-expiry")
         ai_intent["decisionAtMs"] = expiry_now - 100
         ai_intent["validUntilMs"] = expiry_now + 30_000
         ai_order = self.ai.submit(ai_intent, self.book(expiry_now), expiry_now)
@@ -700,7 +700,7 @@ class DualLedgerRedTest(unittest.TestCase):
         self.assertEqual(expired_order["filledBase"], "0.05")
         self.assertEqual(expired_order["remainingBase"], "0.07")
         self.assertEqual(reopened_core.snapshot()["positionBase"], "0.05")
-        self.assertEqual(self.ai.snapshot()["positionBase"], "-0.1")
+        self.assertEqual(self.ai.snapshot()["positionBase"], "-0.02")
 
         replay = reopened_core.submit(
             self.intent("core-expiry-pending", "0.12", "100.1", "core-expiry-book"),
@@ -2557,8 +2557,8 @@ os._exit(0)
             self.now,
         )
         ai_pending = self.ai.submit(
-            self.intent("ai-expired-during-core-cancel", "-0.12", "100", "ai-expired-global"),
-            {**self.book(self.now + 1), "bids": [{"price": "100", "quantity": "0.05"}]},
+            self.intent("ai-expired-during-core-cancel", "-0.02", "100", "ai-expired-global"),
+            {**self.book(self.now + 1), "bids": [{"price": "100", "quantity": "0.005"}]},
             self.now + 1,
         )
         self.assertEqual(core_pending["status"], "PARTIALLY_FILLED", core_pending)
@@ -2600,8 +2600,8 @@ os._exit(0)
             self.now,
         )
         ai_pending = self.ai.submit(
-            self.intent("ai-stays-pending-during-core-cancel", "-0.12", "100", "ai-not-expired"),
-            {**self.book(self.now + 1), "bids": [{"price": "100", "quantity": "0.05"}]},
+            self.intent("ai-stays-pending-during-core-cancel", "-0.02", "100", "ai-not-expired"),
+            {**self.book(self.now + 1), "bids": [{"price": "100", "quantity": "0.005"}]},
             self.now + 1,
         )
         self.assertEqual(core_pending["status"], "PARTIALLY_FILLED", core_pending)
