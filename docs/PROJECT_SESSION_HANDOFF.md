@@ -3282,3 +3282,15 @@ Constraints remain: no T1 → T0; T0 unchanged; no T1 → T2 adapter; no VPS/liv
 - Current disposition: REST task tracking + strict CSV flush implementation are committed; exact-head CI for `3b48549494af1a073b73c5d1158a27094581931a` is **NOT VERIFIED**. Full producer lifecycle control, immutable batch/manifest publisher, and schema conformance tests remain **NOT IMPLEMENTED / NOT VERIFIED**.
 - Next: verify exact-head CI; then add TDD coverage and task ownership/shutdown for CSV background tasks, GapRegistry, OrderbookManager, WebSocket manager, discovery, stats, and startup orchestration. Re-audit all write paths before implementing immutable sealed batches.
 - Boundaries unchanged: T0 and T1 remain independent (no T1→T0); T0 unchanged; no T1→T2 adapter; no VPS/runtime activation or live Binance; no real orders; no retention/deletion/cleanup/compaction; no strategy/AI/risk changes. Schema v1.0.0 remains frozen.
+
+
+### T1 producer conformance — second exact-head CI finding (2026-11-12)
+
+- Exact-head Push CI [43159092318](https://github.com/kenznguyen/binance-futures-collector/actions/runs/43159092318) at SHA `3b48549494af1a073b73c5d1158a27094581931a` passed `cargo fmt --all --check`, then failed Clippy because `error` was unused in the `src/utils/csv_writer.rs` import. The failure is directly evidenced by the job log; tests/build did not complete.
+- Removed only the unused import in commit `d310b577ad5c3bb8bdf6f63cb12c6044677c1b2f`. No behavioral code changed in this correction.
+- Current T1 HEAD: `d310b577ad5c3bb8bdf6f63cb12c6044677c1b2f`.
+- Exact-head CI for this SHA:
+  - Push run [43159224062](https://github.com/kenznguyen/binance-futures-collector/actions/runs/43159224062) — QUEUED at this update.
+  - PR run [43159218481](https://github.com/kenznguyen/binance-futures-collector/actions/runs/43159218481) — IN_PROGRESS at this update.
+- Disposition: formatting correction validated by the prior CI at parent SHA; Clippy finding fixed in source, but exact-head Clippy/build/tests/security/artifact remain **NOT VERIFIED** pending these runs.
+- Lifecycle audit remains **BLOCKED** as stated above: periodic CSV tasks, GapRegistry saver, orderbook manager, WebSocket internal tasks, stats exporter, symbol discovery and startup orchestration are not yet under a single provable stop/join barrier. No batch sealing or manifest publisher work is permitted until that is resolved.
