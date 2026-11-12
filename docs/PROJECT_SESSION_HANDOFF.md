@@ -4079,3 +4079,16 @@ These findings make the current stop condition explicit: completing Trusted Admi
 - Latest evidence report: `docs/evidence/CORE_ONE_SHOT_RED_TESTS_2026-11-12.md`.
 - No production reader logic, database schema, migration, strategy, leverage, risk policy, T0, VPS or deployment changes. AI remains disabled; no credentials or real orders.
 - Approval scope fulfilled. Next phase is not automatically approved: version and review the input-bundle contract for the actual Core decision cycle before implementation.
+
+
+## 2026-11-13 — Core Decision Input Bundle v1 design review
+
+- Active branch remains `feature/core-operational-proof-20261112`; no branch split or PR.
+- Account-wide risk snapshot read-only test gate is complete: run #87 [43265132670](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43265132670), 15/15 workflow steps SUCCESS, dedicated read-only/fail-closed tests 3/3 PASS. See `docs/evidence/CORE_ONE_SHOT_RED_TESTS_2026-11-12.md`.
+- Inspected the existing Core one-shot entrypoint contract, T0 Read-only Candle Contract v1, `pipeline/core_strategy.py`, `pipeline/core_signal.py`, `core_runtime/adapter.py`, and `paper_execution.read_snapshot()`.
+- Added `docs/evidence/CORE_DECISION_INPUT_BUNDLE_V1_DESIGN_2026-11-13.md` (blob `d6095a733908e1e7fbad20e0b59f8133ce6e8819`): proposed versioned immutable bundle for M15/H1 candles, visible order book, Core ledger state and account-wide risk snapshot. It specifies source ownership, validation order, provenance, result semantics and paper-only boundaries.
+- Design status: **DRAFT / DESIGN REVIEWED / NOT FROZEN**. Six unresolved decisions: order-book max age; canonical bundle digest serialization; exact account-risk snapshot projection; reduction-only EXIT behavior when risk snapshot is unavailable/not ready; embedded vs referenced candle windows; stable CLI exit-code mapping.
+- The order-book freshness threshold was intentionally not invented. Current Core producer consumes bids/asks and observedAtMs but does not independently enforce full book provenance/age; bundle validator must do so before calling the producer.
+- No application code, tests, strategy thresholds, leverage, ledger schema, migration, risk policy or workflow behavior changed in this documentation-only increment. No T0/T1/VPS/network/exchange access, no live orders; AI remains disabled.
+- Current status: source-interface inspection **PASS**; proposed bundle shape **DESIGN REVIEWED**; bundle freeze **BLOCKED** pending six decisions; validator/tests **NOT IMPLEMENTED**; actual Core one-shot decision cycle **NOT IMPLEMENTED**.
+- Next bounded step: resolve the six freeze blockers, then add RED contract tests for the bundle validator. No runtime implementation or deployment is authorized by this design record.
