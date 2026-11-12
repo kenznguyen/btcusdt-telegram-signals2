@@ -473,7 +473,7 @@ class DualStrategyApiScopeRedTest(unittest.TestCase):
             "orderId": order_id,
             "intentId": intent_id,
             "reservationId": reservation_id,
-            "createdAtMs": 1_800_000_000_000,
+            "createdAtMs": 1,
             "status": "OPEN",
             "filledBase": "0",
             "remainingBase": "0.01",
@@ -495,7 +495,7 @@ class DualStrategyApiScopeRedTest(unittest.TestCase):
                     remaining_notional_quote,leverage,equity_basis_quote,risk_config_version,
                     created_at_ms,updated_at_ms,expires_at_ms)
                    VALUES (?,1,?,'AI_FREQAI','ENTRY','ACTIVE','1','1','3','3','3','100',
-                           'test-risk-v1',1800000000000,1800000000000,1800000030000)""",
+                           'test-risk-v1',1,1,9999999999999)""",
                 (reservation_id, intent_id),
             )
 
