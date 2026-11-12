@@ -130,7 +130,7 @@ A valid ledger REJECTED result maps to 5. Exceptions map to 6 unless explicitly 
 ## 9. Additional findings
 
 - **C1:** HTTP multi-page client synthesizes datasetVersion; one-response path required.
-- **C2:** T1 is the preferred source, but the current dashboard endpoint is float-based, omits provenance/freshness/continuity metadata, and does not verify the update chain; periodic snapshots are float-derived and reconnect gaps are not automatically re-anchored. A versioned read-only T1 → T2 contract is required. Hummingbot remains paused. See the T1 source review evidence report.
+- **C2:** T1 is the preferred source, but the current dashboard endpoint is float-based, omits provenance/freshness/continuity metadata, and does not verify the update chain; periodic snapshots are float-derived and reconnect gaps are not automatically re-anchored. The proposed frozen contract and re-anchor/test specification are recorded in `docs/evidence/T1_T2_ORDERBOOK_CONTRACT_V1_DESIGN_2026-11-13.md`. V1 thresholds: 20 levels per side, max source/observation age 2,000 ms, max future skew 250 ms, and at most 3 consecutive re-anchor attempts per trigger. Hummingbot remains paused. See the T1 source review report and contract design.
 - **C3:** current `core_runtime.__main__` preflight rejects any `riskReady != true` and maps failures to generic exit 2. Keep it separate; runner must not reuse it as an all-actions gate.
 - **C4:** producer returns BUY/SELL without intent for documented blocked reasons. Explicitly classify these before strict adapter; unknown cases fail closed.
 
@@ -141,11 +141,11 @@ These are findings, not permission to modify T0 API/client, T1 source/runtime, p
 - One-shot orchestration contract: **SPECIFIED**.
 - Shared risk/EXIT semantics: **SPECIFIED against existing transactional ledger**.
 - T0 source boundary: **SPECIFIED; C1 BLOCKS IMPLEMENTATION**.
-- Order-book source boundary: **T1 PREFERRED; CONTRACT NOT FROZEN; C2 BLOCKS IMPLEMENTATION**.
+- Order-book source boundary: **T1 PREFERRED; V1 CONTRACT DESIGN FROZEN FOR REVIEW; IMPLEMENTATION/TESTS NOT RUN; C2 STILL BLOCKS IMPLEMENTATION**.
 - Producer/signal/ledger order: **SPECIFIED; C4 requires tested handling**.
 - Preflight compatibility: **C3 identified; no change made**.
 - Runner: **NOT IMPLEMENTED**.
 - VPS/provider runtime: **NOT AUTHORIZED**.
 - AI execution/live orders: **PROHIBITED**.
 
-The design increment remains **BLOCKED** until C1 is resolved and the T1 → T2 Order Book contract (C2) is frozen and proven. Hummingbot is paused/out of scope. T1 is the preferred source, not yet a trusted operational input. The implementation gate remains separate. Automatic approval here does not extend to code changes, migrations, provider/runtime changes, VPS, AI execution or live trading.
+The design increment remains **BLOCKED** until C1 is resolved and the T1 → T2 Order Book contract (C2) is implemented and proven by isolated contract tests. Contract semantics and thresholds are specified in `docs/evidence/T1_T2_ORDERBOOK_CONTRACT_V1_DESIGN_2026-11-13.md`; this is documentation only, not implementation or runtime proof. Hummingbot is paused/out of scope. T1 is the preferred source, not yet a trusted operational input. The implementation gate remains separate. Automatic approval here does not extend to code changes, migrations, provider/runtime changes, VPS, AI execution or live trading.
