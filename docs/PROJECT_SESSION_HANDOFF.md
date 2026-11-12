@@ -3917,3 +3917,11 @@ These findings make the current stop condition explicit: completing Trusted Admi
 - Disposition: PASS for two repeated mixed-writer rounds and final Kill Switch assertion on exact test SHA 5cc8fe8c695898b9cc02af1cc546701fcd68435f.
 - Next bounded G3 Kill Switch step: complete the Kill Switch control matrix against isolated fixtures — latch persistence across ledger reopen; pause/kill precedence; explicit reset denied without both acknowledgement and readiness; reset success only with both; exposure reductions allowed while risk-increasing ENTRY/DCA remain blocked; verify Core/AI strategy scoping without enabling AI execution; test malformed/missing risk-control state fails closed; race reset versus new admission if the transaction contract permits. Reuse existing tests where adequate; add only missing tests and keep all execution paper-only. Do not infer G3 completion from this mixed-writer result alone.
 - G3 terminology here refers only to the user's Kill Switch test gate; it is not a claim of independent security assurance or cryptographic G3.
+### Repeated mixed-writer workflow verdict verified
+
+- Workflow-only commit: 1d7e97cb6fece7487c1d19422376b5c21e7d40d7; adds an explicit workflow verdict for the repeated-round test.
+- GitHub Actions run [43227095276](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43227095276), exact tested checkout SHA 1d7e97cb6fece7487c1d19422376b5c21e7d40d7, conclusion SUCCESS.
+- Logs confirm Python compile PASS; tests 4 + 12 + 29 + 24 = 69/69 PASS; CORE_MIXED_WRITER_STRESS=PASS and CORE_REPEATED_MIXED_WRITER_STRESS=PASS. LONG/SHORT lifecycle PASS.
+- Artifact: core-first-code-operational-proof-43227095276, ID 13948398264, size 3,805 bytes, SHA-256 0c4891b58115cee833909fa3e31cb8f006b81a7fac04f991838f28f5771b0e14, expires 2026-11-19T13:25:04Z. Digest from GitHub artifact metadata; payload not independently downloaded/re-hashed.
+- Safety evidence: AI_EXECUTION_ENABLED=false; CANONICAL_T0_TOUCHED=false; EXCHANGE_CREDENTIALS_USED=false; REAL_ORDERS_SENT=false; VPS_OR_PERSISTENT_RUNTIME_USED=false.
+- Handoff append commit follows this entry; verify its exact commit and blob after update.
