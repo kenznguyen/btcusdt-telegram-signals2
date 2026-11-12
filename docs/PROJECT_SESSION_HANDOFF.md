@@ -3872,3 +3872,14 @@ These findings make the current stop condition explicit: completing Trusted Admi
 - **Verification status: NOT VERIFIED / diagnostic rerun pending.** Inspect the diagnostic rows from the next exact-SHA CI run before changing expected counts or production logic.
 - Safety scope: `AI_EXECUTION_ENABLED=false`; disposable SQLite fixture only; no production code/schema changes; no T0/T1/T2 mutation; no credentials, exchange access, VPS, persistent runtime, AI orders or real orders.
 - Next step: inspect the Actions run triggered by the latest branch push, verify exact checkout SHA `719268c03a9c72ceebc22f738976b24175083978` (or record any later SHA), test logs and artifact metadata. If CI fails, fix only from the observed failure and rerun. Keep host crash, filesystem fault and multi-host SQLite explicitly NOT VERIFIED.
+
+
+### Mixed-writer Kill Switch fixture diagnostic follow-up
+
+- Diagnostic source update commit: `9b0a55ef60b3f435ee0ada33c8a67acd93d80190`; exact source candidate SHA `9b0a55ef60b3f435ee0ada33c8a67acd93d80190`.
+- Previous diagnostic CI run [43208793542](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43208793542), exact checkout SHA `3e9fb423ff1d1c2302ff813bb385594a758792b9`, FAILED at the Kill Switch fixture's **paper_orders count** assertion (`2 != 1`), not at the reservation-count assertion. The traceback line maps to the order-count assertion; the previous handoff interpretation of this as a reservation-count failure was incorrect and is corrected here.
+- Other Core operational tests passed in that run; the suite stopped before shared-risk regressions.
+- Updated the test diagnostic to fetch and print the exact Core order rows (order ID, intent ID, status, side, order type, reservation ID) if the Kill Switch fixture contains more than one order.
+- No production source/schema changed. No assertions have been relaxed.
+- Latest CI for this diagnostic source: pending; inspect exact rows before deciding whether the fixture is contaminated or a rejected intent creates an unexpected order.
+- Safety unchanged: `AI_EXECUTION_ENABLED=false`, disposable SQLite fixtures only, AI offline, no T0/T1/T2 mutation, no credentials, no VPS/runtime, no exchange orders.
