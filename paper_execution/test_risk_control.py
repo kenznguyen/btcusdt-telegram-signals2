@@ -68,6 +68,8 @@ class PersistentRiskControlTest(unittest.TestCase):
             db.execute("UPDATE paper_risk_control SET killed=2 WHERE id=1")
             with self.assertRaisesRegex(sqlite3.DatabaseError, "RISK_CONTROL_STATE_CORRUPT"):
                 risk_block_reason(db)
+            with self.assertRaisesRegex(sqlite3.DatabaseError, "RISK_CONTROL_STATE_CORRUPT"):
+                snapshot(db)
 
 
     def test_read_only_snapshot_fails_closed_when_kill_state_is_missing(self):
