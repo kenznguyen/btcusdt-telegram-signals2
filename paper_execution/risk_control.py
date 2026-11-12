@@ -40,10 +40,27 @@ def snapshot(connection):
 
 
 def risk_block_reason(connection):
-    state = snapshot(connection)
-    if state["killed"]:
+    exists = connection.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name='paper_risk_control'"
+    ).fetchone()
+    if not exists:
+        raise sqlite3.DatabaseError("RISK_CONTROL_STATE_MISSING")
+    row = connection.execute(
+        "SELECT paused,killed,reason,updated_at_ms FROM paper_risk_control WHERE id=1"
+    ).fetchone()
+    if row is None:
+        raise sqlite3.DatabaseError("RISK_CONTROL_STATE_MISSING")
+    paused, killed, reason, updated_at_ms = row
+    if (
+        type(paused) is not int or paused not in (0, 1)
+        or type(killed) is not int or killed not in (0, 1)
+        or (reason is not None and not isinstance(reason, str))
+        or type(updated_at_ms) is not int or updated_at_ms < 0
+    ):
+        raise sqlite3.DatabaseError("RISK_CONTROL_STATE_CORRUPT")
+    if killed == 1:
         return "KILL_SWITCH"
-    if state["paused"]:
+    if paused == 1:
         return "RISK_PAUSED"
     return None
 
