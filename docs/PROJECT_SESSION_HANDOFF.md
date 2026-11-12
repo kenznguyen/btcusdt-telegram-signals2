@@ -3294,3 +3294,60 @@ Constraints remain: no T1 → T0; T0 unchanged; no T1 → T2 adapter; no VPS/liv
   - PR run [43159218481](https://github.com/kenznguyen/binance-futures-collector/actions/runs/43159218481) — IN_PROGRESS at this update.
 - Disposition: formatting correction validated by the prior CI at parent SHA; Clippy finding fixed in source, but exact-head Clippy/build/tests/security/artifact remain **NOT VERIFIED** pending these runs.
 - Lifecycle audit remains **BLOCKED** as stated above: periodic CSV tasks, GapRegistry saver, orderbook manager, WebSocket internal tasks, stats exporter, symbol discovery and startup orchestration are not yet under a single provable stop/join barrier. No batch sealing or manifest publisher work is permitted until that is resolved.
+
+
+## T1 producer conformance — GapRegistry and CSV task ownership increment (2026-11-12)
+
+Current T1 repository/branch:
+- `kenznguyen/binance-futures-collector`
+- `feature/t1-connection-sidecar-integration-20261107`
+- PR #1 remains OPEN / DRAFT / UNMERGED.
+- Current source HEAD: `9fcf73817f1b920760745224ea6d8c0cdb0b5246`.
+
+### CI evidence carried forward
+- At parent source SHA `d310b577ad5c3bb8bdf6f63cb12c6044677c1b2f`, PR workflow [43159218481](https://github.com/kenznguyen/binance-futures-collector/actions/runs/43159218481) completed SUCCESS; its collector fmt/clippy/test job passed. This is parent-SHA evidence only, not verification of current HEAD.
+- Push workflow [43159224062](https://github.com/kenznguyen/binance-futures-collector/actions/runs/43159224062) at the same parent SHA showed collector fmt/clippy/test SUCCESS; security and Docker jobs were still in progress at last check.
+- A later intermediate SHA `66c93af883a5850988e528c9efd9cd01a2775e65` failed only the Rust format gate due one extra blank line in the newly added CSV test; the line was corrected in current history.
+- Exact-head workflows for current SHA `9fcf73817f1b920760745224ea6d8c0cdb0b5246`:
+  - Push [43159794469](https://github.com/kenznguyen/binance-futures-collector/actions/runs/43159794469) — QUEUED at update.
+  - PR [43159787695](https://github.com/kenznguyen/binance-futures-collector/actions/runs/43159787695) — QUEUED at update.
+- Current exact-head CI, including compile/tests/clippy/security/Docker/artifact, remains **NOT VERIFIED**.
+
+### GapRegistry corrections
+- Added regression coverage for aggregated save failures and shutdown flush/join:
+  - Test commit `bb3109ee391dfe17092ca6cb2c6e82cad626eb70`.
+  - Lifecycle test commit `06bbef43a92edf823a797b53aa98ac05bc186d9b`.
+- Implemented `collect_failed_gap_saves`: failed symbol names and errors are aggregated instead of silently returning success.
+- `save_all_dirty` now re-adds failed symbols to the dirty set so the next periodic/final save can retry; any failed save returns Err.
+- Periodic saver now retains a JoinHandle and uses a watch shutdown signal. `GapRegistry::shutdown` signals stop, joins the periodic task, then performs a final dirty save.
+- Main shutdown calls GapRegistry shutdown rather than directly invoking save_all_dirty.
+- Relevant commits:
+  - `23692797df1c62f33cfb8e7034b36d010daae3ce` — aggregate failures and retry failed symbols.
+  - `115583aade910239efd9bc23f097494c8a0741d9` — own/join periodic saver.
+  - `af12024bb702895da149027aa71c9e7c6409ab49` — call GapRegistry shutdown in main.
+- Note: the new tests have not yet passed exact-head CI. The test-only intermediate workflow first stopped at rustfmt, so do not claim a completed TDD RED execution.
+
+### CSV background task ownership
+- Added a regression test requiring all periodic CSV tasks to be joined during shutdown (`1977d846f14f9b9cddc327329419436def71ec89`).
+- CSV writer now retains handles for periodic flush, stale-buffer cleanup, UTC-midnight cleanup and hourly depth rotation; each task observes a watch shutdown signal and exits cooperatively.
+- Added `CsvWriter::shutdown_background_tasks` to signal, join all handles, and propagate join failures.
+- Main shutdown now stops CSV background tasks before the final `flush_all`.
+- Relevant commits:
+  - `c1337a75c1d17de3fa4bcae2e94b98b6fabec180` — own and join CSV background tasks.
+  - `9fcf73817f1b920760745224ea6d8c0cdb0b5246` — stop CSV tasks before final flush.
+- This closes only CSV periodic-task ownership. It does not prove global quiescence because OrderbookManager, WebSocket, symbol discovery, stats exporter and startup orchestration still contain detached tasks.
+- Shutdown ordering is still incomplete: OrderbookManager may continue writing CSV/gap events until its own tasks are stopped. The next implementation step must establish an OrderbookManager stop/join barrier before CSV and GapRegistry finalization.
+
+### Current status
+- REST task tracking: implemented, exact current HEAD not verified.
+- CSV flush fail-closed: implemented, exact current HEAD not verified.
+- GapRegistry save error propagation/retry: implemented, exact current HEAD not verified.
+- GapRegistry periodic task join: implemented, exact current HEAD not verified.
+- CSV periodic task join: implemented, exact current HEAD not verified.
+- OrderbookManager/WebSocket/discovery/stats global lifecycle: **BLOCKED / NOT IMPLEMENTED**.
+- Immutable sealed batches and market-data manifest publisher: **NOT IMPLEMENTED**.
+- Producer conformance v1.0.0: **NOT VERIFIED**.
+
+Next: verify exact-head CI for `9fcf73817f1b920760745224ea6d8c0cdb0b5246`; then implement/test OrderbookManager and WebSocket task ownership, retain and join startup orchestration, and stop discovery/stats tasks. Do not seal or publish a manifest until every writer is quiescent and final CSV/gap flushes have succeeded.
+
+Boundaries unchanged: T0 and T1 remain independent (no T1→T0); T0 unchanged; no T1→T2 adapter; no VPS/runtime activation or live Binance; no real orders; no deletion/retention/cleanup/compaction; no strategy/AI/risk changes. Frozen schema v1.0.0 must not be modified.
