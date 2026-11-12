@@ -1,0 +1,115 @@
+name: Core live-data operational proof
+
+on:
+  push:
+    branches:
+      - feature/core-operational-proof-20261112
+    paths:
+      - "ops/live_market_data_probe.py"
+      - "ops/test_live_market_data_probe.py"
+      - "pipeline/core_strategy.py"
+      - "pipeline/core_signal.py"
+      - "paper_execution/risk_control.py"
+      - "paper_execution/ledger.py"
+      - "risk_policy.py"
+      - ".github/workflows/core-live-data-operational-proof.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: core-live-data-operational-proof
+  cancel-in-progress: false
+
+jobs:
+  operational-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      AI_EXECUTION_ENABLED: "false"
+      MARKET_DATA_DB: ""
+      T0_FEEDER_LEASE_DB: ""
+      PAPER_DB: ""
+      PAPER_TRADING_DB: ""
+      BINANCE_API_KEY: ""
+      BINANCE_API_SECRET: ""
+      OKX_API_KEY: ""
+      OKX_API_SECRET: ""
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install isolated test dependencies
+        run: |
+          python -m pip install --disable-pip-version-check -r requirements-web.txt
+
+      - name: Enforce disposable paper-only environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${AI_EXECUTION_ENABLED}" = "false"
+          for key in MARKET_DATA_DB T0_FEEDER_LEASE_DB PAPER_DB PAPER_TRADING_DB BINANCE_API_KEY BINANCE_API_SECRET OKX_API_KEY OKX_API_SECRET; do
+            if [[ -n "${!key:-}" ]]; then
+              echo "Unexpected persistent DB or credential environment: ${key}"
+              exit 1
+            fi
+          done
+          git rev-parse HEAD | tee core-operational-source-sha.txt
+          echo "PAPER_ONLY=PASS" | tee core-operational-safety.txt
+
+      - name: Run live-data probe contract tests
+        run: |
+          set -euo pipefail
+          python -m unittest ops.test_live_market_data_probe -v 2>&1 | tee live-data-probe-tests.log
+
+      - name: Run Strategy Core and signal regressions
+        run: |
+          set -euo pipefail
+          python -m unittest pipeline.test_core_strategy pipeline.test_core_signal -v 2>&1 | tee core-strategy-tests.log
+
+      - name: Run shared risk and paper ledger regressions
+        run: |
+          set -euo pipefail
+          python -m unittest paper_execution.test_risk_control paper_execution.test_ledger -v 2>&1 | tee shared-risk-paper-ledger-tests.log
+
+      - name: Collect real public BTCUSDT candles into disposable SQLite and evaluate Core
+        run: |
+          set -euo pipefail
+          python -m ops.live_market_data_probe --db "${RUNNER_TEMP}/btcquant-live-probe.sqlite3" 2>&1 | tee core-live-market-data-report.json
+
+      - name: Publish exact-SHA evidence
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "SOURCE_SHA=$(git rev-parse HEAD)"
+            echo "AI_EXECUTION_ENABLED=false"
+            echo "CANONICAL_T0_TOUCHED=false"
+            echo "EXCHANGE_CREDENTIALS_USED=false"
+            echo "REAL_ORDERS_SENT=false"
+            echo "VPS_OR_PERSISTENT_RUNTIME_USED=false"
+          } | tee core-operational-verdict.txt
+
+      - name: Upload operational proof (no raw candle database)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: core-live-data-operational-proof-${{ github.run_id }}
+          retention-days: 7
+          if-no-files-found: warn
+          path: |
+            core-operational-source-sha.txt
+            core-operational-safety.txt
+            live-data-probe-tests.log
+            core-strategy-tests.log
+            shared-risk-paper-ledger-tests.log
+            core-live-market-data-report.json
+            core-operational-verdict.txt
