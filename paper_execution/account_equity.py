@@ -1,7 +1,7 @@
 """Account-wide paper equity and reservation reconciliation."""
 
 from contextlib import closing
-from decimal import Decimal
+from decimal import Decimal, localcontext
 import sqlite3
 
 from pipeline.values import number, stamp
@@ -166,14 +166,16 @@ def record_account_mark(
         if cutover and risk[1] is None:
             raise sqlite3.DatabaseError("ACCOUNT_RISK_DAILY_BASELINE_UNAVAILABLE")
 
-        (
-            realized, fees, funding, unrealized, legacy_pnl, legacy_fees, positions,
-        ) = _account_ledger_totals(connection, mark, text)
-        reserved_notional, reserved_margin = _active_reservation_totals(connection)
-        equity = (
-            number(account[0]) + realized + legacy_pnl + unrealized
-            - fees - legacy_fees - funding
-        )
+        with localcontext() as context:
+            context.prec = 80
+            (
+                realized, fees, funding, unrealized, legacy_pnl, legacy_fees, positions,
+            ) = _account_ledger_totals(connection, mark, text)
+            reserved_notional, reserved_margin = _active_reservation_totals(connection)
+            equity = (
+                number(account[0]) + realized + legacy_pnl + unrealized
+                - fees - legacy_fees - funding
+            )
         if not equity.is_finite() or equity <= 0:
             raise sqlite3.DatabaseError("ACCOUNT_RISK_EQUITY_INVALID")
         try:
