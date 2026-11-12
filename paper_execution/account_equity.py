@@ -179,7 +179,7 @@ def record_account_mark(
         if not equity.is_finite() or equity <= 0:
             raise sqlite3.DatabaseError("ACCOUNT_RISK_EQUITY_INVALID")
         try:
-            hwm = equity if risk[0] is None else number(risk[0])
+            hwm = equity if risk[0] is None else _ledger_decimal(risk[0])
         except ValueError:
             raise sqlite3.DatabaseError("ACCOUNT_RISK_EQUITY_INVALID") from None
         if hwm <= 0:
