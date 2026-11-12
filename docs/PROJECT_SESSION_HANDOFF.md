@@ -3103,3 +3103,15 @@ Critical limits:
 - **Disposition: source correction + regression test + CI verification PASS for the reported post-publication writer-poisoning failure.** The review thread remains technically unresolved in GitHub metadata (outdated but unresolved); no comment reply or thread-resolution mutation was made in this increment. PR #1 remains OPEN/DRAFT/UNMERGED; do not merge or mark ready based solely on this result.
 - Runtime/operational acceptance remains NOT VERIFIED. No Binance live connection, T1 activation, VPS, T0/T2, strategy/risk, lifecycle, or trading changes.
 - Next: continue with another bounded GitHub-only T1 source finding or, if explicitly chosen, reconcile the stale review-thread metadata. Keep T1 inactive.
+
+
+### T1 decimal-path audit — strengthen exact CSV round-trip assertions (2026-11-12)
+
+- Scope: read-only audit of T1 market-data paths at source SHA `1309473fb30f03e2f720647aa8cb46a96b8aef54`; then a test-only update on the existing T1 branch. No production numeric behavior changed.
+- Inspected `src/models.rs`, `src/collectors/rest_collector.rs`, `src/collectors/orderbook_manager.rs`, `src/websocket/message_handler.rs`, `src/websocket/connection_manager.rs`, and `src/utils/csv_writer.rs`.
+- Finding: no remaining production conversion of market price/quantity strings to `f64` was identified in those inspected paths. The remaining `f64` uses found are operational metrics/timing (WebSocket processing-lag EMA; scheduling/backoff/jitter), not market price/quantity persistence. CSV round-trip tests still parsed stored decimal strings as `f64` and used tolerances, weakening the precision guarantee. `src/collectors/orderbook_manager.rs` also contains an outdated comment saying the order-book uses f64, while the actual `Orderbook.bids/asks` are `HashMap<String, String>`.
+- Test-only commit `38fd0caa354406b49471437b8fe9e7fbe6596ef4` updates trade, kline, and open-interest CSV round-trip assertions to exact string equality instead of floating-point parsing/tolerance. No production code changed. Blob `src/utils/csv_writer.rs` = `2dbbeb7a056478311ab16819b536331dd85b6a61`.
+- Exact-source Push CI run [43150334194](https://github.com/kenznguyen/binance-futures-collector/actions/runs/43150334194) was observed IN_PROGRESS at last check. Dashboard backend and frontend jobs SUCCESS; collector fmt SUCCESS and Clippy IN_PROGRESS; Docker and Security IN_PROGRESS. No artifact published at that observation. Do not claim full CI PASS until run concludes.
+- PR #1 head verified at `38fd0caa354406b49471437b8fe9e7fbe6596ef4`; PR remains OPEN/DRAFT/UNMERGED. No new branch/PR, merge, runtime, VPS, live Binance, T0/T2, strategy/risk, lifecycle, or trading changes.
+- Status: decimal-path source audit = PARTIAL (reviewed paths only; not a whole-repository proof); exact CSV assertion change = CI PENDING; runtime acceptance = NOT VERIFIED.
+- Next: verify exact-head workflow completion and artifact, then correct the stale order-book comment in a separate minimal commit if still applicable. Keep T1 inactive.
