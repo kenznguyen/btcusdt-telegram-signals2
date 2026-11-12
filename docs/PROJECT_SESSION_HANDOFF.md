@@ -3769,3 +3769,21 @@ These findings make the current stop condition explicit: completing Trusted Admi
 - Disposition: **PASS — concurrent Core intents are serialized against one net strategy position in the tested SQLite paper path; duplicate fill/reservation prevented; Kill Switch blocks the next DCA increase.** This is not proof of independent simultaneous LONG and SHORT positions: Core has one net position ledger. AI remains offline.
 - Remaining NOT VERIFIED: account-wide risk contention across multiple active strategy ledgers under actual AI operation, production concurrency behavior beyond SQLite test fixtures, real-market OOS, persistent runtime/recovery, exchange execution, and production readiness.
 - Next bounded step: test account-wide reservation/exposure reconciliation and kill-switch admission ordering using Core-only paper cases; do not instantiate AI paper orders or claim independent Core hedge positions. Any production code change requires a failing test demonstrating a defect.
+
+
+## 2026-11-12 — Core ENTRY/DCA versus Kill Switch concurrency proof
+
+- Work branch: `feature/core-operational-proof-20261112`.
+- Test commit / exact tested source SHA: `735d2f01437cf55b2bfb3bf3afbdc589ace5da49`, message `test(risk): race Core entry and DCA against kill switch`.
+- Read-only review confirmed both Core scoped paper admission (`PaperLedger._submit_scoped`) and operator Kill Switch (`PaperLedger.set_killed`) acquire SQLite `BEGIN IMMEDIATE`; admission checks the persisted Kill Switch latch inside its own write transaction via `risk_control.risk_block_reason(connection)`. No production logic or schema changes were required.
+- Added deterministic concurrency tests using independent thread workers/connections synchronized at a barrier:
+  - `test_kill_switch_race_linearizes_core_entry`: flat Core account; race a fresh ENTRY against Kill Switch.
+  - `test_kill_switch_race_linearizes_core_dca`: first establish a filled Core ENTRY, then race a bounded DCA increase against Kill Switch.
+- Both tests assert a valid serialized outcome only: if admission commits first, that order may fill and Kill Switch must be latched afterward; if Kill Switch commits first, the order must be rejected with `KILL_SWITCH` and exposure must remain unchanged. In either outcome, final latch is ON and AI ledger remains flat. These tests verify transaction ordering, not that an order already committed before a kill can be retroactively canceled.
+- GitHub Actions run [43203568094](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43203568094), exact checkout SHA `735d2f01437cf55b2bfb3bf3afbdc589ace5da49`, conclusion SUCCESS.
+- Test evidence from job logs: live-data probe contracts 4/4 PASS; Core + signal regressions 12/12 PASS; Core operational group (LONG, SHORT, concurrent intents, ENTRY/Kill race, DCA/Kill race) 15/15 PASS; Shared Risk + Paper Ledger regressions 24/24 PASS; total **55/55 PASS**. Python compile PASS.
+- Artifact: `core-first-code-operational-proof-43203568094`, ID `13935369247`, size 3,537 bytes, SHA-256 `fb3a94edf30064b30e7f3b3298e691edaad13a351ac3c20a27d761d839b953a5`, expires `2026-11-19T10:48:14Z`. Digest is GitHub artifact metadata; payload has not been independently downloaded and re-hashed.
+- Safety: `AI_EXECUTION_ENABLED=false`; deterministic fixture SQLite only; no AI orders; no T0/T1/T2 mutation; no exchange credentials; no real orders; no VPS/persistent runtime.
+- Disposition: **PASS — ENTRY and DCA admission are linearized against the shared Kill Switch in the tested SQLite paper ledger.** A committed fill may precede the Kill Switch transaction; subsequent risk-increasing admission is blocked. No source behavior changes were needed.
+- Remaining NOT VERIFIED: runtime under sustained multi-process load, crash/power-loss behavior, live exchange execution, real-market OOS and production readiness.
+- Next bounded step: verify account-wide reservation/exposure accounting under multiple independent Core clients and mixed ENTRY/DCA attempts, including that aggregate reservations never exceed the shared account budget. Keep AI offline and do not modify production logic unless a failing test identifies a concrete defect.
