@@ -4267,3 +4267,15 @@ These findings make the current stop condition explicit: completing Trusted Admi
 - Evidence report: `docs/evidence/T1_ORDERBOOK_V1_SOURCE_GAP_REVIEW_2026-11-13.md`.
 - Disposition: T1 PR #1 **NOT READY** as trusted V1 source; exact-decimal work is useful partial progress but does not satisfy source trust requirements. No T1 CI was run because this was a source review only.
 - Next step: create a bounded T1-owned implementation specification and test plan for reconnect BROKEN/re-anchor, exact bridge/pu chain, generation-fenced immutable snapshot, and semantic decimal/freshness/depth acceptance. Do not modify/merge/activate T1, access T0/VPS, implement Core runner, enable AI or send orders without separate approval.
+
+
+## 2026-11-13 — T1 BTCUSDT Order Book V1 implementation spec and test plan
+
+- Following the source gap review, completed a design-only T1-owned implementation specification and deterministic offline test plan: `docs/evidence/T1_BTCUSDT_ORDERBOOK_V1_IMPLEMENTATION_SPEC_AND_TEST_PLAN_2026-11-13.md`.
+- Spec commit: `890c0e0e48bdff4d7f82a7e2b4a7ede69d6e5041`. This is documentation-only in the T2 project repo.
+- Defines per-symbol INITIALIZING/BUFFERING/FETCHING_SNAPSHOT/REANCHORING/VALIDATING/READY/BROKEN/STOPPED lifecycle; immediate reconnect invalidation; exact V1 bridge predicate; subsequent `pu == previous u`; generation fencing; exact decimal semantic validation; 2s freshness/250ms future-skew; 20-level-per-side and uncrossed-book gate; immutable atomic snapshot envelope; and read-only consumer boundary.
+- Test plan groups: Decimal, snapshot shape, initial bridge, sequence continuity, reconnect, re-anchor, generation fencing, freshness boundaries, atomic publication, fail-closed consumer seam, property/state tests.
+- Critical clarification: REST depth snapshot does not provide a source exchange timestamp; a READY decision snapshot must be bridged by an exchange-timestamped WS diff. Do not label REST response observation time as exchange source time.
+- No T1 code, PR, runtime, T0, VPS or exchange endpoint changed/accessed. No CI was run because this increment is a specification only.
+- Current disposition: T1 source **BLOCKED / NOT READY**; implementation spec **DESIGN COMPLETE**; T1 implementation **NOT AUTHORIZED / NOT STARTED**; T1 runtime **NOT VERIFIED**; T1→T2 real integration **BLOCKED**.
+- Next decision: owner approval is required before implementing the T1 BTCUSDT-only V1 path and its offline tests. This spec does not itself grant implementation, merge, runtime activation, VPS/T0 access, Core runner, AI execution or live-order permission.
