@@ -4019,3 +4019,12 @@ These findings make the current stop condition explicit: completing Trusted Admi
 - Contract reconciliation update commit: `16c422d14742cbefdbaa38642c8d094b2a6d2522`.
 - Current contract remains **DESIGN RECORDED; NOT IMPLEMENTED; NOT TESTED**. No code, schema or runtime changes. No CI run.
 - Revised next step: add RED tests for producer/validator adapter mapping, account risk readiness/equity propagation and no partial writes on preflight failure; inspect PaperLedger initialization/migration behavior and require explicit no-auto-migration runtime startup. All test state must be disposable.
+
+
+### PaperLedger startup side-effect finding
+
+- Inspected `PaperLedger.__init__()`: it creates the parent directory and opens SQLite before checking dual-ledger migrations. Even with `apply_migrations=False`, SQLite connection to a missing path can create an empty DB file before readiness rejection.
+- Contract now requires an existing, explicitly verified disposable ledger file before constructing the Core-scoped writer; runtime must use `strategy_id="STRATEGY_CORE", apply_migrations=False`. All initialization/migrations remain in an explicit setup fixture/command, not the runtime start path.
+- Added required tests: missing DB path remains absent after rejection; migration mismatch causes no schema writes; reject canonical T0 path aliases/symlinks.
+- Contract update commit: `e5fb77d2d0fa18884f70e699212566f8d04d3b5d`.
+- No source code or database changed; docs-only. Contract is still DESIGN RECORDED / NOT IMPLEMENTED / NOT TESTED.
