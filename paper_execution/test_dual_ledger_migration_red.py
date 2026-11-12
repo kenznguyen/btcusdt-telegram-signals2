@@ -227,7 +227,7 @@ class DualLedgerMigrationRedTest(unittest.TestCase):
 
         PaperLedger(
             self.path, max_position_base="1", strategy_id="AI_FREQAI",
-            source_sha="c" * 40,
+            source_sha="c" * 40, leverage="3",
         )
         PaperLedger(
             self.path, max_position_base="1", strategy_id="STRATEGY_CORE",
@@ -338,7 +338,7 @@ class DualLedgerMigrationRedTest(unittest.TestCase):
 
         PaperLedger(
             self.path, max_position_base="1", strategy_id="AI_FREQAI",
-            source_sha="e" * 40,
+            source_sha="e" * 40, leverage="3",
         )
         PaperLedger(
             self.path, max_position_base="1", strategy_id="STRATEGY_CORE",
