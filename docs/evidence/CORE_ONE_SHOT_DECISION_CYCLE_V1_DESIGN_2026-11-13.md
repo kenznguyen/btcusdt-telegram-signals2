@@ -42,9 +42,9 @@ Retain TLS, bearer auth, no redirects, body cap, timeouts/retries, duplicate-key
 
 ### Order book
 
-Use the read-only Hummingbot bridge, fixed `binance_perpetual` connector, BTCUSDT, max 20 levels/side. No exchange trading endpoint.
+Target T1 as the preferred Order Book source for BTCUSDT, but do not connect to the current dashboard endpoint or consume periodic float-derived snapshots. T1 currently captures raw `depth_updates` with string-valued price/quantity pairs and `U/u/pu` identifiers, plus initial and periodic `depth_snapshot` rows.
 
-**C2 — BLOCKER:** current `normalize_snapshot()` converts price/quantity to binary float; Bundle v1 requires decimal strings and prohibits JSON floats. Do not stringify already-rounded floats. Add a separate Decimal-preserving fetch/normalization path (parse numeric JSON tokens as Decimal; validate timestamp/depth/order/spread; emit original decimal strings). Preserve current bridge behavior for existing consumers. Provenance is exactly `source=hummingbot`, `connector=binance_perpetual`, `symbol=BTCUSDT`. No cache/stale fallback.
+**C2 — BLOCKER (T1 source contract):** the T1 dashboard `GET /api/orderbook/{symbol}` path reconstructs and returns binary floats; it omits timestamp, update ID, anchor, continuity and freshness metadata; its reader does not verify the `pu` chain. T1's periodic snapshots are re-serialized from an in-memory `f64` book. The collector deliberately does not resnapshot on every WebSocket reconnect; gaps are visible in the raw diff tape, but the current endpoint does not bind its returned book to a verified contiguous range. No approved versioned read-only T1 → T2 contract currently exists. Freeze a contract that returns exact decimal strings, a trusted anchor and single update watermark, verified `U/u/pu` continuity, reconnect/gap state, source/observation timestamps, bounded depth, and consistent read semantics. Fail closed on any gap, stale/partial/corrupt input or uncertain anchor. See `docs/evidence/T1_ORDERBOOK_SOURCE_REVIEW_2026-11-13.md` for exact repository/source evidence. Hummingbot remains PAUSED and out of scope. No T1 code/runtime change is authorized by this design.
 
 ## 4. Acquisition and bundle assembly
 
@@ -141,11 +141,11 @@ These are findings, not permission to modify T0 API/client, Hummingbot bridge, p
 - One-shot orchestration contract: **SPECIFIED**.
 - Shared risk/EXIT semantics: **SPECIFIED against existing transactional ledger**.
 - T0 source boundary: **SPECIFIED; C1 BLOCKS IMPLEMENTATION**.
-- Order-book source boundary: **SPECIFIED; C2 BLOCKS IMPLEMENTATION**.
+- Order-book source boundary: **T1 PREFERRED; CONTRACT NOT FROZEN; C2 BLOCKS IMPLEMENTATION**.
 - Producer/signal/ledger order: **SPECIFIED; C4 requires tested handling**.
 - Preflight compatibility: **C3 identified; no change made**.
 - Runner: **NOT IMPLEMENTED**.
 - VPS/provider runtime: **NOT AUTHORIZED**.
 - AI execution/live orders: **PROHIBITED**.
 
-The design increment is complete as a specification, but implementation readiness remains **BLOCKED** until C1/C2 are resolved and the implementation gate is separately opened. Automatic approval here does not extend to code changes, migrations, provider/runtime changes, VPS, AI execution or live trading.
+The design increment remains **BLOCKED** until C1 is resolved and the T1 → T2 Order Book contract (C2) is frozen and proven. Hummingbot is paused/out of scope. T1 is the preferred source, not yet a trusted operational input. The implementation gate remains separate. Automatic approval here does not extend to code changes, migrations, provider/runtime changes, VPS, AI execution or live trading.
