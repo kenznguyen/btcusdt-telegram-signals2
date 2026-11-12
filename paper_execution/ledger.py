@@ -1288,6 +1288,197 @@ def dual_ledger_ready(db_path):
         return _dual_ledger_migrations_ready(connection)
 
 
+def cancel_dual_order(db_path, order_id, now_ms):
+    """Cancel a dual-strategy paper order without constructing a strategy ledger."""
+    path = Path(db_path).resolve()
+    if not path.is_file():
+        raise FileNotFoundError("Paper ledger is unavailable")
+    now = stamp(now_ms)
+    if not isinstance(order_id, str) or not 1 <= len(order_id) <= 200:
+        raise ValueError("Invalid order identifier")
+
+    def load_order(connection, target_order_id=None, target_intent_id=None):
+        if target_order_id is not None:
+            row = connection.execute(
+                """SELECT intent_id,order_id,status,document,account_id,
+                          strategy_id,reservation_id
+                   FROM paper_orders WHERE order_id=?""",
+                (target_order_id,),
+            ).fetchone()
+        else:
+            row = connection.execute(
+                """SELECT intent_id,order_id,status,document,account_id,
+                          strategy_id,reservation_id
+                   FROM paper_orders WHERE intent_id=?""",
+                (target_intent_id,),
+            ).fetchone()
+        if row is None:
+            raise sqlite3.DatabaseError("RISK_RESERVATION_ORDER_STATE_MISMATCH")
+        intent_id, persisted_order_id, status, raw_document, account_id, strategy_id, reservation_id = row
+        try:
+            document = json.loads(raw_document)
+            if not isinstance(document, dict):
+                raise ValueError
+            if (
+                document.get("intentId") != intent_id
+                or document.get("orderId") != persisted_order_id
+                or document.get("status") != status
+                or document.get("strategyId") != strategy_id
+                or document.get("reservationId") != reservation_id
+                or type(account_id) is not int
+                or account_id <= 0
+                or strategy_id not in DUAL_STRATEGIES
+            ):
+                raise ValueError
+            created_at = stamp(document.get("createdAtMs"))
+        except (TypeError, ValueError, json.JSONDecodeError):
+            raise sqlite3.DatabaseError("RISK_RESERVATION_OWNERSHIP_MISMATCH") from None
+        return {
+            "intent_id": intent_id,
+            "order_id": persisted_order_id,
+            "status": status,
+            "document": document,
+            "account_id": account_id,
+            "strategy_id": strategy_id,
+            "reservation_id": reservation_id,
+            "created_at_ms": created_at,
+        }
+
+    def validate_reservation(connection, order):
+        reservation_id = order["reservation_id"]
+        if not isinstance(reservation_id, str) or not reservation_id:
+            raise sqlite3.DatabaseError("RISK_RESERVATION_MISSING")
+        reservation = connection.execute(
+            """SELECT reservation_id,account_id,intent_id,strategy_id,status
+               FROM paper_risk_reservations WHERE reservation_id=?""",
+            (reservation_id,),
+        ).fetchone()
+        if reservation is None:
+            raise sqlite3.DatabaseError("RISK_RESERVATION_MISSING")
+        if reservation != (
+            reservation_id, order["account_id"], order["intent_id"],
+            order["strategy_id"], reservation[4],
+        ) or reservation[4] not in ("ACTIVE", "PARTIAL"):
+            raise sqlite3.DatabaseError("RISK_RESERVATION_OWNERSHIP_MISMATCH")
+        return reservation
+
+    with closing(sqlite3.connect(path, timeout=10)) as connection, connection:
+        connection.execute("PRAGMA foreign_keys=ON")
+        connection.execute("BEGIN IMMEDIATE")
+        if not _dual_ledger_migrations_ready(connection):
+            raise sqlite3.DatabaseError("DUAL_LEDGER_MIGRATION_NOT_READY")
+
+        target = load_order(connection, target_order_id=order_id)
+        if now < target["created_at_ms"]:
+            raise ValueError("Cancel time precedes order")
+
+        # Account-wide expiry housekeeping is intentionally part of this
+        # transaction. Every expired reservation must bind to its persisted
+        # order before either row is changed.
+        expired = connection.execute(
+            """SELECT reservation_id,account_id,intent_id,strategy_id,expires_at_ms
+               FROM paper_risk_reservations
+               WHERE status IN ('ACTIVE','PARTIAL')
+                 AND expires_at_ms IS NOT NULL AND expires_at_ms < ?
+               ORDER BY expires_at_ms,reservation_id""",
+            (now,),
+        ).fetchall()
+        for reservation_id, account_id, intent_id, strategy_id, expires_at in expired:
+            if type(expires_at) is not int or expires_at <= 0:
+                raise sqlite3.DatabaseError("RISK_RESERVATION_EXPIRY_CORRUPT")
+            expired_order = load_order(connection, target_intent_id=intent_id)
+            if (
+                expired_order["reservation_id"] != reservation_id
+                or expired_order["account_id"] != account_id
+                or expired_order["strategy_id"] != strategy_id
+                or expired_order["status"] not in ACTIVE
+            ):
+                raise sqlite3.DatabaseError("RISK_RESERVATION_OWNERSHIP_MISMATCH")
+            expired_document = expired_order["document"]
+            expired_document.update(
+                status="EXPIRED", updatedAtMs=now, reason="INTENT_EXPIRED"
+            )
+            changed_order = connection.execute(
+                """UPDATE paper_orders SET status='EXPIRED',document=?
+                   WHERE intent_id=? AND order_id=? AND account_id=?
+                     AND strategy_id=? AND reservation_id=? AND status=?""",
+                (
+                    json.dumps(expired_document, allow_nan=False),
+                    intent_id, expired_order["order_id"], account_id,
+                    strategy_id, reservation_id, expired_order["status"],
+                ),
+            )
+            if changed_order.rowcount != 1:
+                raise sqlite3.DatabaseError("RISK_RESERVATION_ORDER_STATE_MISMATCH")
+            changed_reservation = connection.execute(
+                """UPDATE paper_risk_reservations
+                   SET status='EXPIRED',remaining_margin_quote='0',
+                       remaining_notional_quote='0',updated_at_ms=?
+                   WHERE reservation_id=? AND account_id=? AND intent_id=?
+                     AND strategy_id=? AND status IN ('ACTIVE','PARTIAL')
+                     AND expires_at_ms=?""",
+                (now, reservation_id, account_id, intent_id, strategy_id, expires_at),
+            )
+            if changed_reservation.rowcount != 1:
+                raise sqlite3.DatabaseError("RISK_RESERVATION_OWNERSHIP_MISMATCH")
+            connection.execute(
+                "INSERT INTO paper_audit(at_ms,kind,document) VALUES (?,?,?)",
+                (now, "EXPIRE", json.dumps({
+                    "orderId": expired_order["order_id"],
+                    "intentId": intent_id,
+                    "reservationId": reservation_id,
+                    "expiresAtMs": expires_at,
+                }, allow_nan=False)),
+            )
+
+        target = load_order(connection, target_order_id=order_id)
+        order = target["document"]
+        if target["status"] in ACTIVE:
+            if not validate_reservation(connection, target):
+                raise sqlite3.DatabaseError("RISK_RESERVATION_MISSING")
+            try:
+                filled = Decimal(order["filledBase"])
+                if not filled.is_finite() or filled < 0:
+                    raise ValueError
+            except (DecimalException, KeyError, TypeError, ValueError):
+                raise sqlite3.DatabaseError("PAPER_ORDER_DOCUMENT_CORRUPT") from None
+
+            order.update(
+                status="CANCELED", updatedAtMs=now, reason="CANCELED_BY_USER"
+            )
+            changed_order = connection.execute(
+                """UPDATE paper_orders SET status='CANCELED',document=?
+                   WHERE intent_id=? AND order_id=? AND account_id=?
+                     AND strategy_id=? AND reservation_id=? AND status=?""",
+                (
+                    json.dumps(order, allow_nan=False), target["intent_id"],
+                    order_id, target["account_id"], target["strategy_id"],
+                    target["reservation_id"], target["status"],
+                ),
+            )
+            if changed_order.rowcount != 1:
+                raise sqlite3.DatabaseError("PAPER_ORDER_CANCEL_CONFLICT")
+            next_status = "CONSUMED" if filled > 0 else "RELEASED"
+            changed_reservation = connection.execute(
+                """UPDATE paper_risk_reservations
+                   SET status=?,remaining_margin_quote='0',
+                       remaining_notional_quote='0',updated_at_ms=?
+                   WHERE reservation_id=? AND account_id=? AND intent_id=?
+                     AND strategy_id=? AND status IN ('ACTIVE','PARTIAL')""",
+                (
+                    next_status, now, target["reservation_id"],
+                    target["account_id"], target["intent_id"], target["strategy_id"],
+                ),
+            )
+            if changed_reservation.rowcount != 1:
+                raise sqlite3.DatabaseError("RISK_RESERVATION_OWNERSHIP_MISMATCH")
+            connection.execute(
+                "INSERT INTO paper_audit(at_ms,kind,document) VALUES (?,?,?)",
+                (now, "CANCEL", json.dumps({"orderId": order_id}, allow_nan=False)),
+            )
+        return order
+
+
 class PaperLedger:
     def __init__(self, db_path, *, max_position_base="0.01", fee_rate="0.0005", max_spread_bps="50", risk_limits=None, require_risk_limits=False, leverage="13", strategy_id="MANUAL", source_sha=None, apply_migrations=True):
         self.path = Path(db_path)
@@ -2071,16 +2262,7 @@ class PaperLedger:
         with closing(self.connect()) as connection, connection:
             connection.execute("BEGIN IMMEDIATE")
             if self.strategy_id in DUAL_STRATEGIES:
-                self._expire_scoped_reservations(connection, now)
-                row = connection.execute(
-                    "SELECT document,strategy_id FROM paper_orders WHERE order_id=?",
-                    (order_id,),
-                ).fetchone()
-                if row is None:
-                    raise ValueError("Unknown paper order")
-                if row[1] != self.strategy_id:
-                    raise ValueError("PAPER_ORDER_STRATEGY_SCOPE_MISMATCH")
-                order = json.loads(row[0])
+                return cancel_dual_order(self.path, order_id, now)
             else:
                 # Pre-dual-ledger MANUAL databases have no strategy_id column.
                 # Keep that compatibility path read-only with respect to schema,
