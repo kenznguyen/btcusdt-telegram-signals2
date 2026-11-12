@@ -131,7 +131,8 @@ def _get_json(path, params=None):
                 break
             if attempt < 2:
                 time.sleep(1 + attempt)
-    raise RuntimeError("BINANCE_PUBLIC_API_UNAVAILABLE: " + type(last_error).__name__) from None
+    detail = "HTTP_" + str(last_error.code) if isinstance(last_error, HTTPError) else type(last_error).__name__
+    raise RuntimeError("BINANCE_PUBLIC_API_UNAVAILABLE: " + detail) from None
 
 
 def collect(db_path):
