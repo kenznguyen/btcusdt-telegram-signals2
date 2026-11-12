@@ -10,6 +10,7 @@ on:
       - "pipeline/core_strategy.py"
       - "pipeline/api.py"
       - "paper_execution/test_core_first_operational.py"
+      - "paper_execution/test_dual_ledger_red.py"
       - "pipeline/core_signal.py"
       - "paper_execution/risk_control.py"
       - "paper_execution/ledger.py"
@@ -70,7 +71,7 @@ jobs:
       - name: Compile changed operational and Core modules
         run: |
           set -euo pipefail
-          python -m py_compile ops/live_market_data_probe.py ops/test_live_market_data_probe.py pipeline/api.py pipeline/core_strategy.py pipeline/core_signal.py paper_execution/test_core_first_operational.py paper_execution/risk_control.py paper_execution/ledger.py
+          python -m py_compile ops/live_market_data_probe.py ops/test_live_market_data_probe.py pipeline/api.py pipeline/core_strategy.py pipeline/core_signal.py paper_execution/test_core_first_operational.py paper_execution/test_dual_ledger_red.py paper_execution/risk_control.py paper_execution/ledger.py
           echo "PY_COMPILE=PASS" | tee core-operational-compile.txt
 
       - name: Run live-data probe contract tests
@@ -91,7 +92,7 @@ jobs:
       - name: Run shared risk and paper ledger regressions
         run: |
           set -euo pipefail
-          python -m unittest paper_execution.test_risk_control paper_execution.test_ledger -v 2>&1 | tee shared-risk-paper-ledger-tests.log
+          python -m unittest paper_execution.test_risk_control paper_execution.test_ledger paper_execution.test_dual_ledger_red.DualLedgerRedTest.test_entry_and_dca_reserve_one_percent_of_admission_time_equity_per_ledger -v 2>&1 | tee shared-risk-paper-ledger-tests.log
 
       - name: Publish exact-SHA evidence
         if: always()
@@ -104,6 +105,9 @@ jobs:
             echo "EXCHANGE_CREDENTIALS_USED=false"
             echo "REAL_ORDERS_SENT=false"
             echo "VPS_OR_PERSISTENT_RUNTIME_USED=false"
+            echo "CORE_ENTRY_PAPER_FLOW=PASS"
+            echo "CORE_DCA_END_TO_END=BLOCKED_ACCOUNT_EQUITY_RECONCILIATION_MISMATCH"
+            echo "CORE_DCA_MARGIN_BUDGET=VERIFIED_BY_DUAL_LEDGER_REGRESSION"
           } | tee core-operational-verdict.txt
 
       - name: Upload operational proof (no raw candle database)
