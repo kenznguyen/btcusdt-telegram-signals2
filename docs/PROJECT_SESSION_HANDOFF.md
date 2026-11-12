@@ -3161,3 +3161,16 @@ Critical limits:
 - Governance: PR #1 remains DRAFT/OPEN/UNMERGED. The manifest-publication review thread is outdated but still unresolved in GitHub metadata. The feature branch is not protected and has no required status checks configured. CI PASS therefore does not equal merge approval or runtime certification.
 - Overall verdict: **T1 standalone collector source = substantially complete / CI-verified; T1 as a layer of the five-layer system = PARTIAL / NOT READY FOR INTEGRATION OR OPERATIONAL ACCEPTANCE**. Do not assign a single percentage because capture source, canonical integration, dashboard precision and runtime acceptance are separate gates.
 - Recommended sequence (no implementation authorized by this assessment): (1) approve T1→T0 boundary and raw/canonical ownership contract; (2) design exact-decimal Dashboard/API contract and regression tests; (3) separately approve and integrate connection sidecar with bounded writer worker and durable acknowledgements; (4) create isolated BTCUSDT-only end-to-end tests to T0 with coverage reconciliation; (5) only after explicit approval plan controlled runtime acceptance. Keep current no-VPS/no-live-Binance/no-real-orders posture. No source/runtime/config/branch/PR changes were made in this assessment.
+
+
+### T1 datatype schema review for independent T1 → T2 ingestion (2026-11-12)
+
+- Main repository: `kenznguyen/btcusdt-telegram-signals2`; active branch `feature/t0-centralized-data-feeder-p1-20261101`.
+- T1 source reviewed: `kenznguyen/binance-futures-collector`, branch `feature/t1-connection-sidecar-integration-20261107`, exact HEAD `53ffed3979429ed9f28529cf27d6e508f74ba6f2`.
+- Read-only review covered T1 `docs/SCHEMA.md`, `docs/ARCHITECTURE.md`, `docs/ORDERBOOK.md`, `src/constants.rs`, `src/models.rs`, `src/collectors/rest_collector.rs`, and `src/utils/csv_writer.rs`.
+- Evidence report: `docs/evidence/T1_DATATYPE_SCHEMA_REVIEW_2026-11-12.md`; created in commit `da3225826b95d89b755e447bca4f259ff6fc241d`. Report readback was verified from GitHub.
+- Findings: T1 documents 11 data series / record families. Important unresolved contract items include `orderbooks` datatype vs `depth_updates`/`depth_snapshot` record subtype, missing snapshot group identity, liquidation stable event identity, candle interval/closed-bar semantics, exact arithmetic/rounding for derived values and ratios, decimal lexical grammar, RFC4180 CSV parsing, and explicit schema-version mapping.
+- Review disposition: order-book diff/snapshot and liquidation identity remain BLOCKED for schema freeze; trades, candles, funding, OI, ratios and price-index candles have conditional decisions listed in the evidence report. This is not owner approval and does not freeze the schema.
+- No T1 source code, T0 contract, T2 code, Dashboard, sidecar, runtime or configuration changed. No tests run. No VPS, live Binance, training, trading, retention, cleanup, or deletion.
+- Architecture remains: T0 → T2 through existing Candle Contract v1; T1 → T2 through a separate future adapter. **No T1 → T0 path.**
+- Next design gate: resolve order-book record subtype/snapshot grouping and trade/liquidation event identity before proposing a frozen schema contract. Implementation remains unauthorized until explicit owner approval.
