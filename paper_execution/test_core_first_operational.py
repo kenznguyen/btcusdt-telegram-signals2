@@ -309,6 +309,33 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
             self.path, max_position_base="1", fee_rate="0.001",
             source_sha="c" * 40,
         )
+        with sqlite3.connect(self.path) as connection:
+            capital_raw = connection.execute(
+                "SELECT initial_capital FROM paper_accounts WHERE account_id=1"
+            ).fetchone()[0]
+            ledger_rows = connection.execute(
+                """SELECT position_base,average_entry_price,realized_pnl_quote,
+                          fees_quote,funding_quote
+                   FROM paper_strategy_ledgers WHERE account_id=1"""
+            ).fetchall()
+            adjustment_rows = connection.execute(
+                """SELECT adjustment_type,amount_quote FROM paper_account_adjustments
+                   WHERE account_id=1"""
+            ).fetchall()
+        with localcontext() as context:
+            context.prec = 80
+            equity_probe = Decimal(capital_raw)
+            for raw_qty, raw_avg, raw_realized, raw_fee, raw_funding in ledger_rows:
+                qty, avg = Decimal(raw_qty), Decimal(raw_avg)
+                equity_probe += Decimal(raw_realized) - Decimal(raw_fee) - Decimal(raw_funding)
+                equity_probe += qty * (mark_price - avg) if qty else Decimal("0")
+            for kind, amount in adjustment_rows:
+                equity_probe += Decimal(amount) if kind == "LEGACY_REALIZED_PNL" else -Decimal(amount)
+        self.assertGreater(equity_probe, Decimal("0"), {
+            "capital": capital_raw, "ledgerRows": ledger_rows,
+            "adjustments": adjustment_rows, "mark": str(mark_price),
+            "equityProbe": str(equity_probe),
+        })
         account_ledger.record_account_mark(
             str(mark_price), self.now - 60_000, mark_at,
             "sha256:" + "9" * 64, "100",
