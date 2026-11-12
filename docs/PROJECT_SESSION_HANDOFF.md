@@ -3854,3 +3854,16 @@ These findings make the current stop condition explicit: completing Trusted Admi
 - Disposition: **PASS — SQLite write-lock timeout fails closed without persisted Core order/reservation/fill or position mutation; after lock release the same intent can be retried successfully.** No production logic or schema changes were needed.
 - Limits: this validates the configured connection timeout on the tested single-host SQLite fixture and controlled writer lock only. It does not establish host/kernel/power-loss recovery, filesystem fault handling, multi-host shared-filesystem safety, sustained production load, real-market OOS, exchange execution or production readiness.
 - Next bounded step: exercise repeated lock contention with a mix of short-lived and timeout-exceeding writers, checking that successful admissions remain serialized, timed-out admissions leave no ledger effects, and retries do not duplicate fills/reservations. Keep all tests on disposable fixtures only.
+
+## 2026-11-12 — Mixed SQLite writer contention stress (CI pending verification)
+
+- Work branch: `feature/core-operational-proof-20261112`; no PR created or merged.
+- Test change commit: `b0ed685e2d066fc3690d047da98ab89ac126e274`, `paper_execution/test_core_first_operational.py`.
+- Workflow verdict change commit / current source candidate: `719268c03a9c72ceebc22f738976b24175083978`, `.github/workflows/core-live-data-operational-proof.yml`.
+- Added `test_mixed_writer_contention_serializes_timeout_retry_exposure_and_kill_switch` using a disposable clone of the initialized SQLite fixture.
+- Test scenario: (1) a spawned writer holds `BEGIN IMMEDIATE` briefly while an independent Core ENTRY client waits and then succeeds; (2) another spawned writer holds the lock beyond the configured 10-second timeout while a Core DCA admission fails with `sqlite3.OperationalError: database is locked`; (3) after lock release, the same DCA intent is retried and succeeds; (4) Kill Switch is latched and a subsequent DCA increase is rejected.
+- Assertions cover SQLite integrity, no partial order/reservation/FILL from the timed-out DCA attempt, one successful ENTRY and one successful DCA, no orphan reservations, each successful reservation within 1% of its admission-time equity basis, account gross exposure within the fixture's 1000 USDT cap, Kill Switch persistence, and zero AI ledger orders.
+- Workflow now emits `CORE_MIXED_WRITER_STRESS=PASS` only when the new test logs `ok`.
+- **Verification status: NOT VERIFIED.** Source and workflow changes are committed, but no local test execution was available in this session and no GitHub Actions run ID, job log, test count, or artifact has yet been retrieved. Do not claim the stress test passed until the exact checked-out SHA and run evidence are inspected.
+- Safety scope: `AI_EXECUTION_ENABLED=false`; disposable SQLite fixture only; no production code/schema changes; no T0/T1/T2 mutation; no credentials, exchange access, VPS, persistent runtime, AI orders or real orders.
+- Next step: inspect the Actions run triggered by the latest branch push, verify exact checkout SHA `719268c03a9c72ceebc22f738976b24175083978` (or record any later SHA), test logs and artifact metadata. If CI fails, fix only from the observed failure and rerun. Keep host crash, filesystem fault and multi-host SQLite explicitly NOT VERIFIED.
