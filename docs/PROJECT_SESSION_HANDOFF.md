@@ -3689,3 +3689,17 @@ These findings make the current stop condition explicit: completing Trusted Admi
 - Evidence report: `docs/evidence/AI_CALIBRATION_OOS_GITHUB_ARTIFACT_HISTORICAL_DATA_INVENTORY_2026-11-12.md`.
 - Disposition: GitHub tree/artifact inventory PASS for inspected scope; canonical recoverable OOS payload NOT FOUND in inspected GitHub sources; historical T0 ingestion HISTORICAL PASS only; sample-level lineage/OOS NOT VERIFIED; AI admission remains fail-closed.
 - Next: identify an owner-held immutable backup/export and approved read-only access path outside GitHub. If none exists, request a separate bounded decision before any T0 runtime, Binance collection, VPS, export or bundle creation. No tests/workflows were run; documentation-only evidence update.
+
+
+## 2026-11-12 — Core-First Quant architecture decision
+
+- Owner approved the **Core-First Quant System** architecture direction.
+- Decision record: `docs/architecture/CORE_FIRST_ARCHITECTURE_DECISION_2026-11-12.md`; commit `3036c2cecd167ca49261153ecb29d6f1f9e1c044`.
+- Strategy Core (RSI + ADX + Smart DCA) is the only strategy in the current paper-trading decision path. AI Strategy is deferred to offline research and must not create AI Ledger entries or paper orders while deferred.
+- Prior three-group AI authorization remains historical; this newer priority decision pauses production-oriented AI admission, registry lifecycle, trusted-time, key-enrollment and AI leverage-policy implementation until the owner explicitly reopens that workstream. Preserve existing AI source/contracts/tests/evidence; do not delete completed work.
+- Synthetic fixtures may be used only for deterministic engineering tests. They cannot establish real-market OOS, `OOS_VERIFIED`, production thresholds, incremental strategy value or trading eligibility.
+- Current priority: (1) T0 data recovery/re-acquisition through a separate bounded approval; (2) Strategy Core verification; (3) Shared Risk Engine/Kill Switch verification; (4) paper-only Core evaluation; (5) minimum useful Dashboard; (6) reconsider AI only with real OOS evidence of incremental value over Core.
+- T1 remains inactive. No T0/T1/T2/Core/CANCEL source behavior, database schema, canonical data, ledger, Shared Risk Engine or Kill Switch changes are authorized by this decision.
+- No VPS, runtime, service restart, exchange collection, deployment, live trading or real orders are authorized. Keep `AI_EXECUTION_ENABLED=false`.
+- This was a documentation-only increment. Tests/workflows: NOT RUN. Runtime readiness and Core/Risk behavior: NOT VERIFIED. AI production admission: DEFERRED / BLOCKED.
+- Next permitted step: prepare a bounded Core-first readiness plan. T0 data collection still requires its own explicit approval; do not start collection or provision runtime based on this architecture decision.
