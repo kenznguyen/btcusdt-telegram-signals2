@@ -199,3 +199,36 @@ No app.py, Gunicorn server, Core entrypoint, daemon, service, or systemd/autosta
 ### Next gate — separate approval required
 
 Before any broader test, inspect and select a strictly bounded set of offline Core contract tests that cannot open persistent databases, write outside disposable test fixtures, activate services, or access exchanges. The Core runtime entrypoint remains design-only, so a successful import smoke test must not be represented as Core runtime readiness.
+## Bounded offline Core test selection — 2026-11-12
+
+Repository inspection was performed at branch HEAD `551ad5a2f3fa6dc96d418053168aa02e8593ddcb`. No tests were executed in this selection step.
+
+### Selected small, no-I/O contract tests
+
+1. `python -m unittest pipeline.test_core_signal -v` — 6 tests; source blob `a946716604e2e1a74b0e32f0aae5d07b820f2cbf`. Covers Core LONG/SHORT normalization, FLAT, WAIT, stale/missing artifact, market/source/direction validation. Imports only `unittest` and the pure `pipeline.core_signal.validate` adapter.
+2. `python -m unittest pipeline.test_core_strategy -v` — 6 tests; test blob `a0d5b46845d3fde006ed817fe21bdd8b6546c1d1`; producer blob `f714b6b6dc0822400b6997feb0a8c2f07886aaed`. Covers RSI/ADX indicators, incomplete-window rejection, missing-book WAIT, LONG entry, Smart DCA, and protective exits. Test module imports only `unittest` and `pipeline.core_strategy`; inspection found no SQLite, file, network, subprocess, or multiprocessing operations in this test module. Producer reads strategy threshold environment variables at import time; run with a clean/minimal environment to avoid inherited overrides.
+
+Selected total: 12 small tests. These tests exercise signal and strategy logic only; they do not prove account-wide risk admission, PaperLedger persistence, kill-switch behavior, or the one-shot runtime.
+
+### Explicitly excluded from this first bounded run
+
+- `pipeline/test_core_sizing.py`: imports `tempfile` and `PaperLedger`, creates disposable SQLite state; defer to a separately reviewed DB-fixture gate.
+- `paper_execution/test_core_first_operational.py`: 1,858 lines; creates multiple SQLite ledgers, performs account cutover/funding setup, uses multiprocessing and concurrency/crash probes. Do not run as part of the small no-I/O gate.
+- `paper_execution/test_core_short_lifecycle.py`: builds on the large operational fixture and mutates disposable ledger state; defer.
+- `paper_execution/test_ledger.py`, `test_risk_control.py`, and dual-ledger suites: SQLite persistence/migration/risk-state tests; defer until a specific disposable-DB boundary and exact test selection are approved.
+- Full test discovery or full suite: not selected.
+
+### Preconditions before executing the selected tests on the VPS
+
+- First verify the VPS checkout's `git rev-parse HEAD` equals `551ad5a2f3fa6dc96d418053168aa02e8593ddcb`, and inspect `git status --short --branch`. Do not run tests against an unknown or stale checkout.
+- Execute only the two named unittest modules with the disposable venv interpreter and a clean environment. No pytest discovery, no wildcard test selection, no app/CLI/service invocation.
+- Preserve `AI_EXECUTION_ENABLED=false`; these pure tests must not access exchange endpoints or create real orders.
+- This selection authorizes inspection/selection only. Test execution is NOT RUN pending exact checkout confirmation and a separate execution approval.
+
+### Current gate disposition
+
+- Test selection review: PASS.
+- Selected tests execution: NOT RUN.
+- Database/risk/ledger contract tests: DEFERRED.
+- Core one-shot runtime implementation: NOT IMPLEMENTED.
+- Runtime/VPS readiness: NOT VERIFIED.
