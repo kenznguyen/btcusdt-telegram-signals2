@@ -430,11 +430,10 @@ class DualStrategyApiScopeRedTest(unittest.TestCase):
         self.assertIsNone(migration_table)
 
 
-    def test_ai_buy_while_core_wait_routes_only_to_ai_ledger_and_shared_risk_rejects(self):
-        from paper_execution.ledger import PaperLedger, read_snapshot
+    def test_ai_candidate_without_trusted_admission_never_constructs_ledger_or_submits(self):
+        from paper_execution.ledger import read_snapshot
 
         self.activate_dual_schema()
-        PaperLedger(self.db, strategy_id="AI_FREQAI", source_sha="e" * 40, leverage="3")
         timestamp = 1_800_000_000_000
         book = {
             "source": "hummingbot", "connector": "binance_perpetual",
@@ -472,18 +471,18 @@ class DualStrategyApiScopeRedTest(unittest.TestCase):
              patch.object(api, "decide", return_value=decision), \
              patch.object(api, "core_decide", return_value=core_wait), \
              patch.object(api, "control_permit", return_value=True), \
-             patch.object(api, "market_window", return_value=empty_mark):
+             patch.object(api, "market_window", return_value=empty_mark), \
+             patch.object(api, "ledger") as ledger_factory:
             signals = api.signal_snapshot(timestamp)
             status, response = self.request("/v1/paper/evaluate", {})
 
         self.assertEqual(signals["strategyCore"]["action"], "WAIT")
         self.assertEqual(signals["aiStrategy"]["action"], "BUY")
-        self.assertEqual(status, 200, response)
-        self.assertEqual(response["decision"]["source"], "AI_FREQAI")
-        self.assertEqual(response["order"]["status"], "REJECTED", response)
-        self.assertEqual(response["order"]["reason"], "RISK_INPUTS_UNAVAILABLE")
+        self.assertEqual(status, 409, response)
+        self.assertEqual(response["error"], "AI_ADMISSION_NOT_ESTABLISHED")
+        ledger_factory.assert_not_called()
 
-        # A rejected AI candidate must not leave a risk reservation behind.
+        # An unadmitted AI candidate must not mutate either strategy or risk state.
         with sqlite3.connect(self.db) as connection:
             reservations = connection.execute(
                 "SELECT COUNT(*) FROM paper_risk_reservations"
@@ -495,8 +494,7 @@ class DualStrategyApiScopeRedTest(unittest.TestCase):
         self.assertEqual(after_core["positionBase"], before_core["positionBase"])
         self.assertEqual(after_core["orders"], before_core["orders"])
         self.assertEqual(after_ai["positionBase"], before_ai["positionBase"])
-        self.assertEqual(len(after_ai["orders"]), len(before_ai["orders"]) + 1)
-        self.assertEqual(after_ai["orders"][0]["strategyId"], "AI_FREQAI")
+        self.assertEqual(after_ai["orders"], before_ai["orders"])
 
 
     def test_ai_cancel_succeeds_without_prediction_or_new_admitted_leverage(self):
