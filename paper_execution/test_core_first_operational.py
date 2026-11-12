@@ -555,7 +555,7 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
         blocked_book = dict(self.book)
         blocked_book["observedAtMs"] = kill_at + 1
         blocked = self.core.submit(
-            blocked_intent, blocked_book, kill_at + 1, strategy_event="ENTRY"
+            blocked_intent, blocked_book, kill_at + 1, strategy_event="DCA"
         )
         self.assertEqual(blocked["status"], "REJECTED", blocked)
         self.assertEqual(blocked["reason"], "KILL_SWITCH")
