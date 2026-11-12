@@ -4052,3 +4052,17 @@ These findings make the current stop condition explicit: completing Trusted Admi
 - Storage target remains unmatched (9.3G disk vs earlier 10 GB target). Core one-shot runtime entrypoint remains DESIGN RECORDED / NOT IMPLEMENTED / NOT TESTED.
 - Current disposition: **ARM64 COMPATIBILITY = PARTIAL / NOT VERIFIED**; **CORE VPS RUNTIME = NOT STARTED**.
 - Next bounded gate: obtain explicit approval for a disk-bounded, no-install pip resolution/download dry-run in a temporary directory on the VPS; capture exact candidate versions, wheel tags and SHA-256 without importing or starting Core. Then separately request approval for temporary venv install/import tests if resolution succeeds.
+
+
+## 2026-11-12 — Core producer adapter and preflight CLI evidence
+
+- Active branch remains `feature/core-operational-proof-20261112`; no branch split or PR created.
+- Core producer adapter is implemented at `core_runtime/adapter.py`; maps only BUY→LONG, SELL→SHORT, CLOSE→FLAT, WAIT→WAIT; copies producer provenance only; rejects missing or inconsistent intent. Six adapter contract tests passed in workflow run #85.
+- Added `core_runtime/__main__.py` as a fail-closed, read-only preflight CLI. It validates explicit PAPER config, AI disabled, exchange credential absence, existing ledger file and account-wide risk snapshot. It does not construct PaperLedger, create/migrate SQLite, execute Strategy Core, submit paper intents or write ledger state.
+- CLI contract tests: 5/5 PASS. Successful preflight output is explicitly `PREFLIGHT_PASS` with `decisionCycle=NOT_RUN`; actual Core decision cycle remains NOT IMPLEMENTED.
+- Workflow #84, source `aad101268733c008cfd2c8bd4f390d306b34d232`, failed because the workflow still expected the old CLI RED state after the implementation made its five tests pass. This was a stale workflow expectation, not a code-test failure. The workflow was corrected in source commit `837f0bb718ec2f7c91543cf9ca3f0fdd17d76fe1`.
+- Workflow #85: [43263836471](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43263836471), exact source SHA `837f0bb718ec2f7c91543cf9ca3f0fdd17d76fe1`, overall SUCCESS, 14/14 steps SUCCESS. Artifact `core-first-code-operational-proof-43263836471`, ID `13964263345`, size 5,313 bytes, SHA-256 `6348d70690f7b7fd78f218a97c9715e05a2a945a215e11bdf1c703eb43612564`, expiry `2026-11-19T16:55:02Z`.
+- Evidence report: `docs/evidence/CORE_ONE_SHOT_RED_TESTS_2026-11-12.md`; updated to record adapter GREEN, CLI preflight GREEN, run #84 stale-gate failure, run #85 PASS, and exact artifact metadata.
+- Safety: `AI_EXECUTION_ENABLED=false`; no exchange credentials or orders; no canonical T0 access/mutation; no VPS commands, deployment, systemd/autostart, daemon, or persistent runtime.
+- Current status: adapter **PASS**; CLI safety contract **PASS**; preflight implementation **CI PASS**; actual one-shot decision cycle **NOT IMPLEMENTED**; positive preflight against a fully risk-ready disposable dual-ledger fixture **NOT VERIFIED**; VPS runtime **NOT STARTED**.
+- Next bounded step: add disposable tests proving read-only risk-snapshot behavior and no mutation for existing incomplete/corrupt ledgers. Then freeze a versioned input-bundle contract for the actual decision cycle before implementing it. Preserve Core strategy, Core leverage, Shared Risk Engine, PaperLedger schema, AI, T0 and VPS.
