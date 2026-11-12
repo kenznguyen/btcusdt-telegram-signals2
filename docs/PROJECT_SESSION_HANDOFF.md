@@ -3041,3 +3041,17 @@ Critical limits:
 - Latest T1 branch HEAD: `e047bcebb0c0f28aa1d1fc8d9a83a56fb259cbd9`. Full CI run `43139023378` is QUEUED at this exact SHA; duplicate run `43139017716` is also queued. No final verification or artifact is available yet.
 - Status remains **PARTIAL / NOT VERIFIED**. The earlier writer-only PASS remains bounded to its own SHA and does not validate the full producer changes. Do not mark the finding resolved until full CI (fmt, Clippy, build, tests, security, artifact provenance) passes at the exact final SHA.
 
+
+
+### T1 producer decimal-integrity increment — exact-head CI PASS (2026-11-12)
+
+- T1 repository: `kenznguyen/binance-futures-collector`; existing branch: `feature/t1-connection-sidecar-integration-20261107`. No new branch or PR; existing PR #1 remains open/draft and unmerged.
+- Final T1 source SHA: `42b7a3c928ee62a0440ae176e7ebd0e5b2db5662`.
+- CI run [43143191168](https://github.com/kenznguyen/binance-futures-collector/actions/runs/43143191168), push event on the exact source SHA: **5/5 jobs SUCCESS** — collector fmt/Clippy/build/tests, sidecar writer checks, dashboard backend pytest, dashboard frontend typecheck/Vitest, Docker images, and security audits.
+- Rust collector: `cargo fmt --all --check` PASS; `cargo clippy --all-targets --all-features -- -D warnings` PASS; release build PASS; workspace tests **56/56 library + 1/1 binary PASS**. Sidecar: format PASS, Clippy PASS, offline tests **12/12 unit + 27/27 integration PASS**.
+- Artifact ID `13910212503`, name `t1-collector-linux-x86_64-42b7a3c928ee62a0440ae176e7ebd0e5b2db5662`; GitHub artifact digest and independently recomputed ZIP SHA-256: `a6ddb149befb999f48adb88bf7574d6a0cd3cae537319c6b864ac4f661bb524a`. ZIP readback confirms binary SHA-256 `192c070311cefd7497c956b3215e4fb079a670b5781ef9f285f1bb0938a21cd6` via embedded `SHA256SUMS`.
+- Clippy findings from run `43139023378` were fixed on the same branch: remove unnecessary `mut` in `connection_manager.rs`; use `find(['e', 'E'])` in exact decimal parser. Rustfmt correction then made to satisfy `cargo fmt --check`; final exact-head run above passes.
+- Targeted source review of `models.rs`, `rest_collector.rs`, `decimal.rs`, and `orderbook_manager.rs`: exchange decimal lexemes are preserved for CSV; malformed REST kline fields are rejected/skipped instead of synthesized as zero; derived OI/liquidation notionals use exact decimal-string multiplication; order-book snapshot CSV uses retained source strings and exact decimal sorting. No fixed-12-place formatter or `unwrap_or("0")` fallback was found in these reviewed files.
+- Explicit residual: order-book's in-memory computational maps still parse prices/quantities to `f64`; raw decimal maps remain the CSV snapshot source. This increment does not claim removal of binary floating point from all computational order-book state, nor does it prove numerical equivalence of that internal view.
+- **Disposition: T1 producer decimal-integrity code + exact-head CI verification PASS.** Runtime/operational acceptance remains NOT VERIFIED. No Binance live connection, T1 activation, VPS deployment, T0/T2 change, or trading was performed. Keep T1 inactive and `ai_execution_enabled=false`.
+- Next step: preserve this CI evidence and continue with the next bounded GitHub-only T1 finding; do not activate/deploy T1 without explicit approval.
