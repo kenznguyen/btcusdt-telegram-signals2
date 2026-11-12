@@ -30,13 +30,23 @@ python3 -c "import platform; print(platform.machine())"
 lsblk -o NAME,SIZE,TYPE,FSTYPE,MOUNTPOINT
 ```
 
+## Repository dependency inspection
+Inspected the active branch dependency declarations only; no package installation was performed:
+- `requirements.txt` blob `f5c242bdac51eba200b19233e08e7d4b22f598c4`: requests, numpy, pandas, Flask, gunicorn, cryptography, rfc8785.
+- `requirements-ci.txt` blob `1910948f82d7b228755552cd3f5b343cebbca412`: PyYAML.
+- `requirements-market-data.txt` blob `0c1b47046bc264be48fa9e11360ce3488046530d`: ccxt, psycopg[binary].
+- `requirements-web.txt` blob `1ee5316a56713357a8008da7e5423af69e2e9b9b`: Flask, requests, gunicorn, cryptography, rfc8785.
+- The inspected files use version ranges, not a complete hash-locked dependency set.
+- Static declarations do not pin an x86-only package or binary, but this is not proof that all transitive packages provide compatible ARM64/Python 3.12 wheels or that the runtime works on ARM64.
+
 ## Assessment
 - SSH access and root shell: PASS (owner-provided observation).
 - Ubuntu 24.04 LTS: PASS.
 - Requested 2 vCPU / 4 GB RAM class: PASS (observed 2 vCPU and 3.8 GiB reported RAM).
-- Architecture compatibility: NOT VERIFIED. Host is ARM64, not the previously assumed x86_64. Do not install dependencies or launch runtime until repository dependencies, native wheels, and any architecture-specific binaries are checked.
+- ARM64 dependency compatibility: **NOT VERIFIED**. No install, wheel resolution, import smoke test or runtime test has been performed. Do not install dependencies or launch runtime until a disposable, reproducible compatibility check is approved and completed.
 - Storage target: PARTIAL / NOT MATCHED. Physical disk reports 9.3G and root partition 8.3G, rather than the earlier 10 GB target. 5.8G was available at observation.
 - Swap: absent; no change requested or made.
+- Core runtime entrypoint: still DESIGN RECORDED / NOT IMPLEMENTED / NOT TESTED. This host preflight does not resolve the missing runnable Core entrypoint.
 
 ## Restrictions and non-actions
 - No packages installed or upgraded.
@@ -45,11 +55,11 @@ lsblk -o NAME,SIZE,TYPE,FSTYPE,MOUNTPOINT
 - No database opened or changed; canonical T0 remains untouched.
 - No exchange credentials, exchange endpoints, or real orders used.
 - `AI_EXECUTION_ENABLED=false`; AI/T1/T2 remain inactive; no systemd/autostart.
-- Existing Core runtime entrypoint contract remains DESIGN RECORDED / NOT IMPLEMENTED / NOT TESTED. Do not substitute `app.py` or `python -m paper_execution` for a Core decision runner.
+- Do not substitute `app.py` or `python -m paper_execution` for a Core decision runner.
 
 ## Status
-**PREFLIGHT: PARTIAL PASS — HOST IDENTIFIED AND BASIC OS/RESOURCE EVIDENCE RECORDED; ARM64 COMPATIBILITY AND STORAGE TARGET REMAIN NOT VERIFIED / NOT MATCHED.**
+**PREFLIGHT: PARTIAL PASS — HOST IDENTIFIED; BASIC OS/RESOURCE EVIDENCE RECORDED; ARM64 DEPENDENCY COMPATIBILITY NOT VERIFIED; STORAGE TARGET NOT MATCHED.**
 **CORE VPS RUNTIME: NOT STARTED.**
 
 ## Next bounded step
-Inspect the active branch's dependency declarations and native/architecture-specific requirements for ARM64 compatibility. This is repository-only inspection; no host package installation or runtime launch. If an x86_64-only dependency or binary is required, stop and present the smallest corrective option for owner approval.
+Define a disposable ARM64/Python 3.12 dependency-resolution and import-smoke procedure, with no application deployment and no canonical T0 access. Separately resolve whether the 9.3G disk capacity is acceptable or whether a volume expansion is needed. The Core one-shot runner must still be implemented and tested before any runtime launch. Any package installation on this persistent VPS requires a separate bounded approval; do not proceed implicitly.
