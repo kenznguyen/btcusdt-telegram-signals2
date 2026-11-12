@@ -1,14 +1,9 @@
-import json
 import sqlite3
 import tempfile
 import unittest
 from pathlib import Path
 
-from ops.live_market_data_probe import (
-    build_window,
-    parse_klines,
-    persist_candles,
-)
+from ops.live_market_data_probe import build_window, parse_klines, persist_candles
 
 
 class LiveMarketDataProbeTests(unittest.TestCase):
@@ -36,6 +31,7 @@ class LiveMarketDataProbeTests(unittest.TestCase):
         gap = self.rows.copy()
         gap[40] = list(gap[40])
         gap[40][0] += self.interval
+        gap[40][6] += self.interval
         with self.assertRaisesRegex(ValueError, "GAP"):
             parse_klines(gap, "15m", self.now)
         invalid = self.rows.copy()
