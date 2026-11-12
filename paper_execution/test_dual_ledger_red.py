@@ -28,7 +28,7 @@ class DualLedgerRedTest(unittest.TestCase):
         )
         ai = PaperLedger(
             path, max_position_base="1", fee_rate="0.001",
-            strategy_id="AI_FREQAI", source_sha="a" * 40,
+            strategy_id="AI_FREQAI", source_sha="a" * 40, leverage="3",
             risk_limits=limits, require_risk_limits=True,
         )
         with sqlite3.connect(path) as connection:
@@ -125,7 +125,7 @@ class DualLedgerRedTest(unittest.TestCase):
         )
 
         reopened_core = PaperLedger(self.path, max_position_base="1", strategy_id="STRATEGY_CORE", source_sha="a" * 40)
-        reopened_ai = PaperLedger(self.path, max_position_base="1", strategy_id="AI_FREQAI", source_sha="a" * 40)
+        reopened_ai = PaperLedger(self.path, max_position_base="1", strategy_id="AI_FREQAI", source_sha="a" * 40, leverage="3")
         self.assertEqual(
             reopened_core.snapshot()["positionBase"], "0.1"
         )
@@ -1389,7 +1389,7 @@ class DualLedgerRedTest(unittest.TestCase):
         )
         reopened_ai = PaperLedger(
             path, max_position_base="1", strategy_id="AI_FREQAI",
-            source_sha="a" * 40,
+            source_sha="a" * 40, leverage="3",
         )
         self.assertEqual(reopened_core.snapshot()["positionBase"], "0")
         self.assertEqual(reopened_ai.snapshot()["positionBase"], "0")
