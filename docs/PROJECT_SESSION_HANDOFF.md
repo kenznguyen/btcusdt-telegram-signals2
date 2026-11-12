@@ -3677,3 +3677,15 @@ These findings make the current stop condition explicit: completing Trusted Admi
 - Minimal design implication: one external TSA may provide event-time evidence, with fail-closed behavior if unavailable. Registry rollback/latestness still needs an independent monotonic high-water checkpoint or witness; GitHub commit time alone is insufficient. Do not claim TSA alone supplies ACTIVE/current-state truth.
 - References reviewed: RFC 3161 (https://www.rfc-editor.org/rfc/rfc3161); FreeTSA service and usage policy (https://www.freetsa.org/index_en.php and https://www.freetsa.org/freetsa.html); FreeTSA CPS (https://www.freetsa.org/freetsa_cps.pdf); DigiCert TSA description (https://knowledge.digicert.com/general-information/rfc3161-compliant-time-stamp-authority-server); Sectigo TSA policy (https://www.sectigo.com/uploads/legal/Sectigo_CP-CPS_Document_Signing_v1_0_4.pdf).
 - No external TSA request was made and no provider was enrolled. This is public-document research only.
+
+
+## 2026-11-12 — OOS GitHub artifact and historical data inventory
+
+- Owner approved read-only inspection of GitHub repository content, Actions artifact metadata and historical repository evidence. No T0 API/DB/VPS/SSH/exchange/external backup access, dataset export/creation, source/test/workflow/dependency/schema changes, runtime action or trading action occurred.
+- Exact inspected active branch HEAD: `93f3b0e350cf62b205f8d2a3a84fd139e9c5f59e`; recursive tree `7ed669ada40b2232c672eb026f9aa925cc43d901`, 994 entries, not truncated.
+- Tree path scan found no CSV/Parquet/Feather/Arrow/SQLite/DB/JSONL/NDJSON dataset payload, and no canonical `T0_M15_H1_DATASET_BUNDLE_V1` manifest/payload/producer path. P1.8 bundles are synthetic CI evidence only.
+- Read-only Actions run listing: 1,387 total runs; API returned newest 1,000 for 2026-11-07 through 2026-11-12. Selected T0 ZIPs inspected: artifacts `13628691436`, `13628521899`, `13627924430`, `13627939321`, `13628178055`, `13920786893`, `13921070540`, `13921095476`, `13921095419`. They contain CI/test/systemd/recovery/fencing logs, not raw BTC candles or OOS dataset bytes. P1.8 artifacts `13546255148` and `13545287609` are explicitly synthetic.
+- Historical T0 report from 2026-11-09 records bounded 3/3 M15 and 3/3 H1 windows and fingerprints, but not an OOS payload. The T2 context JSON was saved under `/tmp` and not uploaded. The former VPS was deleted on 2026-11-11.
+- Evidence report: `docs/evidence/AI_CALIBRATION_OOS_GITHUB_ARTIFACT_HISTORICAL_DATA_INVENTORY_2026-11-12.md`.
+- Disposition: GitHub tree/artifact inventory PASS for inspected scope; canonical recoverable OOS payload NOT FOUND in inspected GitHub sources; historical T0 ingestion HISTORICAL PASS only; sample-level lineage/OOS NOT VERIFIED; AI admission remains fail-closed.
+- Next: identify an owner-held immutable backup/export and approved read-only access path outside GitHub. If none exists, request a separate bounded decision before any T0 runtime, Binance collection, VPS, export or bundle creation. No tests/workflows were run; documentation-only evidence update.
