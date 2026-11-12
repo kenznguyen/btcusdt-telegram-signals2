@@ -3189,3 +3189,34 @@ Critical limits:
 - The previous datatype review's “next design gate: resolve order-book subtype/snapshot grouping and event identity” is superseded by this freeze record.
 - Architecture remains T0 and T1 independent; T0 → T2 Candle Contract v1 unchanged; **no T1 → T0 path**. T1 inactive; no VPS, live Binance, trading, T0/T2 strategy/risk changes, retention, cleanup, or deletion.
 - Next authorized step: report the schema freeze completion and await a separate implementation scope/approval for contract tests, immutable manifest publication, and T1 → T2 adapter. Do not begin implementation under this schema-freeze approval.
+
+
+## T1 producer conformance — initial implementation audit (2026-11-12)
+
+Status: **BLOCKED — implementation not started; producer lifecycle prerequisites identified.**
+
+Authorized objective: make T1 producer conform to the frozen T1 → T2 manifest/batch contract v1.0.0. Work is limited to the existing T1 branch and its producer-side publication path. No T1 → T2 adapter is authorized by this task.
+
+Exact reviewed T1 source:
+- Repository: `kenznguyen/binance-futures-collector`
+- Branch: `feature/t1-connection-sidecar-integration-20261107`
+- PR #1: OPEN / DRAFT / UNMERGED
+- Source SHA: `53ffed3979429ed9f28529cf27d6e508f74ba6f2`
+
+Findings from read-only source inspection:
+1. `RestCollector::start` spawns seven detached long-running REST collector tasks. It retains no JoinHandles and exposes no stop/join operation. Current main shutdown stops WebSocket ingest and drains the message handler, but does not stop/join REST collectors before CSV flush. Therefore a shutdown-time file snapshot cannot yet be proven quiescent.
+2. `CsvWriter::flush_all` logs per-file flush errors and continues, then returns `Ok(())`. It cannot currently serve as a fail-closed prerequisite for sealing/publishing.
+3. The existing CSV writer appends to daily/hourly paths and does not create immutable, content-addressed batch segments or a T1 market-data manifest. The existing connection sidecar manifest is a separate JSONL connection-lifecycle artifact and is explicitly not integrated with the collector; it is not a substitute for the market-data manifest.
+4. The current build/runtime path does not embed an exact source SHA as manifest provenance. CI names artifacts with `github.sha`, but this does not by itself make that identity available to a running collector process.
+
+Required order before producer conformance can be claimed:
+- Add deterministic tests for REST-task shutdown/join and strict flush error propagation (TDD RED first).
+- Implement stop/join and strict flush without changing CSV row schemas or T0.
+- Implement immutable sealed-batch publication and manifest generation with exact source/build identity, symbol-universe digest, file SHA-256/length/row count/timestamp bounds, datatype schema/timestamp semantics, closure attestations and truthful quality/gap states.
+- Verify crash/failure paths are fail-closed: no manifest publication for an incomplete or mutating batch; no overwrite/reuse of batch IDs or published paths.
+- Run focused and full CI on exact source SHA; inspect artifacts and read back evidence.
+
+Verification:
+- Static source inspection only; no code changes, no tests run, no workflow run, no artifact generated in this audit.
+- Producer conformance: **NOT VERIFIED / BLOCKED**.
+- T1 runtime remains inactive. No VPS, live Binance connection, T0 modification, T1 → T0 path, T2 adapter, strategy/risk changes, trading, deletion, retention, cleanup or compaction authorized.
