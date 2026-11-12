@@ -1197,5 +1197,178 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
         self.assertIn(order["reason"], ("VISIBLE_DEPTH_SIMULATION", "KILL_SWITCH"))
 
 
+    def test_mixed_writer_contention_serializes_timeout_retry_exposure_and_kill_switch(self):
+        stress_path = Path(self.temp.name) / "core-mixed-writer-stress.sqlite3"
+        with sqlite3.connect(self.path) as source, sqlite3.connect(stress_path) as target_db:
+            source.backup(target_db)
+        with sqlite3.connect(stress_path) as connection:
+            connection.execute("CREATE TABLE process_crash_probe (marker TEXT NOT NULL)")
+
+        signal = self.decide()
+        entry_intent = dict(signal["intent"])
+        entry_intent.update({
+            "intentId": "core-mixed-writer-short-lock-entry",
+            "decisionAtMs": self.now,
+            "validUntilMs": self.now + 60_000,
+            "inputSnapshotId": "fixture:core-mixed-writer-short-lock-entry",
+        })
+        context = multiprocessing.get_context("spawn")
+
+        acquired = context.Event()
+        release = context.Event()
+        holder = context.Process(
+            target=_hold_sqlite_write_lock_until_released,
+            args=(str(stress_path), acquired, release),
+        )
+        holder.start()
+        self.assertTrue(acquired.wait(timeout=20), "short-lock writer did not acquire lock")
+        ledger = PaperLedger(
+            stress_path, max_position_base="1", fee_rate="0.001",
+            strategy_id="STRATEGY_CORE", source_sha="c" * 40,
+            risk_limits={
+                "maxDrawdownPct": "50",
+                "maxDailyLossUsdt": "50",
+                "maxExposureUsdt": "1000",
+            },
+            require_risk_limits=True, apply_migrations=False,
+        )
+        attempted = __import__("threading").Event()
+        outcome = {}
+
+        def submit_after_short_lock():
+            attempted.set()
+            outcome["entry"] = ledger.submit(
+                entry_intent, dict(self.book), self.now, strategy_event="ENTRY"
+            )
+
+        worker = __import__("threading").Thread(target=submit_after_short_lock)
+        worker.start()
+        try:
+            self.assertTrue(attempted.wait(timeout=5))
+            __import__("time").sleep(0.25)
+        finally:
+            release.set()
+            holder.join(timeout=10)
+            if holder.is_alive():
+                holder.terminate()
+                holder.join(timeout=5)
+        worker.join(timeout=15)
+        self.assertFalse(worker.is_alive(), "short-lock admission did not finish")
+        self.assertEqual(holder.exitcode, 0)
+        entry_order = outcome["entry"]
+        self.assertEqual(entry_order["status"], "FILLED", entry_order)
+        self.assertGreater(Decimal(entry_order["filledBase"]), Decimal("0"))
+
+        current = Decimal(ledger.snapshot()["positionBase"])
+        dca_at = self.now + 1
+        dca_intent = dict(entry_intent)
+        dca_intent.update({
+            "intentId": "core-mixed-writer-timeout-dca",
+            "targetPositionBase": str(current * Decimal("1.1")),
+            "decisionAtMs": dca_at,
+            "validUntilMs": dca_at + 60_000,
+            "inputSnapshotId": "fixture:core-mixed-writer-timeout-dca",
+        })
+        dca_book = dict(self.book)
+        dca_book["observedAtMs"] = dca_at
+        acquired_long = context.Event()
+        release_long = context.Event()
+        long_holder = context.Process(
+            target=_hold_sqlite_write_lock_until_released,
+            args=(str(stress_path), acquired_long, release_long),
+        )
+        long_holder.start()
+        try:
+            self.assertTrue(acquired_long.wait(timeout=20), "long-lock writer did not acquire lock")
+            started = __import__("time").monotonic()
+            with self.assertRaisesRegex(sqlite3.OperationalError, "locked"):
+                ledger.submit(dca_intent, dca_book, dca_at, strategy_event="DCA")
+            elapsed = __import__("time").monotonic() - started
+            self.assertGreaterEqual(elapsed, 9.0, f"timeout fired too early: {elapsed:.3f}s")
+        finally:
+            release_long.set()
+            long_holder.join(timeout=10)
+            if long_holder.is_alive():
+                long_holder.terminate()
+                long_holder.join(timeout=5)
+        self.assertEqual(long_holder.exitcode, 0)
+
+        with sqlite3.connect(stress_path) as connection:
+            self.assertEqual(connection.execute("PRAGMA integrity_check").fetchone()[0], "ok")
+            self.assertEqual(connection.execute(
+                "SELECT COUNT(*) FROM paper_orders WHERE strategy_id='STRATEGY_CORE'"
+            ).fetchone()[0], 1)
+            self.assertEqual(connection.execute(
+                "SELECT COUNT(*) FROM paper_risk_reservations WHERE strategy_id='STRATEGY_CORE'"
+            ).fetchone()[0], 1)
+            self.assertEqual(connection.execute(
+                "SELECT COUNT(*) FROM paper_account_event_journal WHERE strategy_id='STRATEGY_CORE' AND event_type='FILL'"
+            ).fetchone()[0], 1)
+            self.assertEqual(connection.execute(
+                "SELECT COUNT(*) FROM paper_orders WHERE strategy_id='AI_FREQAI'"
+            ).fetchone()[0], 0)
+
+        dca_order = ledger.submit(dca_intent, dca_book, dca_at, strategy_event="DCA")
+        self.assertEqual(dca_order["status"], "FILLED", dca_order)
+        self.assertGreater(Decimal(dca_order["filledBase"]), Decimal("0"))
+
+        post_dca = Decimal(ledger.snapshot()["positionBase"])
+        kill_at = dca_at + 1
+        ledger.set_killed(True, kill_at, "MIXED_WRITER_STRESS_KILL_SWITCH")
+        blocked_intent = dict(dca_intent)
+        blocked_intent.update({
+            "intentId": "core-mixed-writer-killed-dca",
+            "targetPositionBase": str(post_dca * Decimal("1.05")),
+            "decisionAtMs": kill_at,
+            "validUntilMs": kill_at + 30_000,
+            "inputSnapshotId": "fixture:core-mixed-writer-killed-dca",
+        })
+        blocked_book = dict(self.book)
+        blocked_book["observedAtMs"] = kill_at
+        blocked = ledger.submit(
+            blocked_intent, blocked_book, kill_at, strategy_event="DCA"
+        )
+        self.assertEqual(blocked["status"], "REJECTED", blocked)
+        self.assertEqual(blocked["reason"], "KILL_SWITCH", blocked)
+        snapshot = ledger.snapshot()
+        self.assertTrue(snapshot["riskControl"]["killed"])
+        self.assertEqual(snapshot["positionBase"], str(post_dca))
+
+        with sqlite3.connect(stress_path) as connection:
+            self.assertEqual(connection.execute("PRAGMA integrity_check").fetchone()[0], "ok")
+            orders = connection.execute(
+                "SELECT intent_id,status FROM paper_orders WHERE account_id=1 AND strategy_id='STRATEGY_CORE' ORDER BY intent_id"
+            ).fetchall()
+            fills = connection.execute(
+                "SELECT COUNT(*) FROM paper_account_event_journal WHERE account_id=1 AND strategy_id='STRATEGY_CORE' AND event_type='FILL'"
+            ).fetchone()[0]
+            reservations = connection.execute(
+                "SELECT intent_id,reserved_margin_quote,equity_basis_quote FROM paper_risk_reservations WHERE account_id=1 AND strategy_id='STRATEGY_CORE'"
+            ).fetchall()
+            orphan_reservations = connection.execute(
+                """SELECT COUNT(*) FROM paper_risk_reservations r
+                   LEFT JOIN paper_orders o ON o.account_id=r.account_id
+                    AND o.strategy_id=r.strategy_id AND o.reservation_id=r.reservation_id
+                   WHERE r.account_id=1 AND r.strategy_id='STRATEGY_CORE'
+                    AND o.reservation_id IS NULL"""
+            ).fetchone()[0]
+            ai_orders = connection.execute(
+                "SELECT COUNT(*) FROM paper_orders WHERE strategy_id='AI_FREQAI'"
+            ).fetchone()[0]
+        self.assertEqual(len(orders), 3, orders)
+        self.assertEqual(fills, 2)
+        self.assertEqual(len(reservations), 2)
+        self.assertEqual(orphan_reservations, 0)
+        self.assertEqual(ai_orders, 0)
+        with localcontext() as decimal_context:
+            decimal_context.prec = 80
+            for _, reserved_margin, equity_basis in reservations:
+                self.assertLessEqual(
+                    Decimal(reserved_margin), Decimal(equity_basis) * Decimal("0.01")
+                )
+            account_exposure = abs(Decimal(snapshot["positionBase"])) * Decimal(snapshot["averageEntryPrice"])
+            self.assertLessEqual(account_exposure, Decimal("1000"))
+
+
 if __name__ == "__main__":
     unittest.main()
