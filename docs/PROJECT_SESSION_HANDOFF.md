@@ -4028,3 +4028,15 @@ These findings make the current stop condition explicit: completing Trusted Admi
 - Added required tests: missing DB path remains absent after rejection; migration mismatch causes no schema writes; reject canonical T0 path aliases/symlinks.
 - Contract update commit: `e5fb77d2d0fa18884f70e699212566f8d04d3b5d`.
 - No source code or database changed; docs-only. Contract is still DESIGN RECORDED / NOT IMPLEMENTED / NOT TESTED.
+
+
+## 2026-11-12 — User revokes packaging-first direction; switches to VPS-first runtime evidence
+
+- User decision: revoke the packaging-first next-step priority and switch to launching Core paper runtime on a VPS to collect actual process/runtime evidence. Packaging assessment and previous report are retained as historical evidence; packaging is deferred, not erased.
+- Decision record: `docs/evidence/CORE_PAPER_RUNTIME_VPS_FIRST_DECISION_2026-11-12.md`, commit `ba3ace97935251bf475fbbf4a8e07af693278269`.
+- Host availability: the last recorded Scaleway VPS was deleted on 2026-11-11; no replacement host identity/access path is currently available. VPS launch is **BLOCKED — TARGET VPS NOT IDENTIFIED/AVAILABLE**. No host command or provisioning operation has been performed.
+- Scope now authorized once target is identified: bounded Core paper-only runtime evidence collection. No packaging-first gate. No provisioning/charges without separate explicit approval of provider/size/cost.
+- Before launch, verify an actual runnable Core entrypoint. The existing `python -m paper_execution` remains initialization/snapshot utility only, not a Core decision daemon. If no runnable entrypoint exists, stop and report; do not substitute dashboard/T0 feeder or improvise a daemon.
+- Guardrails: `AI_EXECUTION_ENABLED=false`; Core RSI+ADX+Smart DCA and Shared Risk Engine/Kill Switch unchanged; disposable paper ledger only; T0 canonical read-only; no exchange credentials/order endpoints/real orders; no T1/T2/AI activation; no systemd/autostart; bounded process and observations; no destructive cleanup or migrations.
+- Immediate missing input: provider plus VPS instance/hostname or public IP and an operator-approved safe access path. Do not send passwords/private keys or exchange credentials in chat.
+- Runtime evidence: **NOT STARTED**. No code, host, runtime, database or T0 data changed in this decision-recording increment.
