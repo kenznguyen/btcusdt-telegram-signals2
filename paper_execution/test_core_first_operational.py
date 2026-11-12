@@ -1752,6 +1752,9 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
         })
         exit_book = dict(self.book)
         exit_book["observedAtMs"] = exit_at
+        exit_limit = Decimal(exit_intent["limitPrice"])
+        exit_book["bids"] = [{"price": str(exit_limit), "quantity": "1"}]
+        exit_book["asks"] = [{"price": str(exit_limit + Decimal("0.01")), "quantity": "1"}]
         exit_order = self.core.submit(
             exit_intent, exit_book, exit_at, strategy_event="EXIT"
         )
