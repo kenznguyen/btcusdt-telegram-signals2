@@ -194,6 +194,12 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
         from paper_execution.ledger import read_account_risk_snapshot
         risk = read_account_risk_snapshot(self.path, now_ms=self.now)
         self.assertTrue(risk["riskReady"], risk)
+        from paper_execution.ledger import dual_ledger_ready, read_snapshot
+        self.assertTrue(dual_ledger_ready(self.path))
+        self.assertEqual(
+            read_snapshot(self.path, strategy_id="STRATEGY_CORE")["strategyId"],
+            "STRATEGY_CORE",
+        )
 
         # Move the closed M15 price against the open long position to exercise
         # the real Smart DCA decision and paper submission path.
