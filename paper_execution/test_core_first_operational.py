@@ -120,65 +120,99 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
             config_version="fixture-cutover-v1", recorded_at_ms=self.now,
         )
 
-    def core_indicators(self):
+    def core_indicators(self, adx=30.0):
         m15_values = [{"rsi": 20.0, "adx": 25.0} for _ in self.m15_rows]
         m15_values[-2] = {"rsi": 29.0, "adx": 25.0}
-        m15_values[-1] = {"rsi": 35.0, "adx": 30.0}
+        m15_values[-1] = {"rsi": 35.0, "adx": adx}
         h1_values = [
             {"plus_di": 40.0, "minus_di": 10.0, "adx": 30.0}
             for _ in self.h1_rows
         ]
         return m15_values, h1_values
 
-    def decide(self):
+    def decide(self, *, m15=None, book=None, adx=30.0):
         with patch.dict(os.environ, {
             "MARKET_DATA_DB": str(self.path),
             "PAPER_MAX_POSITION_BASE": "1",
             "AI_EXECUTION_ENABLED": "false",
         }, clear=False), patch(
-            "pipeline.api.market_window", side_effect=[self.m15, self.h1]
+            "pipeline.api.market_window", side_effect=[m15 or self.m15, self.h1]
         ), patch(
-            "pipeline.core_strategy.indicators", side_effect=self.core_indicators()
+            "pipeline.core_strategy.indicators", side_effect=self.core_indicators(adx)
         ):
-            return core_decide(self.now, self.book)
+            return core_decide(self.now, book or self.book)
 
-    def test_core_signal_flows_through_shared_risk_into_paper_ledger(self):
+    def test_core_entry_and_smart_dca_flow_through_shared_risk_into_paper_ledger(self):
         signal = self.decide()
         self.assertEqual(signal["source"], "STRATEGY_CORE", signal)
         self.assertEqual(signal["action"], "BUY", signal)
         self.assertIsNotNone(signal["intent"], signal)
 
-        order = self.core.submit(
+        entry = self.core.submit(
             signal["intent"], self.book, self.now, strategy_event="ENTRY"
         )
-        self.assertEqual(order["status"], "FILLED", order)
-        self.assertEqual(self.core.snapshot()["positionBase"], signal["intent"]["targetPositionBase"])
+        self.assertEqual(entry["status"], "FILLED", entry)
+        self.assertEqual(
+            self.core.snapshot()["positionBase"],
+            signal["intent"]["targetPositionBase"],
+        )
+
+        # A distinct closed M15 dataset moves price far enough against the
+        # Core position to satisfy Smart DCA's ROE and ADX gates.
+        dca_rows = [dict(row) for row in self.m15_rows]
+        dca_close = self.close * 0.97
+        dca_rows[-1].update(
+            open=str(self.close * 0.975),
+            high=str(self.close * 0.98),
+            low=str(self.close * 0.96),
+            close=str(dca_close),
+        )
+        dca_window = window(dca_rows, "15m")
+        dca_window["datasetVersion"] = "sha256:" + "f" * 64
+        dca_book = {
+            "source": "hummingbot",
+            "connector": "binance_perpetual",
+            "symbol": "BTCUSDT",
+            "observedAtMs": self.now,
+            "bids": [{"price": str(dca_close - 0.01), "quantity": "1"}],
+            "asks": [{"price": str(dca_close + 0.01), "quantity": "1"}],
+        }
+        dca_signal = self.decide(m15=dca_window, book=dca_book, adx=50.0)
+        self.assertEqual(dca_signal["source"], "STRATEGY_CORE", dca_signal)
+        self.assertEqual(dca_signal["action"], "BUY", dca_signal)
+        self.assertEqual(dca_signal["reason"], "DCA", dca_signal)
+        self.assertIsNotNone(dca_signal["intent"], dca_signal)
+
+        dca = self.core.submit(
+            dca_signal["intent"], dca_book, self.now, strategy_event="DCA"
+        )
+        self.assertEqual(dca["status"], "FILLED", dca)
+        self.assertTrue(self.core.strategy_state()["dcaUsed"])
         self.assertEqual(self.ai.snapshot()["positionBase"], "0")
 
         with sqlite3.connect(self.path) as connection:
-            reservation = connection.execute(
+            reservations = connection.execute(
                 """SELECT equity_basis_quote,reserved_margin_quote,
                           reserved_notional_quote,status
                    FROM paper_risk_reservations
-                   WHERE strategy_id='STRATEGY_CORE' AND intent_id=?""",
-                (signal["intent"]["intentId"],),
-            ).fetchone()
+                   WHERE strategy_id='STRATEGY_CORE' ORDER BY created_at_ms"""
+            ).fetchall()
             ai_orders = connection.execute(
                 "SELECT COUNT(*) FROM paper_orders WHERE strategy_id='AI_FREQAI'"
             ).fetchone()[0]
-        self.assertIsNotNone(reservation)
-        basis, margin, notional, status = reservation
-        self.assertLessEqual(Decimal(margin), Decimal(basis) * Decimal("0.01"))
-        self.assertGreater(Decimal(margin), Decimal(basis) * Decimal("0.0099"))
-        self.assertEqual(Decimal(notional), Decimal(margin) * Decimal("13"))
-        self.assertEqual(status, "CONSUMED")
+        self.assertEqual(len(reservations), 2)
+        for basis, margin, notional, status in reservations:
+            self.assertLessEqual(Decimal(margin), Decimal(basis) * Decimal("0.01"))
+            self.assertGreater(Decimal(margin), Decimal(basis) * Decimal("0.0099"))
+            self.assertEqual(Decimal(notional), Decimal(margin) * Decimal("13"))
+            self.assertEqual(status, "CONSUMED")
         self.assertEqual(ai_orders, 0)
 
         replay = self.core.submit(
             signal["intent"], self.book, self.now, strategy_event="ENTRY"
         )
-        self.assertEqual(replay, order)
-        self.assertEqual(len(self.core.snapshot()["orders"]), 1)
+        self.assertEqual(replay, entry)
+        self.assertEqual(len(self.core.snapshot()["orders"]), 2)
 
     def test_kill_switch_rejects_core_entry_without_creating_exposure(self):
         signal = self.decide()
