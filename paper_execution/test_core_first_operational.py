@@ -564,5 +564,90 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
 
 
 
+    def _race_core_admission_against_kill_switch(self, intent, book, event, expected_position):
+        gate = Barrier(2)
+
+        def submit():
+            gate.wait(timeout=5)
+            return self.core.submit(
+                intent, book, intent["decisionAtMs"], strategy_event=event
+            )
+
+        def kill():
+            gate.wait(timeout=5)
+            return self.core.set_killed(
+                True, intent["decisionAtMs"], "CONCURRENT_KILL_SWITCH_TEST"
+            )
+
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            submit_future = pool.submit(submit)
+            kill_future = pool.submit(kill)
+            order = submit_future.result(timeout=15)
+            kill_future.result(timeout=15)
+
+        snapshot = self.core.snapshot()
+        self.assertTrue(snapshot["riskControl"]["killed"])
+        self.assertIn(order["status"], ("FILLED", "REJECTED"), order)
+        if order["status"] == "REJECTED":
+            self.assertEqual(order["reason"], "KILL_SWITCH", order)
+            self.assertEqual(snapshot["positionBase"], expected_position)
+        else:
+            self.assertEqual(order["status"], "FILLED", order)
+            self.assertEqual(snapshot["positionBase"], str(intent["targetPositionBase"]))
+        self.assertEqual(self.ai.snapshot()["positionBase"], "0")
+        return order
+
+    def test_kill_switch_race_linearizes_core_entry(self):
+        signal = self.decide()
+        self.assertEqual(signal["action"], "BUY", signal)
+        intent = dict(signal["intent"])
+        intent.update({
+            "intentId": "core-entry-vs-kill-race",
+            "decisionAtMs": self.now + 1,
+            "validUntilMs": self.now + 30_001,
+            "inputSnapshotId": "fixture:core-entry-vs-kill-race",
+        })
+        book = dict(self.book)
+        book["observedAtMs"] = self.now + 1
+
+        order = self._race_core_admission_against_kill_switch(
+            intent, book, "ENTRY", "0"
+        )
+        self.assertIn(order["reason"], ("VISIBLE_DEPTH_SIMULATION", "KILL_SWITCH"))
+
+    def test_kill_switch_race_linearizes_core_dca(self):
+        entry_signal = self.decide()
+        self.assertEqual(entry_signal["action"], "BUY", entry_signal)
+        entry_intent = dict(entry_signal["intent"])
+        entry_intent.update({
+            "intentId": "core-dca-race-seed-entry",
+            "decisionAtMs": self.now,
+            "validUntilMs": self.now + 30_000,
+            "inputSnapshotId": "fixture:core-dca-race-seed",
+        })
+        entry = self.core.submit(
+            entry_intent, self.book, self.now, strategy_event="ENTRY"
+        )
+        self.assertEqual(entry["status"], "FILLED", entry)
+        current = Decimal(self.core.snapshot()["positionBase"])
+        target = current + current / Decimal("10")
+        dca_at = self.now + 1
+        dca_intent = dict(entry_intent)
+        dca_intent.update({
+            "intentId": "core-dca-vs-kill-race",
+            "targetPositionBase": str(target),
+            "decisionAtMs": dca_at,
+            "validUntilMs": dca_at + 30_000,
+            "inputSnapshotId": "fixture:core-dca-vs-kill-race",
+        })
+        dca_book = dict(self.book)
+        dca_book["observedAtMs"] = dca_at
+
+        order = self._race_core_admission_against_kill_switch(
+            dca_intent, dca_book, "DCA", str(current)
+        )
+        self.assertIn(order["reason"], ("VISIBLE_DEPTH_SIMULATION", "KILL_SWITCH"))
+
+
 if __name__ == "__main__":
     unittest.main()
