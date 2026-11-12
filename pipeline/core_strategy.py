@@ -5,7 +5,7 @@ closed BTCUSDT candles and never accesses exchange trading endpoints.
 """
 import math
 import os
-from decimal import Decimal, DecimalException, localcontext
+from decimal import Decimal, DecimalException, ROUND_DOWN, localcontext
 from risk_policy import CORE_LEVERAGE, ORDER_MARGIN_BUDGET_PCT
 from pipeline.values import identity, number, stamp
 
@@ -149,16 +149,18 @@ def _order_margin_and_quantity(account_equity_quote, sizing_price):
             return None
         with localcontext() as context:
             context.prec = 80
-            margin = equity * ORDER_MARGIN_BUDGET_PCT
-            # A tiny downward guard prevents float serialization from
-            # exceeding the exact Decimal admission budget enforced by ledger.
-            quantity = margin * CORE_LEVERAGE / price * Decimal("0.999999999999")
+            # Keep the intent contract within 24 fractional digits and round
+            # both admission values down so float conversion cannot breach
+            # the shared 1% margin cap.
+            margin = (equity * ORDER_MARGIN_BUDGET_PCT).quantize(
+                Decimal("1e-24"), rounding=ROUND_DOWN
+            )
+            quantity = (margin * CORE_LEVERAGE / price * Decimal("0.999999999999")).quantize(
+                Decimal("1e-24"), rounding=ROUND_DOWN
+            )
         if margin <= 0 or quantity <= 0:
             return None
-        margin_float, quantity_float = float(margin), float(quantity)
-        if not math.isfinite(margin_float) or not math.isfinite(quantity_float):
-            return None
-        return margin_float, quantity_float
+        return margin, quantity
     except (DecimalException, TypeError, ValueError, ArithmeticError):
         return None
 
