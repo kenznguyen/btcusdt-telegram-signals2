@@ -16,6 +16,7 @@ on:
       - "pipeline/core_signal.py"
       - "pipeline/test_core_runtime_contract.py"
       - "pipeline/test_core_runtime_adapter_contract.py"
+      - "core_runtime/**"
       - "paper_execution/risk_control.py"
       - "paper_execution/ledger.py"
       - "paper_execution/account_equity.py"
@@ -76,7 +77,7 @@ jobs:
       - name: Compile changed operational and Core modules
         run: |
           set -euo pipefail
-          python -m py_compile ops/live_market_data_probe.py ops/test_live_market_data_probe.py pipeline/api.py pipeline/core_strategy.py pipeline/core_signal.py pipeline/test_core_runtime_contract.py pipeline/test_core_runtime_adapter_contract.py paper_execution/test_core_first_operational.py paper_execution/test_core_short_lifecycle.py paper_execution/test_dual_ledger_red.py paper_execution/risk_control.py paper_execution/ledger.py paper_execution/account_equity.py
+          python -m py_compile ops/live_market_data_probe.py ops/test_live_market_data_probe.py pipeline/api.py pipeline/core_strategy.py pipeline/core_signal.py pipeline/test_core_runtime_contract.py pipeline/test_core_runtime_adapter_contract.py core_runtime/__init__.py core_runtime/adapter.py paper_execution/test_core_first_operational.py paper_execution/test_core_short_lifecycle.py paper_execution/test_dual_ledger_red.py paper_execution/risk_control.py paper_execution/ledger.py paper_execution/account_equity.py
           echo "PY_COMPILE=PASS" | tee core-operational-compile.txt
 
       - name: Run live-data probe contract tests
@@ -101,25 +102,16 @@ jobs:
             exit 1
           fi
           grep -q "FAILED (failures=5)" core-runtime-contract-tests.log
-          grep -q "No module named core_runtime" core-runtime-contract-tests.log
+          grep -q "No module named core_runtime.__main__" core-runtime-contract-tests.log
           echo "CORE_RUNTIME_IMPLEMENTATION=NOT_IMPLEMENTED" | tee core-runtime-contract-red-status.txt
           echo "CORE_RUNTIME_RED_TESTS=5_EXPECTED_FAILURES" | tee -a core-runtime-contract-red-status.txt
 
-      - name: Verify expected RED contract for Core producer adapter
+      - name: Run Core producer adapter contract tests
         run: |
           set -euo pipefail
-          set +e
           python -m unittest pipeline.test_core_runtime_adapter_contract -v 2>&1 | tee core-runtime-adapter-contract-tests.log
-          test_status=${PIPESTATUS[0]}
-          set -e
-          if [[ "${test_status}" -eq 0 ]]; then
-            echo "Expected adapter RED tests to fail until core_runtime.adapter is implemented"
-            exit 1
-          fi
-          grep -q "FAILED (errors=6)" core-runtime-adapter-contract-tests.log
-          grep -q "No module named 'core_runtime'" core-runtime-adapter-contract-tests.log
-          echo "CORE_RUNTIME_ADAPTER=NOT_IMPLEMENTED" | tee core-runtime-adapter-red-status.txt
-          echo "CORE_RUNTIME_ADAPTER_RED_TESTS=6_EXPECTED_ERRORS" | tee -a core-runtime-adapter-red-status.txt
+          echo "CORE_RUNTIME_ADAPTER=PASS" | tee core-runtime-adapter-status.txt
+          echo "CORE_RUNTIME_ADAPTER_TESTS=6_PASS" | tee -a core-runtime-adapter-status.txt
 
       - name: Run Core-First end-to-end paper operational proof
         run: |
@@ -144,6 +136,8 @@ jobs:
             echo "VPS_OR_PERSISTENT_RUNTIME_USED=false"
             echo "CORE_RUNTIME_IMPLEMENTATION=NOT_IMPLEMENTED"
             echo "CORE_RUNTIME_RED_TESTS=5_EXPECTED_FAILURES"
+            echo "CORE_RUNTIME_ADAPTER=PASS"
+            echo "CORE_RUNTIME_ADAPTER_TESTS=6_PASS"
             echo "CORE_ENTRY_PAPER_FLOW=PASS"
             echo "CORE_DCA_END_TO_END=PASS"
             echo "CORE_DCA_MARGIN_BUDGET=PASS_ENTRY_AND_DCA_EACH_WITHIN_1_PERCENT"
@@ -185,7 +179,7 @@ jobs:
             core-runtime-contract-tests.log
             core-runtime-contract-red-status.txt
             core-runtime-adapter-contract-tests.log
-            core-runtime-adapter-red-status.txt
+            core-runtime-adapter-status.txt
             shared-risk-paper-ledger-tests.log
             core-first-operational-tests.log
             core-operational-verdict.txt
