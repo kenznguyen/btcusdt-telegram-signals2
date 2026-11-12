@@ -109,7 +109,6 @@ def build_runtime(*, config, owner_id, exchange, store, lease_store, clock=None,
         initialize_store = getattr(store, "initialize", None)
         if callable(initialize_store):
             initialize_store()
-        runtime = None
         runtime_lease_store = PostgresRuntimeLeaseAdapter(lease_store)
         write_gateway = PostgresWriteGateway(
             store.dsn,
@@ -127,7 +126,6 @@ def build_runtime(*, config, owner_id, exchange, store, lease_store, clock=None,
             raise ValueError("Candle store and feeder lease must share the same SQLite database")
         # Runtime composition must never provision canonical storage.
         # The SQLite database and schema must already exist before startup.
-        runtime = None
         runtime_lease_store = lease_store
         write_gateway = SQLiteWriteGateway(
             store=store,
