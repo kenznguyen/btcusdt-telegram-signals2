@@ -476,7 +476,7 @@ def application(environ, start_response):
                 # Core retains its existing strategy-scoped writer path.
                 strategy_ledger = (
                     ledger(strategy_id=source_id) if dual_active else ledger()
-                ) if source == "CORE" else None
+                ) if source == "CORE" or not dual_active else None
                 if source == "CORE":
                     data = {"book": book_snapshot(timestamp)}
                     decision = core_decide(timestamp, data["book"])
@@ -486,7 +486,7 @@ def application(environ, start_response):
                     decision["source"] = "AI_FREQAI"
                 timestamp = now_ms()
                 order = None
-                if source == "AI" and decision.get("intent"):
+                if source == "AI" and dual_active and decision.get("intent"):
                     # No authoritative Trusted Admission Context / admitted leverage
                     # provider is currently wired into this API. Never turn a raw
                     # candidate into a ledger write or submit using a fixture/default.
