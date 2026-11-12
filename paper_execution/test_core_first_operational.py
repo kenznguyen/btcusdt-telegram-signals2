@@ -564,6 +564,120 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
 
 
 
+    def test_repeated_multi_client_entry_stress_has_no_duplicate_or_orphan_reservations(self):
+        signal = self.decide()
+        self.assertEqual(signal["action"], "BUY", signal)
+        base_intent = dict(signal["intent"])
+        target = Decimal(base_intent["targetPositionBase"])
+
+        for round_index in range(3):
+            with self.subTest(round=round_index):
+                stress_path = Path(self.temp.name) / f"core-stress-{round_index}.sqlite3"
+                with sqlite3.connect(self.path) as source, sqlite3.connect(stress_path) as target_db:
+                    source.backup(target_db)
+
+                client_count = 8
+                clients = [
+                    PaperLedger(
+                        stress_path, max_position_base="1", fee_rate="0.001",
+                        strategy_id="STRATEGY_CORE", source_sha="c" * 40,
+                        risk_limits={
+                            "maxDrawdownPct": "50",
+                            "maxDailyLossUsdt": "50",
+                            "maxExposureUsdt": "1000",
+                        },
+                        require_risk_limits=True, apply_migrations=False,
+                    )
+                    for _ in range(client_count)
+                ]
+                gate = Barrier(client_count)
+                intents = []
+                for client_index in range(client_count):
+                    intent = dict(base_intent)
+                    intent.update({
+                        "intentId": f"core-stress-{round_index}-{client_index}",
+                        "decisionAtMs": self.now,
+                        "validUntilMs": self.now + 30_000,
+                        "inputSnapshotId": f"fixture:core-stress-{round_index}-{client_index}",
+                    })
+                    intents.append(intent)
+
+                def submit(index):
+                    gate.wait(timeout=10)
+                    return clients[index].submit(
+                        intents[index], dict(self.book), self.now,
+                        strategy_event="ENTRY",
+                    )
+
+                with ThreadPoolExecutor(max_workers=client_count) as pool:
+                    futures = [pool.submit(submit, index) for index in range(client_count)]
+                    orders = [future.result(timeout=30) for future in futures]
+
+                fills = [order for order in orders if Decimal(order["filledBase"]) > 0]
+                self.assertEqual(len(fills), 1, orders)
+                self.assertEqual(
+                    sum((Decimal(order["filledBase"]) for order in orders), Decimal("0")),
+                    target,
+                )
+                self.assertTrue(
+                    all(order["status"] == "FILLED" for order in orders), orders
+                )
+                self.assertEqual(clients[0].snapshot()["positionBase"], str(target))
+
+                with sqlite3.connect(stress_path) as connection:
+                    persisted = connection.execute(
+                        """SELECT intent_id,status,reservation_id,document
+                           FROM paper_orders WHERE account_id=1
+                             AND strategy_id='STRATEGY_CORE'
+                           ORDER BY intent_id"""
+                    ).fetchall()
+                    fill_events = connection.execute(
+                        """SELECT COUNT(*) FROM paper_account_event_journal
+                           WHERE account_id=1 AND strategy_id='STRATEGY_CORE'
+                             AND event_type='FILL'"""
+                    ).fetchone()[0]
+                    reservations = connection.execute(
+                        """SELECT reservation_id,intent_id,status,
+                                  reserved_margin_quote,remaining_margin_quote
+                           FROM paper_risk_reservations
+                           WHERE account_id=1 AND strategy_id='STRATEGY_CORE'"""
+                    ).fetchall()
+                    duplicate_intents = connection.execute(
+                        """SELECT COUNT(*) FROM (
+                               SELECT intent_id,COUNT(*) AS n
+                               FROM paper_orders
+                               WHERE account_id=1 AND strategy_id='STRATEGY_CORE'
+                               GROUP BY intent_id HAVING n > 1
+                           )"""
+                    ).fetchone()[0]
+                    orphan_reservations = connection.execute(
+                        """SELECT COUNT(*) FROM paper_risk_reservations r
+                           LEFT JOIN paper_orders o
+                             ON o.account_id=r.account_id
+                            AND o.strategy_id=r.strategy_id
+                            AND o.reservation_id=r.reservation_id
+                           WHERE r.account_id=1 AND r.strategy_id='STRATEGY_CORE'
+                             AND o.reservation_id IS NULL"""
+                    ).fetchone()[0]
+                    ai_orders = connection.execute(
+                        "SELECT COUNT(*) FROM paper_orders WHERE strategy_id='AI_FREQAI'"
+                    ).fetchone()[0]
+
+                self.assertEqual(len(persisted), client_count)
+                self.assertEqual(fill_events, 1)
+                self.assertEqual(len(reservations), 1)
+                self.assertEqual(duplicate_intents, 0)
+                self.assertEqual(orphan_reservations, 0)
+                self.assertEqual(ai_orders, 0)
+                self.assertEqual(
+                    sum(1 for row in persisted if row[2] is not None), 1
+                )
+                for _, _, _, reserved_margin, _ in reservations:
+                    self.assertLessEqual(
+                        Decimal(reserved_margin), Decimal("1")
+                    )
+
+
     def test_concurrent_mixed_core_entry_dca_preserves_account_risk_budget(self):
         signal = self.decide()
         self.assertEqual(signal["action"], "BUY", signal)
