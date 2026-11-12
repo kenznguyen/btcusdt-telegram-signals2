@@ -75,7 +75,7 @@ All market prices, quantities, rates, ratios, volumes, and notionals remain deci
 Accepted lexical grammar (ASCII):
 
 ```regex
-^[+-]?(?:[0-9]+(?:\\.[0-9]*)?|\\.[0-9]+)(?:[eE][+-]?[0-9]+)?$
+^[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?$
 ```
 
 Resource bounds for T2 parsing:
