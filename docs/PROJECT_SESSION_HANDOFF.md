@@ -12,7 +12,7 @@ Updated: 2026-11-11 (Asia/Ho_Chi_Minh)
 ## 1. Repository and active work
 
 - Repository: `kenznguyen/btcusdt-telegram-signals2`.
-- Active branch: `feature/t0-centralized-data-feeder-p1-20261101`.
+- Active branch: `feature/core-operational-proof-20261112` (Core operational proof; no PR created).
 - Default branch: `main`. Do not switch branches or create a parallel PR without a task-specific reason and approval.
 - G0.2 audit starting HEAD (2026-11-11): `d1978d3606536bb6da2471ed6c94eaf20ffa7b6d`. The final documentation commit that updates this handoff is recorded in the G0.2 completion section below. (post-amendment self-review and evidence link recorded; see current A2.2 workstream below).
 - Full previous handoff preserved verbatim in `docs/archive/PROJECT_SESSION_HANDOFF_HISTORY_2026-11-10.md`; archive commit: `2fcad94aef8b15002cdba58aafe62ad208dc818b`.
@@ -3720,3 +3720,22 @@ These findings make the current stop condition explicit: completing Trusted Admi
 - Disposition: source inventory PASS (static only); Core/risk test presence PASS (static only); workflows NOT RUN; Core-to-Risk integration NOT VERIFIED; real data/performance NOT VERIFIED; T0 reacquisition BLOCKED pending separate owner decision; runtime paper NOT AUTHORIZED by this plan.
 - No source, tests, workflow, dependencies, schemas, canonical data, runtime or trading behavior changed. No workflow run IDs or artifacts exist for this increment. Documentation-only.
 - Next: obtain owner approval to dispatch the existing isolated CI workflows at an exact SHA. T0 data collection/runtime and paper operation remain separate approval gates.
+
+
+## 2026-11-12 — Core paper position lifecycle operational proof
+
+- Work branch: `feature/core-operational-proof-20261112`; starting source/base SHA: `eb91528bab2b994f283dbe34cd7b0bcbfe406cb5`.
+- Exact tested source SHA: `cca21562d7b3e680555238c473682b2822074ebc`.
+- Scope: deterministic paper-only Core lifecycle `ENTRY → Fill → Smart DCA → Fill → Mark-to-Market → Core TAKE_PROFIT/CLOSE → realized PnL + fees → account Equity reconciliation → Kill Switch after EXIT → reject next ENTRY`.
+- GitHub Actions run [43201619471](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43201619471), branch `feature/core-operational-proof-20261112`, exact checkout SHA `cca21562d7b3e680555238c473682b2822074ebc`, conclusion SUCCESS.
+- Test evidence: live-data probe contract 4/4 PASS; Core + signal regression 12/12 PASS; Core-First integration 4/4 PASS; shared risk + paper ledger regression 24/24 PASS; total **44/44 PASS**. Workflow verdict `CORE_POSITION_LIFECYCLE=PASS`.
+- Artifact: `core-first-code-operational-proof-43201619471`, ID `13934564258`, 3,406 bytes, SHA-256 `e7dcad844fccc5489dc434c16e9c545c7073f4a733c8caad8a8e160b31183228`, expires `2026-11-19T10:34:51Z`. Artifact digest is GitHub metadata; payload bytes have not been independently downloaded and re-hashed.
+- Narrow fixes exposed by lifecycle tests:
+  - `paper_execution/account_equity.py`: validate persisted high-precision ledger amounts, reservation amounts and high-water mark using bounded Decimal parsing; keep external market/account input validation separate; reconcile under precision 80.
+  - `pipeline/core_strategy.py`: validate persisted paper position/cost-basis Decimal values without incorrectly applying the external-input 24-decimal scale limit.
+  - `paper_execution/test_core_first_operational.py`: full deterministic lifecycle regression verifies realized/unrealized PnL, exact accumulated fees, equity reconciliation and post-exit Kill Switch.
+  - Workflow reports the lifecycle verdict from the actual test log and compiles the account-equity module.
+- Safety evidence: `AI_EXECUTION_ENABLED=false`; canonical T0 untouched; exchange credentials unused; no real orders; no VPS or persistent runtime.
+- Branch comparison from base `eb91528bab2b994f283dbe34cd7b0bcbfe406cb5`: 46 commits ahead, 0 behind. No PR created or merged.
+- Disposition: **PASS — code-level deterministic Core paper lifecycle**. Real-market predictive value, live data-backed evaluation, exchange fill quality, continuous runtime and production readiness remain **NOT VERIFIED**. Synthetic fixtures prove software behavior only.
+- Next bounded step: add equivalent SHORT-side lifecycle and risk/exit regression, retaining the same paper-only and no-runtime constraints.
