@@ -111,3 +111,40 @@ Exit codes must be stable and documented. A successful process exit must not be 
 - Persistent runtime/VPS: **BLOCKED / NOT AUTHORIZED**.
 
 Next bounded increment: inspect the exact `pipeline.core_signal.validate()` and account-risk snapshot contracts, then add RED contract tests for the proposed one-shot runner before implementing it. Keep all tests on disposable state and preserve the active branch. No host operations.
+
+
+## 9. Interface reconciliation findings (verified after initial draft)
+
+### Core producer / validator mismatch
+
+The current `produce()` output cannot be passed directly to `core_signal.validate()`:
+
+- Producer report fields include `action` values `BUY/SELL/CLOSE/WAIT`, `reason`, nested `intent`, and `indicators`.
+- Validator requires top-level `schemaVersion=1`, `source=STRATEGY_CORE`, and `action` values `LONG/SHORT/FLAT/WAIT`, plus top-level market, timeframe, provenance and expiry fields.
+- The nested producer intent is not itself the validator report. Direct pass-through would produce `CORE_SIGNAL_INVALID` or `CORE_ACTION_INVALID`.
+
+Therefore a dedicated, explicit adapter is a required module boundary. It must map only known producer outcomes:
+- `BUY` to `LONG`, `SELL` to `SHORT`, `CLOSE` to `FLAT`, `WAIT` to `WAIT`.
+- Copy only the exact, validated market/provenance/expiry/target/limit fields from the producer intent into the validator report.
+- Reject missing intent for non-WAIT actions, unexpected action values, inconsistent action/target signs, or disagreement between top-level and nested fields.
+- Never synthesize timestamps, dataset identity, target, price or provenance to make validation pass.
+- Preserve producer WAIT reasons without creating an intent.
+
+RED tests must prove each mapping and every mismatch rejection before the adapter is accepted.
+
+### Account-wide risk readiness
+
+`read_account_risk_snapshot(db_path, now_ms=...)` is a distinct read-only account-level contract. It reconciles Core, AI and LEGACY_UNATTRIBUTED ledgers, active reservations, equity, funding provenance, mark freshness, daily baseline and Kill Switch state. It returns `riskReady`, `accountEquityQuote`, exposure/reservation values, positions and `killSwitch`.
+
+The runner must not treat the Core strategy snapshot as account equity. Before generating an exposure-increasing Core intent:
+- Require the account risk snapshot to be available and `riskReady=true`.
+- Require fresh mark/dataset provenance and a valid current daily baseline as enforced by the existing snapshot reader.
+- Pass its reconciled `accountEquityQuote` to `produce()`.
+- Let the existing PaperLedger/shared-risk admission recheck the current account-wide state transactionally at submit time; a prior read snapshot is not an admission reservation.
+- If account readiness is false or the snapshot raises due to missing/corrupt state, block exposure increases. Existing reduction/EXIT behavior must remain governed by the current shared-risk policy and be tested separately; do not implement a broad blanket block that accidentally prevents risk reduction.
+
+This makes the one-shot flow explicitly two-stage: read-only preflight snapshot, then transactional shared-risk admission. It does not grant the runner authority to create or repair account cutover/funding/risk state.
+
+## 10. Revised next step
+
+Before implementing `core_runtime`, add RED tests for (a) producer-to-validator adapter compatibility, (b) account-wide risk snapshot readiness and equity propagation, and (c) no partial writes on preflight failure. Inspect the PaperLedger constructor/migration behavior and choose an explicit no-auto-migration startup policy for runtime; any required schema initialization must be a separately approved disposable-database setup step. Then implement the smallest one-shot adapter/runner without changing strategy or risk behavior.
