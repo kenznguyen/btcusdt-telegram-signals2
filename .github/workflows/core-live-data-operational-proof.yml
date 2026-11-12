@@ -78,7 +78,7 @@ jobs:
       - name: Compile changed operational and Core modules
         run: |
           set -euo pipefail
-          python -m py_compile ops/live_market_data_probe.py ops/test_live_market_data_probe.py pipeline/api.py pipeline/core_strategy.py pipeline/core_signal.py pipeline/test_core_runtime_contract.py pipeline/test_core_runtime_adapter_contract.py core_runtime/__init__.py core_runtime/adapter.py paper_execution/test_core_first_operational.py paper_execution/test_account_risk_snapshot_read_only.py paper_execution/test_core_short_lifecycle.py paper_execution/test_dual_ledger_red.py paper_execution/risk_control.py paper_execution/ledger.py paper_execution/account_equity.py
+          python -m py_compile ops/live_market_data_probe.py ops/test_live_market_data_probe.py pipeline/api.py pipeline/core_strategy.py pipeline/core_signal.py pipeline/test_core_runtime_contract.py pipeline/test_core_runtime_adapter_contract.py core_runtime/__init__.py core_runtime/adapter.py core_runtime/test_input_bundle_contract.py paper_execution/test_core_first_operational.py paper_execution/test_account_risk_snapshot_read_only.py paper_execution/test_core_short_lifecycle.py paper_execution/test_dual_ledger_red.py paper_execution/risk_control.py paper_execution/ledger.py paper_execution/account_equity.py
           echo "PY_COMPILE=PASS" | tee core-operational-compile.txt
 
       - name: Run live-data probe contract tests
@@ -98,6 +98,11 @@ jobs:
           echo "CORE_RUNTIME_PREFLIGHT=PASS" | tee core-runtime-preflight-status.txt
           echo "CORE_RUNTIME_PREFLIGHT_TESTS=5_PASS" | tee -a core-runtime-preflight-status.txt
           echo "CORE_RUNTIME_DECISION_CYCLE=NOT_IMPLEMENTED" | tee -a core-runtime-preflight-status.txt
+
+      - name: Run Core decision input bundle v1 RED contract tests
+        run: |
+          set -euo pipefail
+          python -m unittest core_runtime.test_input_bundle_contract -v 2>&1 | tee core-input-bundle-red-tests.log
 
       - name: Run Core producer adapter contract tests
         run: |
