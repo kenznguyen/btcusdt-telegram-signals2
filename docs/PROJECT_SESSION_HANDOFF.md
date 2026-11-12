@@ -4175,3 +4175,11 @@ These findings make the current stop condition explicit: completing Trusted Admi
 - Artifact: `core-first-code-operational-proof-43269294117`, ID `13966654587`, size 6,292 bytes, expires `2026-11-19T17:25:34Z`, GitHub upload digest `sha256:f8429f2a647774ef77a212781a7826bbe2939d56042ffb7b57457fcbba9d80ff`. Artifact inventory and upload digest were verified from GitHub; payload was not independently downloaded/re-hashed.
 - Final disposition: frozen bundle v1 pure validator **PASS**; full code-level operational proof workflow **PASS**. This does not establish production/live readiness and does not authorize runtime integration.
 - Next bounded gate: review and define the Core one-shot decision-cycle contract/implementation plan separately before any implementation. Keep all current restrictions: no T0/T1/VPS/canonical DB access, no PaperLedger/schema changes, no AI admission, no provider integration, no systemd/autostart, and no real orders without explicit authorization.
+
+
+### Documentation consistency follow-up — frozen bundle design
+- After CI #95 passed, reconciled stale pre-implementation wording in `docs/evidence/CORE_DECISION_INPUT_BUNDLE_V1_DESIGN_2026-11-13.md`.
+- The design contract and six approved decisions remain unchanged. Status now distinguishes the implemented/CI-verified pure validator from the still-unimplemented one-shot runner.
+- Section 8 records exact run #95 evidence; Section 10 records validator **PASS**, Core one-shot cycle **NOT IMPLEMENTED**, and the separate design-approval gate before runner implementation.
+- Documentation-only commit: `7b06200bd299921e59a25c12426e5c77a2101f8a`; no workflow rerun was triggered because the workflow path filter does not include this design document.
+- Verified branch head before this handoff update matched the documentation commit. No production/runtime behavior changed.
