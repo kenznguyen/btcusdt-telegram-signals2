@@ -1634,10 +1634,10 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
 
 
     def test_missing_kill_switch_state_fails_closed_for_core_admission(self):
-        with sqlite3.connect(self.path) as connection:
-            connection.execute("DROP TABLE paper_risk_control")
         signal = self.decide()
         intent = dict(signal["intent"])
+        with sqlite3.connect(self.path) as connection:
+            connection.execute("DROP TABLE paper_risk_control")
         intent.update({
             "intentId": "core-missing-kill-switch-state",
             "decisionAtMs": self.now,
