@@ -221,10 +221,21 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
             "bids": [{"price": str(dca_close - 0.01), "quantity": "1"}],
             "asks": [{"price": str(dca_close + 0.01), "quantity": "1"}],
         }
-        dca_signal = self.decide(m15=dca_window, book=dca_book, adx=50.0)
+        from paper_execution.ledger import read_account_risk_snapshot as read_risk
+        risk_diagnostics = []
+        def diagnostic_risk_reader(db_path, *, now_ms):
+            try:
+                result = read_risk(db_path, now_ms=now_ms)
+                risk_diagnostics.append({"riskReady": result.get("riskReady"), "reason": result.get("unavailableReason")})
+                return result
+            except Exception as error:
+                risk_diagnostics.append({"error": repr(error)})
+                raise
+        with patch("paper_execution.ledger.read_account_risk_snapshot", side_effect=diagnostic_risk_reader):
+            dca_signal = self.decide(m15=dca_window, book=dca_book, adx=50.0)
         self.assertEqual(dca_signal["source"], "STRATEGY_CORE", dca_signal)
         self.assertEqual(dca_signal["action"], "BUY", dca_signal)
-        self.assertEqual(dca_signal["reason"], "DCA", dca_signal)
+        self.assertEqual(dca_signal["reason"], "DCA", {"signal": dca_signal, "riskDiagnostics": risk_diagnostics})
         self.assertIsNotNone(dca_signal["intent"], dca_signal)
 
         dca = self.core.submit(
