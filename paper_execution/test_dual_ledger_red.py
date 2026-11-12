@@ -2794,5 +2794,36 @@ os._exit(0)
         self.assertEqual(after_audit, before_audit)
 
 
+    def test_cancel_audit_failure_rolls_back_order_and_reservation(self):
+        partial = self.core.submit(
+            self.intent("core-cancel-audit-rollback", "0.12", "100.1", "cancel-audit-rollback"),
+            {**self.book(self.now), "asks": [{"price": "100.1", "quantity": "0.05"}]},
+            self.now,
+        )
+        with sqlite3.connect(self.path) as connection:
+            connection.execute(
+                """CREATE TRIGGER reject_cancel_audit
+                   BEFORE INSERT ON paper_audit
+                   WHEN NEW.kind='CANCEL'
+                   BEGIN SELECT RAISE(ABORT,'INJECTED_CANCEL_AUDIT_FAILURE'); END"""
+            )
+
+        with self.assertRaisesRegex(sqlite3.IntegrityError, "INJECTED_CANCEL_AUDIT_FAILURE"):
+            self.core.cancel(partial["orderId"], self.now + 1)
+
+        with sqlite3.connect(self.path) as connection:
+            order_status = connection.execute(
+                "SELECT status FROM paper_orders WHERE order_id=?", (partial["orderId"],)
+            ).fetchone()
+            reservation = connection.execute(
+                "SELECT status,remaining_margin_quote,remaining_notional_quote FROM paper_risk_reservations WHERE reservation_id=?",
+                (partial["reservationId"],),
+            ).fetchone()
+        self.assertEqual(order_status, ("PARTIALLY_FILLED",))
+        self.assertEqual(reservation[0], "PARTIAL")
+        self.assertGreater(Decimal(reservation[1]), Decimal("0"))
+        self.assertGreater(Decimal(reservation[2]), Decimal("0"))
+
+
 if __name__ == "__main__":
     unittest.main()
