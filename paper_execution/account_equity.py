@@ -8,6 +8,24 @@ from pipeline.values import number, stamp
 from paper_execution import equity as equity_history
 
 
+def _ledger_decimal(raw, *, signed=False):
+    """Validate persisted ledger decimals without applying external-input scale limits."""
+    if not isinstance(raw, str) or not 1 <= len(raw) <= 256:
+        raise ValueError("Invalid persisted ledger amount")
+    try:
+        value = Decimal(raw)
+    except (ArithmeticError, TypeError, ValueError):
+        raise ValueError("Invalid persisted ledger amount") from None
+    if (
+        not value.is_finite()
+        or not -200 <= value.as_tuple().exponent <= 200
+        or value.adjusted() > 200
+        or (not signed and value < 0)
+    ):
+        raise ValueError("Invalid persisted ledger amount")
+    return value
+
+
 def _account_ledger_totals(connection, mark, text):
     ledgers = connection.execute(
         """SELECT strategy_id,position_base,average_entry_price,realized_pnl_quote,
@@ -22,11 +40,11 @@ def _account_ledger_totals(connection, mark, text):
     positions = {}
     for strategy_id, raw_qty, raw_avg, raw_pnl, raw_fee, raw_funding in ledgers:
         try:
-            qty = number(raw_qty, signed=True)
-            average = number(raw_avg)
-            pnl = number(raw_pnl, signed=True)
-            fee = number(raw_fee)
-            fund = number(raw_funding, signed=True)
+            qty = _ledger_decimal(raw_qty, signed=True)
+            average = _ledger_decimal(raw_avg)
+            pnl = _ledger_decimal(raw_pnl, signed=True)
+            fee = _ledger_decimal(raw_fee)
+            fund = _ledger_decimal(raw_funding, signed=True)
         except ValueError:
             raise sqlite3.DatabaseError("ACCOUNT_RISK_LEDGER_VALUE_INVALID") from None
         if (qty == 0 and average != 0) or (qty != 0 and average <= 0) or fee < 0:
