@@ -99,10 +99,27 @@ jobs:
           echo "CORE_RUNTIME_PREFLIGHT_TESTS=5_PASS" | tee -a core-runtime-preflight-status.txt
           echo "CORE_RUNTIME_DECISION_CYCLE=NOT_IMPLEMENTED" | tee -a core-runtime-preflight-status.txt
 
-      - name: Run Core decision input bundle v1 RED contract tests
+      - name: Verify Core decision input bundle v1 RED contract tests
         run: |
-          set -euo pipefail
+          set -uo pipefail
+          set +e
           python -m unittest core_runtime.test_input_bundle_contract -v 2>&1 | tee core-input-bundle-red-tests.log
+          test_status=${PIPESTATUS[0]}
+          set -e
+          if [ "$test_status" -eq 0 ]; then
+            echo "ERROR: RED suite unexpectedly passed before validator implementation"
+            exit 1
+          fi
+          if ! grep -q "ModuleNotFoundError: No module named 'core_runtime.input_bundle'" core-input-bundle-red-tests.log; then
+            echo "ERROR: RED suite failed for a reason other than the intentionally absent validator module"
+            exit 1
+          fi
+          if ! grep -q "Ran 10 tests" core-input-bundle-red-tests.log; then
+            echo "ERROR: expected all 10 contract tests to execute"
+            exit 1
+          fi
+          echo "CORE_INPUT_BUNDLE_V1=EXPECTED_RED"
+          echo "CORE_INPUT_BUNDLE_V1_TESTS=10_BLOCKED_ON_NOT_IMPLEMENTED_MODULE"
 
       - name: Run Core producer adapter contract tests
         run: |
