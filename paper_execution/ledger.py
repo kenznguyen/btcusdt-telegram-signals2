@@ -2266,7 +2266,9 @@ class PaperLedger:
         if not isinstance(order_id, str) or not 1 <= len(order_id) <= 200:
             raise ValueError("Invalid order identifier")
         if self.strategy_id in DUAL_STRATEGIES:
-            return cancel_dual_order(\n                self.path, order_id, now, expected_strategy_id=self.strategy_id\n            )
+            return cancel_dual_order(
+                self.path, order_id, now, expected_strategy_id=self.strategy_id
+            )
         with closing(self.connect()) as connection, connection:
             connection.execute("BEGIN IMMEDIATE")
             # Pre-dual-ledger MANUAL databases have no strategy_id column.
