@@ -125,6 +125,11 @@ jobs:
             else
               echo "CORE_MIXED_WRITER_STRESS=NOT_VERIFIED"
             fi
+            if grep -q "test_repeated_mixed_writer_rounds_preserve_idempotency_exposure_and_kill_switch .* ok" core-first-operational-tests.log; then
+              echo "CORE_REPEATED_MIXED_WRITER_STRESS=PASS"
+            else
+              echo "CORE_REPEATED_MIXED_WRITER_STRESS=NOT_VERIFIED"
+            fi
           } | tee core-operational-verdict.txt
 
       - name: Upload operational proof (no raw candle database)
