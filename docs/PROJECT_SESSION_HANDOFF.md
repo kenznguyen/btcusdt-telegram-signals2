@@ -3260,3 +3260,25 @@ Next:
 4. Test crash/failure atomicity, digest/length/row-count/timestamp bounds, source/build identity and schema conformance.
 
 Constraints remain: no T1 → T0; T0 unchanged; no T1 → T2 adapter; no VPS/live Binance/runtime activation; no real orders/trading; no deletion, retention, cleanup or compaction.
+
+
+## T1 producer conformance — exact-head CI correction and expanded lifecycle audit (2026-11-12)
+
+- Previous exact-head CI run [43158622441](https://github.com/kenznguyen/binance-futures-collector/actions/runs/43158622441), source SHA `013e9188823b7ee59dbcf0153dffa518aa2b0e8f`, failed at the Rust `Format` step only. Retrieved job log confirms rustfmt differences in seven `RestTaskGroup::spawn` call sites in `src/collectors/rest_collector.rs` and one test assertion in `src/utils/csv_writer.rs`. Clippy/build/test were skipped by workflow after format failure; this is not a compile/test result.
+- Formatting-only corrections committed on the existing T1 branch:
+  - `2cebd9be15ea430b9c50c21b66870548b5f34064` — REST task call formatting.
+  - `3b48549494af1a073b73c5d1158a27094581931a` — CSV flush test formatting.
+- Current T1 branch HEAD: `3b48549494af1a073b73c5d1158a27094581931a`; PR #1 remains OPEN / DRAFT / UNMERGED.
+- Exact-head workflows triggered for current HEAD:
+  - Push CI [43159092318](https://github.com/kenznguyen/binance-futures-collector/actions/runs/43159092318) — QUEUED at handoff update.
+  - PR CI [43159085950](https://github.com/kenznguyen/binance-futures-collector/actions/runs/43159085950) — QUEUED at handoff update.
+  - Runs [43159077413](https://github.com/kenznguyen/binance-futures-collector/actions/runs/43159077413) and [43159071969](https://github.com/kenznguyen/binance-futures-collector/actions/runs/43159071969) are associated with intermediate source SHA `2cebd9be15ea430b9c50c21b66870548b5f34064`; do not use them as final-HEAD evidence.
+- Expanded read-only producer lifecycle audit confirms the earlier REST task fix is insufficient to prove quiescence:
+  - `CsvWriter::start_periodic_flush` starts three detached tasks (periodic flush, stale-buffer cleanup, midnight cleanup); `start_hourly_rotation` starts another detached task.
+  - `GapRegistry::start_periodic_save` starts a detached periodic writer.
+  - `OrderbookManager::start` starts detached per-symbol management tasks plus periodic snapshot, live depth update, and stale-symbol cleanup tasks.
+  - `main.rs` additionally detaches orderbook-manager startup, stats reporting/export, and symbol discovery tasks. Shutdown currently explicitly stops WebSocket ingest and REST tasks, drains the message handler, flushes CSV and saves gaps, but does not join/stop the full set of background tasks.
+- Consequence: **producer quiescence remains BLOCKED**. No immutable segment sealing or manifest publication may start until every task that can mutate market-data, gap, stats, or rotation outputs is tracked/stopped/joined and the shutdown ordering is proven. Do not infer that stopping WebSocket ingest alone stops all in-flight orderbook/REST writers.
+- Current disposition: REST task tracking + strict CSV flush implementation are committed; exact-head CI for `3b48549494af1a073b73c5d1158a27094581931a` is **NOT VERIFIED**. Full producer lifecycle control, immutable batch/manifest publisher, and schema conformance tests remain **NOT IMPLEMENTED / NOT VERIFIED**.
+- Next: verify exact-head CI; then add TDD coverage and task ownership/shutdown for CSV background tasks, GapRegistry, OrderbookManager, WebSocket manager, discovery, stats, and startup orchestration. Re-audit all write paths before implementing immutable sealed batches.
+- Boundaries unchanged: T0 and T1 remain independent (no T1→T0); T0 unchanged; no T1→T2 adapter; no VPS/runtime activation or live Binance; no real orders; no retention/deletion/cleanup/compaction; no strategy/AI/risk changes. Schema v1.0.0 remains frozen.
