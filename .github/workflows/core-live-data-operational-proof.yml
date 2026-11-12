@@ -78,7 +78,7 @@ jobs:
       - name: Compile changed operational and Core modules
         run: |
           set -euo pipefail
-          python -m py_compile ops/live_market_data_probe.py ops/test_live_market_data_probe.py pipeline/api.py pipeline/core_strategy.py pipeline/core_signal.py pipeline/test_core_runtime_contract.py pipeline/test_core_runtime_adapter_contract.py core_runtime/__init__.py core_runtime/adapter.py core_runtime/input_bundle.py core_runtime/test_input_bundle_contract.py paper_execution/test_core_first_operational.py paper_execution/test_account_risk_snapshot_read_only.py paper_execution/test_core_short_lifecycle.py paper_execution/test_dual_ledger_red.py paper_execution/risk_control.py paper_execution/ledger.py paper_execution/account_equity.py
+          python -m py_compile ops/live_market_data_probe.py ops/test_live_market_data_probe.py pipeline/api.py pipeline/core_strategy.py pipeline/core_signal.py pipeline/test_core_runtime_contract.py pipeline/test_core_runtime_adapter_contract.py core_runtime/__init__.py core_runtime/adapter.py core_runtime/input_bundle.py core_runtime/test_input_bundle_contract.py core_runtime/test_orderbook_contract.py paper_execution/test_core_first_operational.py paper_execution/test_account_risk_snapshot_read_only.py paper_execution/test_core_short_lifecycle.py paper_execution/test_dual_ledger_red.py paper_execution/risk_control.py paper_execution/ledger.py paper_execution/account_equity.py
           echo "PY_COMPILE=PASS" | tee core-operational-compile.txt
 
       - name: Run live-data probe contract tests
@@ -131,12 +131,31 @@ jobs:
           set -euo pipefail
           python -m unittest paper_execution.test_risk_control paper_execution.test_ledger paper_execution.test_dual_ledger_red.DualLedgerRedTest.test_entry_and_dca_reserve_one_percent_of_admission_time_equity_per_ledger paper_execution.test_dual_ledger_red.DualLedgerRedTest.test_core_kill_latch_is_visible_to_ai_snapshot_without_ai_admission -v 2>&1 | tee shared-risk-paper-ledger-tests.log
 
+
+      - name: Run T1 to T2 Order Book v1 contract tests (RED baseline)
+        run: |
+          set -euo pipefail
+          set +e
+          python -m unittest core_runtime.test_orderbook_contract -v 2>&1 | tee t1-t2-orderbook-tests.log
+          status=${PIPESTATUS[0]}
+          set -e
+          if [[ ${status} -eq 0 ]]; then
+            echo "T1_T2_ORDERBOOK_V1=UNEXPECTED_GREEN_BEFORE_IMPLEMENTATION"
+            exit 1
+          fi
+          if ! grep -q "No module named 'core_runtime.orderbook_contract'" t1-t2-orderbook-tests.log; then
+            echo "T1_T2_ORDERBOOK_V1=UNEXPECTED_RED_FAILURE"
+            exit 1
+          fi
+          echo "T1_T2_ORDERBOOK_V1=EXPECTED_RED_MODULE_MISSING" | tee t1-t2-orderbook-status.txt
+
       - name: Publish exact-SHA evidence
         if: always()
         shell: bash
         run: |
           {
             echo "SOURCE_SHA=$(git rev-parse HEAD)"
+            echo "T1_T2_ORDERBOOK_V1=EXPECTED_RED_BASELINE"
             echo "AI_EXECUTION_ENABLED=false"
             echo "CANONICAL_T0_TOUCHED=false"
             echo "EXCHANGE_CREDENTIALS_USED=false"
@@ -192,6 +211,8 @@ jobs:
             core-runtime-adapter-contract-tests.log
             core-runtime-adapter-status.txt
             core-input-bundle-tests.log
+            t1-t2-orderbook-tests.log
+            t1-t2-orderbook-status.txt
             core-input-bundle-status.txt
             shared-risk-paper-ledger-tests.log
             core-first-operational-tests.log
