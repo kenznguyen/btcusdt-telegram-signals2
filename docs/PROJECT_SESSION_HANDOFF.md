@@ -3220,3 +3220,43 @@ Verification:
 - Static source inspection only; no code changes, no tests run, no workflow run, no artifact generated in this audit.
 - Producer conformance: **NOT VERIFIED / BLOCKED**.
 - T1 runtime remains inactive. No VPS, live Binance connection, T0 modification, T1 → T0 path, T2 adapter, strategy/risk changes, trading, deletion, retention, cleanup or compaction authorized.
+
+
+## T1 producer conformance — lifecycle prerequisite implementation (2026-11-12)
+
+Status: **PARTIAL — code committed; exact-source CI queued; manifest publisher not implemented.**
+
+T1 repository: `kenznguyen/binance-futures-collector`
+T1 branch: `feature/t1-connection-sidecar-integration-20261107`
+PR #1 remains OPEN / DRAFT / UNMERGED.
+Current T1 source SHA: `013e9188823b7ee59dbcf0153dffa518aa2b0e8f`.
+
+Changes on the existing T1 branch:
+- Added deterministic REST task-group tests for cancellation and join.
+- Added `RestTaskGroup` ownership of all seven REST collector task handles; shutdown aborts and joins each task.
+- Main shutdown now stops REST collectors before final CSV flush.
+- Added CSV flush aggregation tests and changed `CsvWriter::flush_all` to attempt every buffer but return an error if any flush failed (fail-closed).
+- The T1 schema/CSV row formats and T0 are unchanged.
+
+Relevant commits:
+- RED tests: `41c1a469202ed70cb9283d1917791498616c48aa`, `dd46916b892b846fc030475e10c276d5a14f99ad`
+- Implementation: `cc5419a3083d59830d3c7c5b21b681efa37ab3c9`, `eea35508aae6182baf017eca1379c311fa4d21a8`, `57dc9738193eb39eed6e7a240694993c5fb1537a`, `ab029ca3dd7feb0d836d38203eb8e8fa705e6621`
+- Test formatting/assertion follow-ups: `9c33d635375189e5e2e754b8d0976eddcc62f5c9`, `013e9188823b7ee59dbcf0153dffa518aa2b0e8f`
+
+CI:
+- Exact-head push workflow [43158622441](https://github.com/kenznguyen/binance-futures-collector/actions/runs/43158622441), run #337, event push, head SHA `013e9188823b7ee59dbcf0153dffa518aa2b0e8f).
+- At handoff update time workflow status was QUEUED; all five jobs queued. No PASS claim is made; exact-source CI is NOT VERIFIED pending completion.
+- No artifact result is available yet.
+
+Remaining lifecycle review before sealing:
+- CSV writer has detached periodic flush/rotation tasks; GapRegistry has a detached periodic-save task.
+- Orderbook manager, WebSocket connection manager, symbol discovery and stats exporter also have background tasks. Their shutdown ownership/order must be audited so no producer can mutate a segment or gap file after its manifest is sealed.
+- Therefore this change only closes the REST-task and flush-error gaps; it does not yet establish global producer quiescence or immutable batches.
+
+Next:
+1. Verify workflow 43158622441 and correct any exact-source CI failures.
+2. Add lifecycle ownership/stop/join for remaining producer-side writers and collectors, with tests.
+3. Implement immutable sealed batch + manifest publisher only after the full write graph can prove file closure.
+4. Test crash/failure atomicity, digest/length/row-count/timestamp bounds, source/build identity and schema conformance.
+
+Constraints remain: no T1 → T0; T0 unchanged; no T1 → T2 adapter; no VPS/live Binance/runtime activation; no real orders/trading; no deletion, retention, cleanup or compaction.
