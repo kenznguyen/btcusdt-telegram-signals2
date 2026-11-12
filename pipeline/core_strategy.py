@@ -106,6 +106,26 @@ def _valid_window(window, timeframe, now_ms):
     return now_ms - stamp(rows[-1]["closeTimeMs"]) <= interval
 
 
+def _paper_ledger_decimal(value, *, signed=False):
+    """Validate persisted paper-ledger decimals without external-input scale limits."""
+    raw = str(value)
+    if not 1 <= len(raw) <= 256:
+        raise ValueError("Invalid paper ledger amount")
+    try:
+        result = Decimal(raw)
+    except (DecimalException, TypeError, ValueError):
+        raise ValueError("Invalid paper ledger amount") from None
+    if (
+        not result.is_finite()
+        or len(result.as_tuple().digits) > 80
+        or not -200 <= result.as_tuple().exponent <= 200
+        or result.adjusted() > 200
+        or (not signed and result < 0)
+    ):
+        raise ValueError("Invalid paper ledger amount")
+    return result
+
+
 def _roe(side, average, close):
     if not side or average <= 0:
         return None
@@ -192,8 +212,11 @@ def produce(m15_window, h1_window, paper, strategy_state, book, now_ms, *,
     close, high, low, candle_open = (float(m15[-1][key]) for key in ("close", "high", "low", "open"))
     rsi, prev_rsi, adx = current["rsi"], previous["rsi"], current["adx"]
     h1_plus, h1_minus, h1_adx = trend["plus_di"], trend["minus_di"], trend["adx"]
-    position = float(number(paper.get("positionBase", "0"), signed=True))
-    average = float(number(paper.get("averageEntryPrice", "0")))
+    position = float(_paper_ledger_decimal(paper.get("positionBase", "0"), signed=True))
+    average = float(_paper_ledger_decimal(paper.get("averageEntryPrice", "0")))
+    if not math.isfinite(position) or not math.isfinite(average):
+        return {"action": "WAIT", "reason": "CORE_PAPER_POSITION_INVALID", "intent": None,
+                "indicators": None}
     owner = strategy_state.get("owner")
     dca_used = strategy_state.get("dcaUsed") is True
     side = "LONG" if position > 0 else "SHORT" if position < 0 else None
