@@ -4092,3 +4092,17 @@ These findings make the current stop condition explicit: completing Trusted Admi
 - No application code, tests, strategy thresholds, leverage, ledger schema, migration, risk policy or workflow behavior changed in this documentation-only increment. No T0/T1/VPS/network/exchange access, no live orders; AI remains disabled.
 - Current status: source-interface inspection **PASS**; proposed bundle shape **DESIGN REVIEWED**; bundle freeze **BLOCKED** pending six decisions; validator/tests **NOT IMPLEMENTED**; actual Core one-shot decision cycle **NOT IMPLEMENTED**.
 - Next bounded step: resolve the six freeze blockers, then add RED contract tests for the bundle validator. No runtime implementation or deployment is authorized by this design record.
+
+
+## 2026-11-13 — Core Decision Input Bundle v1 frozen; RED suite submitted
+
+- User explicitly approved the six proposed decisions. Frozen contract recorded at `docs/evidence/CORE_DECISION_INPUT_BUNDLE_V1_DESIGN_2026-11-13.md`, blob `6f9980d8907147d78b7eb276877b2725cb4ae601`.
+- Contract v1.0.0 decisions: explicit positive `maxBookAgeMs` supplied by config (no invented default); RFC 8785 JCS + SHA-256; exact immutable account-risk snapshot plus digest; no Shared Risk Engine/Kill Switch bypass for EXIT; embed bounded M15/H1 payloads (100–2,000 candles each); stable CLI exit codes 0/2/3/4/5/6.
+- Frozen pure validator API: `core_runtime.input_bundle.BundleValidationError`, `compute_bundle_id(bundle)`, `validate_bundle(bundle, *, max_book_age_ms)`. Validator must be pure/no I/O and must not initialize or write PaperLedger.
+- Added `core_runtime/test_input_bundle_contract.py` with 10 deterministic RED contract tests. Test file blob `fc60021718694ee24935ce8adc3a7b3f43902eeb`. Coverage: valid PAPER bundle, explicit book-age config, stale/future book, paper/AI guards, T0 candle coverage/decimal integrity, book level/spread, Core state/risk snapshot availability, JCS digest/key ordering/bundleId exclusion, float/unsafe integer rejection, array order/decimal precision.
+- Updated existing workflow `.github/workflows/core-live-data-operational-proof.yml` to compile and execute the RED suite; workflow blob `bdcd3aa0cbcc6fa776bf01adb6baff8260b31272`.
+- Latest source commit at submission: `720f09f01162479851f80b72e5c89e4b8c4822b2`. GitHub Actions run #91 ID `43266873880`: **PENDING** at handoff update; URL https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43266873880. Earlier rapid-edit runs #88–#90 were cancelled/superseded; do not treat them as test evidence.
+- RED suite is intentionally expected to fail until `core_runtime/input_bundle.py` is implemented in a separately authorized GREEN increment. No validator implementation, runner cycle, strategy/risk/ledger behavior or CLI exit mapping implementation has been added.
+- Safety preserved: AI disabled; no T0/T1 canonical DB, VPS, network provider, credentials, exchange orders, persistent runtime, systemd/autostart or live trading.
+- Current disposition: six decisions **APPROVED**; contract v1 **FROZEN**; tests **WRITTEN**; RED CI execution **PENDING**; validator implementation **NOT IMPLEMENTED**; Core one-shot decision cycle **NOT IMPLEMENTED**.
+- Next step: inspect run #91 outcome and record exact failure evidence. Only after the RED evidence is recorded should the GREEN validator implementation be considered; it does not authorize runner/VPS integration.
