@@ -358,7 +358,7 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
         )
         exit_window = window(exit_rows, "15m")
         exit_window["datasetVersion"] = "sha256:" + "8" * 64
-        exit_now = self.now + 1
+        exit_now = self.now
         exit_book = {
             "source": "hummingbot", "connector": "binance_perpetual",
             "symbol": "BTCUSDT", "observedAtMs": exit_now,
