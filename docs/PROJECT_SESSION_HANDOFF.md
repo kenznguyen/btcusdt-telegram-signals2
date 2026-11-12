@@ -3036,3 +3036,8 @@ Critical limits:
 - **Disposition: CSV writer increment PASS; full T1 producer decimal-integrity increment PARTIAL / NOT VERIFIED pending CI at exact source SHA above.**
 - Next: allow the full-source CI run to complete; inspect fmt/Clippy/build/tests and artifact provenance; fix any failures on this same branch before changing the status. Do not deploy or activate T1.
 
+- CI follow-up (2026-11-12): Full producer run `43089869611` at `a02efce222a04f69c08a18890528f6308c1d82b1` failed at the Rust `Format` step only; Clippy/build/tests were skipped. Dashboard frontend/backend, Docker build, and security jobs passed. Failure logs identified rustfmt-only diffs in `orderbook_manager.rs`, `rest_collector.rs`, `decimal.rs`, and `models.rs`; no compiler/test failure was observed because those steps did not execute.
+- Applied rustfmt corrections on the same T1 branch. Intermediate CI attempts `43138890684`, `43138897209`, `43138905720` exposed remaining formatting in REST kline let-else and a blank line in `DepthUpdateWs`; those were corrected.
+- Latest T1 branch HEAD: `e047bcebb0c0f28aa1d1fc8d9a83a56fb259cbd9`. Full CI run `43139023378` is QUEUED at this exact SHA; duplicate run `43139017716` is also queued. No final verification or artifact is available yet.
+- Status remains **PARTIAL / NOT VERIFIED**. The earlier writer-only PASS remains bounded to its own SHA and does not validate the full producer changes. Do not mark the finding resolved until full CI (fmt, Clippy, build, tests, security, artifact provenance) passes at the exact final SHA.
+
