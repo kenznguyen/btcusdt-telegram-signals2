@@ -4220,7 +4220,7 @@ These findings make the current stop condition explicit: completing Trusted Admi
 ## 2026-11-13 — T1 → T2 Order Book Contract V1 design freeze
 
 - Evidence: `docs/evidence/T1_T2_ORDERBOOK_CONTRACT_V1_DESIGN_2026-11-13.md`.
-- Evidence commit: `522314bdd7aade63a86ec692ad22003e58fc9ff2`.
+- Evidence commit: `522314bdd7aade63a86ec692ad22003e58fc9ff2`; evidence blob SHA `0eb5a06cb84631f65e7c9c780c575c38c3a0c4b2`.
 - Core one-shot design cross-reference update commit: `24a362d3e85f07e6a33ac5d65a400a4dfc324dd3`; design blob `fb0f4915589584ea4527f71b0de5258656154653`.
 - Frozen-for-review contract: `T1_T2_ORDERBOOK_V1`; BTCUSDT Binance USD-M perpetual; exact Decimal strings; immutable/atomic snapshot; REST `lastUpdateId` anchor; verified first-event bridge and subsequent `pu == previous u`; generation/snapshotId/watermark; source and observation timestamps; fail-closed acceptance.
 - V1 proposed/frozen test thresholds: 20 bid and 20 ask levels; max source and observation age 2,000 ms at decision time; max future timestamp skew 250 ms; invalidate and re-anchor on every reconnect or sequence gap; maximum 3 consecutive attempts per trigger; publish only after full verification.
