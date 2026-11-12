@@ -1,7 +1,7 @@
 # T1 → T2 Order Book Contract V1 — Design Freeze Proposal
 
 Date: 2026-11-13
-Status: DESIGN FROZEN FOR REVIEW; NOT IMPLEMENTED OR RUNTIME-VERIFIED
+Status: DESIGN FROZEN FOR REVIEW; T2-SIDE ISOLATED VALIDATOR IMPLEMENTED AND TESTED (32/32 PASS); T1 NOT IMPLEMENTED / RUNTIME NOT VERIFIED
 
 ## 1. Scope and safety boundary
 
@@ -86,7 +86,9 @@ At decisionAtMs, T2 must independently reject the snapshot unless all are true:
 
 T2 must not fall back to T1 dashboard API, periodic f64-derived snapshots, Hummingbot, cached book, another venue, or a synthetic book. Any failure means no trusted Order Book input and the Core decision cycle fails closed before producer/admission as specified by the one-shot design.
 
-## 6. Isolated contract test matrix (design only)
+## 6. Isolated contract test matrix and T2-side evidence
+
+The T2-side parser/validator and deterministic synthetic-fixture tests are implemented and passed 32/32 on exact source SHA `09fc9b3125af2eb4dbb434e3c18faa05dd8c62ed`. See `docs/evidence/T1_T2_ORDERBOOK_CONTRACT_V1_TEST_EVIDENCE_2026-11-13.md` for workflow, artifact, digest and coverage evidence. This does not verify T1 implementation or runtime.
 
 | Test | Input/fault | Expected result |
 |---|---|---|
