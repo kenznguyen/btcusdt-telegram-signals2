@@ -90,21 +90,13 @@ jobs:
           set -euo pipefail
           python -m unittest pipeline.test_core_strategy pipeline.test_core_signal -v 2>&1 | tee core-strategy-tests.log
 
-      - name: Verify expected RED contract for unimplemented Core one-shot runner
+      - name: Run Core paper preflight CLI contract tests
         run: |
           set -euo pipefail
-          set +e
           python -m unittest pipeline.test_core_runtime_contract -v 2>&1 | tee core-runtime-contract-tests.log
-          test_status=${PIPESTATUS[0]}
-          set -e
-          if [[ "${test_status}" -eq 0 ]]; then
-            echo "Expected RED contract tests to remain failing until core_runtime is implemented"
-            exit 1
-          fi
-          grep -q "FAILED (failures=5)" core-runtime-contract-tests.log
-          grep -q "No module named core_runtime.__main__" core-runtime-contract-tests.log
-          echo "CORE_RUNTIME_IMPLEMENTATION=NOT_IMPLEMENTED" | tee core-runtime-contract-red-status.txt
-          echo "CORE_RUNTIME_RED_TESTS=5_EXPECTED_FAILURES" | tee -a core-runtime-contract-red-status.txt
+          echo "CORE_RUNTIME_PREFLIGHT=PASS" | tee core-runtime-preflight-status.txt
+          echo "CORE_RUNTIME_PREFLIGHT_TESTS=5_PASS" | tee -a core-runtime-preflight-status.txt
+          echo "CORE_RUNTIME_DECISION_CYCLE=NOT_IMPLEMENTED" | tee -a core-runtime-preflight-status.txt
 
       - name: Run Core producer adapter contract tests
         run: |
@@ -134,8 +126,9 @@ jobs:
             echo "EXCHANGE_CREDENTIALS_USED=false"
             echo "REAL_ORDERS_SENT=false"
             echo "VPS_OR_PERSISTENT_RUNTIME_USED=false"
-            echo "CORE_RUNTIME_IMPLEMENTATION=NOT_IMPLEMENTED"
-            echo "CORE_RUNTIME_RED_TESTS=5_EXPECTED_FAILURES"
+            echo "CORE_RUNTIME_PREFLIGHT=PASS"
+            echo "CORE_RUNTIME_PREFLIGHT_TESTS=5_PASS"
+            echo "CORE_RUNTIME_DECISION_CYCLE=NOT_IMPLEMENTED"
             echo "CORE_RUNTIME_ADAPTER=PASS"
             echo "CORE_RUNTIME_ADAPTER_TESTS=6_PASS"
             echo "CORE_ENTRY_PAPER_FLOW=PASS"
@@ -177,7 +170,7 @@ jobs:
             live-data-probe-tests.log
             core-strategy-tests.log
             core-runtime-contract-tests.log
-            core-runtime-contract-red-status.txt
+            core-runtime-preflight-status.txt
             core-runtime-adapter-contract-tests.log
             core-runtime-adapter-status.txt
             shared-risk-paper-ledger-tests.log
