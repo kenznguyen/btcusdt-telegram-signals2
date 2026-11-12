@@ -3472,3 +3472,15 @@ Boundaries unchanged: T0 and T1 remain independent (no T1→T0); T0 unchanged; n
 - In-flight `spawn_blocking` remains the global quiescence blocker described above. Need a writer-owned admission-close/in-flight-operation barrier before final CSV flush. Do not start immutable segments or manifest publisher.
 - Status: test visibility fixes committed; symbol discovery optional-handle correction committed at latest head but CI pending; producer quiescence **BLOCKED**; immutable batch/manifest **NOT IMPLEMENTED**; T1 producer conformance **NOT VERIFIED**.
 - Boundaries unchanged: T0/T1 independent; no T1→T0; no T0 changes; no T1→T2 adapter; no VPS/runtime/live Binance/trading; no data deletion/retention/cleanup/compaction; no strategy/AI/risk changes; schema v1.0.0 frozen.
+
+
+### T1 producer quiescence — CSV blocking-operation barrier (2026-11-12)
+
+- T1 repository: `kenznguyen/binance-futures-collector`; existing PR #1 remains OPEN / DRAFT / UNMERGED on branch `feature/t1-connection-sidecar-integration-20261107`. No new branch or PR.
+- Baseline PR head `9d9d9f29a8b2d801d2c2d7b3fa45121cd1320599`; prior exact-head CI run `43162239707` (push) and `43162245242` (PR) remained IN_PROGRESS at last observation; they are not promoted as PASS.
+- TDD regression test added first. RED confirmed at test source `4b804517d3589488d124b6d203af721842a97ff9`, PR workflow `43169296398`, collector job `131018425726`: compile errors for missing blocking-operation tracker and post-shutdown final-flush method. Earlier test-only run `43169186884` failed at rustfmt and was corrected in `4b804517...`.
+- Implementation commits: `fed559870b73c76c0a4bdc12143d6d92983eb7b6` adds shared admission/in-flight tracking to all four ordinary `spawn_blocking` call sites, closes admission and drains after CSV background-task joins, and provides a guarded final-flush path; `d9958122ecc3319cb3a2da47020901478f24cbe6` switches main shutdown to that final-flush path; `8bfe1cbee61dd3cf47d4c7bc414a7eb0758d078f` corrects rustfmt; `f64419dd3e4a9d64dbd4281f206f1a8b2c5637db` scopes the test-only admission probe to test builds to satisfy Clippy.
+- Current T1 PR head: `f64419dd3e4a9d64dbd4281f206f1a8b2c5637db`. PR workflow run `43169863860`: Format PASS, Clippy PASS, Build PASS; Test IN_PROGRESS; Dashboard frontend/backend, Security and Docker PASS at last observation. This is PR-triggered validation; synthetic merge checkout SHA and exact-head push result are NOT VERIFIED. No artifact verified yet.
+- No CSV/schema/manifest contract changes; no T0/T1 integration, T1→T0, T1→T2 adapter, VPS/runtime, Binance live connection, retention/deletion, strategy/risk or trading changes.
+- **Disposition: TDD RED CONFIRMED; source barrier implementation COMMITTED; CI PARTIAL / NOT VERIFIED; global producer quiescence remains BLOCKED until exact-source tests and all required CI jobs complete successfully.**
+- Next: poll run `43169863860`; inspect test results, sidecar checks and artifact provenance. Do not begin immutable segments or manifest publication until the barrier and exact-head CI are verified.
