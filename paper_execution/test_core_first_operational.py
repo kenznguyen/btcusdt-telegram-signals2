@@ -379,21 +379,10 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
         exit_paper_snapshot = read_snapshot(self.path, strategy_id="STRATEGY_CORE")
         self.assertNotEqual(exit_paper_snapshot["positionBase"], "0")
         self.assertEqual(exit_paper_snapshot["strategyState"]["owner"], "STRATEGY_CORE")
-        from pipeline.core_strategy import produce
-        from pipeline.core_signal import validate
-        exit_account_risk = read_account_risk_snapshot(self.path, now_ms=exit_now)
-        with patch(
-            "pipeline.core_strategy.indicators",
-            side_effect=(exit_m15_indicators, exit_h1_indicators),
-        ):
-            exit_report = produce(
-                exit_window, self.h1, exit_paper_snapshot,
-                exit_paper_snapshot["strategyState"], exit_book, exit_now,
-                account_equity_quote=exit_account_risk["accountEquityQuote"],
-                max_position_base="1",
-            )
-        self.assertEqual(exit_report["action"], "CLOSE", exit_report)
-        exit_signal = validate(exit_report["intent"], exit_now)
+        exit_signal = self.decide(
+            m15=exit_window, book=exit_book, now_ms=exit_now,
+            indicator_values=(exit_m15_indicators, exit_h1_indicators),
+        )
         self.assertEqual(exit_signal["action"], "CLOSE", exit_signal)
         self.assertEqual(exit_signal["reason"], "TAKE_PROFIT", exit_signal)
         self.assertEqual(exit_signal["intent"]["targetPositionBase"], "0")
