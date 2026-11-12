@@ -3623,3 +3623,18 @@ Evidence review confirms:
 4. Only then construct the AI Ledger with explicit admitted leverage, run the existing Shared Risk Engine, and reach paper Submit.
 5. Preserve fail-closed behavior and paper-only restrictions. No real orders, exchange execution, deployment, VPS/runtime, T0/T1/T2 or Core changes.
 
+
+
+### Additional authoritative blockers confirmed during continuation (2026-11-12)
+
+A read-only review of the current tracked design/evidence documents confirms that the missing admission dependencies are not merely unimplemented details; several are explicitly outside prior authorization:
+
+- WP0 inventory `docs/evidence/AI_CALIBRATION_OOS_LINEAGE_WP0_REPOSITORY_INVENTORY_2026-11-12.md` (blob `6d1bfac8977e10b47da5a5431c8990624be20bdf`) records the candidate `T0_M15_H1_DATASET_BUNDLE_V1` contract, immutable bundle payload, producer and consumer binding as NOT FOUND / NOT IDENTIFIED in the inspected tracked repository. It explicitly prohibits inferring a replacement schema or substituting synthetic evidence. Sample-level lineage and OOS eligibility therefore remain NOT VERIFIED.
+- F6 owner decision record (blob `fa3792fe852992b6d068cd1f104a3b46c0e20d37`) approves design direction only. It explicitly does NOT authorize lineage/OOS provider implementation, real dataset inventory, real OOS evaluation, training/calibration, production trust/key operations or AI admission. F6.4 defers `C_min` and all numerical admission thresholds; F6.5 defers trusted time and states freshness UNKNOWN.
+- Registry manifest contract (blob `955a7cc4addc7b282c3b88b7753a1dd1b0ce680e`) is a read-only signature/integrity verifier contract with admission NOT AUTHORIZED. Registry lifecycle events and promotion/active/revocation semantics remain proposal-level, not a live authoritative registry source.
+- Ed25519 key lifecycle contract (blob `9a617d7ec8cfbc381c9f6a3198af27c87cad218d`) remains DESIGN PROPOSAL / NOT FROZEN FOR IMPLEMENTATION. No production trust-root enrollment, publisher key authorization, registry event signing or revocation authority exists.
+- `risk_policy.py` (blob `91b46513041033cbcd7e939ed081b71714c82ff3`) contains only Core leverage 13x and the shared 1% order-margin budget. It does not define an AI confidence-to-leverage mapping, `C_min`, or an AI policy version. Core's 13x must not be reused for AI.
+
+These findings make the current stop condition explicit: completing Trusted Admission Context, Admitted Leverage, AI Ledger admission and Submit would require additional provider/trust/policy implementation that the controlling design records expressly do not authorize. The current AI Evaluate approval is not interpreted as silently overriding those separate non-authorizations.
+
+**Disposition remains:** API sequencing and fail-closed candidate rejection PASS; Trusted Admission Context / Admitted Leverage / AI Ledger admission / Submit BLOCKED. Do not weaken the validators or fabricate a positive trust context. A separate owner decision must explicitly authorize the exact OOS lineage/provider, registry lifecycle/trusted-time and AI leverage-policy work packages before implementation can proceed.
