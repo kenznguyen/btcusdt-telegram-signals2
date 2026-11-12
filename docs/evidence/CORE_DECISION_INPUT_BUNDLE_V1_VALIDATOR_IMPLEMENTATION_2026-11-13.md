@@ -70,3 +70,31 @@ The fixture now adds 1,001 ms to make the timestamp strictly future and recomput
 Run #94 downstream regression steps were skipped because the workflow is fail-fast. Artifact ID `13967357175`, 3,548 bytes, expires `2026-11-19T17:24:07Z`, upload digest `sha256:41066049784c1dc693c8e83741aa392fdc2215d3f6d45fe9ba2de66668a0c4fa`; payload not independently read back.
 
 Corrected test blob: `f7de191153610abb07eb185a7ad6989f21571743`. Corrected CI #95 is required before promoting GREEN.
+
+
+## CI #95 — GREEN verification
+
+Run [#95](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43269294117) completed **SUCCESS** on exact source SHA `2248eb20cb9b93d0a56fb54e073fcc20e715e7f3` (branch `feature/core-operational-proof-20261112`). The operational-proof job ID was `131361186822`; all 16 workflow steps completed successfully.
+
+Test evidence from the job logs:
+- Validator contract: **15/15 PASS**.
+- Live-data probe: 4 PASS.
+- Strategy Core/signal: 12 PASS.
+- Core preflight: 5 PASS.
+- Producer adapter: 6 PASS.
+- Core paper operational/lifecycle/stress: 39 PASS.
+- Account-wide risk snapshot read-only: 3 PASS.
+- Shared risk/PaperLedger regressions: 28 PASS.
+
+The published verdict confirms paper entry flow, Smart DCA end-to-end, the 1% per-entry/DCA margin budget, long/short lifecycle, mixed-writer contention, and repeated mixed-writer stress all PASS. Safety markers confirm `AI_EXECUTION_ENABLED=false`, canonical T0 untouched, no exchange credentials, no real orders, and no VPS/persistent runtime. Core decision cycle remains **NOT IMPLEMENTED**.
+
+Artifact `core-first-code-operational-proof-43269294117`: ID `13966654587`, 6,292 bytes, expires `2026-11-19T17:25:34Z`, upload digest `sha256:f8429f2a647774ef77a212781a7826bbe2939d56042ffb7b57457fcbba9d80ff`. GitHub artifact metadata and upload digest were verified; artifact payload was not independently downloaded/re-hashed.
+
+Disposition:
+- Pre-implementation RED evidence: **PASS**.
+- Pure validator implementation and 15-test CI verification: **PASS**.
+- Existing Core/risk/ledger regression gates in this workflow: **PASS**.
+- Core one-shot decision cycle: **NOT IMPLEMENTED**.
+- Runtime/provider integration and release readiness: **NOT AUTHORIZED / NOT CLAIMED**.
+
+Next gate is a separate design review for the Core one-shot decision cycle. This CI result does not authorize implementation or runtime deployment.

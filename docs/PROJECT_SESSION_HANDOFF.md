@@ -4162,3 +4162,16 @@ These findings make the current stop condition explicit: completing Trusted Admi
 - Artifact: `core-first-code-operational-proof-43269036006`, ID `13967357175`, 3,548 bytes, expires `2026-11-19T17:24:07Z`, upload digest `sha256:41066049784c1dc693c8e83741aa392fdc2215d3f6d45fe9ba2de66668a0c4fa`; payload not independently read back.
 - Corrected test blob SHA: `f7de191153610abb07eb185a7ad6989f21571743`.
 - Run #95 is the next verification gate. Do not promote validator to GREEN until it completes all steps successfully.
+
+
+## 2026-11-13 — Core Decision Input Bundle v1 validator CI #95 GREEN
+
+- Run [#95](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43269294117) completed **SUCCESS** on exact source SHA `2248eb20cb9b93d0a56fb54e073fcc20e715e7f3`; branch head matched that SHA at verification.
+- Workflow job `operational-proof` ID `131361186822`: all 16 workflow steps completed successfully, including checkout, isolated dependency install, paper-only guard, compile, and all test/regression suites.
+- Validator: **15/15 PASS** (`core_runtime.test_input_bundle_contract`); CI emitted `CORE_INPUT_BUNDLE_V1_VALIDATOR=PASS`, `CORE_INPUT_BUNDLE_V1_TESTS=15_PASS`, `CORE_INPUT_BUNDLE_V1_SIDE_EFFECTS=PURE_VALIDATION_ONLY`.
+- Other test gates: live-data probe 4 PASS; Strategy Core/signal 12 PASS; Core preflight 5 PASS; producer adapter 6 PASS; Core operational/lifecycle/stress suite 39 PASS; account-wide risk snapshot read-only 3 PASS; shared risk/PaperLedger 28 PASS.
+- Verdict evidence: Core entry paper flow PASS; Smart DCA end-to-end PASS; entry and DCA each within 1% margin budget; long and short position lifecycle PASS; mixed-writer and repeated mixed-writer stress PASS.
+- Safety evidence in the job log: `AI_EXECUTION_ENABLED=false`; canonical T0 untouched; exchange credentials unused; no real orders; no VPS or persistent runtime. Core decision cycle remains `NOT_IMPLEMENTED`.
+- Artifact: `core-first-code-operational-proof-43269294117`, ID `13966654587`, size 6,292 bytes, expires `2026-11-19T17:25:34Z`, GitHub upload digest `sha256:f8429f2a647774ef77a212781a7826bbe2939d56042ffb7b57457fcbba9d80ff`. Artifact inventory and upload digest were verified from GitHub; payload was not independently downloaded/re-hashed.
+- Final disposition: frozen bundle v1 pure validator **PASS**; full code-level operational proof workflow **PASS**. This does not establish production/live readiness and does not authorize runtime integration.
+- Next bounded gate: review and define the Core one-shot decision-cycle contract/implementation plan separately before any implementation. Keep all current restrictions: no T0/T1/VPS/canonical DB access, no PaperLedger/schema changes, no AI admission, no provider integration, no systemd/autostart, and no real orders without explicit authorization.
