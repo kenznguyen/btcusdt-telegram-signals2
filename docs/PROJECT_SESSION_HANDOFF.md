@@ -4106,3 +4106,15 @@ These findings make the current stop condition explicit: completing Trusted Admi
 - Safety preserved: AI disabled; no T0/T1 canonical DB, VPS, network provider, credentials, exchange orders, persistent runtime, systemd/autostart or live trading.
 - Current disposition: six decisions **APPROVED**; contract v1 **FROZEN**; tests **WRITTEN**; RED CI execution **PENDING**; validator implementation **NOT IMPLEMENTED**; Core one-shot decision cycle **NOT IMPLEMENTED**.
 - Next step: inspect run #91 outcome and record exact failure evidence. Only after the RED evidence is recorded should the GREEN validator implementation be considered; it does not authorize runner/VPS integration.
+
+
+## 2026-11-13 — RED evidence verified; CI expected-RED handling corrected
+
+- Run #91: [43266873880](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43266873880), source SHA `720f09f01162479851f80b72e5c89e4b8c4822b2`, completed **FAILURE** at the intentionally RED validator step.
+- Job ID `131353440457`; bundle suite executed all 10 tests and reported `Ran 10 tests`, `FAILED (errors=10)`. All 10 errors were the same expected `ModuleNotFoundError: No module named 'core_runtime.input_bundle'`. No assertion-level implementation defect can yet be evaluated because the module does not exist.
+- Earlier steps before the RED suite passed: environment safety guard, compile, live-data probe tests, Strategy Core/signal regressions, Core preflight tests. Subsequent adapter, Core operational, read-only risk and ledger regression steps were skipped because the expected RED exit stopped the workflow. Thus run #91 is **valid RED evidence, not a full workflow PASS**.
+- Artifact: `core-first-code-operational-proof-43266873880`, ID `13966298156`, size 2,579 bytes, SHA-256 `87602a6c4338dcfd4e3b5dc03b6073520cf45f28b1582c0170b436ebd10453fc`, expires `2026-11-19T17:12:03Z`.
+- Corrected workflow step to treat only the exact expected missing-module failure as successful RED verification, requiring all 10 tests to run. Unexpected pass or any different failure remains a hard CI failure. This lets the existing downstream safety/regression suites execute in the same workflow. Workflow change commit `e017345049352a86fd3c5e24d8f12427559a4794`; workflow blob `89a7fdc7e71585ebeba787c1b5632cd3a94f0516`.
+- A new workflow run was triggered by the workflow correction; its result is pending at this handoff update. Do not treat it as PASS until completed.
+- Disposition: RED contract proof **PASS (expected missing module)**; full workflow **FAIL / downstream tests skipped** on #91; corrected CI expected-RED handling **SUBMITTED / RUN PENDING**; validator **NOT IMPLEMENTED**.
+- Next step: inspect the new workflow run. Once the complete workflow confirms the RED state without skipping existing gates, ask for/confirm the GREEN implementation gate before adding the pure validator module. No runner integration, T0/VPS access, or live execution is authorized.
