@@ -564,6 +564,126 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
 
 
 
+    def test_concurrent_mixed_core_entry_dca_preserves_account_risk_budget(self):
+        signal = self.decide()
+        self.assertEqual(signal["action"], "BUY", signal)
+        entry_intent = dict(signal["intent"])
+        entry_intent.update({
+            "intentId": "core-mixed-race-entry",
+            "decisionAtMs": self.now,
+            "validUntilMs": self.now + 30_000,
+            "inputSnapshotId": "fixture:core-mixed-race-entry",
+        })
+        entry_target = Decimal(entry_intent["targetPositionBase"])
+        dca_target = entry_target * Decimal("1.1")
+        dca_at = self.now + 1
+        dca_intent = dict(entry_intent)
+        dca_intent.update({
+            "intentId": "core-mixed-race-dca",
+            "targetPositionBase": str(dca_target),
+            "decisionAtMs": dca_at,
+            "validUntilMs": dca_at + 30_000,
+            "inputSnapshotId": "fixture:core-mixed-race-dca",
+        })
+        dca_book = dict(self.book)
+        dca_book["observedAtMs"] = dca_at
+
+        second_core = PaperLedger(
+            self.path, max_position_base="1", fee_rate="0.001",
+            strategy_id="STRATEGY_CORE", source_sha="c" * 40,
+            risk_limits={
+                "maxDrawdownPct": "50",
+                "maxDailyLossUsdt": "50",
+                "maxExposureUsdt": "1000",
+            },
+            require_risk_limits=True, apply_migrations=False,
+        )
+        gate = Barrier(2)
+
+        def submit(ledger_instance, intent, book, event, at_ms):
+            gate.wait(timeout=5)
+            return ledger_instance.submit(
+                intent, book, at_ms, strategy_event=event
+            )
+
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            entry_future = pool.submit(
+                submit, self.core, entry_intent, dict(self.book), "ENTRY", self.now
+            )
+            dca_future = pool.submit(
+                submit, second_core, dca_intent, dca_book, "DCA", dca_at
+            )
+            entry_order = entry_future.result(timeout=15)
+            dca_order = dca_future.result(timeout=15)
+
+        self.assertEqual(entry_order["status"], "FILLED", entry_order)
+        self.assertIn(dca_order["status"], ("FILLED", "REJECTED"), dca_order)
+        if dca_order["status"] == "REJECTED":
+            self.assertEqual(
+                dca_order["reason"], "DCA_REQUIRES_EXISTING_POSITION", dca_order
+            )
+            expected_position = entry_target
+        else:
+            self.assertEqual(dca_order["reason"], "VISIBLE_DEPTH_SIMULATION")
+            expected_position = dca_target
+
+        snapshot = self.core.snapshot()
+        self.assertEqual(snapshot["positionBase"], str(expected_position))
+        self.assertEqual(self.ai.snapshot()["positionBase"], "0")
+
+        with sqlite3.connect(self.path) as connection:
+            reservations = connection.execute(
+                """SELECT intent_id,status,reserved_margin_quote,
+                          remaining_margin_quote,reserved_notional_quote,
+                          remaining_notional_quote,equity_basis_quote
+                   FROM paper_risk_reservations
+                   WHERE account_id=1 AND strategy_id='STRATEGY_CORE'
+                     AND intent_id IN (?,?) ORDER BY intent_id""",
+                (entry_intent["intentId"], dca_intent["intentId"]),
+            ).fetchall()
+            pending_count = connection.execute(
+                """SELECT COUNT(*) FROM paper_orders
+                   WHERE account_id=1 AND strategy_id='STRATEGY_CORE'
+                     AND status IN ('OPEN','PARTIALLY_FILLED')"""
+            ).fetchone()[0]
+            account_positions = connection.execute(
+                """SELECT position_base,average_entry_price
+                   FROM paper_strategy_ledgers WHERE account_id=1"""
+            ).fetchall()
+            active_reservations = connection.execute(
+                """SELECT remaining_notional_quote FROM paper_risk_reservations
+                   WHERE account_id=1 AND status IN ('ACTIVE','PARTIAL')"""
+            ).fetchall()
+            ai_orders = connection.execute(
+                "SELECT COUNT(*) FROM paper_orders WHERE strategy_id='AI_FREQAI'"
+            ).fetchone()[0]
+
+        self.assertEqual(len(reservations), 1 if dca_order["status"] == "REJECTED" else 2)
+        self.assertLessEqual(pending_count, 1)
+        self.assertEqual(ai_orders, 0)
+        for _, _, reserved_margin, _, _, _, equity_basis in reservations:
+            self.assertLessEqual(
+                Decimal(reserved_margin),
+                Decimal(equity_basis) * Decimal("0.01"),
+            )
+
+        with localcontext() as context:
+            context.prec = 80
+            gross_exposure = sum(
+                (
+                    abs(Decimal(quantity)) * Decimal(average)
+                    for quantity, average in account_positions
+                    if Decimal(quantity) != 0
+                ),
+                Decimal("0"),
+            )
+            active_notional = sum(
+                (Decimal(item[0]) for item in active_reservations),
+                Decimal("0"),
+            )
+            self.assertLessEqual(gross_exposure + active_notional, Decimal("1000"))
+
+
     def _race_core_admission_against_kill_switch(self, intent, book, event, expected_position):
         gate = Barrier(2)
 
