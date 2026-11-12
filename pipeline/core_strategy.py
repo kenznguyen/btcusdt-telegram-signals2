@@ -160,7 +160,10 @@ def _order_margin_and_quantity(account_equity_quote, sizing_price):
             )
         if margin <= 0 or quantity <= 0:
             return None
-        return margin, quantity
+        quantity_float = float(quantity)
+        if not math.isfinite(quantity_float):
+            return None
+        return margin, quantity_float
     except (DecimalException, TypeError, ValueError, ArithmeticError):
         return None
 
