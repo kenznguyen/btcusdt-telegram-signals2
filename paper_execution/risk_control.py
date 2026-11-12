@@ -22,24 +22,7 @@ def ensure(connection):
     )
 
 
-def snapshot(connection):
-    exists = connection.execute(
-        "SELECT 1 FROM sqlite_master WHERE type='table' AND name='paper_risk_control'"
-    ).fetchone()
-    if not exists:
-        return {"paused": False, "killed": False, "reason": None, "updatedAtMs": 0,
-                "mode": "PAPER", "liveTradingSupported": False}
-    row = connection.execute(
-        "SELECT paused,killed,reason,updated_at_ms FROM paper_risk_control WHERE id=1"
-    ).fetchone()
-    if row is None:
-        raise sqlite3.DatabaseError("Risk control state is missing")
-    return {"paused": bool(row[0]), "killed": bool(row[1]),
-            "reason": row[2], "updatedAtMs": row[3],
-            "mode": "PAPER", "liveTradingSupported": False}
-
-
-def risk_block_reason(connection):
+def _read_state(connection):
     exists = connection.execute(
         "SELECT 1 FROM sqlite_master WHERE type='table' AND name='paper_risk_control'"
     ).fetchone()
@@ -58,12 +41,23 @@ def risk_block_reason(connection):
         or type(updated_at_ms) is not int or updated_at_ms < 0
     ):
         raise sqlite3.DatabaseError("RISK_CONTROL_STATE_CORRUPT")
+    return paused, killed, reason, updated_at_ms
+
+
+def snapshot(connection):
+    paused, killed, reason, updated_at_ms = _read_state(connection)
+    return {"paused": bool(paused), "killed": bool(killed), "reason": reason,
+            "updatedAtMs": updated_at_ms, "mode": "PAPER",
+            "liveTradingSupported": False}
+
+
+def risk_block_reason(connection):
+    paused, killed, _, _ = _read_state(connection)
     if killed == 1:
         return "KILL_SWITCH"
     if paused == 1:
         return "RISK_PAUSED"
     return None
-
 
 def set_kill(connection, enabled, at_ms, reason="OPERATOR_KILL_SWITCH"):
     if type(enabled) is not bool:
