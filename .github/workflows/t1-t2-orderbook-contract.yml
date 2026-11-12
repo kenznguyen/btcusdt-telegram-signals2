@@ -52,29 +52,21 @@ jobs:
           git rev-parse HEAD | tee t1-t2-source-sha.txt
           echo "PAPER_ONLY=PASS" | tee t1-t2-safety.txt
       - name: Compile isolated contract suite
-        run: python -m py_compile core_runtime/test_orderbook_contract.py
-      - name: Verify RED baseline before implementation
-        shell: bash
+        run: python -m py_compile core_runtime/orderbook_contract.py core_runtime/test_orderbook_contract.py
+      - name: Run GREEN T1 T2 contract suite
         run: |
           set -euo pipefail
-          set +e
           python -m unittest core_runtime.test_orderbook_contract -v 2>&1 | tee t1-t2-orderbook-tests.log
-          status=${PIPESTATUS[0]}
-          set -e
-          if [[ ${status} -eq 0 ]]; then
-            echo "T1_T2_ORDERBOOK_V1=UNEXPECTED_GREEN_BEFORE_IMPLEMENTATION"
-            exit 1
-          fi
-          if ! grep -q "No module named 'core_runtime.orderbook_contract'" t1-t2-orderbook-tests.log; then
-            echo "T1_T2_ORDERBOOK_V1=UNEXPECTED_RED_FAILURE"
-            exit 1
-          fi
-          echo "T1_T2_ORDERBOOK_V1=EXPECTED_RED_MODULE_MISSING" | tee t1-t2-orderbook-status.txt
-      - name: Upload RED baseline evidence
+          grep -q "Ran 32 tests" t1-t2-orderbook-tests.log
+          echo "T1_T2_ORDERBOOK_V1=PASS" | tee t1-t2-orderbook-status.txt
+          echo "T1_T2_ORDERBOOK_V1_TESTS=32_PASS" | tee -a t1-t2-orderbook-status.txt
+          echo "T1_T2_ORDERBOOK_V1_SIDE_EFFECT_GATE=PASS" | tee -a t1-t2-orderbook-status.txt
+
+      - name: Upload GREEN contract evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: t1-t2-orderbook-red-${{ github.run_id }}
+          name: t1-t2-orderbook-green-${{ github.run_id }}
           retention-days: 7
           if-no-files-found: warn
           path: |

@@ -10,6 +10,7 @@ from core_runtime.orderbook_contract import (
     SnapshotSlot,
     parse_decimal,
     reanchor,
+    reanchor_with_retries,
     run_after_book_validation,
     validate_snapshot,
 )
@@ -97,6 +98,41 @@ class SequenceAndReanchorTests(unittest.TestCase):
         with self.assertRaisesRegex(OrderBookContractError, "ANCHOR_BRIDGE_INVALID"):
             reanchor(rest_snapshot(), [event(102, 103, 100)], generation=1, decision_at_ms=NOW)
 
+    def test_first_event_may_start_before_anchor_when_it_bridges_anchor_plus_one(self):
+        result = reanchor(rest_snapshot(), [event(99, 101, 98)],
+                          generation=1, decision_at_ms=NOW)
+        self.assertEqual(result["firstAppliedU"], 99)
+        self.assertEqual(result["lastAppliedU"], 101)
+
+    def test_reanchor_retries_with_fresh_anchor_and_stops_after_three_attempts(self):
+        snapshots = []
+        event_calls = []
+        def snapshot_provider(attempt):
+            snapshots.append(attempt)
+            return rest_snapshot()
+        def events_provider(attempt):
+            event_calls.append(attempt)
+            if attempt < 2:
+                return [event(102, 103, 100)]
+            return [event(101, 101, 100)]
+        result = reanchor_with_retries(snapshot_provider, events_provider,
+                                       generation=1, decision_at_ms=NOW)
+        self.assertEqual(result["continuity"], "VERIFIED")
+        self.assertEqual(snapshots, [0, 1, 2])
+        self.assertEqual(event_calls, [0, 1, 2])
+
+    def test_reanchor_retry_budget_is_three_and_failure_remains_unpublished(self):
+        calls = []
+        def snapshot_provider(attempt):
+            calls.append(attempt)
+            return rest_snapshot()
+        def events_provider(_attempt):
+            return [event(102, 103, 100)]
+        with self.assertRaisesRegex(OrderBookContractError, "REANCHOR_EXHAUSTED"):
+            reanchor_with_retries(snapshot_provider, events_provider,
+                                  generation=1, decision_at_ms=NOW)
+        self.assertEqual(calls, [0, 1, 2])
+
     def test_subsequent_pu_must_equal_previous_u(self):
         with self.assertRaisesRegex(OrderBookContractError, "SEQUENCE_GAP"):
             reanchor(rest_snapshot(), [
@@ -153,6 +189,19 @@ class SnapshotAcceptanceTests(unittest.TestCase):
         with self.assertRaisesRegex(OrderBookContractError, "SPREAD_INVALID"):
             validate_snapshot(result, decision_at_ms=NOW)
 
+    def test_unsorted_levels_are_rejected_not_silently_reordered(self):
+        result = valid_candidate()
+        result["bids"][0], result["bids"][1] = result["bids"][1], result["bids"][0]
+        with self.assertRaisesRegex(OrderBookContractError, "BOOK_LEVEL_ORDER_INVALID"):
+            validate_snapshot(result, decision_at_ms=NOW)
+
+    def test_duplicate_equivalent_decimal_prices_are_rejected(self):
+        result = valid_candidate()
+        result["bids"].append(["50000.0", "2"])
+        result["depth"]["bids"] = 21
+        with self.assertRaisesRegex(OrderBookContractError, "BOOK_LEVEL_DUPLICATE"):
+            validate_snapshot(result, decision_at_ms=NOW)
+
     def test_source_and_observation_freshness_are_both_enforced(self):
         result = valid_candidate()
         result["sourceTimestampMs"] = NOW - 2_001
@@ -168,6 +217,12 @@ class SnapshotAcceptanceTests(unittest.TestCase):
         result["sourceTimestampMs"] = NOW + 251
         with self.assertRaisesRegex(OrderBookContractError, "TIMESTAMP_FUTURE"):
             validate_snapshot(result, decision_at_ms=NOW)
+
+    def test_future_timestamp_within_250ms_skew_is_accepted(self):
+        result = valid_candidate()
+        result["sourceTimestampMs"] = NOW + 250
+        result["observedAtMs"] = NOW + 250
+        self.assertEqual(validate_snapshot(result, decision_at_ms=NOW)["freshness"], "FRESH")
 
     def test_watermark_and_generation_identity_are_mandatory(self):
         result = valid_candidate()
@@ -204,6 +259,8 @@ class FencingAndAtomicPublicationTests(unittest.TestCase):
         second = valid_candidate(generation=2)
         slot.publish(second, decision_at_ms=NOW)
         self.assertEqual(slot.read()["generation"], 2)
+        with self.assertRaises(TypeError):
+            slot.read()["bids"][0][0] = "1"
 
     def test_generation_must_increase_monotonically(self):
         slot = SnapshotSlot()
@@ -287,8 +344,8 @@ class FailClosedSideEffectTests(unittest.TestCase):
             return "RISK_ADMISSION_CHECKED"
         result = run_after_book_validation(valid_candidate(), decision_at_ms=NOW,
             producer=producer, paper_ledger=ledger, shared_risk_engine=risk)
-        self.assertEqual(result, "RISK_ADMISSION_CHECKED")
-        self.assertEqual(calls, ["producer", "ledger", "risk"])
+        self.assertEqual(result, "PAPER_SUBMITTED")
+        self.assertEqual(calls, ["producer", "risk", "ledger"])
 
 
 if __name__ == "__main__":

@@ -132,22 +132,14 @@ jobs:
           python -m unittest paper_execution.test_risk_control paper_execution.test_ledger paper_execution.test_dual_ledger_red.DualLedgerRedTest.test_entry_and_dca_reserve_one_percent_of_admission_time_equity_per_ledger paper_execution.test_dual_ledger_red.DualLedgerRedTest.test_core_kill_latch_is_visible_to_ai_snapshot_without_ai_admission -v 2>&1 | tee shared-risk-paper-ledger-tests.log
 
 
-      - name: Run T1 to T2 Order Book v1 contract tests (RED baseline)
+      - name: Run T1 to T2 Order Book v1 contract tests
         run: |
           set -euo pipefail
-          set +e
           python -m unittest core_runtime.test_orderbook_contract -v 2>&1 | tee t1-t2-orderbook-tests.log
-          status=${PIPESTATUS[0]}
-          set -e
-          if [[ ${status} -eq 0 ]]; then
-            echo "T1_T2_ORDERBOOK_V1=UNEXPECTED_GREEN_BEFORE_IMPLEMENTATION"
-            exit 1
-          fi
-          if ! grep -q "No module named 'core_runtime.orderbook_contract'" t1-t2-orderbook-tests.log; then
-            echo "T1_T2_ORDERBOOK_V1=UNEXPECTED_RED_FAILURE"
-            exit 1
-          fi
-          echo "T1_T2_ORDERBOOK_V1=EXPECTED_RED_MODULE_MISSING" | tee t1-t2-orderbook-status.txt
+          grep -q "Ran 32 tests" t1-t2-orderbook-tests.log
+          echo "T1_T2_ORDERBOOK_V1=PASS" | tee t1-t2-orderbook-status.txt
+          echo "T1_T2_ORDERBOOK_V1_TESTS=32_PASS" | tee -a t1-t2-orderbook-status.txt
+          echo "T1_T2_ORDERBOOK_V1_SIDE_EFFECT_GATE=PASS" | tee -a t1-t2-orderbook-status.txt
 
       - name: Publish exact-SHA evidence
         if: always()
@@ -155,6 +147,12 @@ jobs:
         run: |
           {
             echo "SOURCE_SHA=$(git rev-parse HEAD)"
+            if grep -q "Ran 32 tests" t1-t2-orderbook-tests.log && grep -q "^OK$" t1-t2-orderbook-tests.log; then
+              echo "T1_T2_ORDERBOOK_V1=PASS"
+              echo "T1_T2_ORDERBOOK_V1_TESTS=32_PASS"
+            else
+              echo "T1_T2_ORDERBOOK_V1=NOT_VERIFIED"
+            fi
             echo "T1_T2_ORDERBOOK_V1=EXPECTED_RED_BASELINE"
             echo "AI_EXECUTION_ENABLED=false"
             echo "CANONICAL_T0_TOUCHED=false"
