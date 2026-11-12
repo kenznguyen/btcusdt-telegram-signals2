@@ -1,5 +1,7 @@
 import os
-from concurrent.futures import ThreadPoolExecutor, Barrier
+import json
+from concurrent.futures import ThreadPoolExecutor
+from threading import Barrier
 import sqlite3
 import tempfile
 from decimal import Decimal, localcontext
@@ -531,7 +533,7 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
         self.assertEqual(reservations, 1)
         self.assertEqual(ai_orders, 0)
         for intent_id, status, document, reservation_id in persisted:
-            order_document = __import__("json").loads(document)
+            order_document = json.loads(document)
             self.assertEqual(order_document["intentId"], intent_id)
             if Decimal(order_document["filledBase"]) > 0:
                 self.assertEqual(status, "FILLED")
