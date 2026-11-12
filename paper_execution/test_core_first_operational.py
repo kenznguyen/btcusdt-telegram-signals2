@@ -1439,6 +1439,8 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
             stress_path = Path(self.temp.name) / f"core-repeated-mixed-writer-{round_number}.sqlite3"
             with sqlite3.connect(self.path) as source, sqlite3.connect(stress_path) as target_db:
                 source.backup(target_db)
+            with sqlite3.connect(stress_path) as connection:
+                connection.execute("CREATE TABLE process_crash_probe (marker TEXT NOT NULL)")
 
             signal = self.decide()
             entry_intent = dict(signal["intent"])
