@@ -472,7 +472,11 @@ def application(environ, start_response):
                 source_id = "STRATEGY_CORE" if source == "CORE" else "AI_FREQAI"
                 from paper_execution.ledger import dual_ledger_ready
                 dual_active = dual_ledger_ready(os.environ["MARKET_DATA_DB"])
-                strategy_ledger = ledger(strategy_id=source_id) if dual_active else ledger()
+                # AI must decide before an AI-scoped ledger can be constructed.
+                # Core retains its existing strategy-scoped writer path.
+                strategy_ledger = (
+                    ledger(strategy_id=source_id) if dual_active else ledger()
+                ) if source == "CORE" else None
                 if source == "CORE":
                     data = {"book": book_snapshot(timestamp)}
                     decision = core_decide(timestamp, data["book"])
@@ -482,6 +486,13 @@ def application(environ, start_response):
                     decision["source"] = "AI_FREQAI"
                 timestamp = now_ms()
                 order = None
+                if source == "AI" and decision.get("intent"):
+                    # No authoritative Trusted Admission Context / admitted leverage
+                    # provider is currently wired into this API. Never turn a raw
+                    # candidate into a ledger write or submit using a fixture/default.
+                    return response("409 Conflict", {
+                        "error": "AI_ADMISSION_NOT_ESTABLISHED",
+                    })
                 if decision.get("intent"):
                     end = timestamp // 900_000 * 900_000
                     mark_window = market_window("BTCUSDT","15m",
