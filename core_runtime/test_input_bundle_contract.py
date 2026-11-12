@@ -21,7 +21,7 @@ def contract_api():
 
 def _window(timeframe, now_ms):
     interval = 900_000 if timeframe == "15m" else 3_600_000
-    end = now_ms // interval * interval
+    end = now_ms // interval * interval - (interval if timeframe == "1h" else 0)
     candles = []
     for index in range(100):
         opened = end - (100 - index) * interval
@@ -75,18 +75,7 @@ def valid_bundle():
     now = 1_800_000_000_000
     m15 = _window("15m", now)
     h1 = _window("1h", now)
-    # H1 must be the latest eligible fully closed candle before the M15 bucket.
-    h1["candles"][-1]["openTimeMs"] = now // 3_600_000 * 3_600_000 - 3_600_000
-    h1["candles"][-1]["closeTimeMs"] = now // 3_600_000 * 3_600_000
-    h1["candles"][-1]["availableAtMs"] = h1["candles"][-1]["closeTimeMs"]
-    h1["freshness"].update({
-        "latestExpectedOpenTimeMs": h1["candles"][-1]["openTimeMs"],
-        "latestReturnedOpenTimeMs": h1["candles"][-1]["openTimeMs"],
-        "latestCloseTimeMs": h1["candles"][-1]["closeTimeMs"],
-        "latestAvailableAtMs": h1["candles"][-1]["availableAtMs"],
-        "observationAgeMs": now - h1["candles"][-1]["availableAtMs"],
-        "closeLagMs": now - h1["candles"][-1]["closeTimeMs"],
-    })
+    # H1 ends exactly at the start of the current M15 hour bucket.
     risk = {
         "mode": "PAPER",
         "liveTradingSupported": False,
@@ -259,6 +248,66 @@ class CoreDecisionInputBundleContractTest(unittest.TestCase):
         precision_change = copy.deepcopy(bundle)
         precision_change["orderBook"]["bids"][0]["price"] = "49999.0"
         self.assertNotEqual(first, digest(precision_change))
+
+    def test_unknown_fields_and_invalid_bundle_timestamps_are_rejected(self):
+        Error, _, validate = contract_api()
+        bundle = valid_bundle()
+        bundle["unexpected"] = "not-v1"
+        with self.assertRaisesRegex(Error, "BUNDLE_FIELDS_INVALID"):
+            validate(bundle, max_book_age_ms=5_000)
+        bundle = valid_bundle()
+        bundle["createdAtMs"] = bundle["decisionAtMs"] + 1
+        with self.assertRaisesRegex(Error, "BUNDLE_TIMESTAMP_INVALID"):
+            validate(bundle, max_book_age_ms=5_000)
+
+    def test_candle_gap_unclosed_candle_and_ineligible_h1_are_rejected(self):
+        Error, _, validate = contract_api()
+        bundle = valid_bundle()
+        bundle["marketData"]["m15"]["candles"][50]["openTimeMs"] += 900_000
+        with self.assertRaisesRegex(Error, "CANDLE_SEQUENCE_INVALID"):
+            validate(bundle, max_book_age_ms=5_000)
+        bundle = valid_bundle()
+        bundle["marketData"]["m15"]["candles"][-1]["isClosed"] = False
+        with self.assertRaisesRegex(Error, "CANDLE_PROVENANCE_INVALID"):
+            validate(bundle, max_book_age_ms=5_000)
+        bundle = valid_bundle()
+        bundle["marketData"]["h1"]["candles"][-1]["openTimeMs"] += 3_600_000
+        with self.assertRaises(Error):
+            validate(bundle, max_book_age_ms=5_000)
+
+    def test_book_level_order_and_duplicate_prices_are_rejected(self):
+        Error, _, validate = contract_api()
+        bundle = valid_bundle()
+        bundle["orderBook"]["bids"].append({"price": "50000", "quantity": "1"})
+        with self.assertRaisesRegex(Error, "ORDER_BOOK_LEVEL_INVALID"):
+            validate(bundle, max_book_age_ms=5_000)
+        bundle = valid_bundle()
+        bundle["orderBook"]["bids"].append({"price": "49999", "quantity": "2"})
+        with self.assertRaisesRegex(Error, "ORDER_BOOK_LEVEL_INVALID"):
+            validate(bundle, max_book_age_ms=5_000)
+
+    def test_inconsistent_core_position_and_risk_digest_mismatch_are_rejected(self):
+        Error, _, validate = contract_api()
+        bundle = valid_bundle()
+        bundle["paperState"]["positionBase"] = "1"
+        with self.assertRaisesRegex(Error, "CORE_STATE_INVALID"):
+            validate(bundle, max_book_age_ms=5_000)
+        bundle = valid_bundle()
+        bundle["accountRisk"]["snapshot"]["riskReady"] = False
+        with self.assertRaisesRegex(Error, "RISK_SNAPSHOT_DIGEST_MISMATCH"):
+            validate(bundle, max_book_age_ms=5_000)
+
+    def test_bundle_id_mismatch_and_noncanonical_decimal_text_are_rejected(self):
+        Error, _, validate = contract_api()
+        bundle = valid_bundle()
+        bundle["bundleId"] = "sha256:" + "f" * 64
+        with self.assertRaisesRegex(Error, "BUNDLE_ID_MISMATCH"):
+            validate(bundle, max_book_age_ms=5_000)
+        bundle = valid_bundle()
+        bundle["orderBook"]["bids"][0]["price"] = "05.000"
+        with self.assertRaisesRegex(Error, "ORDER_BOOK_LEVEL_INVALID"):
+            validate(bundle, max_book_age_ms=5_000
+            )
 
 
 if __name__ == "__main__":

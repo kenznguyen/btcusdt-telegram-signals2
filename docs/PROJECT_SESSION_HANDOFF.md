@@ -1,6 +1,6 @@
 # Five-Layer System — Session Handoff
 
-Updated: 2026-11-11 (Asia/Ho_Chi_Minh)
+Updated: 2026-11-13 (Asia/Ho_Chi_Minh)
 
 > Start here in every new session. GitHub is the source of truth. Read this short file first; consult the [archived handoff history](archive/PROJECT_SESSION_HANDOFF_HISTORY_2026-11-10.md) only when an older decision or evidence record is needed.
 
@@ -4118,3 +4118,28 @@ These findings make the current stop condition explicit: completing Trusted Admi
 - A new workflow run was triggered by the workflow correction; its result is pending at this handoff update. Do not treat it as PASS until completed.
 - Disposition: RED contract proof **PASS (expected missing module)**; full workflow **FAIL / downstream tests skipped** on #91; corrected CI expected-RED handling **SUBMITTED / RUN PENDING**; validator **NOT IMPLEMENTED**.
 - Next step: inspect the new workflow run. Once the complete workflow confirms the RED state without skipping existing gates, ask for/confirm the GREEN implementation gate before adding the pure validator module. No runner integration, T0/VPS access, or live execution is authorized.
+
+
+## 7. Current workstream — Core Decision Input Bundle v1 validator
+
+**Frozen design remains authoritative:** `docs/evidence/CORE_DECISION_INPUT_BUNDLE_V1_DESIGN_2026-11-13.md` (all six owner decisions approved; contract v1.0.0/schema 1).
+
+### Completed RED gate
+- Run [#92](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43267464123), source SHA `e017345049352a86fd3c5e24d8f12427559a4794`, completed SUCCESS; all 16 workflow steps succeeded.
+- The 10 validator tests were confirmed EXPECTED_RED solely because `core_runtime.input_bundle` did not yet exist; downstream Core operational, account-risk, Shared Risk Engine and ledger regression steps all ran.
+- Test evidence: live-data 4 PASS; Core strategy/signal 12 PASS; preflight 5 PASS; expected RED 10; adapter 6 PASS; Core operational proof 39 PASS; account-risk read-only 3 PASS; shared risk/ledger 28 PASS.
+- Artifact `core-first-code-operational-proof-43267464123`, ID `13966093909`, 5,314 bytes, expiry `2026-11-19T17:15:22Z`, upload digest `sha256:91c6d34a8834c13ef84c182c120888103d244c2875f17b67dc2f48397f3bef15`. Payload hash not independently verified.
+
+### GREEN validator increment — submitted to CI
+- Added pure module `core_runtime/input_bundle.py`; API: `BundleValidationError`, `compute_bundle_id`, `validate_bundle`.
+- Source blob SHA: `294f4a94ddd9f7aa9e3e48a59afe1d7c8a322f84`.
+- Contract test suite expanded to 15 tests; test blob SHA: `a98e0e85607f0f0539952b5057a35f7bf59daa8c`.
+- Workflow changed from expected RED to GREEN validator execution; workflow blob SHA: `af90adfbe13d1447c86e41c06bfb0901b4d2b8d8`.
+- Evidence report: `docs/evidence/CORE_DECISION_INPUT_BUNDLE_V1_VALIDATOR_IMPLEMENTATION_2026-11-13.md`.
+- Validator is pure and does not import or initialize PaperLedger. It performs no I/O, DB, network, producer, risk admission or execution.
+- CI for the implementation commit: **PENDING**. Do not claim the 15 tests pass until the new workflow run completes.
+
+### Limits and next gate
+- Next: inspect the implementation commit's exact-SHA GitHub Actions run; require validator 15/15 PASS and all downstream existing regression steps PASS; record artifact ID/digest/expiry and update this handoff.
+- Core one-shot decision cycle remains NOT IMPLEMENTED. No runner, ledger/schema changes, strategy or leverage changes, AI admission, provider integration, T0/T1/VPS access, canonical DB access, persistent runtime, systemd/autostart or live orders.
+- `AI_EXECUTION_ENABLED=false`; paper-only posture remains.
