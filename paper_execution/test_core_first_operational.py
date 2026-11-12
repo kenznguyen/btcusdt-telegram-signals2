@@ -1531,8 +1531,7 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
             dca_order = ledger.submit(dca_intent, dca_book, dca_at, strategy_event="DCA")
             self.assertEqual(dca_order["status"], "FILLED", dca_order)
             replayed = ledger.submit(dca_intent, dca_book, dca_at, strategy_event="DCA")
-            self.assertEqual(replayed["order_id"], dca_order["order_id"])
-            self.assertEqual(replayed["status"], "FILLED")
+            self.assertEqual(replayed, dca_order)
 
             snapshot = ledger.snapshot()
             exposure = abs(Decimal(snapshot["positionBase"])) * Decimal(snapshot["averageEntryPrice"])
