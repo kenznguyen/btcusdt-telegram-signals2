@@ -130,7 +130,7 @@ A valid ledger REJECTED result maps to 5. Exceptions map to 6 unless explicitly 
 ## 9. Additional findings
 
 - **C1:** HTTP multi-page client synthesizes datasetVersion; one-response path required.
-- **C2:** Hummingbot normalizer converts decimals to floats; Decimal-preserving source adapter required.
+- **C2:** T1 is the preferred source, but the current dashboard endpoint is float-based, omits provenance/freshness/continuity metadata, and does not verify the update chain; periodic snapshots are float-derived and reconnect gaps are not automatically re-anchored. A versioned read-only T1 → T2 contract is required. Hummingbot remains paused. See the T1 source review evidence report.
 - **C3:** current `core_runtime.__main__` preflight rejects any `riskReady != true` and maps failures to generic exit 2. Keep it separate; runner must not reuse it as an all-actions gate.
 - **C4:** producer returns BUY/SELL without intent for documented blocked reasons. Explicitly classify these before strict adapter; unknown cases fail closed.
 
