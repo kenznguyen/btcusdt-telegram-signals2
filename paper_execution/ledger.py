@@ -1437,7 +1437,9 @@ def cancel_dual_order(db_path, order_id, now_ms, *, expected_strategy_id=None):
             """SELECT reservation_id,account_id,intent_id,strategy_id,expires_at_ms
                FROM paper_risk_reservations
                WHERE status IN ('ACTIVE','PARTIAL')
-                 AND expires_at_ms IS NOT NULL AND expires_at_ms < ?
+                 AND expires_at_ms IS NOT NULL
+                 AND (typeof(expires_at_ms) != 'integer'
+                      OR expires_at_ms <= 0 OR expires_at_ms < ?)
                ORDER BY expires_at_ms,reservation_id""",
             (now,),
         ).fetchall()
