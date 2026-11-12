@@ -2825,5 +2825,32 @@ os._exit(0)
         self.assertGreater(Decimal(reservation[2]), Decimal("0"))
 
 
+    def test_cancel_fails_closed_when_active_order_has_no_reservation_id(self):
+        partial = self.core.submit(
+            self.intent("core-cancel-null-reservation-id", "0.12", "100.1", "cancel-null-reservation"),
+            {**self.book(self.now), "asks": [{"price": "100.1", "quantity": "0.05"}]},
+            self.now,
+        )
+        with sqlite3.connect(self.path) as connection:
+            row = connection.execute(
+                "SELECT document FROM paper_orders WHERE order_id=?", (partial["orderId"],)
+            ).fetchone()
+            document = json.loads(row[0])
+            document["reservationId"] = None
+            connection.execute(
+                "UPDATE paper_orders SET reservation_id=NULL,document=? WHERE order_id=?",
+                (json.dumps(document), partial["orderId"]),
+            )
+
+        with self.assertRaisesRegex(sqlite3.DatabaseError, "RISK_RESERVATION_MISSING"):
+            self.core.cancel(partial["orderId"], self.now + 1)
+
+        with sqlite3.connect(self.path) as connection:
+            status = connection.execute(
+                "SELECT status FROM paper_orders WHERE order_id=?", (partial["orderId"],)
+            ).fetchone()
+        self.assertEqual(status, ("PARTIALLY_FILLED",))
+
+
 if __name__ == "__main__":
     unittest.main()
