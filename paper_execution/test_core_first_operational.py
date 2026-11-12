@@ -419,10 +419,12 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
                    WHERE account_id=1 AND strategy_id='STRATEGY_CORE'"""
             ).fetchone()
         realized, fees, funding = map(Decimal, (realized_raw, fees_raw, funding_raw))
-        expected_fees = sum(
-            (Decimal(order["feeQuote"]) for order in (entry, dca, exit_order)),
-            Decimal("0"),
-        )
+        with localcontext() as context:
+            context.prec = 80
+            expected_fees = sum(
+                (Decimal(order["feeQuote"]) for order in (entry, dca, exit_order)),
+                Decimal("0"),
+            )
         self.assertGreater(realized, Decimal("0"))
         self.assertEqual(fees, expected_fees)
         self.assertEqual(funding, Decimal("0"))
