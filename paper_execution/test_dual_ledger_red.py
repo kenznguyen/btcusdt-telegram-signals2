@@ -2499,5 +2499,158 @@ os._exit(0)
 
 
 
+    def test_cancel_fails_closed_when_active_dual_order_has_no_reservation(self):
+        partial = self.core.submit(
+            self.intent("core-cancel-missing-reservation", "0.12", "100.1", "cancel-missing"),
+            {**self.book(self.now), "asks": [{"price": "100.1", "quantity": "0.05"}]},
+            self.now,
+        )
+        self.assertEqual(partial["status"], "PARTIALLY_FILLED", partial)
+        with sqlite3.connect(self.path) as connection:
+            connection.execute(
+                "DELETE FROM paper_risk_reservations WHERE reservation_id=?",
+                (partial["reservationId"],),
+            )
+
+        with self.assertRaisesRegex(sqlite3.DatabaseError, "RISK_RESERVATION_MISSING"):
+            self.core.cancel(partial["orderId"], self.now + 1)
+
+        with sqlite3.connect(self.path) as connection:
+            order_status = connection.execute(
+                "SELECT status FROM paper_orders WHERE order_id=?", (partial["orderId"],)
+            ).fetchone()
+        self.assertEqual(order_status, ("PARTIALLY_FILLED",))
+
+
+    def test_cancel_fails_closed_when_reservation_strategy_does_not_match_order_owner(self):
+        partial = self.core.submit(
+            self.intent("core-cancel-wrong-reservation-owner", "0.12", "100.1", "cancel-wrong-owner"),
+            {**self.book(self.now), "asks": [{"price": "100.1", "quantity": "0.05"}]},
+            self.now,
+        )
+        with sqlite3.connect(self.path) as connection:
+            connection.execute(
+                "UPDATE paper_risk_reservations SET strategy_id='AI_FREQAI' WHERE reservation_id=?",
+                (partial["reservationId"],),
+            )
+
+        with self.assertRaisesRegex(sqlite3.DatabaseError, "RISK_RESERVATION_OWNERSHIP_MISMATCH"):
+            self.core.cancel(partial["orderId"], self.now + 1)
+
+        with sqlite3.connect(self.path) as connection:
+            order_status = connection.execute(
+                "SELECT status FROM paper_orders WHERE order_id=?", (partial["orderId"],)
+            ).fetchone()
+            reservation = connection.execute(
+                "SELECT strategy_id,status,remaining_notional_quote FROM paper_risk_reservations WHERE reservation_id=?",
+                (partial["reservationId"],),
+            ).fetchone()
+        self.assertEqual(order_status, ("PARTIALLY_FILLED",))
+        self.assertEqual(reservation[0:2], ("AI_FREQAI", "PARTIAL"))
+        self.assertGreater(Decimal(reservation[2]), Decimal("0"))
+
+
+    def test_core_cancel_expires_only_expired_ai_reservation_account_wide(self):
+        core_pending = self.core.submit(
+            self.intent("core-cancel-triggers-global-expiry", "0.12", "100.1", "core-cancel-global"),
+            {**self.book(self.now), "asks": [{"price": "100.1", "quantity": "0.05"}]},
+            self.now,
+        )
+        ai_pending = self.ai.submit(
+            self.intent("ai-expired-during-core-cancel", "-0.12", "100", "ai-expired-global"),
+            {**self.book(self.now + 1), "bids": [{"price": "100", "quantity": "0.05"}]},
+            self.now + 1,
+        )
+        self.assertEqual(core_pending["status"], "PARTIALLY_FILLED", core_pending)
+        self.assertEqual(ai_pending["status"], "PARTIALLY_FILLED", ai_pending)
+
+        with sqlite3.connect(self.path) as connection:
+            connection.execute(
+                "UPDATE paper_risk_reservations SET expires_at_ms=? WHERE reservation_id=?",
+                (self.now + 10, ai_pending["reservationId"]),
+            )
+            connection.execute(
+                "UPDATE paper_risk_reservations SET expires_at_ms=? WHERE reservation_id=?",
+                (self.now + 60_000, core_pending["reservationId"]),
+            )
+
+        canceled = self.core.cancel(core_pending["orderId"], self.now + 20)
+        self.assertEqual(canceled["status"], "CANCELED")
+        with sqlite3.connect(self.path) as connection:
+            ai_order = connection.execute(
+                "SELECT status FROM paper_orders WHERE order_id=?", (ai_pending["orderId"],)
+            ).fetchone()
+            ai_reservation = connection.execute(
+                "SELECT status,remaining_margin_quote,remaining_notional_quote FROM paper_risk_reservations WHERE reservation_id=?",
+                (ai_pending["reservationId"],),
+            ).fetchone()
+            core_reservation = connection.execute(
+                "SELECT status FROM paper_risk_reservations WHERE reservation_id=?",
+                (core_pending["reservationId"],),
+            ).fetchone()
+        self.assertEqual(ai_order, ("EXPIRED",))
+        self.assertEqual(ai_reservation, ("EXPIRED", "0", "0"))
+        self.assertEqual(core_reservation, ("CONSUMED",))
+
+
+    def test_core_cancel_does_not_mutate_nonexpired_ai_reservation(self):
+        core_pending = self.core.submit(
+            self.intent("core-cancel-does-not-touch-ai", "0.12", "100.1", "core-cancel-no-ai-touch"),
+            {**self.book(self.now), "asks": [{"price": "100.1", "quantity": "0.05"}]},
+            self.now,
+        )
+        ai_pending = self.ai.submit(
+            self.intent("ai-stays-pending-during-core-cancel", "-0.12", "100", "ai-not-expired"),
+            {**self.book(self.now + 1), "bids": [{"price": "100", "quantity": "0.05"}]},
+            self.now + 1,
+        )
+        self.assertEqual(core_pending["status"], "PARTIALLY_FILLED", core_pending)
+        self.assertEqual(ai_pending["status"], "PARTIALLY_FILLED", ai_pending)
+
+        self.core.cancel(core_pending["orderId"], self.now + 2)
+        with sqlite3.connect(self.path) as connection:
+            ai_order = connection.execute(
+                "SELECT status FROM paper_orders WHERE order_id=?", (ai_pending["orderId"],)
+            ).fetchone()
+            ai_reservation = connection.execute(
+                "SELECT status,remaining_margin_quote,remaining_notional_quote FROM paper_risk_reservations WHERE reservation_id=?",
+                (ai_pending["reservationId"],),
+            ).fetchone()
+        self.assertEqual(ai_order, ("PARTIALLY_FILLED",))
+        self.assertEqual(ai_reservation[0], "PARTIAL")
+        self.assertGreater(Decimal(ai_reservation[1]), Decimal("0"))
+        self.assertGreater(Decimal(ai_reservation[2]), Decimal("0"))
+
+
+    def test_repeated_cancel_does_not_release_or_audit_twice(self):
+        partial = self.core.submit(
+            self.intent("core-cancel-idempotent", "0.12", "100.1", "cancel-idempotent"),
+            {**self.book(self.now), "asks": [{"price": "100.1", "quantity": "0.05"}]},
+            self.now,
+        )
+        first = self.core.cancel(partial["orderId"], self.now + 1)
+        with sqlite3.connect(self.path) as connection:
+            reservation_after_first = connection.execute(
+                "SELECT status,remaining_margin_quote,remaining_notional_quote FROM paper_risk_reservations WHERE reservation_id=?",
+                (partial["reservationId"],),
+            ).fetchone()
+            audit_after_first = connection.execute(
+                "SELECT COUNT(*) FROM paper_audit WHERE kind='CANCEL'"
+            ).fetchone()[0]
+        second = self.core.cancel(partial["orderId"], self.now + 2)
+        with sqlite3.connect(self.path) as connection:
+            reservation_after_second = connection.execute(
+                "SELECT status,remaining_margin_quote,remaining_notional_quote FROM paper_risk_reservations WHERE reservation_id=?",
+                (partial["reservationId"],),
+            ).fetchone()
+            audit_after_second = connection.execute(
+                "SELECT COUNT(*) FROM paper_audit WHERE kind='CANCEL'"
+            ).fetchone()[0]
+        self.assertEqual(first["status"], "CANCELED")
+        self.assertEqual(second["status"], "CANCELED")
+        self.assertEqual(reservation_after_second, reservation_after_first)
+        self.assertEqual(audit_after_second, audit_after_first)
+
+
 if __name__ == "__main__":
     unittest.main()
