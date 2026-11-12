@@ -4066,3 +4066,16 @@ These findings make the current stop condition explicit: completing Trusted Admi
 - Safety: `AI_EXECUTION_ENABLED=false`; no exchange credentials or orders; no canonical T0 access/mutation; no VPS commands, deployment, systemd/autostart, daemon, or persistent runtime.
 - Current status: adapter **PASS**; CLI safety contract **PASS**; preflight implementation **CI PASS**; actual one-shot decision cycle **NOT IMPLEMENTED**; positive preflight against a fully risk-ready disposable dual-ledger fixture **NOT VERIFIED**; VPS runtime **NOT STARTED**.
 - Next bounded step: add disposable tests proving read-only risk-snapshot behavior and no mutation for existing incomplete/corrupt ledgers. Then freeze a versioned input-bundle contract for the actual decision cycle before implementing it. Preserve Core strategy, Core leverage, Shared Risk Engine, PaperLedger schema, AI, T0 and VPS.
+
+
+## 2026-11-12 — Account-wide risk snapshot read-only test completed
+
+- Dedicated suite: `paper_execution/test_account_risk_snapshot_read_only.py`.
+- Three tests PASS: ready/reconciled disposable dual-ledger account snapshot, incomplete existing SQLite DB, and deliberately corrupt risk state.
+- For each successful read and failed read, exact SQLite file SHA-256 is unchanged before/after the reader call. Incomplete DB remains without added tables; corrupt row is rejected.
+- First attempt run #86 failed due test assumptions (expected normalized error text and ordinary CHECK-constrained corruption setup); no application code defect was identified. Test fixture was corrected.
+- Run #87: [43265132670](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43265132670), exact source SHA `d182eccc16d982d8500818c4cdd6b9281f50ea93`, overall SUCCESS, 15/15 workflow steps SUCCESS. Artifact `core-first-code-operational-proof-43265132670`, ID `13966087498`, size 5,315 bytes, SHA-256 `e0c862e00376fb39e1bfe42bff0cf97c357502756c33cdc1ce3aae936005681d`, expiry `2026-11-19T17:02:18Z`.
+- Dedicated account-wide risk snapshot read path: **PASS / READ-ONLY AND FAIL-CLOSED VERIFIED** for the tested fixture states.
+- Latest evidence report: `docs/evidence/CORE_ONE_SHOT_RED_TESTS_2026-11-12.md`.
+- No production reader logic, database schema, migration, strategy, leverage, risk policy, T0, VPS or deployment changes. AI remains disabled; no credentials or real orders.
+- Approval scope fulfilled. Next phase is not automatically approved: version and review the input-bundle contract for the actual Core decision cycle before implementation.
