@@ -144,3 +144,25 @@ Owner-supplied command output:
 ### Next gate — approval required
 
 Request separate explicit approval before installing these wheels into /tmp/btcquant-preflight-venv and running a bounded import smoke test. Use the local wheel directory with --no-index and --find-links so the tested package bytes are exactly those fingerprinted above. Do not install into system Python. Do not launch Core or activate services.
+## Temporary venv installation evidence — 2026-11-12
+
+Owner supplied pip output confirms installation of all 23 distributions into /tmp/btcquant-preflight-venv using:
+
+    python -m pip install --no-index --find-links=/tmp/btcquant-preflight/wheels -r requirements.txt
+
+- pip used only the local wheel directory; no package index access was requested.
+- All 23 resolved distributions were installed successfully; pip ended with Successfully installed and no reported error.
+- Installation target was the disposable /tmp/btcquant-preflight-venv, not system Python.
+- Source build was not requested; pip processed the previously downloaded wheel files.
+- Package installation: PASS.
+- Import smoke test: NOT VERIFIED.
+- Application tests and runtime compatibility: NOT VERIFIED.
+- Core runtime: DESIGN RECORDED; NOT IMPLEMENTED; NOT TESTED; NOT STARTED.
+
+### Non-actions
+
+No Core command, service, daemon, database, T0/T1/T2 component, exchange endpoint, or real order was activated by this installation step. No source code was changed.
+
+### Next gate
+
+Run a bounded import/version smoke test only in /tmp/btcquant-preflight-venv. Do not launch application entrypoints, services, Core runtime, or access databases/exchanges.
