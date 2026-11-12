@@ -120,6 +120,11 @@ jobs:
             else
               echo "CORE_SHORT_POSITION_LIFECYCLE=NOT_VERIFIED"
             fi
+            if grep -q "test_mixed_writer_contention_serializes_timeout_retry_exposure_and_kill_switch .* ok" core-first-operational-tests.log; then
+              echo "CORE_MIXED_WRITER_STRESS=PASS"
+            else
+              echo "CORE_MIXED_WRITER_STRESS=NOT_VERIFIED"
+            fi
           } | tee core-operational-verdict.txt
 
       - name: Upload operational proof (no raw candle database)
