@@ -4009,3 +4009,13 @@ These findings make the current stop condition explicit: completing Trusted Admi
 - Contract status: **DESIGN RECORDED; NOT IMPLEMENTED; NOT TESTED**. No source/runtime code changed and no CI run was triggered by this docs-only increment.
 - Next step: inspect `pipeline.core_signal.validate()` and account-risk snapshot contracts, then add RED contract tests for the one-shot runner before implementing it. Keep tests isolated and use disposable state.
 - Explicit restrictions unchanged: no AI execution, T0/T1/T2 runtime change, canonical T0 mutation, exchange connection, persistent host/VPS, SSH, service restart, systemd/autostart, daemon or real orders.
+
+
+### Follow-up interface reconciliation
+
+- Inspected `pipeline/core_signal.validate()`: it requires top-level `schemaVersion=1`, `source=STRATEGY_CORE`, actions LONG/SHORT/FLAT/WAIT and top-level market/provenance/expiry/target/price fields. The current `pipeline.core_strategy.produce()` returns BUY/SELL/CLOSE/WAIT and places its intent in a nested object. These contracts are **not directly compatible**.
+- Added a mandatory producer-to-validator adapter requirement and RED-test matrix to `CORE_PAPER_RUNTIME_ENTRYPOINT_CONTRACT_2026-11-12.md`. No direct pass-through and no bypass of the validator.
+- Inspected `read_account_risk_snapshot(db_path, now_ms=...)`: it is a read-only account-wide reconciliation across Core, AI and LEGACY_UNATTRIBUTED ledgers, reservations, equity, funding provenance, mark freshness, daily baseline and Kill Switch. Runtime must require `riskReady=true` for exposure increases and pass reconciled `accountEquityQuote` into Core sizing. PaperLedger admission must recheck shared risk transactionally; a read snapshot is not a reservation.
+- Contract reconciliation update commit: `16c422d14742cbefdbaa38642c8d094b2a6d2522`.
+- Current contract remains **DESIGN RECORDED; NOT IMPLEMENTED; NOT TESTED**. No code, schema or runtime changes. No CI run.
+- Revised next step: add RED tests for producer/validator adapter mapping, account risk readiness/equity propagation and no partial writes on preflight failure; inspect PaperLedger initialization/migration behavior and require explicit no-auto-migration runtime startup. All test state must be disposable.
