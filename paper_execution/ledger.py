@@ -1288,7 +1288,7 @@ def dual_ledger_ready(db_path):
         return _dual_ledger_migrations_ready(connection)
 
 
-def cancel_dual_order(db_path, order_id, now_ms):
+def cancel_dual_order(db_path, order_id, now_ms, *, expected_strategy_id=None):
     """Cancel a dual-strategy paper order without constructing a strategy ledger."""
     path = Path(db_path).resolve()
     if not path.is_file():
@@ -1296,6 +1296,8 @@ def cancel_dual_order(db_path, order_id, now_ms):
     now = stamp(now_ms)
     if not isinstance(order_id, str) or not 1 <= len(order_id) <= 200:
         raise ValueError("Invalid order identifier")
+    if expected_strategy_id is not None and expected_strategy_id not in DUAL_STRATEGIES:
+        raise ValueError("Invalid expected strategy owner")
 
     def load_order(connection, target_order_id=None, target_intent_id=None):
         if target_order_id is not None:
@@ -1355,9 +1357,9 @@ def cancel_dual_order(db_path, order_id, now_ms):
         ).fetchone()
         if reservation is None:
             raise sqlite3.DatabaseError("RISK_RESERVATION_MISSING")
-        if reservation != (
+        if reservation[:4] != (
             reservation_id, order["account_id"], order["intent_id"],
-            order["strategy_id"], reservation[4],
+            order["strategy_id"],
         ) or reservation[4] not in ("ACTIVE", "PARTIAL"):
             raise sqlite3.DatabaseError("RISK_RESERVATION_OWNERSHIP_MISMATCH")
         return reservation
@@ -1369,6 +1371,11 @@ def cancel_dual_order(db_path, order_id, now_ms):
             raise sqlite3.DatabaseError("DUAL_LEDGER_MIGRATION_NOT_READY")
 
         target = load_order(connection, target_order_id=order_id)
+        if (
+            expected_strategy_id is not None
+            and target["strategy_id"] != expected_strategy_id
+        ):
+            raise ValueError("PAPER_ORDER_STRATEGY_SCOPE_MISMATCH")
         if now < target["created_at_ms"]:
             raise ValueError("Cancel time precedes order")
 
@@ -1434,8 +1441,7 @@ def cancel_dual_order(db_path, order_id, now_ms):
         target = load_order(connection, target_order_id=order_id)
         order = target["document"]
         if target["status"] in ACTIVE:
-            if not validate_reservation(connection, target):
-                raise sqlite3.DatabaseError("RISK_RESERVATION_MISSING")
+            validate_reservation(connection, target)
             try:
                 filled = Decimal(order["filledBase"])
                 if not filled.is_finite() or filled < 0:
@@ -2260,7 +2266,7 @@ class PaperLedger:
         if not isinstance(order_id, str) or not 1 <= len(order_id) <= 200:
             raise ValueError("Invalid order identifier")
         if self.strategy_id in DUAL_STRATEGIES:
-            return cancel_dual_order(self.path, order_id, now)
+            return cancel_dual_order(\n                self.path, order_id, now, expected_strategy_id=self.strategy_id\n            )
         with closing(self.connect()) as connection, connection:
             connection.execute("BEGIN IMMEDIATE")
             # Pre-dual-ledger MANUAL databases have no strategy_id column.
