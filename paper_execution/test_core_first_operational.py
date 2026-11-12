@@ -374,6 +374,11 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
             {"plus_di": 40.0, "minus_di": 10.0, "adx": 30.0}
             for _ in self.h1_rows
         ]
+        from paper_execution.ledger import dual_ledger_ready, read_snapshot
+        self.assertTrue(dual_ledger_ready(self.path))
+        exit_paper_snapshot = read_snapshot(self.path, strategy_id="STRATEGY_CORE")
+        self.assertNotEqual(exit_paper_snapshot["positionBase"], "0")
+        self.assertEqual(exit_paper_snapshot["strategyState"]["owner"], "STRATEGY_CORE")
         exit_signal = self.decide(
             m15=exit_window, book=exit_book, now_ms=exit_now,
             indicator_values=(exit_m15_indicators, exit_h1_indicators),
