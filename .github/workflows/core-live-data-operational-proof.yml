@@ -65,6 +65,12 @@ jobs:
           git rev-parse HEAD | tee core-operational-source-sha.txt
           echo "PAPER_ONLY=PASS" | tee core-operational-safety.txt
 
+      - name: Compile changed operational and Core modules
+        run: |
+          set -euo pipefail
+          python -m py_compile ops/live_market_data_probe.py ops/test_live_market_data_probe.py pipeline/core_strategy.py pipeline/core_signal.py paper_execution/risk_control.py paper_execution/ledger.py
+          echo "PY_COMPILE=PASS" | tee core-operational-compile.txt
+
       - name: Run live-data probe contract tests
         run: |
           set -euo pipefail
@@ -108,6 +114,7 @@ jobs:
           path: |
             core-operational-source-sha.txt
             core-operational-safety.txt
+            core-operational-compile.txt
             live-data-probe-tests.log
             core-strategy-tests.log
             shared-risk-paper-ledger-tests.log
