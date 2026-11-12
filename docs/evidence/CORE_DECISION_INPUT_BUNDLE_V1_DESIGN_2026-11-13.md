@@ -7,7 +7,7 @@
 - Contract: `CORE_DECISION_INPUT_BUNDLE`
 - Contract version: `1.0.0`
 - Schema version: `1`
-- Status: **FROZEN — IMPLEMENTATION NOT STARTED**
+- Status: **FROZEN — PURE VALIDATOR IMPLEMENTED AND CI-VERIFIED; ONE-SHOT RUNNER NOT IMPLEMENTED**
 - Scope: immutable input contract for one Core PAPER decision cycle. This does not authorize runner implementation, runtime provider integration, VPS use or live trading.
 
 ## 1. Purpose and boundaries
@@ -141,9 +141,9 @@ The future one-shot CLI must use this mapping:
 
 WAIT is a completed cycle and returns 0 with explicit `decision=WAIT`, `admission=NOT_ATTEMPTED`, `simulation=NOT_RUN`. No new exit code implies a successful trade.
 
-## 7. Frozen module API for the validator increment
+## 7. Implemented pure validator module
 
-The first implementation target is a pure module `core_runtime/input_bundle.py` with:
+The frozen API is implemented in `core_runtime/input_bundle.py`:
 
 - `BundleValidationError(ValueError)`: stable diagnostic code in its message.
 - `compute_bundle_id(bundle) -> str`: RFC 8785 + SHA-256 as specified above.
@@ -151,9 +151,9 @@ The first implementation target is a pure module `core_runtime/input_bundle.py` 
 
 Read-only ledger/risk snapshot acquisition and bundle assembly belong to a later runner orchestration increment. The pure validator must not import or initialize PaperLedger.
 
-## 8. Contract test gate and current RED status
+## 8. Contract test gate and GREEN evidence
 
-The RED suite is `core_runtime/test_input_bundle_contract.py`. It covers:
+The deterministic contract suite is `core_runtime/test_input_bundle_contract.py` (15 tests). It covers:
 
 - valid PAPER bundle and explicit order-book age policy;
 - missing/invalid max-book-age configuration;
@@ -166,7 +166,7 @@ The RED suite is `core_runtime/test_input_bundle_contract.py`. It covers:
 - rejection of floats and unsafe integers;
 - array order and decimal-string precision preservation.
 
-The test module API is frozen as specified in Section 7. At this stage the implementation module is intentionally absent: the suite is expected to fail at import until the next separately authorized implementation increment. A RED CI result is therefore expected and is not a release PASS.
+GREEN evidence: GitHub Actions [run #95](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43269294117), exact source SHA `2248eb20cb9b93d0a56fb54e073fcc20e715e7f3`, completed SUCCESS. All 16 workflow steps succeeded; the validator suite passed 15/15 and the existing Core, account-risk, Shared Risk Engine and PaperLedger regression suites also passed. Artifact ID `13966654587`, size 6,292 bytes, upload digest `sha256:f8429f2a647774ef77a212781a7826bbe2939d56042ffb7b57457fcbba9d80ff`; the payload was not independently downloaded/re-hashed.
 
 ## 9. Safety and scope
 
@@ -180,10 +180,10 @@ The test module API is frozen as specified in Section 7. At this stage the imple
 ## 10. Disposition
 
 - Six design decisions: **APPROVED BY USER**.
-- Core Decision Input Bundle v1: **FROZEN**.
-- Contract test suite: **RED TESTS WRITTEN; EXECUTION PENDING CI**.
-- Validator implementation: **NOT IMPLEMENTED**.
+- Core Decision Input Bundle v1 contract: **FROZEN**.
+- Pure validator implementation: **IMPLEMENTED; 15/15 TESTS PASS**.
+- Exact-SHA CI #95 and existing regression gates: **PASS** (source SHA `2248eb20cb9b93d0a56fb54e073fcc20e715e7f3`).
 - Core one-shot decision cycle: **NOT IMPLEMENTED**.
-- VPS runtime: **NOT STARTED / NOT AUTHORIZED**.
+- Runtime/provider integration and VPS runtime: **NOT STARTED / NOT AUTHORIZED**.
 
-Next bounded increment: execute the RED suite in the existing GitHub Actions workflow, record exact source SHA and expected failure evidence, then seek/observe the separate GREEN implementation gate. No runner or VPS integration is authorized by this contract freeze.
+Next bounded increment: perform a separate design review for the Core one-shot decision cycle, including its source-acquisition boundary, read-only Core state/risk snapshot acquisition, producer invocation, signal validation, PaperLedger admission, outcome reporting and stable CLI exit codes. Do not begin runner implementation until that design gate is explicitly approved. No VPS or live-trading authorization is implied.
