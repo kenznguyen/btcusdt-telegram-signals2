@@ -1724,5 +1724,120 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
             ).fetchone()[0], 0)
 
 
+    def test_kill_switch_allows_core_exit_reduction_and_blocks_dca_increase(self):
+        signal = self.decide()
+        entry_intent = dict(signal["intent"])
+        entry_intent.update({
+            "intentId": "core-kill-reduction-entry",
+            "decisionAtMs": self.now,
+            "validUntilMs": self.now + 60_000,
+            "inputSnapshotId": "fixture:core-kill-reduction-entry",
+        })
+        entry = self.core.submit(
+            entry_intent, dict(self.book), self.now, strategy_event="ENTRY"
+        )
+        self.assertEqual(entry["status"], "FILLED", entry)
+        original_position = Decimal(self.core.snapshot()["positionBase"])
+        self.core.set_killed(True, self.now + 1, "CORE_EXIT_ALLOWED_UNDER_KILL")
+
+        exit_at = self.now + 2
+        reduced_target = original_position / Decimal("2")
+        exit_intent = dict(entry_intent)
+        exit_intent.update({
+            "intentId": "core-kill-reduction-exit",
+            "targetPositionBase": str(reduced_target),
+            "decisionAtMs": exit_at,
+            "validUntilMs": exit_at + 30_000,
+            "inputSnapshotId": "fixture:core-kill-reduction-exit",
+        })
+        exit_book = dict(self.book)
+        exit_book["observedAtMs"] = exit_at
+        exit_order = self.core.submit(
+            exit_intent, exit_book, exit_at, strategy_event="EXIT"
+        )
+        self.assertEqual(exit_order["status"], "FILLED", exit_order)
+        self.assertEqual(self.core.snapshot()["positionBase"], str(reduced_target))
+
+        dca_at = self.now + 3
+        dca_intent = dict(entry_intent)
+        dca_intent.update({
+            "intentId": "core-kill-reduction-blocked-dca",
+            "targetPositionBase": str(reduced_target * Decimal("1.1")),
+            "decisionAtMs": dca_at,
+            "validUntilMs": dca_at + 30_000,
+            "inputSnapshotId": "fixture:core-kill-reduction-blocked-dca",
+        })
+        dca_book = dict(self.book)
+        dca_book["observedAtMs"] = dca_at
+        blocked = self.core.submit(
+            dca_intent, dca_book, dca_at, strategy_event="DCA"
+        )
+        self.assertEqual(blocked["status"], "REJECTED", blocked)
+        self.assertEqual(blocked["reason"], "KILL_SWITCH")
+        final = self.core.snapshot()
+        self.assertTrue(final["riskControl"]["killed"])
+        self.assertEqual(final["positionBase"], str(reduced_target))
+        with sqlite3.connect(self.path) as connection:
+            self.assertEqual(connection.execute(
+                "SELECT COUNT(*) FROM paper_account_event_journal WHERE strategy_id='STRATEGY_CORE' AND event_type='FILL'"
+            ).fetchone()[0], 2)
+            self.assertEqual(connection.execute(
+                "SELECT COUNT(*) FROM paper_risk_reservations WHERE strategy_id='STRATEGY_CORE'"
+            ).fetchone()[0], 1)
+
+    def test_kill_switch_reset_race_with_core_entry_is_serialized(self):
+        self.core.set_killed(True, self.now, "RESET_VS_ENTRY_RACE")
+        signal = self.decide()
+        intent = dict(signal["intent"])
+        intent.update({
+            "intentId": "core-reset-vs-entry-race",
+            "decisionAtMs": self.now + 2,
+            "validUntilMs": self.now + 30_002,
+            "inputSnapshotId": "fixture:core-reset-vs-entry-race",
+        })
+        book = dict(self.book)
+        book["observedAtMs"] = self.now + 2
+        gate = Barrier(2)
+
+        def submit():
+            gate.wait(timeout=5)
+            return self.core.submit(intent, book, self.now + 2, strategy_event="ENTRY")
+
+        def reset():
+            gate.wait(timeout=5)
+            return self.core.reset_kill(
+                acknowledge=True, ready=True, now_ms=self.now + 1
+            )
+
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            submit_future = pool.submit(submit)
+            reset_future = pool.submit(reset)
+            order = submit_future.result(timeout=15)
+            reset_future.result(timeout=15)
+
+        snapshot = self.core.snapshot()
+        self.assertFalse(snapshot["riskControl"]["killed"])
+        self.assertIn(order["status"], ("FILLED", "REJECTED"), order)
+        if order["status"] == "REJECTED":
+            self.assertEqual(order["reason"], "KILL_SWITCH")
+            self.assertEqual(snapshot["positionBase"], "0")
+        else:
+            self.assertEqual(order["status"], "FILLED")
+            self.assertEqual(snapshot["positionBase"], str(intent["targetPositionBase"]))
+        with sqlite3.connect(self.path) as connection:
+            fills = connection.execute(
+                "SELECT COUNT(*) FROM paper_account_event_journal WHERE strategy_id='STRATEGY_CORE' AND event_type='FILL'"
+            ).fetchone()[0]
+            reservations = connection.execute(
+                "SELECT COUNT(*) FROM paper_risk_reservations WHERE strategy_id='STRATEGY_CORE'"
+            ).fetchone()[0]
+        if order["status"] == "REJECTED":
+            self.assertEqual(fills, 0)
+            self.assertEqual(reservations, 0)
+        else:
+            self.assertEqual(fills, 1)
+            self.assertEqual(reservations, 1)
+
+
 if __name__ == "__main__":
     unittest.main()
