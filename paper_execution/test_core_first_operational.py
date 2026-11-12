@@ -303,7 +303,7 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
         # unrealized PnL is included in account equity before EXIT.
         from paper_execution.ledger import read_account_risk_snapshot
         average = Decimal(self.core.snapshot()["averageEntryPrice"])
-        mark_price = average * Decimal("1.05")
+        mark_price = (average * Decimal("1.05")).quantize(Decimal("0.000000000001"))
         mark_at = self.now + 1
         account_ledger = PaperLedger(
             self.path, max_position_base="1", fee_rate="0.001",
