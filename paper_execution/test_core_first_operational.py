@@ -79,6 +79,21 @@ def _hold_sqlite_write_transaction(database_path, acquired_event):
         connection.close()
 
 
+def _hold_sqlite_write_lock_until_released(database_path, acquired_event, release_event):
+    connection = sqlite3.connect(database_path, timeout=10)
+    try:
+        connection.execute("BEGIN IMMEDIATE")
+        connection.execute(
+            "INSERT INTO process_crash_probe(marker) VALUES ('lock-holder-uncommitted')"
+        )
+        acquired_event.set()
+        if not release_event.wait(30):
+            raise TimeoutError("test did not release SQLite writer lock")
+        connection.rollback()
+    finally:
+        connection.close()
+
+
 class CoreFirstOperationalProofTest(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
@@ -690,6 +705,116 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
             ).snapshot()["positionBase"],
             str(target),
         )
+
+
+    def test_sqlite_lock_timeout_fails_closed_then_retry_succeeds(self):
+        lock_path = Path(self.temp.name) / "core-lock-timeout.sqlite3"
+        with sqlite3.connect(self.path) as source, sqlite3.connect(lock_path) as target_db:
+            source.backup(target_db)
+        with sqlite3.connect(lock_path) as connection:
+            connection.execute(
+                "CREATE TABLE process_crash_probe (marker TEXT NOT NULL)"
+            )
+
+        signal = self.decide()
+        intent = dict(signal["intent"])
+        intent.update({
+            "intentId": "core-lock-timeout-retry",
+            "decisionAtMs": self.now,
+            "validUntilMs": self.now + 60_000,
+            "inputSnapshotId": "fixture:core-lock-timeout-retry",
+        })
+        context = multiprocessing.get_context("spawn")
+        acquired = context.Event()
+        release = context.Event()
+        holder = context.Process(
+            target=_hold_sqlite_write_lock_until_released,
+            args=(str(lock_path), acquired, release),
+        )
+        holder.start()
+        try:
+            self.assertTrue(acquired.wait(timeout=20), "writer never acquired SQLite lock")
+            ledger = PaperLedger(
+                lock_path, max_position_base="1", fee_rate="0.001",
+                strategy_id="STRATEGY_CORE", source_sha="c" * 40,
+                risk_limits={
+                    "maxDrawdownPct": "50",
+                    "maxDailyLossUsdt": "50",
+                    "maxExposureUsdt": "1000",
+                },
+                require_risk_limits=True, apply_migrations=False,
+            )
+            started = __import__("time").monotonic()
+            with self.assertRaisesRegex(sqlite3.OperationalError, "locked"):
+                ledger.submit(
+                    intent, dict(self.book), self.now, strategy_event="ENTRY"
+                )
+            elapsed = __import__("time").monotonic() - started
+            self.assertGreaterEqual(elapsed, 9.0, f"lock timeout fired too early: {elapsed:.3f}s")
+        finally:
+            release.set()
+            holder.join(timeout=10)
+            if holder.is_alive():
+                holder.terminate()
+                holder.join(timeout=5)
+
+        self.assertEqual(holder.exitcode, 0)
+        with sqlite3.connect(lock_path, timeout=10) as connection:
+            self.assertEqual(
+                connection.execute("PRAGMA integrity_check").fetchone()[0], "ok"
+            )
+            self.assertEqual(
+                connection.execute(
+                    "SELECT COUNT(*) FROM process_crash_probe"
+                ).fetchone()[0],
+                0,
+            )
+            self.assertEqual(
+                connection.execute(
+                    """SELECT COUNT(*) FROM paper_orders
+                       WHERE account_id=1 AND strategy_id='STRATEGY_CORE'"""
+                ).fetchone()[0],
+                0,
+            )
+            self.assertEqual(
+                connection.execute(
+                    """SELECT COUNT(*) FROM paper_risk_reservations
+                       WHERE account_id=1 AND strategy_id='STRATEGY_CORE'"""
+                ).fetchone()[0],
+                0,
+            )
+            self.assertEqual(
+                connection.execute(
+                    """SELECT COUNT(*) FROM paper_account_event_journal
+                       WHERE account_id=1 AND strategy_id='STRATEGY_CORE'
+                         AND event_type='FILL'"""
+                ).fetchone()[0],
+                0,
+            )
+
+        retry_order = ledger.submit(
+            intent, dict(self.book), self.now, strategy_event="ENTRY"
+        )
+        self.assertGreater(Decimal(retry_order["filledBase"]), Decimal("0"))
+        self.assertEqual(ledger.snapshot()["positionBase"], intent["targetPositionBase"])
+        with sqlite3.connect(lock_path) as connection:
+            self.assertEqual(
+                connection.execute("PRAGMA integrity_check").fetchone()[0], "ok"
+            )
+            self.assertEqual(
+                connection.execute(
+                    """SELECT COUNT(*) FROM paper_orders
+                       WHERE account_id=1 AND strategy_id='STRATEGY_CORE'"""
+                ).fetchone()[0],
+                1,
+            )
+            self.assertEqual(
+                connection.execute(
+                    """SELECT COUNT(*) FROM paper_risk_reservations
+                       WHERE account_id=1 AND strategy_id='STRATEGY_CORE'"""
+                ).fetchone()[0],
+                1,
+            )
 
 
     def test_interrupted_sqlite_writer_rolls_back_and_database_recovers(self):
