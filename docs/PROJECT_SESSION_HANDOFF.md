@@ -3115,3 +3115,14 @@ Critical limits:
 - PR #1 head verified at `38fd0caa354406b49471437b8fe9e7fbe6596ef4`; PR remains OPEN/DRAFT/UNMERGED. No new branch/PR, merge, runtime, VPS, live Binance, T0/T2, strategy/risk, lifecycle, or trading changes.
 - Status: decimal-path source audit = PARTIAL (reviewed paths only; not a whole-repository proof); exact CSV assertion change = CI PENDING; runtime acceptance = NOT VERIFIED.
 - Next: verify exact-head workflow completion and artifact, then correct the stale order-book comment in a separate minimal commit if still applicable. Keep T1 inactive.
+
+
+### T1 CSV exact-roundtrip assertions and order-book comment correction (2026-11-12)
+
+- T1 repository: `kenznguyen/binance-futures-collector`; existing branch: `feature/t1-connection-sidecar-integration-20261107`; PR #1 remains OPEN/DRAFT/UNMERGED.
+- Test-only CSV exact-string assertion commit `38fd0caa354406b49471437b8fe9e7fbe6596ef4`: exact-source Push CI run [43150334194](https://github.com/kenznguyen/binance-futures-collector/actions/runs/43150334194) completed successfully, **5/5 jobs PASS** (collector fmt/Clippy/build/tests; sidecar format/Clippy/offline tests; dashboard backend/frontend; Docker; security). Artifact preparation/upload steps were skipped; no artifact exists for this run, so payload/artifact verification is NOT AVAILABLE. The earlier six-file decimal-path audit remains PARTIAL, not a whole-repository proof.
+- Corrected one stale comment in `src/collectors/orderbook_manager.rs` from claiming f64 storage to accurately state that order-book levels store normalized exact decimal strings for prices and quantities. This is comment-only (1 insertion/1 deletion); no runtime behavior changed.
+- Comment correction commit / T1 branch HEAD: `53ffed3979429ed9f28529cf27d6e508f74ba6f2`, parent `38fd0caa354406b49471437b8fe9e7fbe6596ef4`; changed-file blob `bc7978b897fc03d6cefde679e3351e2c717f2123`. Commit API confirms only `src/collectors/orderbook_manager.rs` changed.
+- Exact-source workflow for `53ffed3979429ed9f28529cf27d6e508f74ba6f2` is **NOT YET IDENTIFIED/VERIFIED**; no run ID or artifact has been confirmed. Do not infer CI success from the preceding SHA's green run.
+- Status: CSV test assertion change = **PASS (CI 5/5)**; stale comment correction = **SOURCE PASS / CI NOT VERIFIED**; decimal-path audit = **PARTIAL**; runtime acceptance = **NOT VERIFIED**.
+- Next: locate and verify exact-head CI for `53ffed3979429ed9f28529cf27d6e508f74ba6f2`; if the push workflow did not trigger, do not manually dispatch or rerun without checking workflow policy. Preserve T1 inactive: no VPS, live Binance, T0/T2, strategy/risk, lifecycle or trading changes.
