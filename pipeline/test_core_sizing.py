@@ -112,7 +112,7 @@ class CoreSizingContractTest(unittest.TestCase):
                  patch("paper_execution.ledger.PaperLedger") as factory:
                 api.ledger("STRATEGY_CORE")
                 self.assertEqual(factory.call_args.kwargs["leverage"], "13")
-                api.ledger("AI_FREQAI")
+                api.ledger("AI_FREQAI", admitted_leverage="2")
                 self.assertEqual(factory.call_args.kwargs["leverage"], "2")
 
     def test_entry_without_reconciled_account_equity_never_emits_trade_intent(self):
