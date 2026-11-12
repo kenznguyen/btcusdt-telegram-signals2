@@ -14,6 +14,7 @@ on:
       - "paper_execution/test_risk_control.py"
       - "paper_execution/test_dual_ledger_red.py"
       - "pipeline/core_signal.py"
+      - "pipeline/test_core_runtime_contract.py"
       - "paper_execution/risk_control.py"
       - "paper_execution/ledger.py"
       - "paper_execution/account_equity.py"
@@ -74,7 +75,7 @@ jobs:
       - name: Compile changed operational and Core modules
         run: |
           set -euo pipefail
-          python -m py_compile ops/live_market_data_probe.py ops/test_live_market_data_probe.py pipeline/api.py pipeline/core_strategy.py pipeline/core_signal.py paper_execution/test_core_first_operational.py paper_execution/test_core_short_lifecycle.py paper_execution/test_dual_ledger_red.py paper_execution/risk_control.py paper_execution/ledger.py paper_execution/account_equity.py
+          python -m py_compile ops/live_market_data_probe.py ops/test_live_market_data_probe.py pipeline/api.py pipeline/core_strategy.py pipeline/core_signal.py pipeline/test_core_runtime_contract.py paper_execution/test_core_first_operational.py paper_execution/test_core_short_lifecycle.py paper_execution/test_dual_ledger_red.py paper_execution/risk_control.py paper_execution/ledger.py paper_execution/account_equity.py
           echo "PY_COMPILE=PASS" | tee core-operational-compile.txt
 
       - name: Run live-data probe contract tests
@@ -86,6 +87,22 @@ jobs:
         run: |
           set -euo pipefail
           python -m unittest pipeline.test_core_strategy pipeline.test_core_signal -v 2>&1 | tee core-strategy-tests.log
+
+      - name: Verify expected RED contract for unimplemented Core one-shot runner
+        run: |
+          set -euo pipefail
+          set +e
+          python -m unittest pipeline.test_core_runtime_contract -v 2>&1 | tee core-runtime-contract-tests.log
+          test_status=${PIPESTATUS[0]}
+          set -e
+          if [[ "${test_status}" -eq 0 ]]; then
+            echo "Expected RED contract tests to remain failing until core_runtime is implemented"
+            exit 1
+          fi
+          grep -q "FAILED (failures=5)" core-runtime-contract-tests.log
+          grep -q "No module named core_runtime" core-runtime-contract-tests.log
+          echo "CORE_RUNTIME_IMPLEMENTATION=NOT_IMPLEMENTED" | tee core-runtime-contract-red-status.txt
+          echo "CORE_RUNTIME_RED_TESTS=5_EXPECTED_FAILURES" | tee -a core-runtime-contract-red-status.txt
 
       - name: Run Core-First end-to-end paper operational proof
         run: |
@@ -108,6 +125,8 @@ jobs:
             echo "EXCHANGE_CREDENTIALS_USED=false"
             echo "REAL_ORDERS_SENT=false"
             echo "VPS_OR_PERSISTENT_RUNTIME_USED=false"
+            echo "CORE_RUNTIME_IMPLEMENTATION=NOT_IMPLEMENTED"
+            echo "CORE_RUNTIME_RED_TESTS=5_EXPECTED_FAILURES"
             echo "CORE_ENTRY_PAPER_FLOW=PASS"
             echo "CORE_DCA_END_TO_END=PASS"
             echo "CORE_DCA_MARGIN_BUDGET=PASS_ENTRY_AND_DCA_EACH_WITHIN_1_PERCENT"
@@ -146,6 +165,8 @@ jobs:
             core-operational-compile.txt
             live-data-probe-tests.log
             core-strategy-tests.log
+            core-runtime-contract-tests.log
+            core-runtime-contract-red-status.txt
             shared-risk-paper-ledger-tests.log
             core-first-operational-tests.log
             core-operational-verdict.txt
