@@ -304,7 +304,7 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
         from paper_execution.ledger import read_account_risk_snapshot
         average = Decimal(self.core.snapshot()["averageEntryPrice"])
         mark_price = (average * Decimal("1.05")).quantize(Decimal("0.000000000001"))
-        mark_at = self.now + 1
+        mark_at = self.now
         account_ledger = PaperLedger(
             self.path, max_position_base="1", fee_rate="0.001",
             source_sha="c" * 40,
@@ -358,7 +358,7 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
         )
         exit_window = window(exit_rows, "15m")
         exit_window["datasetVersion"] = "sha256:" + "8" * 64
-        exit_now = self.now + 2
+        exit_now = self.now + 1
         exit_book = {
             "source": "hummingbot", "connector": "binance_perpetual",
             "symbol": "BTCUSDT", "observedAtMs": exit_now,
