@@ -166,3 +166,36 @@ No Core command, service, daemon, database, T0/T1/T2 component, exchange endpoin
 ### Next gate
 
 Run a bounded import/version smoke test only in /tmp/btcquant-preflight-venv. Do not launch application entrypoints, services, Core runtime, or access databases/exchanges.
+## Temporary venv import smoke test — 2026-11-12
+
+Owner supplied output from a bounded import/version check executed with /tmp/btcquant-preflight-venv/bin/python:
+
+- Runtime: CPython 3.12.3; executable resolved to /tmp/btcquant-preflight-venv/bin/python.
+- requests: 2.34.2 — imported.
+- numpy: 2.5.4 — imported.
+- pandas: 2.3.3 — imported.
+- Flask: 3.1.3 — imported.
+- gunicorn: 23.0.0 — imported.
+- cryptography: 46.0.7 — imported.
+- rfc8785: 0.1.4 — imported.
+- Final marker: IMPORT_SMOKE_TEST: PASS.
+- A DeprecationWarning was emitted when reading Flask __version__; import succeeded and the warning is not an import failure. Future version reporting should prefer importlib.metadata.version('flask').
+
+### Updated assessment
+
+- Root requirements resolver: PASS.
+- Download of 23 exact resolved wheels: PASS.
+- Local SHA-256 fingerprint capture: PASS; independent publisher hash comparison remains NOT VERIFIED.
+- Temporary venv installation from local wheels: PASS.
+- Seven-package import/version smoke test: PASS.
+- Full application test suite on this VPS: NOT RUN.
+- Runtime entrypoint implementation: NOT IMPLEMENTED.
+- Core runtime launch: NOT STARTED.
+
+### Non-actions and safety
+
+No app.py, Gunicorn server, Core entrypoint, daemon, service, or systemd/autostart was launched. No database was opened; canonical T0 was not accessed. No exchange connection, credential, or real order was used. No source code or system Python package was changed by this check.
+
+### Next gate — separate approval required
+
+Before any broader test, inspect and select a strictly bounded set of offline Core contract tests that cannot open persistent databases, write outside disposable test fixtures, activate services, or access exchanges. The Core runtime entrypoint remains design-only, so a successful import smoke test must not be represented as Core runtime readiness.
