@@ -18,6 +18,7 @@ class PersistentRiskControlTest(unittest.TestCase):
 
     def test_new_database_starts_unpaused_and_not_killed(self):
         with self.connect() as db:
+            ensure(db)
             self.assertIsNone(risk_block_reason(db))
             self.assertEqual(snapshot(db)["mode"], "PAPER")
 
