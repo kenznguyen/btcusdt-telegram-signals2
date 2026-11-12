@@ -4040,3 +4040,15 @@ These findings make the current stop condition explicit: completing Trusted Admi
 - Guardrails: `AI_EXECUTION_ENABLED=false`; Core RSI+ADX+Smart DCA and Shared Risk Engine/Kill Switch unchanged; disposable paper ledger only; T0 canonical read-only; no exchange credentials/order endpoints/real orders; no T1/T2/AI activation; no systemd/autostart; bounded process and observations; no destructive cleanup or migrations.
 - Immediate missing input: provider plus VPS instance/hostname or public IP and an operator-approved safe access path. Do not send passwords/private keys or exchange credentials in chat.
 - Runtime evidence: **NOT STARTED**. No code, host, runtime, database or T0 data changed in this decision-recording increment.
+
+
+## Current VPS runtime — ARM64 dependency compatibility (2026-11-12)
+- Owner-created Scaleway VPS: `51.158.171.222`, hostname `scw-optimistic-jang`; owner-provided read-only evidence: Ubuntu 24.04.5 LTS, kernel 6.8.0-147-generic, arm64/aarch64, 2 vCPU, 3.8 GiB RAM, Python 3.12.3, 9.3G disk / 8.3G root partition, 5.8G free, no swap.
+- Preflight report: `docs/evidence/CORE_PAPER_RUNTIME_VPS_PREFLIGHT_2026-11-12.md`; initial evidence commit `ac4af8a5298038bd31625836238ef477ccd431c5`; ARM64/Python 3.12 wheel research update commit `8f93652c8fe04d862fbce8704b699209c0895caf`.
+- Static dependency declarations contain no identified x86_64-only package. PyPI publishes ARM64 CPython 3.12 wheels for key native dependencies (NumPy, psycopg-binary; cryptography abi3 ARM64 wheel evidence). pandas 3.1.1 has ARM64 wheels but is excluded by current `pandas<3` constraint; a compatible pandas 2.x wheel must be verified. This is public index evidence, not exact resolver proof.
+- Primary CI workflow inspected uses Python 3.11; VPS uses 3.12.3. No root dependency lockfile found in inspected paths.
+- Exact target-host pip resolver dry-run, wheel hash capture, import smoke test, and ARM64 test suite: NOT RUN. They require separate bounded approval because they access package indexes and write temporary/cache data on the persistent VPS.
+- No host package install/change, no runtime launch, no DB access, no T0 mutation, no service/autostart, no exchange credentials/orders. `AI_EXECUTION_ENABLED=false`; AI/T1/T2 inactive.
+- Storage target remains unmatched (9.3G disk vs earlier 10 GB target). Core one-shot runtime entrypoint remains DESIGN RECORDED / NOT IMPLEMENTED / NOT TESTED.
+- Current disposition: **ARM64 COMPATIBILITY = PARTIAL / NOT VERIFIED**; **CORE VPS RUNTIME = NOT STARTED**.
+- Next bounded gate: obtain explicit approval for a disk-bounded, no-install pip resolution/download dry-run in a temporary directory on the VPS; capture exact candidate versions, wheel tags and SHA-256 without importing or starting Core. Then separately request approval for temporary venv install/import tests if resolution succeeds.
