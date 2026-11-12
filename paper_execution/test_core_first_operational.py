@@ -226,7 +226,7 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
         def diagnostic_risk_reader(db_path, *, now_ms):
             try:
                 result = read_risk(db_path, now_ms=now_ms)
-                risk_diagnostics.append({"riskReady": result.get("riskReady"), "reason": result.get("unavailableReason")})
+                risk_diagnostics.append({"riskReady": result.get("riskReady"), "reason": result.get("unavailableReason"), "equity": result.get("accountEquityQuote"), "equityExponent": Decimal(result["accountEquityQuote"]).as_tuple().exponent})
                 return result
             except Exception as error:
                 risk_diagnostics.append({"error": repr(error)})
