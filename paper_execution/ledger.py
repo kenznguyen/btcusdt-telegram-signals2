@@ -1372,6 +1372,55 @@ def cancel_dual_order(db_path, order_id, now_ms, *, expected_strategy_id=None):
         if not _dual_ledger_migrations_ready(connection):
             raise sqlite3.DatabaseError("DUAL_LEDGER_MIGRATION_NOT_READY")
 
+        owner_row = connection.execute(
+            "SELECT status,document,strategy_id FROM paper_orders WHERE order_id=?",
+            (order_id,),
+        ).fetchone()
+        if owner_row is None:
+            raise ValueError("Unknown paper order")
+        if owner_row[2] == "MANUAL":
+            try:
+                manual_order = json.loads(owner_row[1])
+                if not isinstance(manual_order, dict) or manual_order.get("strategyId") not in (None, "MANUAL"):
+                    raise ValueError
+                if manual_order.get("status") != owner_row[0]:
+                    raise ValueError
+                manual_created_at = stamp(manual_order.get("createdAtMs"))
+            except (TypeError, ValueError, json.JSONDecodeError):
+                raise sqlite3.DatabaseError("PAPER_ORDER_DOCUMENT_CORRUPT") from None
+            if expected_strategy_id is not None:
+                raise ValueError("PAPER_ORDER_STRATEGY_SCOPE_MISMATCH")
+            if now < manual_created_at:
+                raise ValueError("Cancel time precedes order")
+            if manual_order["status"] in ACTIVE:
+                manual_order.update(
+                    status="CANCELED", updatedAtMs=now, reason="CANCELED_BY_USER"
+                )
+                connection.execute(
+                    "UPDATE paper_orders SET status='CANCELED',document=? WHERE order_id=? AND status=?",
+                    (json.dumps(manual_order, allow_nan=False), order_id, owner_row[0]),
+                )
+                reservation_id = manual_order.get("reservationId")
+                if reservation_id:
+                    reservation = connection.execute(
+                        "SELECT remaining_notional_quote FROM paper_risk_reservations WHERE reservation_id=?",
+                        (reservation_id,),
+                    ).fetchone()
+                    if reservation:
+                        next_status = "CONSUMED" if Decimal(manual_order["filledBase"]) > 0 else "RELEASED"
+                        connection.execute(
+                            """UPDATE paper_risk_reservations
+                               SET status=?,remaining_margin_quote='0',
+                                   remaining_notional_quote='0',updated_at_ms=?
+                               WHERE reservation_id=?""",
+                            (next_status, now, reservation_id),
+                        )
+                connection.execute(
+                    "INSERT INTO paper_audit(at_ms,kind,document) VALUES (?,?,?)",
+                    (now, "CANCEL", json.dumps({"orderId": order_id}, allow_nan=False)),
+                )
+            return manual_order
+
         target = load_order(connection, target_order_id=order_id)
         if (
             expected_strategy_id is not None
