@@ -348,7 +348,8 @@ class FiveLayerApiTest(unittest.TestCase):
         # timestamp creates a new signal identity after the operator reset.
         self.prediction["availableAtMs"] = self.now-500
         self.pred_path.write_text(json.dumps(self.prediction))
-        _, result = self.request("/v1/paper/evaluate", "POST", {})
+        with patch.object(api, "decide", return_value=self.valid_ai_decision()):
+            _, result = self.request("/v1/paper/evaluate", "POST", {})
         self.assertEqual(result["order"]["status"], "FILLED")
 
     def test_kill_reset_requires_server_side_readiness(self):
