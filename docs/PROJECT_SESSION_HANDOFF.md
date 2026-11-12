@@ -3571,3 +3571,55 @@ Boundaries unchanged: T0 and T1 remain independent (no T1→T0); T0 unchanged; n
 - Workflow file `.github/workflows/dual-ledger-red.yml` blob at branch ref: `8b1620482dabd59d46e6f3f4e7ad66c178e520e8`. It runs on push to this branch when `paper_execution/**`, `pipeline/**`, or the workflow itself changes. This is why the push run exists; the earlier connector-specific lookup was incomplete, not evidence that no run existed.
 - This exact-SHA result supersedes the preceding statement that RED execution was NOT VERIFIED. Disposition: **TDD RED CONFIRMED; API ordering defect reproduced; second AI BUY fixture is not a valid admission-positive test; GREEN NOT STARTED**.
 - Next: separate the test concerns. Keep the WAIT/no-ledger regression. Rework the AI BUY routing test to use a valid Trusted Admission Context only after an authoritative provider exists. Then implement Decision → Trusted Admission Context → Admitted Leverage → AI Ledger → Submit, with no Ledger construction for WAIT/no intent and no fabricated leverage/context. Trusted registry ACTIVE/revocation, trusted time, OOS eligibility, model/calibration provenance and versioned AI policy including `C_min` remain required blockers. Preserve 1x–3x leverage and 1% margin/shared-risk controls. Do not edit CANCEL, T0/T1/T2, VPS/runtime, Core strategy or enable live execution.
+
+
+## 2026-11-12 — AI Evaluate Admission Flow progress
+
+**Scope:** continue the separately approved AI Evaluate workstream only. The completed AI Ledger CANCEL path remains untouched.
+
+- Branch: `feature/t0-centralized-data-feeder-p1-20261101`.
+- Latest source commit for this increment: `9c1ef12935d587806572e1161dac61a118637d75`.
+- `pipeline/api.py` blob: `d0217944bbfa9b864b0f259e0091daf9a989d180`.
+- `paper_execution/test_dual_strategy_api_red.py` blob: `9ae306678791957e31d7e85691ad4efd2991c7d7`.
+- Test commit: `501c246b354165572bbc9a3fad0d2b865f68ebd9`; source fix commit: `3b89014817f4722f55784fe6acc9151e0a313c26`; compatibility correction: `9c1ef12935d587806572e1161dac61a118637d75`.
+
+### Implemented and verified
+
+- AI evaluation now runs before AI Ledger construction on the dual-ledger path.
+- AI WAIT/no-intent returns without constructing an AI Ledger or requiring admitted leverage.
+- A raw AI candidate with no authoritative Trusted Admission Context is rejected with HTTP 409 `AI_ADMISSION_NOT_ESTABLISHED`; no AI ledger, order, or reservation is created.
+- Legacy single-ledger evaluation fallback is preserved; Core's existing ledger path is preserved.
+- The previous AI BUY test that fabricated a positive admission by mocking only a BUY decision was replaced with a fail-closed test that asserts no ledger construction, order or reservation.
+- No CANCEL code changed.
+
+### Exact-SHA CI evidence
+
+- Dual Ledger workflow run [43185106174](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43185106174), exact checkout SHA `9c1ef12935d587806572e1161dac61a118637d75`, event `push`: **SUCCESS**.
+- Job `131070214058`: compile PASS; focused dual-ledger/API contract PASS; full `paper_execution` regression PASS. Log reports **337 tests, OK**.
+- Artifact `dual-ledger-red-evidence-9c1ef12935d587806572e1161dac61a118637d75`, ID `13927394859`, SHA-256 `7dedab70aca57852c9fcb01e1968e2bb5faf19f43defa3add3777ec48c8cc7e2`, expires `2026-11-19T08:42:06Z`. Artifact metadata digest recorded; payload bytes not independently downloaded/re-hashed.
+- AI Strategy Contract workflow run [43185106219](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43185106219), same exact checkout SHA: **FAILURE / NOT GREEN**. Job `131070213708`; 57 tests executed, 12 failures and 3 errors remain in the AI Strategy contract suite, including unresolved leverage mapping, position sizing/instrument lot constraints, and shared risk/admission conditions. Artifact ID `13928032543`, name `ai-strategy-contract-red-9c1ef12935d587806572e1161dac61a118637d75`, SHA-256 `167c2d7dec16a181217170c0747b805897afdf0ea0a33e4da0284d5f5ef5fe71`, expires `2026-11-19T08:42:06Z`. Metadata digest only; payload not independently re-hashed.
+- Intermediate failure retained: run `43184998756` at SHA `3b89014817f4722f55784fe6acc9151e0a313c26` exposed six legacy API test errors and one failure after the first fail-closed gate. The legacy fallback was restored in `9c1ef...`; the final 337-test paper_execution regression then passed.
+
+### Admission / Submit status
+
+**AI Decision → no-intent sequencing: PASS.**
+**Trusted Admission Context: BLOCKED / NOT IMPLEMENTED.**
+**Admitted Leverage: BLOCKED / NOT IMPLEMENTED.**
+**AI Ledger creation for a newly admitted AI intent: NOT VERIFIED / intentionally blocked.**
+**Shared Risk admission and AI Submit: NOT REACHED.**
+**Overall AI Evaluate Admission Flow: BLOCKED — not complete.**
+
+Evidence review confirms:
+- The calibration verifier proves signature/integrity only (`SIGNATURE_VERIFIED_ONLY`); it does not prove publisher promotion, current ACTIVE/revocation state, trusted time, OOS quality or trade admission.
+- The OOS validator is structural only and returns `ai_admission_eligible: False`.
+- No authoritative production provider for trusted registry state, revocation, trusted time, OOS admission eligibility or a versioned AI leverage policy/`C_min` is currently wired into the API.
+- Do not elevate test fixtures (`ACTIVE`, `VERIFIED`, confidence thresholds) into production trust assertions. Do not derive or assume an admitted leverage value. The AI leverage range remains 1x–3x, but the policy mapping/admission evidence is not established.
+
+### Next permitted work
+
+1. Continue source/evidence discovery for authoritative registry promotion and revocation state, trusted time, OOS admission, model/calibration provenance and the versioned AI leverage policy.
+2. Implement a server-side Trusted Admission Context only when every required source is authoritative, authenticated, bound to the exact model/strategy/calibration/evaluation versions, and checked for freshness/revocation.
+3. Define and test the admitted-leverage mapping from the approved policy without inventing `C_min` or thresholds.
+4. Only then construct the AI Ledger with explicit admitted leverage, run the existing Shared Risk Engine, and reach paper Submit.
+5. Preserve fail-closed behavior and paper-only restrictions. No real orders, exchange execution, deployment, VPS/runtime, T0/T1/T2 or Core changes.
+
