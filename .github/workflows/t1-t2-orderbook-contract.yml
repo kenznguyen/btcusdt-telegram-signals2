@@ -45,9 +45,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "\${AI_EXECUTION_ENABLED}" = "false"
+          test "${AI_EXECUTION_ENABLED}" = "false"
           for key in MARKET_DATA_DB T0_FEEDER_LEASE_DB PAPER_DB PAPER_TRADING_DB BINANCE_API_KEY BINANCE_API_SECRET OKX_API_KEY OKX_API_SECRET; do
-            test -z "\${!key:-}"
+            test -z "${!key:-}"
           done
           git rev-parse HEAD | tee t1-t2-source-sha.txt
           echo "PAPER_ONLY=PASS" | tee t1-t2-safety.txt
@@ -59,9 +59,9 @@ jobs:
           set -euo pipefail
           set +e
           python -m unittest core_runtime.test_orderbook_contract -v 2>&1 | tee t1-t2-orderbook-tests.log
-          status=\${PIPESTATUS[0]}
+          status=${PIPESTATUS[0]}
           set -e
-          if [[ \${status} -eq 0 ]]; then
+          if [[ ${status} -eq 0 ]]; then
             echo "T1_T2_ORDERBOOK_V1=UNEXPECTED_GREEN_BEFORE_IMPLEMENTATION"
             exit 1
           fi
@@ -74,7 +74,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: t1-t2-orderbook-red-\${{ github.run_id }}
+          name: t1-t2-orderbook-red-${{ github.run_id }}
           retention-days: 7
           if-no-files-found: warn
           path: |
