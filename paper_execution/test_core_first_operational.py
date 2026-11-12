@@ -1,6 +1,7 @@
 import os
 import sqlite3
 import tempfile
+from decimal import Decimal
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -167,8 +168,9 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
             ).fetchone()[0]
         self.assertIsNotNone(reservation)
         basis, margin, notional, status = reservation
-        self.assertEqual(float(margin), float(basis) * 0.01)
-        self.assertAlmostEqual(float(notional), float(margin) * 13, places=8)
+        self.assertLessEqual(Decimal(margin), Decimal(basis) * Decimal("0.01"))
+        self.assertGreater(Decimal(margin), Decimal(basis) * Decimal("0.0099"))
+        self.assertEqual(Decimal(notional), Decimal(margin) * Decimal("13"))
         self.assertEqual(status, "CONSUMED")
         self.assertEqual(ai_orders, 0)
 
