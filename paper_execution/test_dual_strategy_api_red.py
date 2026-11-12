@@ -248,8 +248,10 @@ class DualStrategyApiScopeRedTest(unittest.TestCase):
 
     def test_cancel_api_cancels_the_persisted_owner_without_cross_strategy_write(self):
         self.activate_dual_schema()
+        reservation_id = "api-core-cancel-reservation"
         order = {
-            "orderId": "api-core-pending", "createdAtMs": 1,
+            "orderId": "api-core-pending", "intentId": "api-core-intent",
+            "reservationId": reservation_id, "createdAtMs": 1,
             "status": "OPEN", "filledBase": "0",
             "strategyId": "STRATEGY_CORE",
         }
@@ -258,9 +260,19 @@ class DualStrategyApiScopeRedTest(unittest.TestCase):
                 """INSERT INTO paper_orders
                    (intent_id,payload_hash,order_id,status,document,account_id,
                     strategy_id,strategy_event,reservation_id,created_schema_version)
-                   VALUES (?,?,?,?,?,1,'STRATEGY_CORE','ENTRY',NULL,1)""",
+                   VALUES (?,?,?,?,?,1,'STRATEGY_CORE','ENTRY',?,1)""",
                 ("api-core-intent", "payload-hash", order["orderId"], "OPEN",
-                 json.dumps(order)),
+                 json.dumps(order), reservation_id),
+            )
+            connection.execute(
+                """INSERT INTO paper_risk_reservations
+                   (reservation_id,account_id,intent_id,strategy_id,reservation_kind,status,
+                    reserved_margin_quote,remaining_margin_quote,reserved_notional_quote,
+                    remaining_notional_quote,leverage,equity_basis_quote,risk_config_version,
+                    created_at_ms,updated_at_ms,expires_at_ms)
+                   VALUES (?,1,?,'STRATEGY_CORE','ENTRY','ACTIVE','1','1','13','13','13','100',
+                           'test-risk-v1',1,1,9999999999999)""",
+                (reservation_id, "api-core-intent"),
             )
 
         with patch.object(api, "control_permit", return_value=True):
@@ -276,7 +288,12 @@ class DualStrategyApiScopeRedTest(unittest.TestCase):
                 "SELECT status,strategy_id FROM paper_orders WHERE order_id=?",
                 ("api-core-pending",),
             ).fetchone()
+            reservation = connection.execute(
+                "SELECT status,remaining_margin_quote,remaining_notional_quote FROM paper_risk_reservations WHERE reservation_id=?",
+                (reservation_id,),
+            ).fetchone()
         self.assertEqual(stored, ("CANCELED", "STRATEGY_CORE"))
+        self.assertEqual(reservation, ("RELEASED", "0", "0"))
 
 
     def test_reset_readiness_blocks_unassigned_pending_order_and_unready_shared_risk(self):
