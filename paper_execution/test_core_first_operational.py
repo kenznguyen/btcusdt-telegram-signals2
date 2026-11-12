@@ -183,7 +183,6 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
         self.assertEqual(replay, order)
         self.assertEqual(len(self.core.snapshot()["orders"]), 1)
 
-    @unittest.expectedFailure
     def test_post_entry_account_equity_snapshot_is_ready_for_smart_dca(self):
         signal = self.decide()
         self.assertEqual(signal["action"], "BUY", signal)
