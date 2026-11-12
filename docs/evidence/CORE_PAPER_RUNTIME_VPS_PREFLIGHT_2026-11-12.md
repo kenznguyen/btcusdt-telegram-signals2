@@ -84,3 +84,21 @@ This is **public package-index evidence only**, not proof for the exact dependen
 - Dependency reproducibility: NOT VERIFIED; no lockfile found in the inspected root paths.
 
 Next safe technical test: run a no-install pip resolution/download dry-run in a temporary directory on the target host, with explicit cache/temp locations and a strict disk budget, then verify wheel tags and hashes. This still requires explicit owner approval because it performs network access and writes temporary/cache data on the persistent VPS. Do not run it implicitly.
+
+
+## Owner-reported Python bootstrap check (2026-11-12)
+The owner ran these commands on the VPS and supplied the output:
+```bash
+python3 -m venv --help
+python3 -m ensurepip --version
+```
+Observed:
+- `venv --help` succeeds and prints the module usage: the `venv` command module is importable.
+- `python3 -m ensurepip --version` fails with `/usr/bin/python3: No module named ensurepip`.
+- Earlier owner-reported `/usr/bin/python3 -m pip` failed with `No module named pip`.
+Disposition:
+- Python venv CLI presence: PASS (module help only; actual environment creation not tested).
+- ensurepip/pip bootstrap: BLOCKED on system Python.
+- This is not evidence of ARM64 package incompatibility.
+- No apt operation, package installation, venv creation, pip invocation, application deployment, or runtime launch has been performed.
+Next bounded step: inspect package state and apt candidate metadata read-only (for example `dpkg-query -W python3-venv python3-pip python3.12-venv 2>/dev/null` and `apt-cache policy python3-venv python3-pip python3.12-venv`). If an OS package is required, obtain explicit approval before installing it. After that, create a disposable venv under `/tmp` and perform the separately approved no-install dependency-resolution check.
