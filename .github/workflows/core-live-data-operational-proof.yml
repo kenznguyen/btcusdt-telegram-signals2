@@ -153,7 +153,6 @@ jobs:
             else
               echo "T1_T2_ORDERBOOK_V1=NOT_VERIFIED"
             fi
-            echo "T1_T2_ORDERBOOK_V1=EXPECTED_RED_BASELINE"
             echo "AI_EXECUTION_ENABLED=false"
             echo "CANONICAL_T0_TOUCHED=false"
             echo "EXCHANGE_CREDENTIALS_USED=false"
