@@ -1373,11 +1373,19 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
             kill_orders = connection.execute(
                 "SELECT order_id,intent_id,status,document FROM paper_orders ORDER BY intent_id"
             ).fetchall()
-            self.assertEqual(len(kill_orders), 1, kill_orders)
+            self.assertEqual(len(kill_orders), 2, kill_orders)
+            orders_by_intent = {row[1]: (row[2], __import__("json").loads(row[3])) for row in kill_orders}
+            self.assertEqual(orders_by_intent["core-mixed-writer-kill-entry"][0], "FILLED")
+            rejected_status, rejected_document = orders_by_intent["core-mixed-writer-killed-dca"]
+            self.assertEqual(rejected_status, "REJECTED")
+            self.assertEqual(rejected_document["reason"], "KILL_SWITCH")
+            self.assertIsNone(rejected_document["reservationId"])
+            self.assertEqual(Decimal(rejected_document["filledBase"]), Decimal("0"))
             kill_reservations = connection.execute(
                 "SELECT reservation_id,intent_id,status,reserved_margin_quote,remaining_notional_quote FROM paper_risk_reservations WHERE strategy_id='STRATEGY_CORE' ORDER BY intent_id"
             ).fetchall()
             self.assertEqual(len(kill_reservations), 1, kill_reservations)
+            self.assertEqual(kill_reservations[0][1], "core-mixed-writer-kill-entry")
             self.assertEqual(connection.execute(
                 "SELECT COUNT(*) FROM paper_account_event_journal WHERE strategy_id='STRATEGY_CORE' AND event_type='FILL'"
             ).fetchone()[0], 1)
