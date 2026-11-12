@@ -3496,3 +3496,22 @@ Boundaries unchanged: T0 and T1 remain independent (no T1→T0); T0 unchanged; n
 - Evidence artifact: `dual-ledger-red-evidence-4efb126748cd77b418c7a117ebd36a5404e9cc5a`, artifact ID `13925815485`, SHA-256 `d8f5c019ed93cc5d3936fea2c9db725759961b79c09eb2867927806320415a07`; workflow [43178245969](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43178245969).
 - Disposition: RED coverage established; current code does not yet enforce reservation/order ownership and API AI CANCEL still attempts AI ledger construction without admitted leverage. AI evaluate also remains a separate unresolved ordering issue (decision/admission must precede ledger construction). **GREEN implementation NOT AUTHORIZED**; no runtime changes.
 - Next: implement the narrow CANCEL-only DB transaction path after reviewing the failing assertions and current reservation schema; keep AI evaluate routing as a separate issue. Re-run focused RED/verification and full paper_execution regression. Do not change T0/T1/T2 or enable live execution.
+
+
+
+### AI Ledger CANCEL — transaction-path source review (2026-11-12)
+
+- Read-only review baseline/source HEAD: `d16f29e5d98a5d9019e207a5e3e0b90663fd7003`; preceding RED test HEAD: `4efb126748cd77b418c7a117ebd36a5404e9cc5a`. Branch remains `feature/t0-centralized-data-feeder-p1-20261101`; no branch/PR split.
+- Exact reviewed blobs:
+  - `paper_execution/ledger.py`: `84597a8815c62bcddaa63fd3d2fcd890510931b6`
+  - `pipeline/api.py`: `835a17dd062a2494f1adce981b7f411167afbf45`
+  - `paper_execution/test_dual_ledger_red.py`: `f612c5454ad878511f80136ed565acd4296ed2a0`
+  - `paper_execution/test_dual_strategy_api_red.py`: `e6c32e6897ed3b303954a0f114be247e21dbef38`
+- Review report: `docs/evidence/AI_LEDGER_CANCEL_TRANSACTION_PATH_SOURCE_REVIEW_2026-11-12.md`; report blob `be4b9d688a6c01307dcbb1857cd679f1e9f749d4`; report commit `8ed48923454dca8307671e2e3b352d97273b91db`.
+- Required findings: (R1) active dual order may be canceled when reservation row is missing; (R2) reservation intent/strategy/account identity is not checked against persisted order; (R3) AI CANCEL constructs an AI PaperLedger and fails because fresh admitted leverage is required; (R4) owner is read outside the cancellation write transaction; (R5) account-wide expiry sweep also lacks exact reservation/order identity validation.
+- Existing schema already stores the required order/reservation identity fields; no migration is indicated. Recommended future shape is one CANCEL-only transaction helper shared by API and direct dual-ledger calls, with owner resolution, exact order/reservation checks, account-wide expiry validation, guarded release, one audit event and rollback on any mismatch. Do not inject fake leverage or invoke AI prediction/calibration for CANCEL.
+- AI evaluate ordering remains a separate unresolved issue; do not fold it into CANCEL remediation or weaken the AI leverage policy.
+- Five-axis review verdict: correctness REQUEST CHANGES; readability CONDITIONAL PASS; architecture REQUEST CHANGES; security/integrity REQUEST CHANGES; performance CONDITIONAL PASS (expiry sweep currently scans all ACTIVE/PARTIAL rows rather than selecting expired rows via the existing index).
+- Verification: this was static/read-only review only; tests/compile NOT RUN in this increment. Prior RED workflow remains run `43178245969`, job `131047618684`, compile PASS and focused RED as recorded above. No production source, schema, API, workflow, runtime, VPS, T0/T1/T2 or live trading change.
+- **Disposition: REVIEW COMPLETE — REQUIRED FINDINGS OPEN; GREEN CANCEL IMPLEMENTATION NOT AUTHORIZED.**
+- Next gate: explicit Owner approval of exact implementation files, helper/API integration boundary, regression matrix and focused/full test commands. Preserve RED tests until approval. Do not modify production source or runtime before that gate.
