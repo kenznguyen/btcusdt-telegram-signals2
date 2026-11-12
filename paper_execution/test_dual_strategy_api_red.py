@@ -554,5 +554,28 @@ class DualStrategyApiScopeRedTest(unittest.TestCase):
         self.assertEqual(stored_reservation, ("RELEASED", "0", "0"))
 
 
+    def test_ai_wait_does_not_construct_ai_ledger_or_require_admitted_leverage(self):
+        self.activate_dual_schema()
+        wait = {
+            "source": "AI_FREQAI", "action": "WAIT",
+            "reason": "AI_CALIBRATION_ADMISSION_CONTEXT_UNAVAILABLE",
+            "intent": None,
+        }
+        with patch.object(api, "context", return_value={
+            "candles": None, "intelligence": None, "prediction": None,
+            "book": {}, "errors": {},
+        }), patch.object(api, "decide", return_value=wait), \
+             patch.object(api, "control_permit", return_value=True), \
+             patch.object(api, "ledger") as ledger_factory:
+            status, result = self.request(
+                "/v1/paper/evaluate", {"source": "AI"}
+            )
+
+        self.assertEqual(status, 200, result)
+        self.assertEqual(result["decision"]["action"], "WAIT")
+        self.assertIsNone(result["order"])
+        ledger_factory.assert_not_called()
+
+
 if __name__ == "__main__":
     unittest.main()
