@@ -111,27 +111,29 @@ class DualStrategyApiScopeRedTest(unittest.TestCase):
         account_risk.assert_called_once_with(str(self.db), now_ms=1_800_000_000_000)
         self.assertEqual(producer.call_args.kwargs["account_equity_quote"], "123.45")
 
-    def test_cancel_resolves_owner_and_uses_the_matching_scoped_ledger(self):
+    def test_cancel_route_uses_cancel_only_transaction_without_ai_ledger_construction(self):
         self.activate_dual_schema()
+        from paper_execution import ledger as ledger_module
+
+        expected = {
+            "orderId": "core-order", "status": "CANCELED",
+            "strategyId": "STRATEGY_CORE",
+        }
         with patch.object(api, "control_permit", return_value=True), \
-             patch.object(api, "resolve_order_strategy", return_value="STRATEGY_CORE",
-                          create=True) as resolve_owner, \
-             patch.object(api, "ledger") as ledger_factory:
-            ledger_factory.return_value.cancel.return_value = {
-                "orderId": "core-order", "status": "CANCELED",
-                "strategyId": "STRATEGY_CORE",
-            }
+             patch.object(ledger_module, "cancel_dual_order", return_value=expected) as cancel_helper, \
+             patch.object(api, "ledger") as ledger_factory, \
+             patch.object(api, "resolve_order_strategy", create=True) as resolve_owner:
             status, result = self.request(
                 "/v1/paper/cancel", {"orderId": "core-order"}
             )
 
         self.assertEqual(status, 200)
         self.assertEqual(result["strategyId"], "STRATEGY_CORE")
-        resolve_owner.assert_called_once_with(str(self.db), "core-order")
-        ledger_factory.assert_called_once_with(strategy_id="STRATEGY_CORE")
-        ledger_factory.return_value.cancel.assert_called_once_with(
-            "core-order", api.now_ms.return_value if hasattr(api.now_ms, "return_value") else unittest.mock.ANY
+        cancel_helper.assert_called_once_with(
+            str(self.db), "core-order", unittest.mock.ANY
         )
+        ledger_factory.assert_not_called()
+        resolve_owner.assert_not_called()
 
 
     def test_equity_snapshot_uses_shared_account_mark_path(self):
