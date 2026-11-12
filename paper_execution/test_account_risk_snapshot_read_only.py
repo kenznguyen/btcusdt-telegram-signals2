@@ -16,7 +16,9 @@ def database_digest(path):
 
 class AccountRiskSnapshotReadOnlyTest(unittest.TestCase):
     def setUp(self):
-        self.fixture = CoreFirstOperationalProofTest()
+        self.fixture = CoreFirstOperationalProofTest(
+            "test_core_signal_flows_through_shared_risk_into_paper_ledger"
+        )
         self.fixture.setUp()
         self.addCleanup(self.fixture.doCleanups)
         self.path = self.fixture.path
@@ -41,10 +43,9 @@ class AccountRiskSnapshotReadOnlyTest(unittest.TestCase):
                 connection.execute("CREATE TABLE disposable_probe (value TEXT)")
             before = database_digest(path)
 
-            with self.assertRaisesRegex(
-                sqlite3.DatabaseError, "DUAL_LEDGER_MIGRATION_NOT_APPLIED"
-            ):
+            with self.assertRaises(sqlite3.DatabaseError) as raised:
                 read_account_risk_snapshot(path, now_ms=self.now)
+            self.assertIn("paper_schema_migrations", str(raised.exception))
 
             self.assertEqual(database_digest(path), before)
             with sqlite3.connect(f"file:{path}?mode=ro", uri=True) as connection:
@@ -57,6 +58,7 @@ class AccountRiskSnapshotReadOnlyTest(unittest.TestCase):
 
     def test_corrupt_account_risk_state_fails_closed_without_further_mutation(self):
         with sqlite3.connect(self.path) as connection:
+            connection.execute("PRAGMA ignore_check_constraints=ON")
             connection.execute(
                 "UPDATE paper_account_risk_state SET risk_ready=7 WHERE account_id=1"
             )
