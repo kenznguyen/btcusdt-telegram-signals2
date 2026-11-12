@@ -4,7 +4,7 @@ Date: 2026-11-12
 Repository: `kenznguyen/btcusdt-telegram-signals2`  
 Branch: `feature/core-operational-proof-20261112`  
 Baseline source SHA: `2de2c09af99d782c0f0fa4884c21d2ee3abb3dee`  
-Latest CI source SHA: `c7f835c5780800f9f51801a0c69c83ec802b91dc`  
+Latest CI source SHA: `837f0bb718ec2f7c91543cf9ca3f0fdd17d76fe1`  
 Uploaded source archive SHA-256: `147433ac9a031e3cdc3cda6eb76119310b3adbcc80782877c6f4f4bedd1d9991`
 
 ## Scope recorded
@@ -58,3 +58,31 @@ Uploaded source archive SHA-256: `147433ac9a031e3cdc3cda6eb76119310b3adbcc807828
 ## Next bounded step
 
 Next bounded step: implement the separately approved minimum Core one-shot CLI/config/preflight contract (`python -m core_runtime --config <paper-config>`). Preserve PAPER-only mode, `ai_execution_enabled=false`, explicit existing ledger path, read-only risk snapshot preflight, and fail-closed behavior before any ledger mutation. Do not add implicit SQLite creation/migrations. Keep Strategy Core logic, Core leverage, Shared Risk Engine, PaperLedger schema, AI, T0, and VPS unchanged.
+
+
+## Core paper preflight CLI increment — 2026-11-12
+
+- Implemented `core_runtime/__main__.py` as a **read-only preflight CLI**, not a completed Core decision-cycle runner.
+- Config contract: explicit JSON file; exact allowed keys `mode`, `ai_execution_enabled`, `ledger_path`; requires `PAPER`, boolean false, and explicit ledger path.
+- Fail-closed checks: config existence/schema, exchange credential environment variables, AI execution environment flag, ledger file existence, and ledger path equality with `MARKET_DATA_DB`.
+- Reads `read_account_risk_snapshot()` only after confirming the ledger file exists. It does not construct `PaperLedger`, create a database, run migrations, or write ledger state.
+- Successful output explicitly reports `status=PREFLIGHT_PASS` and `decisionCycle=NOT_RUN`. This must not be described as a trading signal, paper admission, fill, or complete runtime.
+- CLI contract tests: **PASS 5/5** in run #85. The tests cover help, missing config, LIVE rejection, AI-enabled config rejection, and missing ledger rejection before SQLite creation.
+- Run #84: **FAIL / SUPERSEDED WORKFLOW EXPECTATION** — source `aad101268733c008cfd2c8bd4f390d306b34d232`; the old workflow still expected the runner tests to be RED, but the new CLI tests passed, so the stale RED gate deliberately failed. No application regression was identified by this failure. Artifact ID `13964248211`, size 2,352 bytes, SHA-256 `acf464247d24c8ae017dcb9f6195e46b254920114cf76d34036f4a47a3c44c33`.
+- Updated workflow gate in commit `837f0bb718ec2f7c91543cf9ca3f0fdd17d76fe1` to require the CLI contract GREEN and to report `CORE_RUNTIME_DECISION_CYCLE=NOT_IMPLEMENTED`.
+- Run #85: **PASS** — [run 43263836471](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43263836471), exact head SHA `837f0bb718ec2f7c91543cf9ca3f0fdd17d76fe1`; all 14 workflow steps SUCCESS, including compile, live-data probe, Core regressions, CLI 5/5, adapter 6/6, Core-First operational proof and shared risk/PaperLedger regressions.
+  - Artifact: `core-first-code-operational-proof-43263836471`, ID `13964263345`, size 5,313 bytes, SHA-256 `6348d70690f7b7fd78f218a97c9715e05a2a945a215e11bdf1c703eb43612564`, expires `2026-11-19T16:55:02Z`.
+
+## Current disposition after run #85
+
+- Core strategy/signal regressions: **PASS**.
+- Producer-to-validator adapter: **IMPLEMENTED / PASS 6/6**.
+- Core CLI safety contract: **PASS 5/5**.
+- Core paper preflight CLI: **IMPLEMENTED / CI PASS**, read-only only.
+- Actual Core decision cycle (load validated M15/H1/book inputs, call Strategy Core, validate and submit through PaperLedger): **NOT IMPLEMENTED**.
+- Positive preflight against a fully initialized and risk-ready disposable dual-ledger database: **NOT VERIFIED** by this CLI contract test set.
+- VPS runtime, persistent host installation, process supervision, scheduler/daemon and deployment: **NOT STARTED / NOT AUTHORIZED** in this increment.
+
+## Next bounded step
+
+Add isolated tests proving the preflight risk-snapshot path is read-only and fails closed on an existing but incomplete/corrupt disposable ledger without changing its bytes or schema. Separately establish a versioned input-bundle contract for the actual one-shot decision cycle before implementation. Keep Core strategy, leverage, Shared Risk Engine, PaperLedger schema, AI, T0, VPS and live execution unchanged.
