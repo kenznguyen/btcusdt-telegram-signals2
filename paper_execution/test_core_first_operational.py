@@ -191,12 +191,56 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
         )
         self.assertEqual(entry["status"], "FILLED", entry)
 
-        # This currently reproduces a precision mismatch: the ledger records
-        # equity at Decimal precision 80, while the read-only risk snapshot
-        # recalculates it with the default Decimal precision.
         from paper_execution.ledger import read_account_risk_snapshot
         risk = read_account_risk_snapshot(self.path, now_ms=self.now)
         self.assertTrue(risk["riskReady"], risk)
+
+        # Move the closed M15 price against the open long position to exercise
+        # the real Smart DCA decision and paper submission path.
+        dca_rows = [dict(row) for row in self.m15_rows]
+        dca_close = self.close * 0.97
+        dca_rows[-1].update(
+            open=str(self.close * 0.975),
+            high=str(self.close * 0.98),
+            low=str(self.close * 0.96),
+            close=str(dca_close),
+        )
+        dca_window = window(dca_rows, "15m")
+        dca_window["datasetVersion"] = "sha256:" + "f" * 64
+        dca_book = {
+            "source": "hummingbot",
+            "connector": "binance_perpetual",
+            "symbol": "BTCUSDT",
+            "observedAtMs": self.now,
+            "bids": [{"price": str(dca_close - 0.01), "quantity": "1"}],
+            "asks": [{"price": str(dca_close + 0.01), "quantity": "1"}],
+        }
+        dca_signal = self.decide(m15=dca_window, book=dca_book, adx=50.0)
+        self.assertEqual(dca_signal["source"], "STRATEGY_CORE", dca_signal)
+        self.assertEqual(dca_signal["action"], "BUY", dca_signal)
+        self.assertEqual(dca_signal["reason"], "DCA", dca_signal)
+        self.assertIsNotNone(dca_signal["intent"], dca_signal)
+
+        dca = self.core.submit(
+            dca_signal["intent"], dca_book, self.now, strategy_event="DCA"
+        )
+        self.assertEqual(dca["status"], "FILLED", dca)
+        self.assertTrue(self.core.strategy_state()["dcaUsed"])
+        self.assertEqual(self.ai.snapshot()["positionBase"], "0")
+
+        with sqlite3.connect(self.path) as connection:
+            reservations = connection.execute(
+                """SELECT equity_basis_quote,reserved_margin_quote,
+                          reserved_notional_quote,status
+                   FROM paper_risk_reservations
+                   WHERE strategy_id='STRATEGY_CORE' ORDER BY created_at_ms"""
+            ).fetchall()
+        self.assertEqual(len(reservations), 2)
+        for basis, margin, notional, status in reservations:
+            self.assertLessEqual(Decimal(margin), Decimal(basis) * Decimal("0.01"))
+            self.assertGreater(Decimal(margin), Decimal(basis) * Decimal("0.0099"))
+            self.assertEqual(Decimal(notional), Decimal(margin) * Decimal("13"))
+            self.assertEqual(status, "CONSUMED")
 
     def test_kill_switch_rejects_core_entry_without_creating_exposure(self):
         signal = self.decide()
