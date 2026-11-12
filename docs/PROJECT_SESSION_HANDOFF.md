@@ -3995,3 +3995,17 @@ These findings make the current stop condition explicit: completing Trusted Admi
 - The former Scaleway VPS was deleted on 2026-11-11; no replacement host is established. This task did not provision a host, access SSH, install on a persistent host, restart services, configure systemd/autostart, connect to an exchange, touch canonical T0, activate T1/T2, enable AI, or send orders.
 - Next: define Core paper runtime entrypoint and package contract; add reproducible dependency/build metadata; build and independently verify a paper-only bundle; then run bounded R0/R1 smoke/restart tests on disposable isolated state. Host runtime R3 requires separate bounded environment approval.
 - Guardrails unchanged: paper-only; `AI_EXECUTION_ENABLED=false`; no real orders/live trading; no canonical T0 mutation; no VPS provisioning or persistent host operations without separate explicit approval.
+
+
+## 2026-11-12 — Core paper runtime entrypoint contract
+
+- Re-inspected active branch HEAD before work: `c23062db769e72b9728c78816cf2eed4d5bda09b`, branch `feature/core-operational-proof-20261112`.
+- Confirmed `paper_execution/__main__.py` already exists, but it is **initialization-only**: accepts `--db`, constructs `PaperLedger`, prints a snapshot and exits. It does not run the Core decision lifecycle. Do not describe or repurpose it as a Core daemon.
+- Confirmed `pipeline.core_strategy.produce()` is the current Core decision function and consumes M15/H1 windows, paper position, strategy state, book snapshot, time and optional account equity. Core strategy logic and thresholds remain unchanged.
+- Confirmed `PaperLedger` is the paper admission/persistence boundary and `read_snapshot()` is a read-only path. Core-scoped admission must continue through `strategy_id="STRATEGY_CORE"` and the existing Shared Risk Engine/Kill Switch.
+- Added design contract `docs/evidence/CORE_PAPER_RUNTIME_ENTRYPOINT_CONTRACT_2026-11-12.md` in commit `5b87559881ac305a68711c81df75e44113fb315a`.
+- Design decision: first runtime shape is a one-shot Core paper decision runner (proposed `python -m core_runtime --config <paper-config>`), not a daemon. It will orchestrate injected validated inputs, existing Core decision, signal validation and Core-scoped PaperLedger. Initial R0 uses fixtures/disposable SQLite only.
+- Safety invariants: paper-only; `AI_EXECUTION_ENABLED=false`; no exchange credentials/order endpoint/real orders; T0 read-only and canonical T0 never used as ledger target; no Core/risk behavior change; shared risk and Kill Switch remain final admission authority.
+- Contract status: **DESIGN RECORDED; NOT IMPLEMENTED; NOT TESTED**. No source/runtime code changed and no CI run was triggered by this docs-only increment.
+- Next step: inspect `pipeline.core_signal.validate()` and account-risk snapshot contracts, then add RED contract tests for the one-shot runner before implementing it. Keep tests isolated and use disposable state.
+- Explicit restrictions unchanged: no AI execution, T0/T1/T2 runtime change, canonical T0 mutation, exchange connection, persistent host/VPS, SSH, service restart, systemd/autostart, daemon or real orders.
