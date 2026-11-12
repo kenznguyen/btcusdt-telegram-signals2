@@ -319,6 +319,7 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
             Decimal(risk_before_exit["positions"]["STRATEGY_CORE"]["unrealizedPnlQuote"]),
             Decimal("0"),
         )
+        self.assertGreater(Decimal(risk_before_exit["accountEquityQuote"]), Decimal("100"))
 
         # Ask Strategy Core itself to emit FLAT/CLOSE via its take-profit rule.
         exit_rows = [dict(row) for row in self.m15_rows]
