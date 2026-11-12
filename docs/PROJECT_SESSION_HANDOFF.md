@@ -3396,3 +3396,28 @@ Boundaries unchanged: T0 and T1 remain independent (no T1→T0); T0 unchanged; n
 - No immutable batch or manifest publisher work has started. Producer conformance remains **NOT VERIFIED**. Schema v1.0.0 unchanged.
 - Next: wait for exact-head CI, fix compile/format/test findings; perform a source-wide spawn/write-path audit; add deterministic shutdown tests for each owned task group and final persistence ordering. Only then start immutable sealed-batch/manifest implementation.
 - Constraints unchanged: no T1→T0, no T0 changes, no T1→T2 adapter, no VPS/runtime activation/live Binance/trading, no deletion/retention/cleanup/compaction, no strategy/AI/risk changes.
+
+
+### T1 producer conformance — handler drain fail-closed and blocking-write audit (2026-11-12)
+
+- Current T1 source HEAD: `5e38a18682da60c66ed644d88ec9433d196288b5`.
+- PR #1 remains OPEN / DRAFT / UNMERGED on the existing branch `feature/t1-connection-sidecar-integration-20261107`.
+- Audit found the previous main shutdown path logged a 5-second message-handler drain timeout and continued to REST/orderbook shutdown and final CSV flush. A timed-out JoinHandle was consumed by `timeout`, detached, and the program could proceed to flush while the handler was still capable of writing.
+- Added `await_handler_drain`: successful join permits shutdown to continue; handler task failure or timeout returns an error. Main now uses `await_handler_drain(...).await?`, so a drain timeout blocks final CSV and gap persistence instead of logging and continuing.
+- Added tests:
+  - `handler_drain_timeout_is_an_error_not_permission_to_flush`
+  - `handler_drain_completes_successfully_before_final_persistence`
+- Commits:
+  - `237fce5d5cd8a955d0fe4a8966954ed9812221a4` — add handler drain regression tests.
+  - `56f713711dd45486a6c56d3bc1f9d6881178c1d8` — implement fail-closed drain handling.
+  - `5e38a18682da60c66ed644d88ec9433d196288b5` — rustfmt correction.
+- Exact-head CI for SHA `5e38a18682da60c66ed644d88ec9433d196288b5`:
+  - Push [43161941983](https://github.com/kenznguyen/binance-futures-collector/actions/runs/43161941983) — QUEUED at this handoff update.
+  - PR [43161948830](https://github.com/kenznguyen/binance-futures-collector/actions/runs/43161948830) — QUEUED at this handoff update.
+  - Exact-head fmt/Clippy/build/tests/security/Docker/artifact: **NOT VERIFIED** pending these runs.
+- Prior exact-head run on parent SHA `56f713711dd45486a6c56d3bc1f9d6881178c1d8` failed only the Rust format gate because the new assertion needed rustfmt wrapping. Corrected in `5e38a18682da60c66ed644d88ec9433d196288b5`; parent failure is not current-head verification.
+- Source-wide audit identified a remaining global-quiescence blocker: CSV writer uses `tokio::task::spawn_blocking` for buffer creation, row writes, depth-buffer mutation, emergency flush and flush/finalize operations. Aborting/joining an async parent task does not cancel an already-started blocking closure. A blocking closure may therefore continue mutating a CSV file after its parent task has been aborted and joined.
+- Required next producer-side fix: introduce a CSV-writer-owned in-flight blocking-operation barrier. After all producer tasks and the message handler have stopped, close admission to new blocking writes, await every already-started blocking operation, and only then run final CSV flush. Add deterministic regression coverage proving a blocked/in-flight closure prevents the final flush barrier from completing and no new write can enter after closure.
+- This does not authorize changing CSV row/schema contracts. Do not start immutable batch segments or manifest publication until this barrier and exact-head CI pass.
+- Current disposition: handler drain timeout is now fail-closed at source level; exact CI is **NOT VERIFIED**. Global producer quiescence remains **BLOCKED** by in-flight `spawn_blocking` work. Immutable segments/manifest publisher remain **NOT IMPLEMENTED**; T1 producer conformance remains **NOT VERIFIED**.
+- Constraints unchanged: T0/T1 independent; no T1→T0; no T0 edits; no T1→T2 adapter; no VPS/runtime activation/live Binance/trading; no deletion/retention/cleanup/compaction; no strategy/AI/risk changes; schema v1.0.0 frozen.
