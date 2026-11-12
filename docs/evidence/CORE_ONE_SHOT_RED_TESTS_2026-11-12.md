@@ -86,3 +86,29 @@ Next bounded step: implement the separately approved minimum Core one-shot CLI/c
 ## Next bounded step
 
 Add isolated tests proving the preflight risk-snapshot path is read-only and fails closed on an existing but incomplete/corrupt disposable ledger without changing its bytes or schema. Separately establish a versioned input-bundle contract for the actual one-shot decision cycle before implementation. Keep Core strategy, leverage, Shared Risk Engine, PaperLedger schema, AI, T0, VPS and live execution unchanged.
+
+
+## Account-wide risk snapshot read-only verification — 2026-11-12
+
+- Added isolated contract suite: `paper_execution/test_account_risk_snapshot_read_only.py`.
+- Test 1 — ready account: uses a disposable dual-ledger fixture with reconciled account-wide risk state; `read_account_risk_snapshot()` returns PAPER, `liveTradingSupported=false`, `riskReady=true`, equity `100`; SHA-256 of the SQLite file is identical before and after the read.
+- Test 2 — incomplete existing SQLite file: reader fails closed when the migration table is absent; it does not create missing tables or mutate the existing database bytes.
+- Test 3 — corrupt risk state: disposable fixture bypasses SQLite CHECK constraints only to create an invalid `risk_ready=7` row; reader rejects it as `ACCOUNT_RISK_STATE_MISSING_OR_CORRUPT`; database bytes remain identical across the read attempt.
+- Initial run #86: **FAIL / TEST FIXTURE ASSUMPTIONS** — the test expected a normalized migration error although SQLite correctly returned `no such table`; its corruption setup was blocked by the schema CHECK constraint. No reader mutation was observed. The tests were corrected to assert fail-closed SQLite error semantics and use `PRAGMA ignore_check_constraints=ON` solely while constructing the disposable corrupt fixture.
+- Run #87: **PASS** — [run 43265132670](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43265132670), exact source SHA `d182eccc16d982d8500818c4cdd6b9281f50ea93`; all 15 workflow steps SUCCESS, including the dedicated account-risk snapshot suite (3 tests), Core-First operational proof, shared risk and PaperLedger regressions.
+  - Artifact: `core-first-code-operational-proof-43265132670`, ID `13966087498`, size 5,315 bytes, SHA-256 `e0c862e00376fb39e1bfe42bff0cf97c357502756c33cdc1ce3aae936005681d`, expires `2026-11-19T17:02:18Z`.
+- Disposition: account-wide risk snapshot read path **PASS — READ-ONLY AND FAIL-CLOSED VERIFIED** for the tested ready, incomplete and corrupt disposable database cases. No changes to `paper_execution/ledger.py`, schema, migrations, strategy, leverage or risk policy were required.
+- Safety: all data is disposable CI fixture data. Canonical T0, VPS, exchange credentials, network order paths and live trading were not accessed.
+
+## Current disposition after account-risk snapshot test
+
+- Account-wide risk snapshot: **PASS** (3/3 dedicated tests).
+- Positive ready-state read: **PASS**, exact SQLite file digest unchanged.
+- Incomplete existing DB: **PASS**, fails closed without initialization or mutation.
+- Corrupt account-risk row: **PASS**, fails closed without mutation.
+- Preflight CLI still only reports `decisionCycle=NOT_RUN`; actual Core decision cycle remains **NOT IMPLEMENTED**.
+- VPS runtime/deployment remains **NOT STARTED / NOT AUTHORIZED**.
+
+## Next step (not automatically executed)
+
+Freeze and review a versioned input-bundle contract for the actual Core one-shot decision cycle. No implementation of that next phase is included in this approval.
