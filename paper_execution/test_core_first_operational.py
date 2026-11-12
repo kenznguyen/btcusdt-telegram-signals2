@@ -1633,5 +1633,30 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
             ).fetchone()[0], 0)
 
 
+    def test_missing_kill_switch_state_fails_closed_for_core_admission(self):
+        with sqlite3.connect(self.path) as connection:
+            connection.execute("DROP TABLE paper_risk_control")
+        signal = self.decide()
+        intent = dict(signal["intent"])
+        intent.update({
+            "intentId": "core-missing-kill-switch-state",
+            "decisionAtMs": self.now,
+            "validUntilMs": self.now + 60_000,
+            "inputSnapshotId": "fixture:core-missing-kill-switch-state",
+        })
+        with self.assertRaisesRegex(sqlite3.DatabaseError, "RISK_CONTROL_STATE_MISSING"):
+            self.core.submit(intent, dict(self.book), self.now, strategy_event="ENTRY")
+        with sqlite3.connect(self.path) as connection:
+            self.assertEqual(connection.execute(
+                "SELECT COUNT(*) FROM paper_orders WHERE strategy_id='STRATEGY_CORE'"
+            ).fetchone()[0], 0)
+            self.assertEqual(connection.execute(
+                "SELECT COUNT(*) FROM paper_risk_reservations WHERE strategy_id='STRATEGY_CORE'"
+            ).fetchone()[0], 0)
+            self.assertEqual(connection.execute(
+                "SELECT COUNT(*) FROM paper_account_event_journal WHERE strategy_id='STRATEGY_CORE' AND event_type='FILL'"
+            ).fetchone()[0], 0)
+
+
 if __name__ == "__main__":
     unittest.main()
