@@ -1784,9 +1784,20 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
             self.assertEqual(connection.execute(
                 "SELECT COUNT(*) FROM paper_account_event_journal WHERE strategy_id='STRATEGY_CORE' AND event_type='FILL'"
             ).fetchone()[0], 2)
-            self.assertEqual(connection.execute(
-                "SELECT COUNT(*) FROM paper_risk_reservations WHERE strategy_id='STRATEGY_CORE'"
-            ).fetchone()[0], 1)
+            reservation_rows = connection.execute(
+                """SELECT intent_id,reservation_kind,status,reserved_margin_quote,
+                          remaining_notional_quote
+                   FROM paper_risk_reservations WHERE strategy_id='STRATEGY_CORE'
+                   ORDER BY intent_id"""
+            ).fetchall()
+        self.assertEqual(len(reservation_rows), 2, reservation_rows)
+        by_kind = {row[1]: row for row in reservation_rows}
+        self.assertIn("ENTRY", by_kind)
+        self.assertIn("BOOK_DEPTH", by_kind)
+        self.assertEqual(by_kind["ENTRY"][2], "CONSUMED")
+        self.assertEqual(by_kind["BOOK_DEPTH"][2], "CONSUMED")
+        self.assertEqual(Decimal(by_kind["BOOK_DEPTH"][3]), Decimal("0"))
+        self.assertEqual(Decimal(by_kind["BOOK_DEPTH"][4]), Decimal("0"))
 
     def test_kill_switch_reset_race_with_core_entry_is_serialized(self):
         self.core.set_killed(True, self.now, "RESET_VS_ENTRY_RACE")
