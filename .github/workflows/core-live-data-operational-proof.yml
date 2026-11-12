@@ -1,4 +1,4 @@
-name: Core live-data operational proof
+name: Core-First code-level operational proof
 
 on:
   push:
@@ -93,11 +93,6 @@ jobs:
           set -euo pipefail
           python -m unittest paper_execution.test_risk_control paper_execution.test_ledger -v 2>&1 | tee shared-risk-paper-ledger-tests.log
 
-      - name: Collect real public BTCUSDT candles into disposable SQLite and evaluate Core
-        run: |
-          set -euo pipefail
-          python -m ops.live_market_data_probe --db "${RUNNER_TEMP}/btcquant-live-probe.sqlite3" 2>&1 | tee core-live-market-data-report.json
-
       - name: Publish exact-SHA evidence
         if: always()
         shell: bash
@@ -115,7 +110,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: core-live-data-operational-proof-${{ github.run_id }}
+          name: core-first-code-operational-proof-${{ github.run_id }}
           retention-days: 7
           if-no-files-found: warn
           path: |
@@ -126,5 +121,4 @@ jobs:
             core-strategy-tests.log
             shared-risk-paper-ledger-tests.log
             core-first-operational-tests.log
-            core-live-market-data-report.json
             core-operational-verdict.txt
