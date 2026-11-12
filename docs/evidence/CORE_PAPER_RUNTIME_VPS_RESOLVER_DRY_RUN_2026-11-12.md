@@ -278,3 +278,57 @@ The approved scope was limited to the two pure unittest modules. No application 
 ### Next gate and restrictions
 
 The next possible gate is a separately scoped review and approval of disposable SQLite-backed sizing/ledger/shared-risk tests. Before that gate, define and verify the exact disposable database path and prove it cannot alias canonical T0. Do not run broad operational/concurrency suites, implement or launch the Core runtime, access canonical T0, activate AI, or enable live execution without separate explicit approval.
+
+
+## SQLite-backed Core sizing / PaperLedger / risk-control test isolation review — 2026-11-12
+
+### Review scope and source identity
+
+Read-only source review at code baseline `4af5bf0536c8b45f59033f0bc38625a031621c3e` on `feature/core-operational-proof-20261112`. This increment selected candidate tests and inspected their database path behavior. No SQLite-backed test was executed in this review.
+
+Reviewed source blobs:
+- `pipeline/test_core_sizing.py`: `0ec23eecaf0f1b130b9dce51ff9cee16cad35cfb`
+- `risk_policy.py`: `91b46513041033cbcd7e939ed081b71714c82ff3`
+- `pipeline/core_strategy.py`: `f714b6b6dc0822400b6997feb0a8c2f07886aaed`
+- `pipeline/api.py`: `d0217944bbfa9b864b0f259e0091daf9a989d180`
+- `paper_execution/ledger.py`: `c2ef74364eb047f74ce0d99f1ed784acd1bec80b`
+- `paper_execution/test_ledger.py`: `0c05ae1ed0d9526978f8a90c983957dbd7baed5a`
+- `paper_execution/test_risk_control.py`: `5e1fdf60f9c2988d8e44e2019aa12de11c0dde9d`
+
+### Disposable database boundary findings
+
+- `paper_execution/test_risk_control.py` creates a `tempfile.TemporaryDirectory()` per test and opens only `risk.sqlite3` under that directory. It contains 7 tests for pause/kill persistence, reset gates, missing singleton state, and corrupt latch state.
+- `paper_execution/test_ledger.py` creates a `tempfile.TemporaryDirectory()` per test and passes `shared.sqlite3` under that directory to `PaperLedger`. The constructor creates the parent directory, opens the supplied SQLite path, enables WAL and initializes/updates Paper tables. It contains 19 tests; one test invokes `python -m paper_execution --db <temporary-path>` in a subprocess and is excluded from the first bounded run. The remaining 18 tests exercise local PaperLedger persistence, fills, idempotency, risk latch and exposure-reduction behavior; concurrency tests use threads against the same temporary fixture.
+- These two test modules do not use `MARKET_DATA_DB` as their fixture path. Their database writes are scoped to per-test temporary directories, provided execution uses the exact named test methods and the standard temporary-directory implementation.
+- Do not set a production `MARKET_DATA_DB`, pass any T0/T1 path, or run broad discovery. Do not invoke the excluded CLI subprocess test in the first bounded run.
+
+### Blocking policy inconsistency in Core sizing tests
+
+The reviewed source currently hardcodes the Core leverage policy to 13x:
+- `risk_policy.py`: `CORE_LEVERAGE = Decimal("13")`.
+- `pipeline/core_strategy.py`: `LEVERAGE = float(CORE_LEVERAGE)`.
+- `paper_execution/ledger.py`: Core-scoped `PaperLedger` rejects leverage unequal to `CORE_LEVERAGE` with `CORE_LEVERAGE_POLICY_MISMATCH`.
+- `pipeline/test_core_sizing.py` explicitly asserts 13x and expects entry/DCA sizing based on 13x.
+
+This conflicts with the currently recorded project direction that Strategy Core must not retain a fixed 13x leverage policy. Therefore the full `pipeline.test_core_sizing` module is **BLOCKED / NOT SELECTED** until the owner-approved leverage policy is reconciled with the checked-in source and tests. Do not use a passing legacy 13x test as evidence of current policy compliance.
+
+### Candidate bounded execution set — pending separate approval
+
+- `paper_execution.test_risk_control.PersistentRiskControlTest`: 7 named tests.
+- `paper_execution.test_ledger.PaperLedgerTest`: 18 named tests, excluding `test_explicit_local_cli_initializes_paper_state_without_changing_candles` because it launches a subprocess CLI.
+- Candidate total: 25 tests. These establish isolated SQLite persistence and local PaperLedger/risk-control behavior only; they do **not** establish Core-specific sizing parity or the complete account-wide Shared Risk Engine contract.
+- The large `paper_execution/test_core_first_operational.py` integration/concurrency fixture was not selected in this review. It requires a separate targeted audit of fixture cloning, environment and process behavior before any execution.
+- Full test discovery and the full suite remain excluded.
+
+### Gate disposition
+
+- Source and fixture isolation review: **PASS WITH LIMITS** for the two named modules and per-test TemporaryDirectory paths.
+- Core sizing module: **BLOCKED** by the fixed-13x policy mismatch.
+- Candidate 25 isolated SQLite tests: **SELECTED; NOT RUN; separate execution approval required**.
+- Account-wide Core Shared Risk Engine integration: **NOT VERIFIED by the candidate 25 tests**.
+- Canonical T0: **NOT ACCESSED**.
+- No source/runtime code, database, service, or VPS state was changed by this review.
+
+### Next step
+
+Reconcile the Core leverage policy before selecting any Core sizing test. Separately obtain owner approval to execute only the 25 named risk-control and PaperLedger tests in the disposable venv, with no CLI subprocess test, no broad discovery, no production database path, no T0 access, no runtime launch and no real orders.
