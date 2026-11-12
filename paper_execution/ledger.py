@@ -2303,10 +2303,15 @@ class PaperLedger:
 
     def set_killed(self, enabled, now_ms, reason="OPERATOR_KILL_SWITCH"):
         now = stamp(now_ms)
-        with closing(self.connect()) as connection, connection:
-            connection.execute("BEGIN IMMEDIATE")
-            risk_control.set_kill(connection, enabled, now, reason)
-            self.audit(connection, now, "KILL_SWITCH", {"enabled": enabled, "reason": reason})
+        with closing(self.connect()) as connection:
+            # Commit the safety latch before writing the secondary audit record.
+            # An audit-store failure must never roll back Kill Switch activation.
+            with connection:
+                connection.execute("BEGIN IMMEDIATE")
+                risk_control.set_kill(connection, enabled, now, reason)
+            with connection:
+                connection.execute("BEGIN IMMEDIATE")
+                self.audit(connection, now, "KILL_SWITCH", {"enabled": enabled, "reason": reason})
         return self.snapshot()
 
     def reset_kill(self, acknowledge, ready, now_ms):
