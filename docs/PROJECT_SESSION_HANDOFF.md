@@ -3449,3 +3449,26 @@ Boundaries unchanged: T0 and T1 remain independent (no T1→T0); T0 unchanged; n
 - Exact-head PR workflow [43162245242](https://github.com/kenznguyen/binance-futures-collector/actions/runs/43162245242) — QUEUED at this update. Exact-head push workflow not yet visible at this update. CI remains **NOT VERIFIED**.
 - No code changes to T0, frozen schema, CSV row schema, data transport, strategy or risk. T1→T2 adapter remains out of scope.
 - Remaining blocker is still the CSV writer's in-flight `spawn_blocking` operation barrier; do not proceed to immutable segments or manifest publication before it is closed and tested.
+
+
+### T1 producer conformance — test visibility fixes and symbol discovery handle type finding (2026-11-12)
+
+- T1 PR #1 remains OPEN / DRAFT / UNMERGED. Existing branch retained.
+- The two Clippy compile errors seen at SHA `5e38a18682da60c66ed644d88ec9433d196288b5` were corrected:
+  - CSV background-task shutdown test now defines its own local `test_writer` helper within the test module.
+  - WebSocket shutdown test imports `join_websocket_tasks` into its test module.
+- Commits:
+  - `fab87b37c5068c41f43cde11dc8c507c858dc010` — fix CSV test helper scope.
+  - `31f66142d4ee65987cbe531f5f9a3d97aaf99c54` — import WebSocket join helper in test module.
+- CI at SHA `31f66142d4ee65987cbe531f5f9a3d97aaf99c54`:
+  - Push run [43162106634](https://github.com/kenznguyen/binance-futures-collector/actions/runs/43162106634): Rust format PASS; Clippy FAIL; build/tests/artifact skipped.
+  - PR run [43162112374](https://github.com/kenznguyen/binance-futures-collector/actions/runs/43162112374) was still running at the time of this update.
+  - Clippy log showed a separate compile error in `src/main.rs`: `symbol_discovery_join` if branch returned a bare JoinHandle while else branch returned `None` (expected `Option<JoinHandle<_>>`).
+- Current T1 PR head subsequently advanced to `9d9d9f29a8b2d801d2c2d7b3fa45121cd1320599`, commit message `Wrap optional symbol discovery task handle`. This is the current source SHA observed during this update; the commit's change has not yet been accepted as CI PASS.
+- Exact-head CI at SHA `9d9d9f29a8b2d801d2c2d7b3fa45121cd1320599`:
+  - Push [43162239707](https://github.com/kenznguyen/binance-futures-collector/actions/runs/43162239707): Dashboard Backend PASS, Dashboard Frontend PASS; collector fmt/Clippy/test, Security and Docker were still in progress at last check.
+  - PR [43162245242](https://github.com/kenznguyen/binance-futures-collector/actions/runs/43162245242): Dashboard Backend PASS, Dashboard Frontend PASS; collector fmt/Clippy/test, Security and Docker were still in progress at last check.
+  - These workflows are associated with exact current HEAD but are not complete; overall exact-head CI **NOT VERIFIED**.
+- In-flight `spawn_blocking` remains the global quiescence blocker described above. Need a writer-owned admission-close/in-flight-operation barrier before final CSV flush. Do not start immutable segments or manifest publisher.
+- Status: test visibility fixes committed; symbol discovery optional-handle correction committed at latest head but CI pending; producer quiescence **BLOCKED**; immutable batch/manifest **NOT IMPLEMENTED**; T1 producer conformance **NOT VERIFIED**.
+- Boundaries unchanged: T0/T1 independent; no T1→T0; no T0 changes; no T1→T2 adapter; no VPS/runtime/live Binance/trading; no data deletion/retention/cleanup/compaction; no strategy/AI/risk changes; schema v1.0.0 frozen.
