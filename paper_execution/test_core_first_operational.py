@@ -1,5 +1,6 @@
 import os
 import json
+import multiprocessing
 from concurrent.futures import ThreadPoolExecutor
 from threading import Barrier
 import sqlite3
@@ -41,6 +42,41 @@ def window(rows, timeframe):
         "coverage": {"expected": len(rows), "returned": len(rows), "complete": True},
         "datasetVersion": "sha256:" + ("a" if timeframe == "15m" else "b") * 64,
     }
+
+
+def _multiprocess_core_entry_worker(database_path, intent, book, now, barrier, result_queue):
+    try:
+        ledger = PaperLedger(
+            database_path, max_position_base="1", fee_rate="0.001",
+            strategy_id="STRATEGY_CORE", source_sha="c" * 40,
+            risk_limits={
+                "maxDrawdownPct": "50",
+                "maxDailyLossUsdt": "50",
+                "maxExposureUsdt": "1000",
+            },
+            require_risk_limits=True, apply_migrations=False,
+        )
+        barrier.wait(timeout=15)
+        order = ledger.submit(
+            intent, book, now, strategy_event="ENTRY"
+        )
+        result_queue.put({"ok": True, "order": order})
+    except BaseException as exc:
+        result_queue.put({"ok": False, "error": repr(exc)})
+        raise
+
+
+def _hold_sqlite_write_transaction(database_path, acquired_event):
+    connection = sqlite3.connect(database_path, timeout=10)
+    try:
+        connection.execute("BEGIN IMMEDIATE")
+        connection.execute(
+            "INSERT INTO process_crash_probe(marker) VALUES ('uncommitted')"
+        )
+        acquired_event.set()
+        multiprocessing.Event().wait(60)
+    finally:
+        connection.close()
 
 
 class CoreFirstOperationalProofTest(unittest.TestCase):
@@ -562,6 +598,157 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
         self.assertEqual(self.core.snapshot()["positionBase"], str(target))
         self.assertTrue(self.core.snapshot()["riskControl"]["killed"])
 
+
+
+    def test_multiprocess_core_entry_contention_serializes_all_clients(self):
+        signal = self.decide()
+        self.assertEqual(signal["action"], "BUY", signal)
+        base_intent = dict(signal["intent"])
+        target = Decimal(base_intent["targetPositionBase"])
+        stress_path = Path(self.temp.name) / "core-multiprocess-contention.sqlite3"
+        with sqlite3.connect(self.path) as source, sqlite3.connect(stress_path) as target_db:
+            source.backup(target_db)
+
+        context = multiprocessing.get_context("spawn")
+        client_count = 6
+        barrier = context.Barrier(client_count)
+        result_queue = context.Queue()
+        processes = []
+        for index in range(client_count):
+            intent = dict(base_intent)
+            intent.update({
+                "intentId": f"core-multiprocess-{index}",
+                "decisionAtMs": self.now,
+                "validUntilMs": self.now + 30_000,
+                "inputSnapshotId": f"fixture:core-multiprocess-{index}",
+            })
+            process = context.Process(
+                target=_multiprocess_core_entry_worker,
+                args=(str(stress_path), intent, dict(self.book), self.now, barrier, result_queue),
+            )
+            processes.append(process)
+
+        try:
+            for process in processes:
+                process.start()
+            results = [result_queue.get(timeout=45) for _ in processes]
+            for process in processes:
+                process.join(timeout=15)
+                self.assertFalse(process.is_alive(), f"process {process.pid} did not exit")
+                self.assertEqual(process.exitcode, 0)
+        finally:
+            for process in processes:
+                if process.is_alive():
+                    process.terminate()
+                    process.join(timeout=5)
+            result_queue.close()
+
+        self.assertTrue(all(result["ok"] for result in results), results)
+        orders = [result["order"] for result in results]
+        fills = [order for order in orders if Decimal(order["filledBase"]) > 0]
+        self.assertEqual(len(fills), 1, orders)
+        self.assertEqual(
+            sum((Decimal(order["filledBase"]) for order in orders), Decimal("0")),
+            target,
+        )
+        self.assertTrue(all(order["status"] == "FILLED" for order in orders), orders)
+
+        with sqlite3.connect(stress_path) as connection:
+            self.assertEqual(
+                connection.execute("PRAGMA integrity_check").fetchone()[0], "ok"
+            )
+            order_count = connection.execute(
+                """SELECT COUNT(*) FROM paper_orders
+                   WHERE account_id=1 AND strategy_id='STRATEGY_CORE'"""
+            ).fetchone()[0]
+            fill_count = connection.execute(
+                """SELECT COUNT(*) FROM paper_account_event_journal
+                   WHERE account_id=1 AND strategy_id='STRATEGY_CORE'
+                     AND event_type='FILL'"""
+            ).fetchone()[0]
+            reservation_count = connection.execute(
+                """SELECT COUNT(*) FROM paper_risk_reservations
+                   WHERE account_id=1 AND strategy_id='STRATEGY_CORE'"""
+            ).fetchone()[0]
+            ai_order_count = connection.execute(
+                "SELECT COUNT(*) FROM paper_orders WHERE strategy_id='AI_FREQAI'"
+            ).fetchone()[0]
+        self.assertEqual(order_count, client_count)
+        self.assertEqual(fill_count, 1)
+        self.assertEqual(reservation_count, 1)
+        self.assertEqual(ai_order_count, 0)
+        self.assertEqual(
+            PaperLedger(
+                stress_path, max_position_base="1", fee_rate="0.001",
+                strategy_id="STRATEGY_CORE", source_sha="c" * 40,
+                risk_limits={
+                    "maxDrawdownPct": "50",
+                    "maxDailyLossUsdt": "50",
+                    "maxExposureUsdt": "1000",
+                },
+                require_risk_limits=True, apply_migrations=False,
+            ).snapshot()["positionBase"],
+            str(target),
+        )
+
+
+    def test_interrupted_sqlite_writer_rolls_back_and_database_recovers(self):
+        recovery_path = Path(self.temp.name) / "core-interrupted-writer.sqlite3"
+        with sqlite3.connect(self.path) as source, sqlite3.connect(recovery_path) as target_db:
+            source.backup(target_db)
+        with sqlite3.connect(recovery_path) as connection:
+            connection.execute(
+                "CREATE TABLE process_crash_probe (marker TEXT NOT NULL)"
+            )
+
+        context = multiprocessing.get_context("spawn")
+        acquired = context.Event()
+        process = context.Process(
+            target=_hold_sqlite_write_transaction,
+            args=(str(recovery_path), acquired),
+        )
+        process.start()
+        try:
+            self.assertTrue(acquired.wait(timeout=20), "writer never acquired BEGIN IMMEDIATE")
+            process.terminate()
+            process.join(timeout=10)
+            self.assertFalse(process.is_alive())
+        finally:
+            if process.is_alive():
+                process.kill()
+                process.join(timeout=5)
+
+        with sqlite3.connect(recovery_path, timeout=10) as connection:
+            self.assertEqual(
+                connection.execute("PRAGMA integrity_check").fetchone()[0], "ok"
+            )
+            self.assertEqual(
+                connection.execute(
+                    "SELECT COUNT(*) FROM process_crash_probe WHERE marker='uncommitted'"
+                ).fetchone()[0],
+                0,
+            )
+
+        signal = self.decide()
+        recovered_ledger = PaperLedger(
+            recovery_path, max_position_base="1", fee_rate="0.001",
+            strategy_id="STRATEGY_CORE", source_sha="c" * 40,
+            risk_limits={
+                "maxDrawdownPct": "50",
+                "maxDailyLossUsdt": "50",
+                "maxExposureUsdt": "1000",
+            },
+            require_risk_limits=True, apply_migrations=False,
+        )
+        recovered_order = recovered_ledger.submit(
+            signal["intent"], dict(self.book), self.now, strategy_event="ENTRY"
+        )
+        self.assertGreater(Decimal(recovered_order["filledBase"]), Decimal("0"))
+        self.assertEqual(recovered_ledger.snapshot()["positionBase"], signal["intent"]["targetPositionBase"])
+        with sqlite3.connect(recovery_path) as connection:
+            self.assertEqual(
+                connection.execute("PRAGMA integrity_check").fetchone()[0], "ok"
+            )
 
 
     def test_repeated_multi_client_entry_stress_has_no_duplicate_or_orphan_reservations(self):
