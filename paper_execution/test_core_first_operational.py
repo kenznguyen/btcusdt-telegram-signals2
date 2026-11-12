@@ -1658,5 +1658,53 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
             ).fetchone()[0], 0)
 
 
+    def test_kill_switch_activation_latches_even_when_audit_write_fails(self):
+        with sqlite3.connect(self.path) as connection:
+            connection.execute("DROP TABLE paper_audit")
+        with self.assertRaises(sqlite3.OperationalError):
+            self.core.set_killed(True, self.now, "AUDIT_STORAGE_FAILURE")
+        state = self.core.snapshot()
+        self.assertTrue(state["riskControl"]["killed"])
+        signal = self.decide()
+        blocked_intent = dict(signal["intent"])
+        blocked_intent.update({
+            "intentId": "core-kill-audit-failure-blocked-entry",
+            "decisionAtMs": self.now + 1,
+            "validUntilMs": self.now + 30_001,
+            "inputSnapshotId": "fixture:core-kill-audit-failure-blocked-entry",
+        })
+        blocked_book = dict(self.book)
+        blocked_book["observedAtMs"] = self.now + 1
+        blocked = self.core.submit(
+            blocked_intent, blocked_book, self.now + 1, strategy_event="ENTRY"
+        )
+        self.assertEqual(blocked["reason"], "KILL_SWITCH")
+        self.assertEqual(self.core.snapshot()["positionBase"], "0")
+
+    def test_kill_switch_reset_stays_latched_when_audit_write_fails(self):
+        self.core.set_killed(True, self.now, "RESET_AUDIT_FAILURE")
+        with sqlite3.connect(self.path) as connection:
+            connection.execute("DROP TABLE paper_audit")
+        with self.assertRaises(sqlite3.OperationalError):
+            self.core.reset_kill(acknowledge=True, ready=True, now_ms=self.now + 1)
+        state = self.core.snapshot()
+        self.assertTrue(state["riskControl"]["killed"])
+        signal = self.decide()
+        blocked_intent = dict(signal["intent"])
+        blocked_intent.update({
+            "intentId": "core-kill-reset-audit-failure-entry",
+            "decisionAtMs": self.now + 2,
+            "validUntilMs": self.now + 30_002,
+            "inputSnapshotId": "fixture:core-kill-reset-audit-failure-entry",
+        })
+        blocked_book = dict(self.book)
+        blocked_book["observedAtMs"] = self.now + 2
+        blocked = self.core.submit(
+            blocked_intent, blocked_book, self.now + 2, strategy_event="ENTRY"
+        )
+        self.assertEqual(blocked["reason"], "KILL_SWITCH")
+        self.assertEqual(self.core.snapshot()["positionBase"], "0")
+
+
 if __name__ == "__main__":
     unittest.main()
