@@ -51,5 +51,21 @@ class PersistentRiskControlTest(unittest.TestCase):
                 set_kill(db, False, self.now)
 
 
+    def test_missing_singleton_row_fails_closed(self):
+        with self.connect() as db:
+            ensure(db)
+            db.execute("DELETE FROM paper_risk_control WHERE id=1")
+            with self.assertRaisesRegex(sqlite3.DatabaseError, "RISK_CONTROL_STATE_MISSING"):
+                risk_block_reason(db)
+
+    def test_corrupt_latch_flags_fail_closed(self):
+        with self.connect() as db:
+            ensure(db)
+            db.execute("PRAGMA ignore_check_constraints=ON")
+            db.execute("UPDATE paper_risk_control SET killed=2 WHERE id=1")
+            with self.assertRaisesRegex(sqlite3.DatabaseError, "RISK_CONTROL_STATE_CORRUPT"):
+                risk_block_reason(db)
+
+
 if __name__ == "__main__":
     unittest.main()
