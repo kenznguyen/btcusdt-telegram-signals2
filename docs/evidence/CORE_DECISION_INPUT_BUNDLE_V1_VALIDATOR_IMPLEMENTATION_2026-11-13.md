@@ -60,3 +60,13 @@ Corrected test blob: `a196466680eb1b9015e2d9039b390089a61dfcb5`.
 Run #93 artifact ID `13967212176`, upload SHA-256 `0d051dd70c880d7fa3b4948265a8b8c08d801135c2df21d3f7dd84b0c058ea45`; payload hash not independently verified.
 
 Disposition: validator implementation remains **BLOCKED pending corrected CI**. No downstream runtime scope is opened.
+
+
+## CI #94 finding and correction
+Run [#94](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43269036006), exact source `eae945d579381afcad1ba9a89092d3fc8ae54554`, failed only in the future-order-book test. Fourteen of 15 validator tests passed. The fixture added 1 ms to an observedAtMs value already 1,000 ms behind decisionAtMs, so it remained in the past and correctly did not raise a future-timestamp error.
+
+The fixture now adds 1,001 ms to make the timestamp strictly future and recomputes bundleId. This is a test-fixture correction; no production validator behavior change is indicated.
+
+Run #94 downstream regression steps were skipped because the workflow is fail-fast. Artifact ID `13967357175`, 3,548 bytes, expires `2026-11-19T17:24:07Z`, upload digest `sha256:41066049784c1dc693c8e83741aa392fdc2215d3f6d45fe9ba2de66668a0c4fa`; payload not independently read back.
+
+Corrected test blob: `f7de191153610abb07eb185a7ad6989f21571743`. Corrected CI #95 is required before promoting GREEN.

@@ -4153,3 +4153,12 @@ These findings make the current stop condition explicit: completing Trusted Admi
 - Run #93 artifact: `core-first-code-operational-proof-43268766381`, ID `13967212176`, 3,762 bytes, expiry `2026-11-19T17:22:35Z`, upload digest `sha256:0d051dd70c880d7fa3b4948265a8b8c08d801135c2df21d3f7dd84b0c058ea45`. Payload not independently downloaded/re-hashed.
 - Corrected validator source blob: `497b94505862fd5d41411c4273e3e7c79340d588`; corrected test blob: `a196466680eb1b9015e2d9039b390089a61dfcb5`.
 - Next run result is pending. Do not promote validator or Core operational status to GREEN until the corrected run completes all steps successfully.
+
+
+### CI correction record — run #94
+- Correction commit `eae945d579381afcad1ba9a89092d3fc8ae54554` triggered run [#94](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43269036006).
+- Run #94 conclusion: **FAIL** in the 15-test validator suite. Compile, live-data probe (4), Core strategy/signal (12), and preflight (5) passed. Fourteen of 15 validator tests passed; the future-book fixture added 1 ms to a timestamp already 1,000 ms behind decision time, so it remained in the past. Downstream regression steps were skipped by fail-fast.
+- Correction: future-book fixture now advances observedAtMs by 1,001 ms from the original now-minus-1,000 value, then recomputes bundleId. No production validator change is indicated.
+- Artifact: `core-first-code-operational-proof-43269036006`, ID `13967357175`, 3,548 bytes, expires `2026-11-19T17:24:07Z`, upload digest `sha256:41066049784c1dc693c8e83741aa392fdc2215d3f6d45fe9ba2de66668a0c4fa`; payload not independently read back.
+- Corrected test blob SHA: `f7de191153610abb07eb185a7ad6989f21571743`.
+- Run #95 is the next verification gate. Do not promote validator to GREEN until it completes all steps successfully.

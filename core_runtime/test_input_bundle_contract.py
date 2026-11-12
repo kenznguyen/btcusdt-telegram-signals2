@@ -177,7 +177,7 @@ class CoreDecisionInputBundleContractTest(unittest.TestCase):
         with self.assertRaisesRegex(Error, "ORDER_BOOK_STALE"):
             validate(stale, max_book_age_ms=5_000)
         future = valid_bundle()
-        future["orderBook"]["observedAtMs"] += 1
+        future["orderBook"]["observedAtMs"] += 1_001
         _rehash(future)
         with self.assertRaisesRegex(Error, "ORDER_BOOK_TIMESTAMP_INVALID"):
             validate(future, max_book_age_ms=5_000)
