@@ -2690,5 +2690,109 @@ os._exit(0)
         self.assertEqual(ai_status, ("PARTIALLY_FILLED",))
 
 
+    def test_cancel_fails_closed_when_reservation_account_does_not_match_order(self):
+        partial = self.core.submit(
+            self.intent("core-cancel-wrong-reservation-account", "0.12", "100.1", "cancel-wrong-account"),
+            {**self.book(self.now), "asks": [{"price": "100.1", "quantity": "0.05"}]},
+            self.now,
+        )
+        with sqlite3.connect(self.path) as connection:
+            connection.execute("PRAGMA foreign_keys=OFF")
+            connection.execute(
+                "UPDATE paper_risk_reservations SET account_id=2 WHERE reservation_id=?",
+                (partial["reservationId"],),
+            )
+
+        with self.assertRaisesRegex(sqlite3.DatabaseError, "RISK_RESERVATION_OWNERSHIP_MISMATCH"):
+            self.core.cancel(partial["orderId"], self.now + 1)
+
+        with sqlite3.connect(self.path) as connection:
+            order_status = connection.execute(
+                "SELECT status FROM paper_orders WHERE order_id=?", (partial["orderId"],)
+            ).fetchone()
+            reservation = connection.execute(
+                "SELECT account_id,status,remaining_notional_quote FROM paper_risk_reservations WHERE reservation_id=?",
+                (partial["reservationId"],),
+            ).fetchone()
+        self.assertEqual(order_status, ("PARTIALLY_FILLED",))
+        self.assertEqual(reservation[0:2], (2, "PARTIAL"))
+        self.assertGreater(Decimal(reservation[2]), Decimal("0"))
+
+
+    def test_cancel_fails_closed_when_order_document_owner_disagrees_with_columns(self):
+        partial = self.core.submit(
+            self.intent("core-cancel-document-owner-mismatch", "0.12", "100.1", "cancel-doc-owner"),
+            {**self.book(self.now), "asks": [{"price": "100.1", "quantity": "0.05"}]},
+            self.now,
+        )
+        with sqlite3.connect(self.path) as connection:
+            row = connection.execute(
+                "SELECT document FROM paper_orders WHERE order_id=?", (partial["orderId"],)
+            ).fetchone()
+            document = json.loads(row[0])
+            document["strategyId"] = "AI_FREQAI"
+            connection.execute(
+                "UPDATE paper_orders SET document=? WHERE order_id=?",
+                (json.dumps(document), partial["orderId"]),
+            )
+
+        with self.assertRaisesRegex(sqlite3.DatabaseError, "RISK_RESERVATION_OWNERSHIP_MISMATCH"):
+            self.core.cancel(partial["orderId"], self.now + 1)
+
+        with sqlite3.connect(self.path) as connection:
+            order_status = connection.execute(
+                "SELECT status FROM paper_orders WHERE order_id=?", (partial["orderId"],)
+            ).fetchone()
+        self.assertEqual(order_status, ("PARTIALLY_FILLED",))
+
+
+    def test_expiry_identity_mismatch_rolls_back_global_sweep_and_target_cancel(self):
+        core_pending = self.core.submit(
+            self.intent("core-cancel-expiry-rollback-target", "0.12", "100.1", "cancel-expiry-rollback"),
+            {**self.book(self.now), "asks": [{"price": "100.1", "quantity": "0.05"}]},
+            self.now,
+        )
+        ai_pending = self.ai.submit(
+            self.intent("ai-cancel-expiry-rollback-expired", "-0.02", "100", "ai-expiry-rollback"),
+            {**self.book(self.now + 1), "bids": [{"price": "100", "quantity": "0.005"}]},
+            self.now + 1,
+        )
+        with sqlite3.connect(self.path) as connection:
+            connection.execute(
+                "UPDATE paper_risk_reservations SET expires_at_ms=? WHERE reservation_id=?",
+                (self.now + 10, ai_pending["reservationId"]),
+            )
+            connection.execute("PRAGMA foreign_keys=OFF")
+            connection.execute(
+                "UPDATE paper_risk_reservations SET account_id=2 WHERE reservation_id=?",
+                (ai_pending["reservationId"],),
+            )
+            before_audit = connection.execute(
+                "SELECT COUNT(*) FROM paper_audit"
+            ).fetchone()[0]
+
+        with self.assertRaisesRegex(sqlite3.DatabaseError, "RISK_RESERVATION_OWNERSHIP_MISMATCH"):
+            self.core.cancel(core_pending["orderId"], self.now + 20)
+
+        with sqlite3.connect(self.path) as connection:
+            core_order = connection.execute(
+                "SELECT status FROM paper_orders WHERE order_id=?", (core_pending["orderId"],)
+            ).fetchone()
+            ai_order = connection.execute(
+                "SELECT status FROM paper_orders WHERE order_id=?", (ai_pending["orderId"],)
+            ).fetchone()
+            ai_reservation = connection.execute(
+                "SELECT account_id,status FROM paper_risk_reservations WHERE reservation_id=?",
+                (ai_pending["reservationId"],),
+            ).fetchone()
+            after_audit = connection.execute(
+                "SELECT COUNT(*) FROM paper_audit"
+            ).fetchone()[0]
+        self.assertEqual(core_order, ("PARTIALLY_FILLED",))
+        self.assertEqual(ai_order, ("PARTIALLY_FILLED",))
+        self.assertEqual(ai_reservation, (2, "PARTIAL"))
+        self.assertEqual(after_audit, before_audit)
+
+
 if __name__ == "__main__":
     unittest.main()
