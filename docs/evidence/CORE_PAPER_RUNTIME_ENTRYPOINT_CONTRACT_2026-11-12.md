@@ -148,3 +148,13 @@ This makes the one-shot flow explicitly two-stage: read-only preflight snapshot,
 ## 10. Revised next step
 
 Before implementing `core_runtime`, add RED tests for (a) producer-to-validator adapter compatibility, (b) account-wide risk snapshot readiness and equity propagation, and (c) no partial writes on preflight failure. Inspect the PaperLedger constructor/migration behavior and choose an explicit no-auto-migration startup policy for runtime; any required schema initialization must be a separately approved disposable-database setup step. Then implement the smallest one-shot adapter/runner without changing strategy or risk behavior.
+
+
+### PaperLedger startup side effects
+
+Inspection of `PaperLedger.__init__()` shows:
+- It creates the parent directory and opens SQLite before checking migrations.
+- For a dual strategy with `apply_migrations=False`, it sets `PRAGMA query_only=ON`, checks migration readiness and returns without running migrations.
+- However, opening SQLite on a missing path can still create an empty database file before the readiness check fails.
+
+Therefore the runtime must first require `Path(db_path).is_file()` and reject a missing path before constructing `PaperLedger`. It must also reject symlinks/path aliases resolving to canonical T0 storage and verify the exact expected disposable ledger identity. Use `strategy_id="STRATEGY_CORE"` and `apply_migrations=False` for runtime admission so the runner cannot silently apply schema migrations. Schema initialization and all required migrations belong in an explicit setup command/test fixture, not the runtime start path. Add a subprocess test proving a missing DB path remains absent after startup rejection, plus a migration-mismatch test proving no schema writes occur.
