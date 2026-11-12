@@ -3377,3 +3377,22 @@ Boundaries unchanged: T0 and T1 remain independent (no T1→T0); T0 unchanged; n
 - Current disposition: REST, CSV, GapRegistry, OrderbookManager and WebSocket task ownership have implementation changes committed; exact current-head CI is **NOT VERIFIED**. Immutable batches/manifest publisher remain **NOT IMPLEMENTED**. Producer conformance remains **NOT VERIFIED**.
 - Next: verify exact-head CI and correct all findings; then retain/stop/join stats report, StatsExporter and symbol discovery tasks; inspect all remaining `tokio::spawn` call sites across producer modules; only after complete quiescence and successful final flushes begin immutable batch and manifest publication.
 - Boundaries unchanged: no T1→T0, no T0 changes, no T1→T2 adapter, no VPS/runtime activation/live Binance/trading, no deletion/retention/cleanup/compaction, no strategy/AI/risk changes, schema v1.0.0 frozen.
+
+
+### T1 producer conformance — final application-owned background tasks (2026-11-12)
+
+- Current T1 source HEAD: `d9870a0247be0d74124ab01979332f7edef26f92`.
+- StatsExporter `start` now returns its JoinHandle to main instead of detaching it.
+- Main retains and stops/joins StatsExporter, the periodic stats report, and optional periodic symbol discovery task.
+- Main shutdown order now includes: stop discovery/stats; abort+join OrderbookManager startup orchestration; signal+join WebSocket route/heartbeat tasks; drain message handler; stop REST; stop+join OrderbookManager workers; stop+join CSV background tasks; final CSV flush; stop+join GapRegistry periodic saver and final gap save.
+- Relevant commits:
+  - `4396b6eae3bcd58ae7fc222d7bf62355e8c50a70` — StatsExporter returns owned task handle.
+  - `d9870a0247be0d74124ab01979332f7edef26f92` — main retains and joins stats/discovery tasks.
+- Exact-head CI:
+  - Push [43160512168](https://github.com/kenznguyen/binance-futures-collector/actions/runs/43160512168) — QUEUED.
+  - PR [43160506604](https://github.com/kenznguyen/binance-futures-collector/actions/runs/43160506604) — QUEUED.
+  - Current exact-source CI **NOT VERIFIED**.
+- This is still an implementation-level shutdown barrier, not a claim of proven quiescence. Exact CI, focused cancellation/join tests, and source-wide audit of every `tokio::spawn`/spawn_blocking path remain required. In particular, inspect whether any task can spawn nested work not owned by the top-level task group and whether cancellation during in-flight async file/network operations leaves writes in progress.
+- No immutable batch or manifest publisher work has started. Producer conformance remains **NOT VERIFIED**. Schema v1.0.0 unchanged.
+- Next: wait for exact-head CI, fix compile/format/test findings; perform a source-wide spawn/write-path audit; add deterministic shutdown tests for each owned task group and final persistence ordering. Only then start immutable sealed-batch/manifest implementation.
+- Constraints unchanged: no T1→T0, no T0 changes, no T1→T2 adapter, no VPS/runtime activation/live Binance/trading, no deletion/retention/cleanup/compaction, no strategy/AI/risk changes.
