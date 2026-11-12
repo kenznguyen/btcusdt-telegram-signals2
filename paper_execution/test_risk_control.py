@@ -31,6 +31,8 @@ class PersistentRiskControlTest(unittest.TestCase):
             self.assertTrue(snapshot(db)["killed"])
             with self.assertRaises(ValueError):
                 reset_kill(db, acknowledge=False, ready=True, at_ms=self.now+1)
+            with self.assertRaises(ValueError):
+                reset_kill(db, acknowledge=True, ready=False, at_ms=self.now+1)
             self.assertEqual(risk_block_reason(db), "KILL_SWITCH")
             reset_kill(db, acknowledge=True, ready=True, at_ms=self.now+2)
             self.assertIsNone(risk_block_reason(db))
