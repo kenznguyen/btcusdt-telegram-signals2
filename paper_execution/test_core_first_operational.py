@@ -1675,11 +1675,20 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
         })
         blocked_book = dict(self.book)
         blocked_book["observedAtMs"] = self.now + 1
-        blocked = self.core.submit(
-            blocked_intent, blocked_book, self.now + 1, strategy_event="ENTRY"
-        )
-        self.assertEqual(blocked["reason"], "KILL_SWITCH")
-        self.assertEqual(self.core.snapshot()["positionBase"], "0")
+        with self.assertRaises(sqlite3.OperationalError):
+            self.core.submit(
+                blocked_intent, blocked_book, self.now + 1, strategy_event="ENTRY"
+            )
+        state_after = self.core.snapshot()
+        self.assertTrue(state_after["riskControl"]["killed"])
+        self.assertEqual(state_after["positionBase"], "0")
+        with sqlite3.connect(self.path) as connection:
+            self.assertEqual(connection.execute(
+                "SELECT COUNT(*) FROM paper_risk_reservations WHERE strategy_id='STRATEGY_CORE'"
+            ).fetchone()[0], 0)
+            self.assertEqual(connection.execute(
+                "SELECT COUNT(*) FROM paper_account_event_journal WHERE strategy_id='STRATEGY_CORE' AND event_type='FILL'"
+            ).fetchone()[0], 0)
 
     def test_kill_switch_reset_stays_latched_when_audit_write_fails(self):
         self.core.set_killed(True, self.now, "RESET_AUDIT_FAILURE")
@@ -1699,11 +1708,20 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
         })
         blocked_book = dict(self.book)
         blocked_book["observedAtMs"] = self.now + 2
-        blocked = self.core.submit(
-            blocked_intent, blocked_book, self.now + 2, strategy_event="ENTRY"
-        )
-        self.assertEqual(blocked["reason"], "KILL_SWITCH")
-        self.assertEqual(self.core.snapshot()["positionBase"], "0")
+        with self.assertRaises(sqlite3.OperationalError):
+            self.core.submit(
+                blocked_intent, blocked_book, self.now + 2, strategy_event="ENTRY"
+            )
+        state_after = self.core.snapshot()
+        self.assertTrue(state_after["riskControl"]["killed"])
+        self.assertEqual(state_after["positionBase"], "0")
+        with sqlite3.connect(self.path) as connection:
+            self.assertEqual(connection.execute(
+                "SELECT COUNT(*) FROM paper_risk_reservations WHERE strategy_id='STRATEGY_CORE'"
+            ).fetchone()[0], 0)
+            self.assertEqual(connection.execute(
+                "SELECT COUNT(*) FROM paper_account_event_journal WHERE strategy_id='STRATEGY_CORE' AND event_type='FILL'"
+            ).fetchone()[0], 0)
 
 
 if __name__ == "__main__":
