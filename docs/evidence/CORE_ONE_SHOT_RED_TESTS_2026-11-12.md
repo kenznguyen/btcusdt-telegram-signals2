@@ -33,7 +33,10 @@ Uploaded source archive SHA-256: `147433ac9a031e3cdc3cda6eb76119310b3adbcc807828
 
 - RED contract: **PASS** (5 tests fail for the expected missing-runner condition).
 - Existing Core strategy/signal regressions: **PASS** (12/12).
-- GitHub Actions execution/artifact: **NOT VERIFIED** until the workflow runs on the updated branch.
+- GitHub Actions run #81: **PASS** — [run 43261623605](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43261623605), conclusion `success`, head SHA `60752460b5fbc50ae97fe3708698e20e72bd5144`.
+- All 13 main workflow steps completed successfully, including Core-First end-to-end paper operational proof and shared risk/PaperLedger regressions.
+- Artifact: `core-first-code-operational-proof-43261623605`, ID `13964625769`, size 5,095 bytes, SHA-256 `a08eb71dfb16c9ef68bc8e7c10a96b154ec8fa63c0679eda8c6795ebeee7758c`, expires `2026-11-19T16:42:41Z`.
+- The workflow validates the intentional RED contract; it does **not** establish that `core_runtime` is implemented.
 - Core one-shot runner: **NOT IMPLEMENTED**.
 
 ## Next bounded step
