@@ -5,7 +5,7 @@ closed BTCUSDT candles and never accesses exchange trading endpoints.
 """
 import math
 import os
-from decimal import Decimal
+from decimal import Decimal, DecimalException, localcontext
 from risk_policy import CORE_LEVERAGE, ORDER_MARGIN_BUDGET_PCT
 from pipeline.values import identity, number, stamp
 
@@ -129,18 +129,37 @@ def _order_margin_and_quantity(account_equity_quote, sizing_price):
     if account_equity_quote is None:
         return None
     try:
-        equity = number(str(account_equity_quote))
+        # Account equity is a validated Decimal from the reconciled ledger.
+        # It can legitimately carry more than 24 fractional digits after
+        # precision-80 reconciliation; the generic market-input parser is
+        # intentionally stricter and must not truncate this internal value.
+        raw_equity = str(account_equity_quote)
+        if not 1 <= len(raw_equity) <= 100:
+            return None
+        equity = Decimal(raw_equity)
+        if (
+            not equity.is_finite() or equity <= 0
+            or len(equity.as_tuple().digits) > 80
+            or not -200 <= equity.as_tuple().exponent <= 200
+            or equity.adjusted() > 24
+        ):
+            return None
         price = number(str(sizing_price))
-        if equity <= 0 or price <= 0:
+        if price <= 0:
             return None
-        margin = equity * ORDER_MARGIN_BUDGET_PCT
-        # A tiny downward guard prevents float serialization from exceeding
-        # the exact Decimal admission budget enforced by the ledger.
-        quantity = margin * CORE_LEVERAGE / price * Decimal("0.999999999999")
-        if quantity <= 0:
+        with localcontext() as context:
+            context.prec = 80
+            margin = equity * ORDER_MARGIN_BUDGET_PCT
+            # A tiny downward guard prevents float serialization from
+            # exceeding the exact Decimal admission budget enforced by ledger.
+            quantity = margin * CORE_LEVERAGE / price * Decimal("0.999999999999")
+        if margin <= 0 or quantity <= 0:
             return None
-        return float(margin), float(quantity)
-    except (TypeError, ValueError, ArithmeticError):
+        margin_float, quantity_float = float(margin), float(quantity)
+        if not math.isfinite(margin_float) or not math.isfinite(quantity_float):
+            return None
+        return margin_float, quantity_float
+    except (DecimalException, TypeError, ValueError, ArithmeticError):
         return None
 
 
