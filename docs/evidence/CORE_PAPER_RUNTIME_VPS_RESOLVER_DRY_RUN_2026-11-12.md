@@ -232,3 +232,49 @@ Selected total: 12 small tests. These tests exercise signal and strategy logic o
 - Database/risk/ledger contract tests: DEFERRED.
 - Core one-shot runtime implementation: NOT IMPLEMENTED.
 - Runtime/VPS readiness: NOT VERIFIED.
+
+## Bounded offline Core contract test execution — 2026-11-12
+
+### Scope and source identity
+
+Following separate owner approval, the two previously selected unittest modules were executed on the owner-operated VPS using the disposable interpreter:
+
+- Repository: `kenznguyen/btcusdt-telegram-signals2`
+- Branch: `feature/core-operational-proof-20261112`
+- Source HEAD at the approved pre-run synchronization gate: `4af5bf0536c8b45f59033f0bc38625a031621c3e`
+- Interpreter: `/tmp/btcquant-preflight-venv/bin/python`
+- Environment: clean `env -i`, `PYTHONPATH=.`, `PYTHONNOUSERSITE=1`, `AI_EXECUTION_ENABLED=false`
+- Exact command target: `python -m unittest pipeline.test_core_signal pipeline.test_core_strategy -v`
+- No test discovery, wildcard selection, or broader suite was invoked.
+
+### Owner-supplied execution result
+
+- `pipeline.test_core_signal`: 6 tests passed.
+- `pipeline.test_core_strategy`: 6 tests passed.
+- Total: 12 tests.
+- Runtime: 0.050 seconds.
+- unittest summary: `Ran 12 tests in 0.050s`; `OK`.
+- Shell exit code: `0`.
+- Failures: 0.
+- Errors: 0.
+
+The passing cases cover LONG/SHORT signal normalization, FLAT/WAIT handling, source/market/direction validation, stale or missing Core artifacts, finite RSI/ADX/DI after warmup, incomplete market-window rejection, Smart DCA intent using fresh account budget, protective exit priority, valid LONG entry, and WAIT when the execution book is missing.
+
+### Gate assessment
+
+- Bounded Core signal contract tests: **PASS (6/6)**.
+- Bounded Core strategy tests: **PASS (6/6)**.
+- Combined selected offline tests: **PASS (12/12)**.
+- Root dependency resolver, wheel download/fingerprinting, temporary venv installation, and import smoke test: **PASS** as recorded above.
+- Account-wide shared-risk admission, kill-switch behavior, PaperLedger persistence/migrations, and Core end-to-end paper execution: **NOT VERIFIED** by these 12 tests.
+- Core one-shot runtime entrypoint: **DESIGN RECORDED; NOT IMPLEMENTED; NOT TESTED**.
+- Core VPS runtime: **NOT STARTED**.
+- AI strategy/runtime: **NOT TESTED; INACTIVE**.
+
+### Safety and non-actions
+
+The approved scope was limited to the two pure unittest modules. No application server, Core runner, daemon, service, systemd/autostart, or exchange connection was started. No database was intentionally opened by the selected test modules; canonical T0 was not accessed. No exchange credentials or real orders were used. No source code was modified by this test run.
+
+### Next gate and restrictions
+
+The next possible gate is a separately scoped review and approval of disposable SQLite-backed sizing/ledger/shared-risk tests. Before that gate, define and verify the exact disposable database path and prove it cannot alias canonical T0. Do not run broad operational/concurrency suites, implement or launch the Core runtime, access canonical T0, activate AI, or enable live execution without separate explicit approval.
