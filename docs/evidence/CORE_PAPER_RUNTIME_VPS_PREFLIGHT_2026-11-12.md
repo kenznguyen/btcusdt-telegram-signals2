@@ -119,3 +119,23 @@ Disposition:
 - The missing `ensurepip` is consistent with the absent `python3.12-venv` package; this does not indicate project dependency incompatibility.
 - No package was installed; no apt update/upgrade or other host mutation was performed.
 Next gate: request explicit approval before installing only the required venv package(s). Prefer `python3.12-venv` to bootstrap pip inside a disposable virtual environment; do not install system-wide `python3-pip` unless a later, separately justified need arises. After approval, verify apt's proposed dependency changes before confirming installation.
+
+
+## Owner-reported venv bootstrap completion (2026-11-12)
+The owner reported successful execution:
+```bash
+python3 -m venv /tmp/btcquant-preflight-venv
+/tmp/btcquant-preflight-venv/bin/python -m pip --version
+```
+Observed:
+- Disposable virtual environment creation: PASS.
+- Python interpreter: CPython 3.12.
+- pip: 24.0, installed inside `/tmp/btcquant-preflight-venv/lib/python3.12/site-packages`.
+- This confirms the previously missing pip bootstrap is resolved within the temporary venv after the owner-approved `python3.12-venv` installation.
+- No system-wide `python3-pip` installation is evidenced.
+- No project requirements have been installed or resolved; no app import/runtime, database access, T0 access, service/autostart or exchange operation has occurred.
+Disposition:
+- Venv bootstrap: **PASS** (owner-reported).
+- Exact ARM64 project dependency resolution: **NOT RUN / NOT VERIFIED**.
+- Core VPS runtime: **NOT STARTED**.
+Next gate: request explicit owner approval for a disk-bounded, no-install pip resolver/download dry-run in a temporary directory on the VPS. It will access package indexes and write only temporary/cache/report data; do not run before approval. Keep AI disabled and all prior paper-only/T0 restrictions.
