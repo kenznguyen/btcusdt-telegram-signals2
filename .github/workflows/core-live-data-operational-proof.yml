@@ -95,7 +95,7 @@ jobs:
       - name: Run shared risk and paper ledger regressions
         run: |
           set -euo pipefail
-          python -m unittest paper_execution.test_risk_control paper_execution.test_ledger paper_execution.test_dual_ledger_red.DualLedgerRedTest.test_entry_and_dca_reserve_one_percent_of_admission_time_equity_per_ledger -v 2>&1 | tee shared-risk-paper-ledger-tests.log
+          python -m unittest paper_execution.test_risk_control paper_execution.test_ledger paper_execution.test_dual_ledger_red.DualLedgerRedTest.test_entry_and_dca_reserve_one_percent_of_admission_time_equity_per_ledger paper_execution.test_dual_ledger_red.DualLedgerRedTest.test_core_kill_latch_is_visible_to_ai_snapshot_without_ai_admission -v 2>&1 | tee shared-risk-paper-ledger-tests.log
 
       - name: Publish exact-SHA evidence
         if: always()
