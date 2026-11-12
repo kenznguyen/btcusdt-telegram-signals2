@@ -445,5 +445,60 @@ class DualStrategyApiScopeRedTest(unittest.TestCase):
         self.assertEqual(after_ai["orders"][0]["strategyId"], "AI_FREQAI")
 
 
+    def test_ai_cancel_succeeds_without_prediction_or_new_admitted_leverage(self):
+        self.activate_dual_schema()
+        order_id = "api-ai-cancel-no-new-leverage"
+        intent_id = "api-ai-cancel-intent"
+        reservation_id = "api-ai-cancel-reservation"
+        order = {
+            "orderId": order_id,
+            "intentId": intent_id,
+            "reservationId": reservation_id,
+            "createdAtMs": 1_800_000_000_000,
+            "status": "OPEN",
+            "filledBase": "0",
+            "remainingBase": "0.01",
+            "strategyId": "AI_FREQAI",
+        }
+        with sqlite3.connect(self.db) as connection:
+            connection.execute(
+                """INSERT INTO paper_orders
+                   (intent_id,payload_hash,order_id,status,document,account_id,
+                    strategy_id,strategy_event,reservation_id,created_schema_version)
+                   VALUES (?,?,?,?,?,1,'AI_FREQAI','ENTRY',?,1)""",
+                (intent_id, "api-ai-cancel-payload", order_id, "OPEN",
+                 json.dumps(order), reservation_id),
+            )
+            connection.execute(
+                """INSERT INTO paper_risk_reservations
+                   (reservation_id,account_id,intent_id,strategy_id,reservation_kind,status,
+                    reserved_margin_quote,remaining_margin_quote,reserved_notional_quote,
+                    remaining_notional_quote,leverage,equity_basis_quote,risk_config_version,
+                    created_at_ms,updated_at_ms,expires_at_ms)
+                   VALUES (?,1,?,'AI_FREQAI','ENTRY','ACTIVE','1','1','3','3','3','100',
+                           'test-risk-v1',1800000000000,1800000000000,1800000030000)""",
+                (reservation_id, intent_id),
+            )
+
+        with patch.object(api, "control_permit", return_value=True):
+            status, result = self.request(
+                "/v1/paper/cancel", {"orderId": order_id}
+            )
+
+        self.assertEqual(status, 200, result)
+        self.assertEqual(result["status"], "CANCELED")
+        self.assertEqual(result["strategyId"], "AI_FREQAI")
+        with sqlite3.connect(self.db) as connection:
+            stored_order = connection.execute(
+                "SELECT status FROM paper_orders WHERE order_id=?", (order_id,)
+            ).fetchone()
+            stored_reservation = connection.execute(
+                "SELECT status,remaining_margin_quote,remaining_notional_quote FROM paper_risk_reservations WHERE reservation_id=?",
+                (reservation_id,),
+            ).fetchone()
+        self.assertEqual(stored_order, ("CANCELED",))
+        self.assertEqual(stored_reservation, ("RELEASED", "0", "0"))
+
+
 if __name__ == "__main__":
     unittest.main()
