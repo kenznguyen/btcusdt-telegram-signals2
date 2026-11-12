@@ -1370,9 +1370,10 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
 
         with sqlite3.connect(kill_path) as connection:
             self.assertEqual(connection.execute("PRAGMA integrity_check").fetchone()[0], "ok")
-            self.assertEqual(connection.execute(
-                "SELECT COUNT(*) FROM paper_orders WHERE strategy_id='STRATEGY_CORE'"
-            ).fetchone()[0], 1)
+            kill_orders = connection.execute(
+                "SELECT order_id,intent_id,status,side,order_type,reservation_id FROM paper_orders WHERE strategy_id='STRATEGY_CORE' ORDER BY intent_id"
+            ).fetchall()
+            self.assertEqual(len(kill_orders), 1, kill_orders)
             kill_reservations = connection.execute(
                 "SELECT reservation_id,intent_id,status,reserved_margin_quote,remaining_notional_quote FROM paper_risk_reservations WHERE strategy_id='STRATEGY_CORE' ORDER BY intent_id"
             ).fetchall()
