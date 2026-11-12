@@ -3739,3 +3739,17 @@ These findings make the current stop condition explicit: completing Trusted Admi
 - Branch comparison from base `eb91528bab2b994f283dbe34cd7b0bcbfe406cb5`: 46 commits ahead, 0 behind. No PR created or merged.
 - Disposition: **PASS — code-level deterministic Core paper lifecycle**. Real-market predictive value, live data-backed evaluation, exchange fill quality, continuous runtime and production readiness remain **NOT VERIFIED**. Synthetic fixtures prove software behavior only.
 - Next bounded step: add equivalent SHORT-side lifecycle and risk/exit regression, retaining the same paper-only and no-runtime constraints.
+
+
+## 2026-11-12 — Core SHORT paper position lifecycle operational proof
+
+- Work branch: `feature/core-operational-proof-20261112`.
+- SHORT lifecycle test added at commit `bdaf510de136b80bebfb3bb7e89abd0bafb3c6df`; workflow integration commit / exact tested SHA: `84df014514c50b11f376ad57e46e5160c4db2ecd`.
+- Scope: deterministic paper-only SHORT `ENTRY → Fill → Smart DCA → Fill → Mark-to-Market → TAKE_PROFIT/CLOSE → realized PnL + fees → account Equity reconciliation → Kill Switch after EXIT → reject next ENTRY`.
+- GitHub Actions run [43202531277](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43202531277), exact head SHA `84df014514c50b11f376ad57e46e5160c4db2ecd`, completed SUCCESS.
+- Evidence from job logs: Python compile PASS; live-data probe contract 4/4 PASS; Core + signal regressions 12/12 PASS; Core operational group including LONG and SHORT 9/9 PASS; shared risk + paper ledger regressions 24/24 PASS; total **49/49 PASS**. Test `test_short_entry_dca_mark_to_market_exit_fees_equity_and_kill_switch` explicitly reported `ok`; verdicts `CORE_POSITION_LIFECYCLE=PASS` and `CORE_SHORT_POSITION_LIFECYCLE=PASS`.
+- Artifact: `core-first-code-operational-proof-43202531277`, ID `13935303625`, size 3,471 bytes, SHA-256 `ad3045206e135301cecffd8838edf06d93263d89925bb692760f6af30e08d322`, expires `2026-11-19T10:41:07Z`. Digest is GitHub artifact metadata; payload has not been independently downloaded and re-hashed.
+- Test covers short ENTRY and Smart DCA, each risk reservation at or below 1% equity, short notional = reserved margin × 13, positive unrealized PnL at mark, realized PnL and exact accumulated fees after exit, account equity reconciliation, zero residual position/unrealized PnL, and Kill Switch rejection of a subsequent ENTRY. AI ledger remains empty.
+- Safety: deterministic fixture + isolated SQLite only; `AI_EXECUTION_ENABLED=false`; no T0/T1/T2 mutation, no exchange credentials, no real orders, no VPS/runtime.
+- Disposition: **PASS — deterministic Core LONG and SHORT lifecycle code proof separately**. Simultaneous LONG/SHORT account-wide exposure/margin contention, real-market OOS, persistent runtime/recovery and production readiness remain **NOT VERIFIED**.
+- Next bounded step: test simultaneous opposing Core paper positions / shared account risk and Kill Switch behavior without changing production contracts unless a failing test proves a narrow defect. Keep AI offline and all runtime/live-order gates closed.
