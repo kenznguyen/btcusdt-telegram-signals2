@@ -115,7 +115,7 @@ class DualLedgerMigrationRedTest(unittest.TestCase):
         legacy_state, legacy_owner, order_count = self.make_legacy_database()
 
         PaperLedger(self.path, max_position_base="1", strategy_id="STRATEGY_CORE", source_sha="b" * 40)
-        PaperLedger(self.path, max_position_base="1", strategy_id="AI_FREQAI", source_sha="b" * 40)
+        PaperLedger(self.path, max_position_base="1", strategy_id="AI_FREQAI", source_sha="b" * 40, leverage="3")
         PaperLedger(self.path, max_position_base="1", strategy_id="STRATEGY_CORE", source_sha="b" * 40)
 
         with sqlite3.connect(self.path) as connection:
