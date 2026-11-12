@@ -156,9 +156,44 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
             self.core.snapshot()["positionBase"],
             signal["intent"]["targetPositionBase"],
         )
-        from paper_execution.ledger import read_account_risk_snapshot
-        post_entry_risk = read_account_risk_snapshot(self.path, now_ms=self.now)
-        self.assertTrue(post_entry_risk["riskReady"], post_entry_risk)
+        with sqlite3.connect(self.path) as connection:
+            capital = Decimal(connection.execute(
+                "SELECT initial_capital FROM paper_accounts WHERE account_id=1"
+            ).fetchone()[0])
+            risk_row = connection.execute(
+                "SELECT last_equity_quote,last_mark_price FROM paper_account_risk_state WHERE account_id=1"
+            ).fetchone()
+            ledger_rows = connection.execute(
+                """SELECT position_base,average_entry_price,realized_pnl_quote,
+                          fees_quote,funding_quote
+                   FROM paper_strategy_ledgers WHERE account_id=1"""
+            ).fetchall()
+            adjustments = connection.execute(
+                """SELECT strategy_id,adjustment_type,amount_quote
+                   FROM paper_account_adjustments WHERE account_id=1"""
+            ).fetchall()
+        realized = sum((Decimal(row[2]) for row in ledger_rows), Decimal(0))
+        fees = sum((Decimal(row[3]) for row in ledger_rows), Decimal(0))
+        funding = sum((Decimal(row[4]) for row in ledger_rows), Decimal(0))
+        mark = Decimal(risk_row[1])
+        unrealized = sum(
+            (Decimal(row[0]) * (mark - Decimal(row[1])) for row in ledger_rows),
+            Decimal(0),
+        )
+        legacy_pnl = sum((
+            Decimal(amount) for sid, kind, amount in adjustments
+            if sid == "LEGACY_UNATTRIBUTED" and kind == "LEGACY_REALIZED_PNL"
+        ), Decimal(0))
+        legacy_fees = sum((
+            Decimal(amount) for sid, kind, amount in adjustments
+            if sid == "LEGACY_UNATTRIBUTED" and kind == "LEGACY_FEES"
+        ), Decimal(0))
+        reconciled_equity = capital + realized + legacy_pnl - fees - legacy_fees - funding + unrealized
+        self.assertEqual(
+            reconciled_equity, Decimal(risk_row[0]),
+            {"recordedEquity": risk_row[0], "calculatedEquity": str(reconciled_equity),
+             "markPrice": risk_row[1], "ledgers": ledger_rows, "adjustments": adjustments},
+        )
 
         # A distinct closed M15 dataset moves price far enough against the
         # Core position to satisfy Smart DCA's ROE and ADX gates.
