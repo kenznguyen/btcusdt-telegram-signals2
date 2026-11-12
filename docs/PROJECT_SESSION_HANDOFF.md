@@ -3807,3 +3807,19 @@ These findings make the current stop condition explicit: completing Trusted Admi
 - Disposition: **PASS — concurrent mixed Core ENTRY/DCA admission is serialized and the tested account-wide reservation/exposure invariants hold.** No production logic or schema changes were needed.
 - Remaining NOT VERIFIED: sustained multi-process stress/load, process crash/power-loss recovery, other concurrently active strategy ledgers under AI operation, real-market OOS, exchange execution and production readiness.
 - Next bounded step: stress the same Core-only account path with multiple concurrent clients and repeated unique intents across separate disposable SQLite databases/runs, asserting no duplicate fills, no orphan/duplicate reservations, and stable risk invariants. Do not activate AI or change the approved 1%-per-order policy.
+
+
+## 2026-11-12 — Repeated 8-client Core admission stress across isolated SQLite accounts
+
+- Work branch: `feature/core-operational-proof-20261112`.
+- Test commit / exact tested source SHA: `d0021462ae82c311d28626c4ff9d05cd28feb9bb`, message `test(risk): stress concurrent Core admissions across isolated accounts`.
+- Added `test_repeated_multi_client_entry_stress_has_no_duplicate_or_orphan_reservations` in `paper_execution/test_core_first_operational.py`.
+- Stress design: three separate disposable SQLite databases cloned from the same initialized fixture using SQLite backup; eight independent `PaperLedger` clients per database; eight unique ENTRY intents synchronized at a barrier per round. Total 3 rounds / 24 concurrent admission attempts, with no production database reuse.
+- Verified in each round: exactly one fill and one net Core position; all eight intents persisted once; exactly one FILL journal event; exactly one reservation linked to the filled order; no duplicate intent rows; no orphan reservations; no AI orders; reservation margin remains <= 1 USDT (1% of the fixture's 100 USDT admission equity).
+- GitHub Actions run [43204199218](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43204199218), exact checkout SHA `d0021462ae82c311d28626c4ff9d05cd28feb9bb`, conclusion SUCCESS.
+- Evidence from job logs: live-data probe contracts 4/4 PASS; Core + signal regressions 12/12 PASS; Core operational group 19/19 PASS; Shared Risk + Paper Ledger regressions 24/24 PASS; total **59/59 PASS**. Python compile PASS. Stress test explicitly logged `ok` in both unittest discovery passes.
+- Artifact: `core-first-code-operational-proof-43204199218`, ID `13935724261`, size 3,625 bytes, SHA-256 `78e1a3fda0e6d43e43d3d2d057cc494fe11c78b57acc08dacb5cd09335efd721`, expires `2026-11-19T10:52:35Z`. Digest is GitHub artifact metadata; payload has not been independently downloaded and re-hashed.
+- Safety: `AI_EXECUTION_ENABLED=false`; only cloned disposable fixture SQLite databases; no AI paper orders; no T0/T1/T2 mutation; no exchange credentials; no real orders; no VPS/persistent runtime.
+- Disposition: **PASS — 24 concurrent unique Core ENTRY attempts across three isolated databases produce no duplicate fills, duplicate intent records, or orphan reservations; one fill/reservation per account.** No production logic or schema changes were needed.
+- Limits: this is bounded thread-level SQLite stress (8 clients x 3 runs), not sustained multi-process/host-level load, crash/power-loss recovery, AI/Core cross-ledger production contention, real-market OOS, exchange execution or production readiness.
+- Next bounded step: test SQLite contention and recovery behavior with independent OS processes and controlled connection interruption on disposable databases; prove fail-closed outcomes and database integrity. Do not use T0 canonical data, VPS, persistent runtime, AI execution or real orders.
