@@ -195,6 +195,17 @@ class DualLedgerRedTest(unittest.TestCase):
         self.assertEqual(order["reason"], "RISK_INPUTS_UNAVAILABLE")
         self.assertEqual(self.core.snapshot()["positionBase"], "0")
 
+    def test_core_kill_latch_is_visible_to_ai_snapshot_without_ai_admission(self):
+        self.core.set_killed(True, self.now, "CORE_FIRST_GLOBAL_KILL")
+        ai_view = self.ai.snapshot()
+        self.assertTrue(ai_view["riskControl"]["killed"])
+        self.assertEqual(ai_view["orders"], [])
+        with sqlite3.connect(self.path) as connection:
+            ai_orders = connection.execute(
+                "SELECT COUNT(*) FROM paper_orders WHERE strategy_id='AI_FREQAI'"
+            ).fetchone()[0]
+        self.assertEqual(ai_orders, 0)
+
     def test_kill_switch_blocks_increase_but_allows_strategy_scoped_reduction(self):
         opened = self.core.submit(
             self.intent("kill-open", "0.1", "100.1", "kill-open"),
