@@ -102,3 +102,20 @@ Disposition:
 - This is not evidence of ARM64 package incompatibility.
 - No apt operation, package installation, venv creation, pip invocation, application deployment, or runtime launch has been performed.
 Next bounded step: inspect package state and apt candidate metadata read-only (for example `dpkg-query -W python3-venv python3-pip python3.12-venv 2>/dev/null` and `apt-cache policy python3-venv python3-pip python3.12-venv`). If an OS package is required, obtain explicit approval before installing it. After that, create a disposable venv under `/tmp` and perform the separately approved no-install dependency-resolution check.
+
+
+## Owner-reported APT package inspection (2026-11-12)
+The owner ran read-only package-state and candidate checks:
+```bash
+dpkg-query -W python3-venv python3-pip python3.12-venv 2>/dev/null
+apt-cache policy python3-venv python3-pip python3.12-venv
+```
+Observed:
+- `python3-venv`: not installed; candidate `3.12.3-0ubuntu2.1` from Ubuntu Noble updates (arm64).
+- `python3.12-venv`: not installed; candidate `3.12.3-1ubuntu0.17` from Ubuntu Noble updates (arm64).
+- `python3-pip`: not installed; candidate `24.0+dfsg-1ubuntu1.3` from Ubuntu Noble updates (arm64).
+Disposition:
+- Package-index candidates for the venv bootstrap are available for the host's Ubuntu/ARM64 repository.
+- The missing `ensurepip` is consistent with the absent `python3.12-venv` package; this does not indicate project dependency incompatibility.
+- No package was installed; no apt update/upgrade or other host mutation was performed.
+Next gate: request explicit approval before installing only the required venv package(s). Prefer `python3.12-venv` to bootstrap pip inside a disposable virtual environment; do not install system-wide `python3-pip` unless a later, separately justified need arises. After approval, verify apt's proposed dependency changes before confirming installation.
