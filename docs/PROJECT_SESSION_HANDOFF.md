@@ -3351,3 +3351,29 @@ Current T1 repository/branch:
 Next: verify exact-head CI for `9fcf73817f1b920760745224ea6d8c0cdb0b5246`; then implement/test OrderbookManager and WebSocket task ownership, retain and join startup orchestration, and stop discovery/stats tasks. Do not seal or publish a manifest until every writer is quiescent and final CSV/gap flushes have succeeded.
 
 Boundaries unchanged: T0 and T1 remain independent (no T1→T0); T0 unchanged; no T1→T2 adapter; no VPS/runtime activation or live Binance; no real orders; no deletion/retention/cleanup/compaction; no strategy/AI/risk changes. Frozen schema v1.0.0 must not be modified.
+
+
+## T1 producer conformance — OrderbookManager and WebSocket shutdown ownership (2026-11-12)
+
+- Current T1 source HEAD: `7743377df75c392c78c1b86628dc9dc5dfb0c1cc`.
+- Existing T1 branch retained; PR #1 remains OPEN / DRAFT / UNMERGED.
+- OrderbookManager now retains JoinHandles for per-symbol `manage_symbol` tasks, periodic snapshot, live depth update, and stale-symbol cleanup. Its shutdown aborts and joins every retained task.
+- Main now retains the OrderbookManager startup orchestration JoinHandle, stops/joins that startup task before signaling WebSocket shutdown, then joins REST and OrderbookManager tasks before stopping CSV background tasks, final CSV flush, and GapRegistry final save.
+- WebSocketManager now retains JoinHandles for both route connections per batch and heartbeat monitor; global watch shutdown wakes reconnect/backoff waits; `run_connection` selects shutdown against connection/reconnect waits; ping timer is explicitly aborted and joined; shutdown awaits connection and heartbeat tasks.
+- Main now awaits WebSocketManager shutdown before the message-handler drain.
+- Regression coverage added for OrderbookManager task abort/join helper and WebSocket task join helper.
+- Relevant commits:
+  - `796a1165cbcb783ccb4d6a6ffaa44411d94e0b08` — OrderbookManager task ownership.
+  - `a09dd8ac16e5e4f280b559f5cc3dcb974f0d36c7` — main startup orchestration and manager shutdown ordering.
+  - `035cc31463ecb9b84cf08d9598f0eedda7b352b2` — WebSocket route/heartbeat task ownership and shutdown signal.
+  - `7b1d017a915d0c4b45f0d6509b9a25c7bcc1d2df` — main awaits WebSocket shutdown.
+  - `7743377df75c392c78c1b86628dc9dc5dfb0c1cc` — WebSocket join regression test.
+- Exact-head CI for SHA `7743377df75c392c78c1b86628dc9dc5dfb0c1cc`:
+  - Push [43160304859](https://github.com/kenznguyen/binance-futures-collector/actions/runs/43160304859) — QUEUED.
+  - PR [43160298716](https://github.com/kenznguyen/binance-futures-collector/actions/runs/43160298716) — QUEUED.
+  - No test/build/pass claim is made for this SHA; **NOT VERIFIED**.
+- Remaining detached tasks in `main.rs`: periodic stats report, StatsExporter, and periodic symbol discovery. StatsExporter writes to the separate stats output; discovery mutates symbol lifecycle state. Retain/stop/join these tasks before claiming all-process quiescence. Also audit any internal spawned tasks not yet captured by WebSocket/OrderbookManager task groups.
+- Lifecycle caveat: OrderbookManager currently aborts and joins its worker tasks; this is a bounded stop barrier but needs exact CI and focused tests. The full system is not yet proven quiescent because stats/discovery and any untracked nested tasks remain.
+- Current disposition: REST, CSV, GapRegistry, OrderbookManager and WebSocket task ownership have implementation changes committed; exact current-head CI is **NOT VERIFIED**. Immutable batches/manifest publisher remain **NOT IMPLEMENTED**. Producer conformance remains **NOT VERIFIED**.
+- Next: verify exact-head CI and correct all findings; then retain/stop/join stats report, StatsExporter and symbol discovery tasks; inspect all remaining `tokio::spawn` call sites across producer modules; only after complete quiescence and successful final flushes begin immutable batch and manifest publication.
+- Boundaries unchanged: no T1→T0, no T0 changes, no T1→T2 adapter, no VPS/runtime activation/live Binance/trading, no deletion/retention/cleanup/compaction, no strategy/AI/risk changes, schema v1.0.0 frozen.
