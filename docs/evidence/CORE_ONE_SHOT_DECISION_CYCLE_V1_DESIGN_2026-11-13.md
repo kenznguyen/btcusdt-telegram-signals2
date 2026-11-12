@@ -24,7 +24,7 @@ Strict config:
 - `max_position_base`: positive decimal string passed to the existing Core producer.
 - No credentials/tokens in config, CLI args, output or logs.
 
-T0 HTTP settings remain environment-only: `T0_CANDLE_API_BASE_URL`, `T0_CANDLE_API_TOKEN`, `T0_CANDLE_MAX_LAG_MS`. Hummingbot URL/credentials remain server-side. Reject non-empty Binance/OKX exchange-trading credential variables; require process `AI_EXECUTION_ENABLED=false`; reject ledger path equal to configured canonical T0 DB path. Check the ledger file exists before any SQLite connection.
+T0 HTTP settings remain environment-only: `T0_CANDLE_API_BASE_URL`, `T0_CANDLE_API_TOKEN`, `T0_CANDLE_MAX_LAG_MS`. No Hummingbot URL, credentials, process or adapter is part of this runner; Hummingbot remains paused/out of scope. Reject non-empty Binance/OKX exchange-trading credential variables; require process `AI_EXECUTION_ENABLED=false`; reject ledger path equal to configured canonical T0 DB path. Check the ledger file exists before any SQLite connection.
 
 Shared risk limits remain sourced by existing `paper_execution.equity.parse_limits(os.environ)`: `PAPER_MAX_DRAWDOWN_PCT`, `PAPER_MAX_DAILY_LOSS_USDT`, `PAPER_MAX_EXPOSURE_USDT`. Missing limits fail closed for exposure increase. Do not create another risk policy or change the existing 1% order-margin budget.
 
@@ -134,7 +134,7 @@ A valid ledger REJECTED result maps to 5. Exceptions map to 6 unless explicitly 
 - **C3:** current `core_runtime.__main__` preflight rejects any `riskReady != true` and maps failures to generic exit 2. Keep it separate; runner must not reuse it as an all-actions gate.
 - **C4:** producer returns BUY/SELL without intent for documented blocked reasons. Explicitly classify these before strict adapter; unknown cases fail closed.
 
-These are findings, not permission to modify T0 API/client, Hummingbot bridge, preflight, producer, ledger or runtime.
+These are findings, not permission to modify T0 API/client, T1 source/runtime, preflight, producer, ledger or runner. Hummingbot remains paused and is not a candidate source.
 
 ## 10. Disposition
 
