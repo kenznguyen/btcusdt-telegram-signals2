@@ -3421,3 +3421,21 @@ Boundaries unchanged: T0 and T1 remain independent (no T1→T0); T0 unchanged; n
 - This does not authorize changing CSV row/schema contracts. Do not start immutable batch segments or manifest publication until this barrier and exact-head CI pass.
 - Current disposition: handler drain timeout is now fail-closed at source level; exact CI is **NOT VERIFIED**. Global producer quiescence remains **BLOCKED** by in-flight `spawn_blocking` work. Immutable segments/manifest publisher remain **NOT IMPLEMENTED**; T1 producer conformance remains **NOT VERIFIED**.
 - Constraints unchanged: T0/T1 independent; no T1→T0; no T0 edits; no T1→T2 adapter; no VPS/runtime activation/live Binance/trading; no deletion/retention/cleanup/compaction; no strategy/AI/risk changes; schema v1.0.0 frozen.
+
+
+### T1 CI follow-up — regression-test visibility corrections (2026-11-12)
+
+- T1 current HEAD: `31f66142d4ee65987cbe531f5f9a3d97aaf99c54`.
+- On parent SHA `5e38a18682da60c66ed644d88ec9433d196288b5`, exact-head push run [43161941983](https://github.com/kenznguyen/binance-futures-collector/actions/runs/43161941983) and PR run [43161948830](https://github.com/kenznguyen/binance-futures-collector/actions/runs/43161948830) passed Format and failed Clippy. Clippy exposed two test visibility errors:
+  - CSV shutdown regression test referenced `test_writer` from a sibling test module.
+  - WebSocket shutdown regression test referenced `join_websocket_tasks` without importing the private helper into its test module.
+- Corrections:
+  - `fab87b37c5068c41f43cde11dc8c507c858dc010` — added a local test helper to the CSV test module.
+  - `31f66142d4ee65987cbe531f5f9a3d97aaf99c54` — imported the WebSocket join helper into its test module.
+- Exact-head workflows for SHA `31f66142d4ee65987cbe531f5f9a3d97aaf99c54`:
+  - Push [43162106634](https://github.com/kenznguyen/binance-futures-collector/actions/runs/43162106634) — IN_PROGRESS at update; Format PASS, Clippy IN_PROGRESS; Dashboard frontend/backend PASS; Security and Docker IN_PROGRESS.
+  - PR [43162112374](https://github.com/kenznguyen/binance-futures-collector/actions/runs/43162112374) — QUEUED at update.
+  - Exact-head full CI/artifact: **NOT VERIFIED**.
+- No schema/CSV contract changes. No T0 changes, adapter, runtime, VPS or trading activity.
+- Global quiescence remains **BLOCKED** on a CSV-writer-owned in-flight `spawn_blocking` admission/drain barrier. The handler timeout fail-closed change is in the current source history but its exact-head test result is pending.
+- Next: complete exact-head CI and fix any findings; then implement and test the CSV blocking-operation barrier before final flush. Do not begin immutable batch or manifest work before that barrier is proven.
