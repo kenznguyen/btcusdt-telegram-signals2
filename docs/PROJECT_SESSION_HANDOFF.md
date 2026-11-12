@@ -3883,3 +3883,8 @@ These findings make the current stop condition explicit: completing Trusted Admi
 - No production source/schema changed. No assertions have been relaxed.
 - Latest CI for this diagnostic source: pending; inspect exact rows before deciding whether the fixture is contaminated or a rejected intent creates an unexpected order.
 - Safety unchanged: `AI_EXECUTION_ENABLED=false`, disposable SQLite fixtures only, AI offline, no T0/T1/T2 mutation, no credentials, no VPS/runtime, no exchange orders.
+
+
+- Follow-up CI for diagnostic source `9b0a55ef60b3f435ee0ada33c8a67acd93d80190`: run [43224360526](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43224360526), conclusion FAILURE. The added diagnostic query itself failed because it assumed `paper_orders` has relational columns `side` and `order_type`; schema stores the order payload in JSON `document`. This is a test diagnostic schema mismatch, not evidence of a production ledger defect.
+- Corrective diagnostic-only commit: `fbca6639129d5f97878e2c9e0be91657482624d3`; query now reads the actual columns `order_id,intent_id,status,document` and prints persisted order documents.
+- Latest exact source SHA is `fbca6639129d5f97878e2c9e0be91657482624d3`; its CI outcome is pending verification. Do not relax the expected order count or change production logic before inspecting the persisted documents.
