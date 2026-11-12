@@ -4229,3 +4229,17 @@ These findings make the current stop condition explicit: completing Trusted Admi
 - Status: contract semantics/thresholds **DESIGN FROZEN FOR REVIEW**; tests **SPECIFIED / NOT IMPLEMENTED / NOT RUN**; T1 implementation **NOT IMPLEMENTED**; T1 runtime trust **NOT VERIFIED**; T2 reader/integration **BLOCKED**; Core one-shot runner **NOT IMPLEMENTED**.
 - Documentation-only increment. No workflow/CI run was triggered; no executable code changed. No T1/T0 code, canonical DB, VPS, collector runtime, provider/network, credentials, Hummingbot, Core runner, AI execution or live orders touched. `AI_EXECUTION_ENABLED=false`; paper-only.
 - Next bounded step: seek separate authorization for isolated T2-side contract tests using deterministic synthetic fixtures only, with no T1/T0/VPS access. Passing those tests would prove only parser/contract behavior, not T1 runtime readiness. T1 source implementation/activation and Core runner implementation remain separate approval gates.
+
+
+## 2026-11-13 — T1 → T2 Order Book V1 isolated test gate
+
+- Owner approval: run deterministic T2-side isolated contract tests, CI and save exact-SHA evidence. No T1 implementation/runtime, T0 access/change, VPS, Core runner, AI execution or live orders were authorized.
+- Tested source SHA: `09fc9b3125af2eb4dbb434e3c18faa05dd8c62ed` on `feature/core-operational-proof-20261112`.
+- Implementation blob: `core_runtime/orderbook_contract.py` — `1620c9f21b1f3df3c2fb65833f2afd80374bf6a5`; tests blob: `core_runtime/test_orderbook_contract.py` — `935a3f2c8467e4f56cc683a7c0afcaba8fbeee00`.
+- Combined Core operational workflow run #99: [43275721183](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43275721183), exact checkout SHA matches above, overall SUCCESS, job `operational-proof` SUCCESS, all 17 steps SUCCESS. T1→T2 test step: **32/32 PASS**.
+- Coverage: Decimal 5; sequence/re-anchor 10; reconnect/generation/atomic publication 4; freshness/depth/snapshot acceptance 10; fail-closed side-effect gate 3. Invalid/stale inputs cannot invoke producer, ledger or risk-admission callbacks in the tested path.
+- Artifact: `core-first-code-operational-proof-43275721183`, ID `13971365776`, size 7,723 bytes, expires `2026-11-19T18:02:46Z`. GitHub digest and independently downloaded/recomputed ZIP SHA-256 both equal `37bbe961cd97121aafb9866496fd4364f7cb1c33494c2a54422e18c430f7e5dd`. Embedded source SHA and test status were read back and verified.
+- Safety evidence: `AI_EXECUTION_ENABLED=false`; `PAPER_ONLY=PASS`; `CANONICAL_T0_TOUCHED=false`; `EXCHANGE_CREDENTIALS_USED=false`; `REAL_ORDERS_SENT=false`; `VPS_OR_PERSISTENT_RUNTIME_USED=false`. Synthetic/disposable fixtures only.
+- Evidence report: `docs/evidence/T1_T2_ORDERBOOK_CONTRACT_V1_TEST_EVIDENCE_2026-11-13.md`. Design status reconciled to show T2-side isolated validator/tests PASS.
+- Disposition: T2-side isolated contract gate **PASS**; V1 contract **DESIGN FROZEN FOR REVIEW**; T1 implementation **NOT IMPLEMENTED**; real T1 runtime/reconnect/re-anchor/generation fencing **NOT VERIFIED**; transport/storage and real T2 integration **BLOCKED**; Core one-shot runner **NOT IMPLEMENTED**.
+- Next step: review T1 collector source against frozen V1 and prepare a bounded gap assessment / implementation plan. No T1 code changes or activation, T0/VPS access, Core runner implementation, AI execution or live orders without separate approval.
