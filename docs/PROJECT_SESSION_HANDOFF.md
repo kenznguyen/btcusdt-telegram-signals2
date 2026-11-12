@@ -3439,3 +3439,13 @@ Boundaries unchanged: T0 and T1 remain independent (no T1→T0); T0 unchanged; n
 - No schema/CSV contract changes. No T0 changes, adapter, runtime, VPS or trading activity.
 - Global quiescence remains **BLOCKED** on a CSV-writer-owned in-flight `spawn_blocking` admission/drain barrier. The handler timeout fail-closed change is in the current source history but its exact-head test result is pending.
 - Next: complete exact-head CI and fix any findings; then implement and test the CSV blocking-operation barrier before final flush. Do not begin immutable batch or manifest work before that barrier is proven.
+
+
+### T1 follow-up — symbol-discovery option type correction (2026-11-12)
+
+- Current T1 HEAD: `9d9d9f29a8b2d801d2c2d7b3fa45121cd1320599`.
+- On parent SHA `31f66142d4ee65987cbe531f5f9a3d97aaf99c54`, exact-head push run [43162106634](https://github.com/kenznguyen/binance-futures-collector/actions/runs/43162106634) passed Format but Clippy/compile failed because the optional symbol-discovery branch returned a bare `JoinHandle` while the whitelist branch returned `None`.
+- Corrected in commit `9d9d9f29a8b2d801d2c2d7b3fa45121cd1320599` by wrapping the spawned task in `Some(...)`; this preserves the intended optional task ownership and does not change data contracts.
+- Exact-head PR workflow [43162245242](https://github.com/kenznguyen/binance-futures-collector/actions/runs/43162245242) — QUEUED at this update. Exact-head push workflow not yet visible at this update. CI remains **NOT VERIFIED**.
+- No code changes to T0, frozen schema, CSV row schema, data transport, strategy or risk. T1→T2 adapter remains out of scope.
+- Remaining blocker is still the CSV writer's in-flight `spawn_blocking` operation barrier; do not proceed to immutable segments or manifest publication before it is closed and tested.
