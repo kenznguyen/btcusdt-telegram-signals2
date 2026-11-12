@@ -1373,9 +1373,10 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
             self.assertEqual(connection.execute(
                 "SELECT COUNT(*) FROM paper_orders WHERE strategy_id='STRATEGY_CORE'"
             ).fetchone()[0], 1)
-            self.assertEqual(connection.execute(
-                "SELECT COUNT(*) FROM paper_risk_reservations WHERE strategy_id='STRATEGY_CORE'"
-            ).fetchone()[0], 1)
+            kill_reservations = connection.execute(
+                "SELECT reservation_id,intent_id,status,reserved_margin_quote,remaining_notional_quote FROM paper_risk_reservations WHERE strategy_id='STRATEGY_CORE' ORDER BY intent_id"
+            ).fetchall()
+            self.assertEqual(len(kill_reservations), 1, kill_reservations)
             self.assertEqual(connection.execute(
                 "SELECT COUNT(*) FROM paper_account_event_journal WHERE strategy_id='STRATEGY_CORE' AND event_type='FILL'"
             ).fetchone()[0], 1)
