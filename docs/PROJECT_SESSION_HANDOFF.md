@@ -4183,3 +4183,19 @@ These findings make the current stop condition explicit: completing Trusted Admi
 - Section 8 records exact run #95 evidence; Section 10 records validator **PASS**, Core one-shot cycle **NOT IMPLEMENTED**, and the separate design-approval gate before runner implementation.
 - Documentation-only commit: `7b06200bd299921e59a25c12426e5c77a2101f8a`; no workflow rerun was triggered because the workflow path filter does not include this design document.
 - Verified branch head before this handoff update matched the documentation commit. No production/runtime behavior changed.
+
+
+## 2026-11-13 — Core one-shot decision cycle v1 design completed
+
+- Design document: `docs/evidence/CORE_ONE_SHOT_DECISION_CYCLE_V1_DESIGN_2026-11-13.md`.
+- Documentation commit: `f216b69ff8e71a26ee14dcdc4a5fc0613cc40b3f`, parent `ebd173afab654d87586cd39d5a97355c5023964c`; branch `feature/core-operational-proof-20261112` updated with force-with-lease and verified.
+- Scope: contract/design/review only; no code/runtime behavior changed. Existing frozen Bundle v1 remains unchanged.
+- Key design: one-shot CLI; T0 read-only HTTP boundary; exact immutable Core/account-risk snapshots; pure bundle validation before producer; one Core producer invocation; adapter then signal validator; derive ENTRY/DCA/EXIT from before-state and validated target; exactly one Core-scoped PaperLedger submit; transactional Shared Risk Engine/Kill Switch recheck; separate decision/validation/admission/simulation outcomes and frozen exit codes.
+- EXIT review: do not reuse current preflight's blanket `riskReady=true` gate. A readable snapshot with `riskReady=false` may permit only an attempted reduction through existing PaperLedger; unavailable/invalid risk snapshot blocks all actions. No runner-level exception/bypass.
+- Source blockers found:
+  - C1: current `CandleHttpClient` pages 32 candles and synthesizes a combined datasetVersion; frozen Bundle v1 requires source-owned identity. Proposed bounded one-response 100-candle path preserving the exact T0 datasetVersion.
+  - C2: current Hummingbot normalizer converts book prices/quantities to float; frozen Bundle v1 requires exact decimal strings. Requires a separate Decimal-preserving adapter.
+  - C3: existing preflight requires `riskReady=true` and maps all failures to exit 2; runner must not use it as blanket gate.
+  - C4: Core producer can return BUY/SELL with no intent for known blocked reasons; runner must classify known cases before strict adapter.
+- Design status: **SPECIFIED**. Implementation readiness: **BLOCKED on C1/C2**; C3/C4 require tests. Runner **NOT IMPLEMENTED**. No permission to change shared T0 client/API, Hummingbot bridge, producer, ledger, preflight or runtime was inferred from design approval.
+- Next bounded gate: resolve C1/C2 with isolated adapter design/contract tests and exact-source provenance, then request/observe explicit implementation authorization. No T0 canonical DB, T0 runtime, VPS, migration, systemd/autostart, AI execution or live orders.
