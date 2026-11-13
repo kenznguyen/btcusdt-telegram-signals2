@@ -4518,3 +4518,16 @@ These findings make the current stop condition explicit: completing Trusted Admi
 - Bundle schema/version remains 1.0.0. T1 provenance, continuity/freshness/watermark metadata and snapshot identity are validated; the projected bid/ask levels are bound to the T1 snapshot digest. Hummingbot provenance is rejected for the Core path.
 - This GREEN does not authorize or claim One-shot Runner implementation, runtime/VPS deployment or activation, systemd/autostart, T0 changes, Strategy Core/Risk Engine/Ledger changes, AI execution, or live orders. No such operation was performed.
 - Next permitted planning step: prepare a separately scoped One-shot Core Runner implementation proposal and test plan for review; implementation requires explicit approval.
+
+
+## 2026-11-13 — One-shot Core Runner implementation checkpoint: T1/PaperLedger blocker
+
+- Owner authorized automatic continuation through One-shot Core Runner completion, retaining the previously approved PAPER-only / Core-only / no-runtime boundaries.
+- Active branch baseline before this checkpoint: `7e4cb233069f22d895aecf4f88c889e1aeb244f2`; work continues on `feature/core-operational-proof-20261112` only.
+- Re-read this handoff and inspected the existing Bundle v1 validator, T1 contract/HTTP reader, producer adapter, Core strategy, Core signal validator, CLI preflight, Runner RED tests, Runner entrypoint design and PaperLedger source.
+- Confirmed architectural incompatibility: Bundle v1 requires T1 provenance (`source=t1`, `connector=binance_usdm_perpetual`) and validates the reconstructed T1 snapshot. The existing `paper_execution.ledger.book_value()`, called by `PaperLedger._submit_scoped()`, only accepts `source=hummingbot`, `connector=binance_perpetual`. Thus the existing Core-scoped Ledger cannot admit the actual validated T1 book.
+- Relabeling T1 as Hummingbot or substituting a different book would falsify/disconnect provenance and is prohibited. Skipping PaperLedger admission would not complete the agreed Runner lifecycle. Modifying PaperLedger exceeds the prior no-Ledger-change boundary.
+- No source, test, workflow, config, database, T0/T1/T2 runtime or VPS state was changed. No tests/CI were run for this checkpoint because the admission-contract conflict is a scope blocker.
+- Evidence file: `docs/evidence/CORE_ONE_SHOT_RUNNER_T1_LEDGER_COMPATIBILITY_BLOCKER_2026-11-13.md`; evidence commit `c3988a9f8ec3162f9ba073513a32f590c3f6d716`.
+- Status: Bundle v1/T1 **PASS** (prior exact-SHA evidence unchanged); Runner design/pre-existing contracts **PASS as prior evidence**; T1-to-PaperLedger admission compatibility **BLOCKED**; Runner implementation **NOT STARTED**; new Ledger-boundary tests **NOT AUTHORIZED / NOT RUN**; runtime/VPS/systemd/autostart/live orders **NOT AUTHORIZED / NOT RUN**.
+- Required next decision: separately authorize a narrowly scoped T1-compatible PaperLedger book-input contract. It must preserve exact T1 provenance/snapshot identity and levels, retain existing risk/Kill Switch/reservation/idempotency behavior and ledger schema, and prove regressions with TDD. Until that scope is approved, do not implement a bypass or claim Runner completion.
