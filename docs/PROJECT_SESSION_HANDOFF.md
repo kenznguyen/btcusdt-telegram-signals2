@@ -4423,13 +4423,13 @@ These findings make the current stop condition explicit: completing Trusted Admi
 - Next: obtain owner approval/rejection of loopback HTTP. Only after approval, define a separate bounded TDD implementation scope. No runtime activation or deployment.
 
 
-## 2026-11-13 — C2.2 transport decision approved; implementation scope frozen
+## 2026-11-13 — C2.2 transport decision approved; TDD scope plan recorded
 
 - Owner approved the dedicated read-only loopback HTTP transport recommendation for T1→T2.
 - Bounded implementation scope recorded at `docs/evidence/C2_2_LOOPBACK_HTTP_IMPLEMENTATION_SCOPE_2026-11-13.md`.
-- Authorization covers planning and implementation of a T1 endpoint bound to `127.0.0.1` that reads one immutable snapshot from the live publisher, plus a T2 one-shot bounded HTTP reader using the existing strict V1 validator.
+- Approval covers transport selection and preparation of the bounded TDD scope only. Separate explicit approval is required before any T1/T2 source, test or CI changes.
 - TDD is mandatory: T1 RED/GREEN first, then T2 RED/GREEN, then deterministic cross-boundary integration tests and exact-SHA CI evidence.
 - No public listener, Dashboard CSV fallback, T0 changes/shared T0 SQLite, VPS/runtime activation, systemd/autostart, deployment, Core/Risk/Ledger/AI execution changes or real orders.
 - T2 branch was observed heavily diverged from main (3,664 ahead / 82 behind); do not rebase, merge, force-push or synchronize automatically. Recheck heads before code; if fast-forward-safe commits are not possible, stop and report BLOCKED.
 - Status: design decision APPROVED; implementation scope RECORDED; source implementation NOT STARTED; runtime delivery NOT VERIFIED.
-- Next: inspect both branch heads and T1 server/bootstrap conventions, then begin T1 RED tests. Commit only on existing branch if history-safe.
+- Next: request explicit approval to begin source implementation. After approval, inspect both branch heads and T1 server/bootstrap conventions, then begin T1 RED tests. Commit only on existing branch if history-safe.
