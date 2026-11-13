@@ -4684,3 +4684,16 @@ These findings make the current stop condition explicit: completing Trusted Admi
 - Scope boundary: no standalone `python -m core_runtime ... --run-once` invocation, no service/autostart, no T0/T1/T2 mutation, no exchange execution, and no real orders. `AI_EXECUTION_ENABLED=false` and paper-only posture remain mandatory.
 - No GitHub Actions run or artifact is claimed for this manual VPS test batch. The earlier CI run `43365609751` remains separate evidence for tested source `8f774d7103f54681497837c7e4fd7c2e1c38c754`.
 - Next gate: obtain separate explicit owner approval before any standalone one-shot Core Runner invocation. Until then, runtime invocation remains **NOT AUTHORIZED / NOT RUN**.
+
+
+## Addendum — bounded standalone Core Runner PAPER invocation (2026-11-13)
+
+- Owner explicitly approved one bounded one-shot invocation using a disposable fixture database only. Owner-provided VPS output reports source guard PASS on exact SHA `562362a69d8455a34e08385d26a47fa21d2b50ed`, branch `feature/core-operational-proof-20261112`, clean working tree, and final `SOURCE_UNCHANGED=PASS`.
+- Runtime output: `RUNNER_EXIT_CODE=0`; `RUN_STATUS=NO_SIGNAL`; signal `action=WAIT`, `reason=CORE_INDICATORS_WARMUP`; `RISK_DECISION=null`; `LEDGER_REFERENCE=null`.
+- Paper ledger snapshots reported Core position before/after `0`; AI position before/after `0`; AI orders after `0`. No paper order was accepted or created in this cycle.
+- Environment marker: `AI_EXECUTION_ENABLED=false`; `FIXTURE_DATABASE_ONLY=PASS`; `ONE_SHOT_RUNTIME=PASS`; `RUNTIME_TEST=COMPLETED`.
+- Interpretation: the CLI/one-shot path completed successfully and Core Strategy returned a warmup WAIT. This proves one invocation and a fail-closed/no-signal outcome only; it does not prove an ENTRY/EXIT, Risk Engine approval, PaperLedger fill, or successful trade lifecycle on VPS.
+- TemporaryDirectory cleanup is invoked by the supplied script's `finally: case.doCleanups()`, but post-cleanup filesystem absence was not separately reported: cleanup verification **NOT VERIFIED**.
+- No source changes, persistent process, service/autostart, exchange connection, API credentials, T0/T1/T2 mutation, or real orders are reported. No GitHub Actions run or artifact is claimed for this manual VPS invocation.
+- Gate status: bounded one-shot CLI invocation **PASS (NO_SIGNAL)**; warmup behavior **OBSERVED**; trade/risk/ledger execution **NOT EXERCISED**; disposable fixture cleanup **NOT VERIFIED**; persistent runtime/deployment/live trading **NOT VERIFIED / NOT AUTHORIZED**.
+- Next step: do not repeat or widen execution automatically. If operational ENTRY validation is required, separately approve a fixture with sufficient indicator warmup and a deterministic, explicitly bounded paper-only scenario. Keep `AI_EXECUTION_ENABLED=false`.
