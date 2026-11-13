@@ -90,3 +90,10 @@ Next bounded work: implement a read-only position-history projection from the ex
 - Focused model tests: **19/19 PASS**. Full PaperLedger regression: **502/502 PASS**.
 - Artifact `14081429446`, 13,960 bytes, digest `sha256:d7f7ce308024ab9426be728381a48797ede00c27838b052e8de8adff8e9410a3`, expires 2026-11-20T22:34:01Z.
 - D07.3 remains PASS. Next code-review item: replace repeated full position-snapshot scans per settlement with indexed as-of lookup to keep the 100,000-row bound computationally safe. This is a performance hardening change, not a change to funding semantics.
+
+
+### Indexed as-of lookup hardening — 2026-11-14
+- Replaced per-settlement full scans of all position snapshots with per-strategy sorted indexes and binary-search as-of selection. This changes selection from repeated O(position_snapshots × funding_events) scans to O(position_snapshots + funding_events × log(position_snapshots)); the 100,000 generated-event cap is enforced during generation.
+- Exact-source workflow [43520760804](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43520760804): SUCCESS at SHA `bf112ec9f31b90e77dbef509acbf632a9dd4a173`.
+- Focused model tests **19/19 PASS**; full PaperLedger regression **502/502 PASS**.
+- Artifact `14083140820`, 13,960 bytes, digest `sha256:1a72fd5ce1f89aad1020d6e1133feba11ca0e50976f9078e10d2c9cef25e62b5`, expires 2026-11-20T22:37:14Z.
