@@ -21,7 +21,7 @@ concurrency:
 jobs:
   bootstrap-contract:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 15
     env:
       AI_EXECUTION_ENABLED: "false"
       MARKET_DATA_DB: ""
@@ -63,28 +63,34 @@ jobs:
           echo "BOOTSTRAP_EXTERNAL_SERVICES=NONE" | tee -a bootstrap-safety.txt
           echo "BOOTSTRAP_LIVE_ORDERS=FORBIDDEN" | tee -a bootstrap-safety.txt
 
-      - name: Run focused bootstrap contract (RED expected until implementation)
+      - name: Compile bootstrap implementation and tests
+        run: |
+          set -euo pipefail
+          python -m py_compile paper_execution/bootstrap.py paper_execution/__main__.py paper_execution/test_dual_ledger_bootstrap.py
+          echo "BOOTSTRAP_COMPILE=PASS" | tee bootstrap-compile.txt
+
+      - name: Run focused bootstrap tests
         shell: bash
         run: |
-          set +e
-          python -m unittest paper_execution.test_dual_ledger_bootstrap -v > bootstrap-tests.log 2>&1
-          result=$?
-          cat bootstrap-tests.log
-          if [[ "$result" -eq 0 ]]; then
-            echo "Expected RED before implementation but tests passed" >&2
-            exit 1
-          fi
-          grep -q "ModuleNotFoundError" bootstrap-tests.log
-          echo "BOOTSTRAP_TDD_RED=PASS" | tee bootstrap-red-status.txt
+          set -o pipefail
+          python -m unittest paper_execution.test_dual_ledger_bootstrap -v 2>&1 | tee bootstrap-tests.log
 
-      - name: Upload RED evidence
+      - name: Run full PaperLedger regression
+        if: success()
+        shell: bash
+        run: |
+          set -o pipefail
+          python -m unittest discover -s paper_execution -p 'test_*.py' -v 2>&1 | tee paper-execution-regression.log
+
+      - name: Upload bootstrap evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: dual-ledger-bootstrap-red-${{ github.sha }}
+          name: dual-ledger-bootstrap-proof-${{ github.sha }}
           if-no-files-found: error
           path: |
             bootstrap-source-sha.txt
             bootstrap-safety.txt
+            bootstrap-compile.txt
             bootstrap-tests.log
-            bootstrap-red-status.txt
+            paper-execution-regression.log
