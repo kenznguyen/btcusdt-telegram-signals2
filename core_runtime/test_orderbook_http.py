@@ -104,6 +104,11 @@ class OrderBookHttpConfigTests(unittest.TestCase):
             OrderBookHttpConfig(
                 "http://127.0.0.1:8787", "token", timeout_total_s=0,
             )
+        with self.assertRaises(OrderBookHttpError):
+            OrderBookHttpConfig(
+                "http://127.0.0.1:8787", "token",
+                timeout_connect_s=0.5, timeout_read_s=0.5, timeout_total_s=0.75,
+            )
 
     def test_secret_is_not_exposed_by_config_repr(self):
         config = OrderBookHttpConfig(
