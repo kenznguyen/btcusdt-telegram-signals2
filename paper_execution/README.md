@@ -177,35 +177,55 @@ Theo D09, một commit/action được GitHub xác thực có thể được ghi
 Các test chỉ dùng fixture tổng hợp và SQLite tạm trong GitHub Actions. Không dùng VPS, không tạo database production, không chạm T0, không chạy Runner/One-shot và không gửi lệnh. Bootstrap production vẫn BLOCKED cho đến khi có evidence thực tế được kiểm chứng độc lập và một phê duyệt riêng đúng phạm vi.
 
 
-## D07 bounded funding population reconciliation — test/CI contract
+## D07 persisted funding population reconciliation and readiness gate
 
-`paper_execution.funding_reconciliation.reconcile_funding_population(expected, observed)`
-performs deterministic, read-only reconciliation between two separately declared
-event inventories over the same half-open interval `[startAtMs, endAtMs)` and
-quote currency. Each event is compared by event ID, event timestamp, exact Decimal
-amount string and payload SHA-256 reference. The result classifies matched, missing,
-unexpected and duplicate event IDs. Missing, unexpected, duplicate or content-
-mismatched events block a complete result. Input inventories are limited to
-100,000 events each.
+The D07 integration uses `paper_execution.funding_reconciliation.reconcile_funding_population`
+to compare a caller-supplied expected funding inventory with a deterministic
+enumeration of `paper_funding_events` from the paper ledger. Both populations
+must use the same half-open interval `[startAtMs, endAtMs)` and quote currency.
+Event amounts must be exact Decimal strings; binary floats are rejected. Event
+order is canonicalized before reconciliation identity is calculated, and each
+population is limited to 100,000 events.
 
-A complete result means only
-`COMPLETE_WITHIN_DECLARED_POPULATION`. The result deliberately retains:
-- `independence=DECLARED_NOT_VERIFIED`;
-- `globalCompleteness=NOT_VERIFIED`;
-- `freshness=NOT_VERIFIED`;
-- `issuerAuthenticity=NOT_VERIFIED`.
+A successful comparison is only `COMPLETE_WITHIN_DECLARED_POPULATION`. It does
+not prove global completeness, freshness, actual source independence or issuer
+authenticity. The output retains `DECLARED_NOT_VERIFIED` / `NOT_VERIFIED`
+claims for those dimensions.
 
-Different population-definition IDs, source labels and snapshot IDs are required,
-but these caller-supplied labels do not authenticate issuers or prove that the
-enumerations are actually independent. Event payload hashes are compared as
-references; this module does not retrieve or independently verify external
-statement bytes.
+### Funding event and coverage sequence
 
-This is currently a pure, no-I/O reconciliation primitive exercised only with
-synthetic GitHub Actions fixtures. It does **not** write an audit record, persist a
-reconciliation certificate, change funding coverage, or gate
-`record_funding_coverage(status="VERIFIED")`, account-equity cutover or
-`riskReady`. Therefore it does not close the live D07 evidence requirement and
-must not be used to assert that a real account's funding population is complete.
-The separate integration increment must persist the exact reconciliation evidence
-and make unresolved D07 discrepancies fail closed before any readiness transition.
+1. Stage funding events before marking the interval VERIFIED. Staging an event
+   sets `riskReady=false`; it does not authorize exposure.
+2. Call `record_funding_reconciliation(db_path, expected_population=..., recorded_at_ms=...)`.
+   This persists the immutable reconciliation certificate and audit record.
+3. Only a matching COMPLETE certificate can be supplied as
+   `reconciliation_id` to `record_funding_coverage(status="VERIFIED")`.
+   Interval, USDT currency, expected snapshot ID, timestamp and current observed
+   population digest must match.
+4. Once an interval is VERIFIED, additional funding events in that interval are
+   blocked by the API and a SQLite trigger. A new event must be staged in an
+   uncovered interval and reconciled before that interval is certified.
+5. Account equity cutover and the read-only account risk snapshot recheck the
+   certificate against the current observed event population. Stale or missing
+   evidence fails closed.
+
+Reconciliation and coverage do not set readiness true; only a successful account
+equity cutover may establish `riskReady`.
+
+Schema migration v10 creates the immutable reconciliation table, evidence hash,
+audit trail, coverage/event guards and event-time index. Existing VERIFIED
+coverage without a certificate demotes readiness and is not silently upgraded.
+
+### Bootstrap limitation
+
+The bootstrap manifest requires `fundingExpectedPopulation`, which is included
+in the exact funding evidence document and covered by its SHA-256 and manual
+Owner attestation. Fresh-account bootstrap v1 accepts only an empty expected
+funding-event list. Importing non-empty historical funding events is not
+implemented.
+
+This is synthetic test/CI integration only. `independence=DECLARED_NOT_VERIFIED`,
+`globalCompleteness=NOT_VERIFIED`, `freshness=NOT_VERIFIED` and
+`issuerAuthenticity=NOT_VERIFIED` remain explicit. Real external source
+authentication and completeness are not established; production bootstrap
+remains blocked.
