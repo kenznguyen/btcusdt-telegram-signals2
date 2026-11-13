@@ -108,3 +108,14 @@ GitHub compare confirms VPS local SHA `4af5bf0536c8b45f59033f0bc38625a031621c3e`
 - Core Runner CI evidence: run `43365609751`, tested SHA `8f774d7103f54681497837c7e4fd7c2e1c38c754`, artifact ID `14010098776`, artifact SHA-256 `008a574ce79cb8ba4637f5b49ade49d95d6087e5e6ad2df408b2a7d3d183026b`.
 - No dependency installation, build, test execution, Runner invocation, service start, systemd/autostart, T0/T1/T2 mutation, or live order occurred. T1 runtime remains not activated; paper-only posture and `AI_EXECUTION_ENABLED=false` remain unchanged.
 - Next: bounded read-only VPS checks for `core_runtime` presence and source ancestry. Do not install dependencies or execute Runner without separate explicit approval.
+
+
+## Addendum — Core Runner read-only VPS preflight (2026-11-13)
+
+- Owner-provided output confirms checkout branch `feature/core-operational-proof-20261112`, HEAD `562362a69d8455a34e08385d26a47fa21d2b50ed`, and `TESTED_SOURCE_ANCESTRY=PASS` for CI-tested Runner source `8f774d7103f54681497837c7e4fd7c2e1c38c754`.
+- File-presence checks passed for `core_runtime/__init__.py`, `core_runtime/__main__.py`, `core_runtime/one_shot.py`, and `core_runtime/preflight.py`; output: `RUNNER_FILES=PRESENT`.
+- Execution boundary: `NO_INSTALL=YES`, `NO_BUILD=YES`, `NO_TEST=YES`, `NO_RUNNER_EXECUTION=YES`.
+- Status: synchronized source parity PASS; tested-source ancestry PASS; Runner file presence PASS (owner-reported read-only check); dependency readiness remains BLOCKED from prior inventory (pip and required packages absent); ARM64 build/runtime compatibility NOT VERIFIED; one-shot runtime NOT AUTHORIZED / NOT RUN.
+- Prompt `[ahead 165]` is stale local remote-tracking metadata; explicit HTTPS fetch did not update `origin/*`. GitHub branch HEAD and VPS HEAD match. No push is needed.
+- No dependency installation, build, tests, Runner invocation, service activation, T0/T1/T2 mutation, or trading occurred.
+- Next: prepare a bounded ARM64 compatibility/dependency plan for owner review. Execution requires separate explicit approval; preserve paper-only posture and `AI_EXECUTION_ENABLED=false`.
