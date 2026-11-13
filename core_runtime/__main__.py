@@ -33,7 +33,9 @@ def main(argv=None, *, now_ms=None):
     parser.add_argument("--bundle", help="Path to one immutable Core Decision Input Bundle v1 JSON")
     args = parser.parse_args(argv)
 
-    if args.ledger_preflight and (args.dry_run or args.run_once or args.bundle or args.journal_path or args.bundle_store_dir):\n        parser.error("--ledger-preflight cannot be combined with runner execution or dry-run options")\n    if args.dry_run and (args.run_once or args.bundle):
+    if args.ledger_preflight and (args.dry_run or args.run_once or args.bundle or args.journal_path or args.bundle_store_dir):
+        parser.error("--ledger-preflight cannot be combined with runner execution or dry-run options")
+    if args.dry_run and (args.run_once or args.bundle):
         parser.error("--dry-run cannot be combined with --run-once or --bundle")
     if args.dry_run and (not args.journal_path or not args.bundle_store_dir):
         parser.error("--dry-run requires --journal-path and --bundle-store-dir")
