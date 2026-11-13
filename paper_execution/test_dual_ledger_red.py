@@ -1839,7 +1839,7 @@ os._exit(0)
         with sqlite3.connect(path) as connection:
             connection.execute(
                 """UPDATE paper_account_risk_state
-                   SET risk_ready=0,unavailable_reason='TEST_NOT_READY',
+                   SET risk_ready=1,unavailable_reason=NULL,
                        high_water_mark_quote='100' WHERE account_id=1"""
             )
 
