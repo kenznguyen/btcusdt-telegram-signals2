@@ -2914,11 +2914,15 @@ os._exit(0)
         self.assertEqual(second["filledBase"], "0.00005")
         self.assertEqual(self.core.snapshot()["positionBase"], "0.00015")
         with sqlite3.connect(self.path) as connection:
+            book_id = connection.execute(
+                "SELECT book_id FROM paper_book_level_reservations WHERE reservation_id=? LIMIT 1",
+                (first["reservationId"],),
+            ).fetchone()[0]
             used = connection.execute(
                 "SELECT SUM(CAST(reserved_quantity AS REAL)) "
-                "FROM paper_book_level_reservations WHERE book_id=? "
-                "AND status IN (?,?)",
-                (first["bookId"], "ACTIVE", "CONSUMED"),
+                "FROM paper_book_level_reservations WHERE book_id=? AND side=? "
+                "AND price=? AND status IN (?,?)",
+                (book_id, "BUY", "100.01", "ACTIVE", "CONSUMED"),
             ).fetchone()[0]
         self.assertAlmostEqual(used, 0.00015)
 
