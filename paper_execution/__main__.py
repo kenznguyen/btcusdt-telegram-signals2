@@ -28,7 +28,7 @@ def _load_manifest(path):
         raise ValueError("BOOTSTRAP_MANIFEST_UNREADABLE") from None
     if not isinstance(manifest, dict):
         raise ValueError("BOOTSTRAP_MANIFEST_INVALID")
-    for field in ("fundingEvidencePath", "cutoverEvidencePath"):
+    for field in ("fundingEvidencePath", "cutoverEvidencePath", "ownerAttestationPath"):
         evidence_path = Path(manifest.get(field, "")).expanduser()
         if not evidence_path.is_absolute():
             manifest[field] = str((manifest_path.parent / evidence_path).resolve(strict=False))
