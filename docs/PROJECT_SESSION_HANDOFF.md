@@ -5092,3 +5092,12 @@ Next: preserve this proof and do not rerun automatically. Any additional runtime
 - Artifact `14083630474`, 15,068 bytes, digest `sha256:5e2c2eab0a459200ffcc9b7dbda7c9ca69b7abd54dce0f185c0a7fa4b34bbe1a`.
 - Evidence doc: `docs/evidence/D07_4_BINANCE_PUBLIC_FUNDING_PARSER_2026-11-14.md`. D07.4 parser/CI PASS; D07 overall remains PARTIAL.
 - Remaining: read-only PAPER position projection from cutover snapshots + verified execution journal coverage; then an end-to-end proof linking D07.2 byte verification, parser, PAPER expected population, independently generated observed ledger events, reconciliation persistence and verified coverage. No live network, account data, credentials, VPS, T0, Runner/One-shot or orders.
+
+
+## 2026-11-14 — D07.5 PAPER position projection
+- Added pure `paper_execution/funding_position_projection.py` and 19 tests. Projects positions as of each funding settlement from cutover snapshots + execution FILL journal + declared VERIFIED EXECUTION coverage. Validates canonical execution payload hash, late events, coverage gaps/watermarks and rejects a fill exactly at settlement.
+- `account_history.replay_ledger_events` now accepts optional `require_utc_boundary=False`; default UTC-day guard remains unchanged. Projection uses intraday funding settlement boundaries.
+- TDD RED run [43522055968](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43522055968) (module absent) followed by GREEN run [43522246798](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43522246798), source SHA `5348e42f508c4864c7629121a4b5356cc68be855`: position projection 19/19 PASS, model 19/19 PASS, public parser 19/19 PASS, provenance 17/17 PASS, full regression 540/540 PASS.
+- Artifact `14084001315`, 16,012 bytes, digest `sha256:c8852603a60fede650961ced447f7e2cdec2f1d4911e2234c4520a6e521c48e4`.
+- Evidence doc: `docs/evidence/D07_5_PAPER_POSITION_PROJECTION_2026-11-14.md`. D07.5 pure projection/CI PASS; overall D07 remains PARTIAL.
+- Remaining: read-only SQLite adapter for actual PAPER cutover/journal/coverage rows; incremental multi-settlement replay optimization; strict end-to-end staging of independently produced observed PAPER funding events and persisted reconciliation/coverage. No real database, VPS, T0, exchange connection, credentials or orders touched.
