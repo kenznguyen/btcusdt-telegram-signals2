@@ -243,3 +243,21 @@ Next proposed step: isolated no-install resolver/wheel-availability check for th
 | Live trading / real orders | NOT AUTHORIZED |
 
 Next: no automatic rerun or expansion. Any ENTRY-path test requires separate bounded approval for a deterministic, sufficiently warmed fixture. Preserve `AI_EXECUTION_ENABLED=false` and paper-only posture.
+
+
+## Addendum — Core Runner ENTRY-path fixture attempt (2026-11-13)
+
+| Check | Result | Evidence / limitation |
+|---|---|---|
+| Start source guard | PASS (owner-provided) | `562362a69d8455a34e08385d26a47fa21d2b50ed`, expected branch, clean tree at start |
+| Natural Core entry indicator preconditions | PASS (fixture calculation only) | RSI previous 0.0, current 33.738312457588805; H1 +DI 2.438698081448821, -DI 0.0, ADX 100.0 |
+| Runner invocation | BLOCKED | Exit 2; `INPUT_REJECTED` |
+| Core signal | NOT REACHED / NOT VERIFIED | Signal null |
+| Shared Risk Engine | NOT REACHED / NOT VERIFIED | No risk decision |
+| 1% margin cap | NOT EXERCISED | No reservation evidence |
+| PaperLedger ENTRY | NOT EXERCISED | No ledger reference; Core position 0 → 0 |
+| AI isolation | PASS (observed state) | AI position 0 → 0; AI orders 0 |
+| Final source guard | NOT VERIFIED | Output ends at assertion traceback |
+| Temporary fixture cleanup | NOT VERIFIED | No post-cleanup check in supplied output |
+
+The run's indicator preconditions do not establish that a valid Bundle reached Core Strategy. The Runner rejected input before signal/risk/ledger processing. The supplied output does not identify the validation failure; do not infer a strategy bug or bypass validation. No retry or code/fixture change is authorized by this attempt. No GitHub Actions run/artifact exists for this manual test. Preserve paper-only posture, `AI_EXECUTION_ENABLED=false`, and all T0/T1/T2 boundaries. Next gate is read-only diagnosis of the exact Bundle validator rejection; any subsequent execution requires separate approval.
