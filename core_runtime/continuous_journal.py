@@ -6,6 +6,7 @@ remains the authority for paper-order side effects.
 """
 
 from contextlib import closing
+import os
 from pathlib import Path
 import sqlite3
 
@@ -25,8 +26,30 @@ _BUSY_TIMEOUT_MS = 10_000
 class ContinuousJournal:
     """SQLite-backed durable journal with atomic, idempotent cycle claims."""
 
+    _T0_DATABASE_ENV_KEYS = ("MARKET_DATA_DB", "T0_FEEDER_LEASE_DB")
+
+    @classmethod
+    def _assert_path_isolated_from_t0(cls, candidate):
+        candidate = Path(candidate).expanduser().resolve(strict=False)
+        for env_key in cls._T0_DATABASE_ENV_KEYS:
+            configured = os.environ.get(env_key)
+            if not configured or not configured.strip():
+                continue
+            protected = Path(configured).expanduser().resolve(strict=False)
+            if candidate == protected:
+                raise JournalError("JOURNAL_MUST_NOT_SHARE_T0_DATABASE")
+            try:
+                if candidate.exists() and protected.exists() and os.path.samefile(
+                    candidate, protected
+                ):
+                    raise JournalError("JOURNAL_MUST_NOT_SHARE_T0_DATABASE")
+            except OSError as exc:
+                raise JournalError("JOURNAL_T0_PATH_CHECK_FAILED") from exc
+
     def __init__(self, path):
-        self.path = Path(path).expanduser().resolve()
+        requested_path = Path(path).expanduser()
+        self._assert_path_isolated_from_t0(requested_path)
+        self.path = requested_path.resolve()
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self._initialize()
 
