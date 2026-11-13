@@ -18,6 +18,7 @@ _POPULATION_FIELDS = {
 }
 _EVENT_FIELDS = {"eventId", "eventAtMs", "amountQuote", "payloadHash"}
 _HASH = re.compile(r"^sha256:[0-9a-f]{64}$")
+_MAX_EVENTS = 100_000
 
 
 def _text(value, code, limit=200):
@@ -50,7 +51,7 @@ def _population(document, expected_type):
         raise ValueError("FUNDING_POPULATION_INTERVAL_INVALID")
     currency = _text(document["currency"], "FUNDING_POPULATION_CURRENCY_INVALID", 16)
     events = document["events"]
-    if not isinstance(events, list):
+    if not isinstance(events, list) or len(events) > _MAX_EVENTS:
         raise ValueError("FUNDING_POPULATION_EVENTS_INVALID")
 
     normalized = []
@@ -61,8 +62,10 @@ def _population(document, expected_type):
         at_ms = _timestamp(item["eventAtMs"], "FUNDING_EVENT_TIMESTAMP_INVALID")
         if not start <= at_ms < end:
             raise ValueError("FUNDING_EVENT_OUTSIDE_SCOPE")
+        if not isinstance(item["amountQuote"], str) or not item["amountQuote"].strip():
+            raise ValueError("FUNDING_EVENT_AMOUNT_INVALID")
         try:
-            amount = Decimal(str(item["amountQuote"]))
+            amount = Decimal(item["amountQuote"])
         except (DecimalException, TypeError, ValueError):
             raise ValueError("FUNDING_EVENT_AMOUNT_INVALID") from None
         if not amount.is_finite():
