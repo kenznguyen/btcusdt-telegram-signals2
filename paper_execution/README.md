@@ -292,3 +292,10 @@ freshness or production readiness.
 `paper_execution.binance_public_funding.parse_binance_usdm_funding_rate_page` parses captured bytes from the public `GET /fapi/v1/fundingRate` market-data endpoint. It accepts only BTCUSDT Regular funding records and verifies the declared page byte length and SHA-256 before parsing. It rejects Special rate types, malformed/duplicate JSON keys, invalid numeric types, duplicate or out-of-order timestamps, out-of-scope events and pages over 1,000 records. It binds normalized records to the D07.2 evidence snapshot ID and emits the funding-model input schema.
 
 The parser is offline only: no HTTP client, API key, account data, network request or scheduler. Binance documents inclusive start/end query parameters, ascending results, a 1,000-record maximum, and response fields including fundingTime, fundingRate, markPrice and rateType: [official endpoint documentation](https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/Get-Funding-Rate-History). D07.2 still does not prove issuer authenticity or global enumeration completeness.
+
+
+## D07.5 PAPER position projection
+
+`paper_execution.funding_position_projection.build_paper_position_snapshots` is a pure function that projects signed positions at funding settlement times from the three immutable cutover ledger snapshots, execution-journal FILL events and contiguous declared VERIFIED EXECUTION coverage. It verifies canonical execution payload hashes, rejects late/uncovered events and ambiguous fills exactly at settlement, and emits deterministic snapshots accepted by `funding_model.py`.
+
+This function does not read or write SQLite; it accepts caller-supplied rows. A read-only SQLite adapter is still required. Coverage status remains declared evidence, not independent proof of journal completeness. The current implementation replays the event list for each settlement; incremental replay is required before large population use.
