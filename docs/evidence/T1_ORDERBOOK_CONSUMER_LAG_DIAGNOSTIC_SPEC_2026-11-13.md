@@ -1,7 +1,7 @@
 # T1 Order Book V1 Consumer-Lag Diagnostic — Test Specification
 
 Date: 2026-11-13  
-Status: DESIGN ONLY — NOT APPROVED FOR IMPLEMENTATION  
+Status: APPROVED FOR BOUNDED IMPLEMENTATION — TEST-FIRST  
 Target repository: `kenznguyen/binance-futures-collector`  
 Target branch: `feature/t1-connection-sidecar-integration-20261107`  
 Target source baseline: `9b2af66e68206898e51f638b67497d574a7252c4`
@@ -162,6 +162,15 @@ CI can prove instrumentation/classification contracts; it cannot prove the histo
 - T1→T2: BLOCKED.
 - T0: untouched and independent.
 
-## 9. Owner decision required
+## 9. Owner decision and implementation authorization
 
-Owner approval is required before implementing the test-first internal instrumentation and typed failure classification above. Approval covers only this bounded scope and all constraints in Section 7. Any deviation requires a separate scope decision.
+Owner approval received in chat on 2026-11-13. Authorization covers only the test-first internal instrumentation and typed failure classification in Sections 3–6, subject to every constraint in Section 7. Any deviation requires a separate scope decision.
+
+Implementation must begin with failing tests (RED). No runtime/VPS retest, persistent service, T0 access, T1→T2 integration, or trading is authorized.
+
+## 10. Implementation record
+
+- Approval: GRANTED (2026-11-13).
+- Source baseline reviewed: `9b2af66e68206898e51f638b67497d574a7252c4`.
+- Current implementation disposition at approval: NOT STARTED.
+- Next action: implement failing tests for monotonic receive-time propagation and typed rejection classification, then verify RED through the existing GitHub Actions CI before any production implementation.
