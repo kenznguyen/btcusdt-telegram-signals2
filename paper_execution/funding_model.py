@@ -42,13 +42,14 @@ def _text(value, code, limit=200):
 
 
 def _decimal(value, code, *, positive=False):
-    if not isinstance(value, str) or not value.strip():
+    if not isinstance(value, str) or not value.strip() or len(value) > 256:
         raise ValueError(code)
     try:
         result = Decimal(value)
     except (DecimalException, TypeError, ValueError):
         raise ValueError(code) from None
-    if not result.is_finite() or (positive and result <= 0):
+    if (not result.is_finite() or not -200 <= result.as_tuple().exponent <= 200
+            or result.adjusted() > 200 or (positive and result <= 0)):
         raise ValueError(code)
     return result
 
@@ -75,7 +76,7 @@ def _normalise_positions(rows):
             raise ValueError("FUNDING_POSITION_SNAPSHOT_FIELDS_INVALID")
         snapshot_id = _text(row["snapshotId"], "FUNDING_POSITION_SNAPSHOT_ID_INVALID")
         strategy = row["strategyId"]
-        if strategy not in STRATEGIES:
+        if not isinstance(strategy, str) or strategy not in STRATEGIES:
             raise ValueError("FUNDING_POSITION_STRATEGY_INVALID")
         if row["symbol"] != SYMBOL:
             raise ValueError("FUNDING_POSITION_SYMBOL_INVALID")
@@ -217,6 +218,8 @@ def build_expected_funding_population(
                     "payloadHash": payload_hash,
                 })
 
+    if len(expected_events) > _MAX_ROWS:
+        raise ValueError("FUNDING_POPULATION_EVENTS_INVALID")
     expected_events.sort(key=lambda item: (item["eventAtMs"], item["eventId"]))
     canonical_inputs = {
         "modelVersion": MODEL_VERSION,
