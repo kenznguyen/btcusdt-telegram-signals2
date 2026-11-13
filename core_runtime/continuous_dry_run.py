@@ -53,7 +53,6 @@ def inspect_continuous_dry_run(
     env = os.environ if environ is None else environ
     try:
         config, ledger_path = _load_config(config_path)
-        _runner_policy(config)
     except PreflightError as exc:
         raise ContinuousDryRunError(str(exc)) from None
 
@@ -62,6 +61,10 @@ def inspect_continuous_dry_run(
         "max_book_age_ms", "max_position_base",
     }:
         raise ContinuousDryRunError("RUNNER_CONFIG_REQUIRED")
+    try:
+        _runner_policy(config)
+    except PreflightError as exc:
+        raise ContinuousDryRunError(str(exc)) from None
 
     if env.get("AI_EXECUTION_ENABLED") != "false":
         raise ContinuousDryRunError("AI_EXECUTION_MUST_BE_EXPLICITLY_DISABLED")
