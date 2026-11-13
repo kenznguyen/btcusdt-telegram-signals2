@@ -175,3 +175,37 @@ Attestation v1 chỉ ghi nhận tuyên bố thủ công rằng người khai bá
 Theo D09, một commit/action được GitHub xác thực có thể được ghi nhận là `PLATFORM_ATTRIBUTED_OWNER_ACTION`; điều này chỉ là quy thuộc nền tảng cho hành động GitHub, không biến file attestation thành chữ ký Owner và không cấp quyền bootstrap production. Manual review attestation, privileged-action authorization và trust administration là ba phạm vi tách biệt.
 
 Các test chỉ dùng fixture tổng hợp và SQLite tạm trong GitHub Actions. Không dùng VPS, không tạo database production, không chạm T0, không chạy Runner/One-shot và không gửi lệnh. Bootstrap production vẫn BLOCKED cho đến khi có evidence thực tế được kiểm chứng độc lập và một phê duyệt riêng đúng phạm vi.
+
+
+## D07 bounded funding population reconciliation — test/CI contract
+
+`paper_execution.funding_reconciliation.reconcile_funding_population(expected, observed)`
+performs deterministic, read-only reconciliation between two separately declared
+event inventories over the same half-open interval `[startAtMs, endAtMs)` and
+quote currency. Each event is compared by event ID, event timestamp, exact Decimal
+amount string and payload SHA-256 reference. The result classifies matched, missing,
+unexpected and duplicate event IDs. Missing, unexpected, duplicate or content-
+mismatched events block a complete result. Input inventories are limited to
+100,000 events each.
+
+A complete result means only
+`COMPLETE_WITHIN_DECLARED_POPULATION`. The result deliberately retains:
+- `independence=DECLARED_NOT_VERIFIED`;
+- `globalCompleteness=NOT_VERIFIED`;
+- `freshness=NOT_VERIFIED`;
+- `issuerAuthenticity=NOT_VERIFIED`.
+
+Different population-definition IDs, source labels and snapshot IDs are required,
+but these caller-supplied labels do not authenticate issuers or prove that the
+enumerations are actually independent. Event payload hashes are compared as
+references; this module does not retrieve or independently verify external
+statement bytes.
+
+This is currently a pure, no-I/O reconciliation primitive exercised only with
+synthetic GitHub Actions fixtures. It does **not** write an audit record, persist a
+reconciliation certificate, change funding coverage, or gate
+`record_funding_coverage(status="VERIFIED")`, account-equity cutover or
+`riskReady`. Therefore it does not close the live D07 evidence requirement and
+must not be used to assert that a real account's funding population is complete.
+The separate integration increment must persist the exact reconciliation evidence
+and make unresolved D07 discrepancies fail closed before any readiness transition.
