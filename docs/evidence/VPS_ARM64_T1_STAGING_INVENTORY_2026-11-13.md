@@ -119,3 +119,30 @@ GitHub compare confirms VPS local SHA `4af5bf0536c8b45f59033f0bc38625a031621c3e`
 - Prompt `[ahead 165]` is stale local remote-tracking metadata; explicit HTTPS fetch did not update `origin/*`. GitHub branch HEAD and VPS HEAD match. No push is needed.
 - No dependency installation, build, tests, Runner invocation, service activation, T0/T1/T2 mutation, or trading occurred.
 - Next: prepare a bounded ARM64 compatibility/dependency plan for owner review. Execution requires separate explicit approval; preserve paper-only posture and `AI_EXECUTION_ENABLED=false`.
+
+
+## Addendum — Core Runner ARM64 dependency static assessment (2026-11-13)
+
+### Repository and source scope
+- Active branch: `feature/core-operational-proof-20261112`; branch HEAD at assessment start: `fa02bffea4b1070e9ad203900f0fc7c45bef96b1` (GitHub compare confirms identical).
+- Read-only inspected root `requirements.txt` and Core Runner decision-path modules: `core_runtime/{__main__,preflight,one_shot,input_bundle,adapter,orderbook_contract}.py`; `pipeline/{core_strategy,core_signal,values}.py`; `paper_execution/{ledger,risk_control,equity,account_history,replay_inputs,funding}.py`; `risk_policy.py`.
+- Static import graph identifies `rfc8785` as the only third-party import in the inspected Core Runner path. Declared requirement: `rfc8785>=0.1.4,<0.2`. Remaining inspected imports are standard-library or project-local.
+- The root requirements file is application-wide and additionally declares `requests>=2.32,<3`, `numpy>=1.26,<3`, `pandas>=2.2,<3`, `Flask>=3,<4`, `gunicorn>=22,<24`, and `cryptography>=42,<47`. These were not identified in the inspected one-shot Core Runner import path. Do not install the entire root requirements set for this bounded Runner assessment.
+- No root `pyproject.toml` or `setup.cfg` was found; no dedicated locked Runner requirements manifest was established.
+
+### ARM64/Python compatibility evidence
+- PyPI metadata for `rfc8785 0.1.4` identifies it as pure Python, dependency-free, with universal wheel `rfc8785-0.1.4-py3-none-any.whl`; its Python requirement is >=3.8. This is compatible by declared tags with CPython 3.12 on aarch64 in principle. Sources: https://pypi.org/project/rfc8785/ and https://simple-repository.app.cern.ch/project/rfc8785.
+- Host inventory (not re-probed): Ubuntu 24.04.5, CPython 3.12.3, aarch64, 2 vCPU, 3.8 GiB RAM, 5.3 GB free root disk; pip and GCC absent.
+- This is a static dependency and metadata assessment only. It does not prove successful package resolution, import, runtime behavior, or end-to-end ARM64 compatibility.
+
+### Gate status and limits
+| Gate | Status |
+|---|---|
+| Core Runner static dependency scope | PASS (source-inspection level) |
+| rfc8785 universal wheel/Python declaration | CONDITIONAL PASS (metadata only) |
+| Host package resolution | NOT VERIFIED |
+| Runtime import/test/build | NOT RUN |
+| Dependency installation | NOT AUTHORIZED |
+| Core Runner invocation/service activation | NOT AUTHORIZED / NOT RUN |
+
+Next proposed step: isolated no-install resolver/wheel-availability check for the minimal Core Runner dependency only, after verifying a safe pip invocation path. Do not bootstrap pip, install packages, create a persistent environment, build, test, invoke Runner, or activate services without separate explicit approval. T0/T1/T2 and paper-only boundaries remain unchanged.
