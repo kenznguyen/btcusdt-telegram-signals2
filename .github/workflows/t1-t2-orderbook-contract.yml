@@ -51,8 +51,10 @@ jobs:
           done
           git rev-parse HEAD | tee t1-t2-source-sha.txt
           echo "PAPER_ONLY=PASS" | tee t1-t2-safety.txt
+      - name: Run RED T2 one-shot HTTP reader tests
+        run: python -m unittest core_runtime.test_orderbook_http -v
       - name: Compile isolated contract suite
-        run: python -m py_compile core_runtime/orderbook_contract.py core_runtime/test_orderbook_contract.py
+        run: python -m py_compile core_runtime/orderbook_contract.py core_runtime/test_orderbook_contract.py core_runtime/test_orderbook_http.py
       - name: Run GREEN T1 T2 contract suite
         run: |
           set -euo pipefail
