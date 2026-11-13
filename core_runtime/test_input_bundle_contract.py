@@ -5,6 +5,7 @@ The implementation module is intentionally absent in this RED increment.
 
 import copy
 import hashlib
+import json
 import unittest
 
 import rfc8785
@@ -135,6 +136,7 @@ def valid_bundle():
                 "firstAppliedU": 101,
                 "lastAppliedU": 101,
                 "sourceTimestampMs": now - 100,
+                "observedAtMs": now - 90,
                 "decisionWatermark": 101,
                 "generation": 1,
                 "snapshotId": "sha256:" + "a" * 64,
@@ -158,6 +160,29 @@ def valid_bundle():
             "snapshot": risk,
         },
     }
+    book = bundle["orderBook"]
+    evidence = book["t1Evidence"]
+    snapshot_identity = {
+        "contractVersion": evidence["contractVersion"],
+        "symbol": book["symbol"],
+        "market": evidence["market"],
+        "bids": [[level["price"], level["quantity"]] for level in book["bids"]],
+        "asks": [[level["price"], level["quantity"]] for level in book["asks"]],
+        "snapshotLastUpdateId": evidence["snapshotLastUpdateId"],
+        "firstAppliedU": evidence["firstAppliedU"],
+        "lastAppliedU": evidence["lastAppliedU"],
+        "sourceTimestampMs": evidence["sourceTimestampMs"],
+        "observedAtMs": evidence["observedAtMs"],
+        "decisionWatermark": evidence["decisionWatermark"],
+        "generation": evidence["generation"],
+        "continuity": evidence["continuity"],
+        "freshness": evidence["freshness"],
+        "depth": evidence["depth"],
+        "complete": evidence["complete"],
+    }
+    evidence["snapshotId"] = "sha256:" + hashlib.sha256(
+        json.dumps(snapshot_identity, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
     digest_input = dict(bundle)
     digest_input.pop("bundleId")
     bundle["bundleId"] = "sha256:" + hashlib.sha256(rfc8785.dumps(digest_input)).hexdigest()
