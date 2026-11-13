@@ -299,3 +299,6 @@ The parser is offline only: no HTTP client, API key, account data, network reque
 `paper_execution.funding_position_projection.build_paper_position_snapshots` is a pure function that projects signed positions at funding settlement times from the three immutable cutover ledger snapshots, execution-journal FILL events and contiguous declared VERIFIED EXECUTION coverage. It verifies canonical execution payload hashes, rejects late/uncovered events and ambiguous fills exactly at settlement, and emits deterministic snapshots accepted by `funding_model.py`.
 
 This function does not read or write SQLite; it accepts caller-supplied rows. A read-only SQLite adapter is still required. Coverage status remains declared evidence, not independent proof of journal completeness. The current implementation replays the event list for each settlement; incremental replay is required before large population use.
+
+
+Funding sign convention: `amountQuote = signedPositionBase × markPrice × fundingRate` represents **cost** (positive = debit, negative = credit), not account income. This matches the ledger equity equation, which subtracts accumulated funding cost. Binance states that a positive rate means longs pay and shorts receive: [official explanation](https://www.binance.com/en/support/faq/detail/98488a516eb84e3eb34605683dffd554).
