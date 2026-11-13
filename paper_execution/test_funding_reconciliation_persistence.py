@@ -127,6 +127,26 @@ class FundingReconciliationPersistenceTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "FUNDING_RECONCILIATION_NOT_COMPLETE"):
             self.coverage(reconciliation_id=result["reconciliationId"])
 
+    def test_new_funding_event_rejects_legacy_unverified_source(self):
+        with self.assertRaisesRegex(ValueError, "FUNDING_EVENT_SOURCE_UNVERIFIED"):
+            record_funding_event(
+                self.db_path,
+                funding_event_id="legacy-unverified-event",
+                strategy_id="STRATEGY_CORE",
+                amount_quote="0.01",
+                event_at_ms=self.now - 1,
+                source="LEGACY_UNVERIFIED",
+                source_snapshot_id="legacy-source",
+                payload_hash="sha256:" + "b" * 64,
+                recorded_at_ms=self.now,
+            )
+
+        with sqlite3.connect(self.db_path) as db:
+            self.assertEqual(
+                db.execute("SELECT COUNT(*) FROM paper_funding_events").fetchone()[0],
+                0,
+            )
+
     def test_observed_population_is_enumerated_from_persisted_funding_events(self):
         event = {
             "eventId": "funding-evt-001",
