@@ -17,6 +17,12 @@ from paper_execution.ledger import read_account_risk_snapshot, dual_ledger_ready
 from risk_policy import CORE_LEVERAGE
 
 
+def write_json(path, value):
+    raw = json.dumps(value, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    path.write_bytes(raw)
+    return "sha256:" + hashlib.sha256(raw).hexdigest()
+
+
 class DualLedgerBootstrapContractTest(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
@@ -35,14 +41,6 @@ class DualLedgerBootstrapContractTest(unittest.TestCase):
         self.addCleanup(self.environment.stop)
         self.funding_evidence = self.root / "funding-evidence.json"
         self.cutover_evidence = self.root / "equity-cutover-evidence.json"
-        self.funding_evidence.write_text(
-            json.dumps({"snapshotId": "owner-funding-001", "coverage": "verified"}),
-            encoding="utf-8",
-        )
-        self.cutover_evidence.write_text(
-            json.dumps({"snapshotId": "owner-equity-001", "equityQuote": "100"}),
-            encoding="utf-8",
-        )
         self.manifest = {
             "schemaVersion": 1,
             "mode": "PAPER",
@@ -64,19 +62,49 @@ class DualLedgerBootstrapContractTest(unittest.TestCase):
             "fundingSource": "OWNER_RECONCILED_EVIDENCE",
             "fundingSnapshotId": "owner-funding-001",
             "fundingEvidencePath": str(self.funding_evidence),
-            "fundingPayloadHash": "sha256:" + hashlib.sha256(
-                self.funding_evidence.read_bytes()
-            ).hexdigest(),
+            "fundingPayloadHash": "",
             "cutoverId": "bootstrap-equity-cutover-001",
             "cutoverSource": "OWNER_RECONCILED_EVIDENCE",
             "cutoverSnapshotId": "owner-equity-001",
             "cutoverEvidencePath": str(self.cutover_evidence),
-            "cutoverPayloadHash": "sha256:" + hashlib.sha256(
-                self.cutover_evidence.read_bytes()
-            ).hexdigest(),
+            "cutoverPayloadHash": "",
             "configVersion": "paper-risk-v1",
             "recordedAtMs": self.now,
         }
+        funding_document = {
+            "snapshotId": "owner-funding-001",
+            "status": "VERIFIED",
+            "startAtMs": self.now - 86_400_000,
+            "endAtMs": self.now,
+            "source": "OWNER_RECONCILED_EVIDENCE",
+            "configVersion": "paper-risk-v1",
+            "fundingByStrategy": {
+                "STRATEGY_CORE": "0",
+                "AI_FREQAI": "0",
+                "LEGACY_UNATTRIBUTED": "0",
+            },
+        }
+        cutover_document = {
+            "snapshotId": "owner-equity-001",
+            "initialCapitalQuote": "100",
+            "realizedPnlQuote": "0",
+            "feesQuote": "0",
+            "fundingQuote": "0",
+            "accountEquityQuote": "100",
+            "markPrice": "100",
+            "markCandleCloseMs": self.now - 60_000,
+            "markObservedAtMs": self.now,
+            "datasetVersion": "sha256:" + "1" * 64,
+            "fundingCoverageStartAtMs": self.now - 86_400_000,
+            "source": "OWNER_RECONCILED_EVIDENCE",
+            "configVersion": "paper-risk-v1",
+        }
+        self.manifest["fundingPayloadHash"] = write_json(
+            self.funding_evidence, funding_document
+        )
+        self.manifest["cutoverPayloadHash"] = write_json(
+            self.cutover_evidence, cutover_document
+        )
         self.db_path = self.root / "paper" / "account.sqlite3"
         self.db_path.parent.mkdir()
 
@@ -121,6 +149,28 @@ class DualLedgerBootstrapContractTest(unittest.TestCase):
 
         self.assertFalse(self.db_path.exists())
         self.assertEqual(list(self.db_path.parent.iterdir()), [])
+
+    def test_funding_evidence_content_must_match_manifest_even_with_valid_hash(self):
+        evidence = json.loads(self.funding_evidence.read_text(encoding="utf-8"))
+        evidence["status"] = "UNKNOWN"
+        bad = dict(self.manifest)
+        bad["fundingPayloadHash"] = write_json(self.funding_evidence, evidence)
+
+        with self.assertRaisesRegex(ValueError, "BOOTSTRAP_EVIDENCE_CONTENT_MISMATCH"):
+            bootstrap_paper_account(self.db_path, bad)
+
+        self.assertFalse(self.db_path.exists())
+
+    def test_equity_evidence_totals_must_match_manifest_even_with_valid_hash(self):
+        evidence = json.loads(self.cutover_evidence.read_text(encoding="utf-8"))
+        evidence["accountEquityQuote"] = "999"
+        bad = dict(self.manifest)
+        bad["cutoverPayloadHash"] = write_json(self.cutover_evidence, evidence)
+
+        with self.assertRaisesRegex(ValueError, "BOOTSTRAP_EVIDENCE_CONTENT_MISMATCH"):
+            bootstrap_paper_account(self.db_path, bad)
+
+        self.assertFalse(self.db_path.exists())
 
     def test_invalid_manifest_shape_fails_without_creating_database(self):
         bad = dict(self.manifest)
