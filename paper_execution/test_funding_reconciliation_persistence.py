@@ -12,6 +12,7 @@ from paper_execution.funding import (
     record_funding_reconciliation,
 )
 from paper_execution.ledger import PaperLedger
+from risk_policy import CORE_LEVERAGE
 
 
 class FundingReconciliationPersistenceTest(unittest.TestCase):
@@ -33,7 +34,7 @@ class FundingReconciliationPersistenceTest(unittest.TestCase):
         PaperLedger(
             self.db_path, max_position_base="0.01",
             strategy_id="STRATEGY_CORE", source_sha="a" * 40,
-            risk_limits=limits, require_risk_limits=True, leverage="1",
+            risk_limits=limits, require_risk_limits=True, leverage=str(CORE_LEVERAGE),
         )
         PaperLedger(
             self.db_path, max_position_base="0.01",
