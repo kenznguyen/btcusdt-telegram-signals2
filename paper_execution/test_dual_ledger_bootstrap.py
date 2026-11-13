@@ -122,7 +122,7 @@ class DualLedgerBootstrapContractTest(unittest.TestCase):
             "fundingPayloadHash": self.manifest["fundingPayloadHash"],
             "cutoverSnapshotId": "owner-equity-001",
             "cutoverPayloadHash": self.manifest["cutoverPayloadHash"],
-            "reviewedAtMs": self.now + 30_000,
+            "reviewedAtMs": self.now,
             "reviewStatement": "I_REVIEWED_THE_IDENTIFIED_FUNDING_AND_EQUITY_SNAPSHOTS",
             "nonClaims": [
                 "FACTUAL_TRUTH",
