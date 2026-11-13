@@ -109,6 +109,35 @@ class ContinuousDryRunTest(unittest.TestCase):
             )
         self.assertFalse(missing.exists())
 
+    def test_cli_static_dry_run_does_not_create_runner_state(self):
+        env = dict(os.environ)
+        for key in (
+            "MARKET_DATA_DB", "T0_FEEDER_LEASE_DB",
+            "BINANCE_API_KEY", "BINANCE_API_SECRET",
+            "OKX_API_KEY", "OKX_API_SECRET",
+        ):
+            env.pop(key, None)
+        env["AI_EXECUTION_ENABLED"] = "false"
+        before = sorted(str(path.relative_to(self.root)) for path in self.root.rglob("*"))
+        result = subprocess.run(
+            [
+                sys.executable, "-m", "core_runtime",
+                "--config", str(self.config),
+                "--dry-run",
+                "--journal-path", str(self.journal),
+                "--bundle-store-dir", str(self.bundle_store),
+            ],
+            cwd=Path(__file__).resolve().parents[1],
+            env=env, text=True, capture_output=True, timeout=10, check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["status"], "DRY_RUN_CONFIG_VALIDATED")
+        self.assertFalse(payload["ledgerContentsRead"])
+        self.assertEqual(payload["persistentStateMutation"], "NONE")
+        after = sorted(str(path.relative_to(self.root)) for path in self.root.rglob("*"))
+        self.assertEqual(before, after)
+
     def test_dry_run_rejects_base_config_without_runner_policy(self):
         base = self.root / "base.json"
         base.write_text(

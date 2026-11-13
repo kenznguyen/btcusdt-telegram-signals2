@@ -111,5 +111,6 @@ def inspect_continuous_dry_run(
         "oneShotInvoked": False,
         "aiExecutionEnabled": False,
         "exchangeCredentialsUsed": False,
-        "persistentStateAccess": "NONE",
+        "ledgerContentsRead": False,
+        "persistentStateMutation": "NONE",
     }
