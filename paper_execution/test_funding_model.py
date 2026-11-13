@@ -8,7 +8,7 @@ from paper_execution.funding_reconciliation import reconcile_funding_population
 
 START = 1_800_000_000_000
 SETTLEMENT = START + 10_000
-END = SETTLEMENT + 1
+END = SETTLEMENT + 1_001
 
 
 def position(strategy, quantity, *, observed=SETTLEMENT, snapshot=None):
@@ -83,6 +83,22 @@ class PaperFundingModelTest(unittest.TestCase):
             sorted(event["amountQuote"] for event in result["events"]),
             ["-0.1", "0.2"],
         )
+
+    def test_multiple_settlements_use_the_latest_asof_snapshot_per_strategy(self):
+        second_settlement = SETTLEMENT + 1_000
+        rows = positions() + positions(
+            at=second_settlement, core="3", ai="-1", legacy="0"
+        )
+        result = self.build(
+            position_rows=rows,
+            rate_rows=[rate(), rate(at=second_settlement, event_id="rate-002")],
+        )
+        by_time = {}
+        for event in result["events"]:
+            by_time.setdefault(event["eventAtMs"], []).append(event["amountQuote"])
+
+        self.assertEqual(sorted(by_time[SETTLEMENT]), ["-0.2", "0.1"])
+        self.assertEqual(sorted(by_time[second_settlement]), ["-0.1", "0.3"])
 
     def test_future_position_snapshot_is_never_used(self):
         rows = positions()
