@@ -3,17 +3,26 @@
 import argparse
 import json
 import sys
+import time
 
 from core_runtime.preflight import PreflightError, _preflight
 from core_runtime.continuous_dry_run import (
     ContinuousDryRunError,
     inspect_continuous_dry_run,
 )
+from core_runtime.paper_ledger_preflight import (
+    PaperLedgerPreflightError,
+    inspect_paper_ledger_preflight,
+)
 
 
 def main(argv=None, *, now_ms=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", required=True, help="Explicit paper-only JSON config")
+    parser.add_argument(
+        "--ledger-preflight", action="store_true",
+        help="Read-only PaperLedger readiness check; never starts a decision cycle",
+    )
     parser.add_argument(
         "--dry-run", action="store_true",
         help="Static PAPER config/path validation; never opens or mutates runtime state",
@@ -33,7 +42,10 @@ def main(argv=None, *, now_ms=None):
     parser.add_argument("--bundle", help="Path to one immutable Core Decision Input Bundle v1 JSON")
     args = parser.parse_args(argv)
 
-    if args.ledger_preflight and (args.dry_run or args.run_once or args.bundle or args.journal_path or args.bundle_store_dir):
+    if args.ledger_preflight and (
+        args.dry_run or args.run_once or args.bundle
+        or args.journal_path or args.bundle_store_dir
+    ):
         parser.error("--ledger-preflight cannot be combined with runner execution or dry-run options")
     if args.dry_run and (args.run_once or args.bundle):
         parser.error("--dry-run cannot be combined with --run-once or --bundle")
@@ -47,6 +59,13 @@ def main(argv=None, *, now_ms=None):
         parser.error("--bundle requires --run-once")
 
     try:
+        if args.ledger_preflight:
+            result = inspect_paper_ledger_preflight(
+                args.config,
+                now_ms=now_ms if now_ms is not None else time.time_ns() // 1_000_000,
+            )
+            print(json.dumps(result, sort_keys=True, separators=(",", ":"), allow_nan=False))
+            return 0
         if args.dry_run:
             result = inspect_continuous_dry_run(
                 args.config,
