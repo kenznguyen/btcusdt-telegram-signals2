@@ -202,5 +202,62 @@ class CoreOneShotRunnerTest(unittest.TestCase):
         self.assertEqual(len(created), 0)
 
 
+
+    def test_intent_prepared_callback_runs_before_paper_ledger_submit(self):
+        events = []
+        class OrderedLedger:
+            def __init__(self, *args, **kwargs):
+                pass
+            def submit(self, intent, *args, **kwargs):
+                events.append(("submit", intent["intentId"]))
+                return {"orderId": "paper-order-ordered",
+                        "reservationId": "reservation-ordered", "status": "FILLED"}
+
+        def on_intent_prepared(intent):
+            events.append(("prepared", intent["intentId"]))
+
+        with (
+            patch("core_runtime.one_shot._preflight", return_value={"status": "PREFLIGHT_PASS"}),
+            patch("paper_execution.ledger.read_account_risk_snapshot",
+                  return_value=self.bundle["accountRisk"]["snapshot"]),
+            patch("paper_execution.ledger.read_snapshot", return_value=self.paper_state),
+            patch("pipeline.core_strategy.produce", return_value=producer_report()),
+            patch("paper_execution.ledger.PaperLedger", OrderedLedger),
+        ):
+            result = run_once(self.config_path, self.bundle_path, now_ms=NOW,
+                              on_intent_prepared=on_intent_prepared)
+
+        self.assertEqual(result["runStatus"], "PAPER_ACCEPTED", result)
+        self.assertEqual([event[0] for event in events], ["prepared", "submit"])
+        self.assertEqual(events[0][1], events[1][1])
+
+    def test_intent_prepared_callback_failure_aborts_before_ledger_submit(self):
+        class NeverConstructLedger:
+            def __init__(self, *args, **kwargs):
+                raise AssertionError("Ledger must not be constructed after journal failure")
+
+        def fail_journal(_intent):
+            raise OSError("journal unavailable")
+
+        with (
+            patch("core_runtime.one_shot._preflight", return_value={"status": "PREFLIGHT_PASS"}),
+            patch("paper_execution.ledger.read_account_risk_snapshot",
+                  return_value=self.bundle["accountRisk"]["snapshot"]),
+            patch("paper_execution.ledger.read_snapshot", return_value=self.paper_state),
+            patch("pipeline.core_strategy.produce", return_value=producer_report()),
+            patch("paper_execution.ledger.PaperLedger", NeverConstructLedger),
+        ):
+            result = run_once(self.config_path, self.bundle_path, now_ms=NOW,
+                              on_intent_prepared=fail_journal)
+
+        self.assertEqual(result["runStatus"], "RUN_FAILED")
+        self.assertEqual(result["reasonCode"], "INTENT_PREPARE_CALLBACK_FAILED")
+
+    def test_missing_intent_prepared_callback_preserves_one_shot_behavior(self):
+        result, created = self.run_patched(producer_report())
+        self.assertEqual(result["runStatus"], "PAPER_ACCEPTED", result)
+        self.assertEqual(len(created), 1)
+        self.assertEqual(created[0].submit_calls, 1)
+
 if __name__ == "__main__":
     unittest.main()
