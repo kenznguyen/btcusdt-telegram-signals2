@@ -250,7 +250,31 @@ class CoreDecisionInputBundleContractTest(unittest.TestCase):
             validate(bundle, max_book_age_ms=5_000)
         bundle = valid_bundle()
         bundle["orderBook"]["asks"][0]["price"] = "49998"
-        with self.assertRaisesRegex(Error, "ORDER_BOOK_SPREAD_INVALID"):
+        book = bundle["orderBook"]
+        evidence = book["t1Evidence"]
+        snapshot_identity = {
+            "contractVersion": evidence["contractVersion"],
+            "symbol": book["symbol"],
+            "market": evidence["market"],
+            "bids": [[level["price"], level["quantity"]] for level in book["bids"]],
+            "asks": [[level["price"], level["quantity"]] for level in book["asks"]],
+            "snapshotLastUpdateId": evidence["snapshotLastUpdateId"],
+            "firstAppliedU": evidence["firstAppliedU"],
+            "lastAppliedU": evidence["lastAppliedU"],
+            "sourceTimestampMs": evidence["sourceTimestampMs"],
+            "observedAtMs": evidence["observedAtMs"],
+            "decisionWatermark": evidence["decisionWatermark"],
+            "generation": evidence["generation"],
+            "continuity": evidence["continuity"],
+            "freshness": evidence["freshness"],
+            "depth": evidence["depth"],
+            "complete": evidence["complete"],
+        }
+        evidence["snapshotId"] = "sha256:" + hashlib.sha256(
+            json.dumps(snapshot_identity, sort_keys=True, separators=(",", ":")).encode()
+        ).hexdigest()
+        _rehash(bundle)
+        with self.assertRaisesRegex(Error, "ORDER_BOOK_T1_SPREAD_INVALID"):
             validate(bundle, max_book_age_ms=5_000)
 
     def test_core_state_and_account_risk_snapshot_are_not_caller_overridable(self):
