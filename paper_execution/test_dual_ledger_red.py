@@ -14,6 +14,32 @@ from paper_execution.replay_reconciliation import reconcile_daily_equity_replay
 from paper_execution.ledger import PaperLedger
 
 
+def record_verified_funding_coverage(path, **kwargs):
+    """Create synthetic Owner-declared expected inventory before fixture coverage."""
+    if kwargs.get("status") == "VERIFIED":
+        expected_events = kwargs.pop("expected_events", [])
+        expected = {
+            "schemaVersion": 1,
+            "populationType": "EXPECTED_FUNDING_EVENTS",
+            "populationDefinitionId": "fixture-owner-enumeration:" + kwargs["coverage_id"],
+            "snapshotId": kwargs["source_snapshot_id"],
+            "source": "fixture-owner-funding-statement",
+            "startAtMs": kwargs["start_at_ms"],
+            "endAtMs": kwargs["end_at_ms"],
+            "currency": "USDT",
+            "events": expected_events,
+        }
+        reconciliation = ledger.record_funding_reconciliation(
+            path, expected_population=expected,
+            recorded_at_ms=kwargs["recorded_at_ms"],
+        )
+        if reconciliation["reconciliationStatus"] != "COMPLETE_WITHIN_DECLARED_POPULATION":
+            raise AssertionError("Synthetic fixture funding population did not reconcile")
+        kwargs["reconciliation_id"] = reconciliation["reconciliationId"]
+    return ledger.record_funding_coverage(path, **kwargs)
+
+
+
 class DualLedgerRedTest(unittest.TestCase):
     def fresh_account_db(self, filename, *, establish_cutover=True):
         path = Path(self.temp.name) / filename
@@ -59,7 +85,7 @@ class DualLedgerRedTest(unittest.TestCase):
                 },
                 recorded_at_ms=self.now,
             )
-            ledger.record_funding_coverage(
+            record_verified_funding_coverage(
                 path, coverage_id="fixture-funding-coverage",
                 start_at_ms=self.now - 86_400_000, end_at_ms=self.now,
                 status="VERIFIED", source="FIXTURE_RECONCILED_HISTORY",
@@ -882,7 +908,7 @@ class DualLedgerRedTest(unittest.TestCase):
             "unknown-and-disabled-coverage.sqlite3",
             establish_cutover=False,
         )
-        unknown = ledger.record_funding_coverage(
+        unknown = record_verified_funding_coverage(
             path,
             coverage_id="funding-history-unknown-001",
             start_at_ms=self.now - 86_400_000,
@@ -902,7 +928,7 @@ class DualLedgerRedTest(unittest.TestCase):
         self.assertEqual(risk[0], 0)
         self.assertEqual(risk[1], "FUNDING_PROVENANCE_INCOMPLETE")
 
-        disabled = ledger.record_funding_coverage(
+        disabled = record_verified_funding_coverage(
             path,
             coverage_id="paper-funding-disabled-test-001",
             start_at_ms=self.now,
@@ -929,7 +955,7 @@ class DualLedgerRedTest(unittest.TestCase):
 
     def test_account_equity_cutover_rejects_unknown_funding_coverage(self):
         path = self.fresh_account_db("cutover-unknown.sqlite3", establish_cutover=False)
-        ledger.record_funding_coverage(
+        record_verified_funding_coverage(
             path,
             coverage_id="cutover-funding-unknown",
             start_at_ms=self.now - 86_400_000,
@@ -971,7 +997,7 @@ class DualLedgerRedTest(unittest.TestCase):
 
     def test_account_equity_cutover_reconciles_both_ledgers_and_legacy_once(self):
         path = self.fresh_account_db("cutover-verified.sqlite3", establish_cutover=False)
-        ledger.record_funding_coverage(
+        record_verified_funding_coverage(
             path,
             coverage_id="cutover-funding-verified",
             start_at_ms=self.now - 86_400_000,
@@ -1083,7 +1109,7 @@ class DualLedgerRedTest(unittest.TestCase):
 
 
     def test_unknown_funding_after_cutover_blocks_readiness_and_admission(self):
-        ledger.record_funding_coverage(
+        record_verified_funding_coverage(
             self.path,
             coverage_id="post-cutover-funding-gap",
             start_at_ms=self.now,
@@ -1112,7 +1138,7 @@ class DualLedgerRedTest(unittest.TestCase):
 
     def test_account_equity_cutover_rejects_overlapping_funding_coverage(self):
         path = self.fresh_account_db("overlapping-funding-coverage.sqlite3", establish_cutover=False)
-        ledger.record_funding_coverage(
+        record_verified_funding_coverage(
             path,
             coverage_id="coverage-overlap-first",
             start_at_ms=self.now - 86_400_000,
@@ -1125,7 +1151,7 @@ class DualLedgerRedTest(unittest.TestCase):
             recorded_at_ms=self.now,
         )
         with self.assertRaisesRegex(ValueError, "FUNDING_COVERAGE_INTERVAL_OVERLAP"):
-            ledger.record_funding_coverage(
+            record_verified_funding_coverage(
                 path,
                 coverage_id="coverage-overlap-second",
                 start_at_ms=self.now - 64_800_000,
@@ -1146,7 +1172,7 @@ class DualLedgerRedTest(unittest.TestCase):
 
     def test_account_equity_cutover_rejects_statement_total_mismatch(self):
         path = self.fresh_account_db("cutover-statement-mismatch.sqlite3", establish_cutover=False)
-        ledger.record_funding_coverage(
+        record_verified_funding_coverage(
             path,
             coverage_id="statement-mismatch-funding-coverage",
             start_at_ms=self.now - 86_400_000,
@@ -1199,7 +1225,7 @@ class DualLedgerRedTest(unittest.TestCase):
 
     def test_account_equity_cutover_rejects_overlap_after_coverage_is_complete(self):
         path = self.fresh_account_db("overlap-after-complete-coverage.sqlite3", establish_cutover=False)
-        ledger.record_funding_coverage(
+        record_verified_funding_coverage(
             path,
             coverage_id="coverage-complete-window",
             start_at_ms=self.now - 86_400_000,
@@ -1212,7 +1238,7 @@ class DualLedgerRedTest(unittest.TestCase):
             recorded_at_ms=self.now,
         )
         with self.assertRaisesRegex(ValueError, "FUNDING_COVERAGE_INTERVAL_OVERLAP"):
-            ledger.record_funding_coverage(
+            record_verified_funding_coverage(
                 path,
                 coverage_id="coverage-nested-overlap",
                 start_at_ms=self.now - 60_000,
@@ -1233,14 +1259,14 @@ class DualLedgerRedTest(unittest.TestCase):
 
     def test_account_equity_cutover_rejects_funding_coverage_gap(self):
         path = self.fresh_account_db("cutover-funding-gap.sqlite3", establish_cutover=False)
-        ledger.record_funding_coverage(
+        record_verified_funding_coverage(
             path, coverage_id="funding-gap-first",
             start_at_ms=self.now - 86_400_000, end_at_ms=self.now - 60_000,
             status="VERIFIED", source="RECONCILED_FUNDING_STATEMENT",
             source_snapshot_id="funding-gap:first", payload_hash="sha256:" + "2" * 64,
             config_version="funding-policy-v1", recorded_at_ms=self.now,
         )
-        ledger.record_funding_coverage(
+        record_verified_funding_coverage(
             path, coverage_id="funding-gap-second",
             start_at_ms=self.now - 30_000, end_at_ms=self.now,
             status="VERIFIED", source="RECONCILED_FUNDING_STATEMENT",
@@ -1265,7 +1291,7 @@ class DualLedgerRedTest(unittest.TestCase):
 
     def test_account_equity_cutover_rejects_future_mark_observation(self):
         path = self.fresh_account_db("cutover-future-mark.sqlite3", establish_cutover=False)
-        ledger.record_funding_coverage(
+        record_verified_funding_coverage(
             path, coverage_id="future-mark-funding-coverage",
             start_at_ms=self.now - 86_400_000, end_at_ms=self.now,
             status="VERIFIED", source="RECONCILED_FUNDING_STATEMENT",
@@ -1292,7 +1318,7 @@ class DualLedgerRedTest(unittest.TestCase):
 
     def test_account_equity_cutover_rejects_stale_closed_candle(self):
         path = self.fresh_account_db("cutover-stale-candle.sqlite3", establish_cutover=False)
-        ledger.record_funding_coverage(
+        record_verified_funding_coverage(
             path, coverage_id="stale-candle-funding-coverage",
             start_at_ms=self.now - 86_400_000, end_at_ms=self.now,
             status="VERIFIED", source="RECONCILED_FUNDING_STATEMENT",
@@ -1319,7 +1345,7 @@ class DualLedgerRedTest(unittest.TestCase):
 
     def test_account_equity_cutover_rejects_corrupt_funding_event_provenance(self):
         path = self.fresh_account_db("cutover-corrupt-funding-event.sqlite3", establish_cutover=False)
-        ledger.record_funding_coverage(
+        record_verified_funding_coverage(
             path, coverage_id="corrupt-event-funding-coverage",
             start_at_ms=self.now - 86_400_000, end_at_ms=self.now,
             status="VERIFIED", source="RECONCILED_FUNDING_STATEMENT",
@@ -1360,7 +1386,7 @@ class DualLedgerRedTest(unittest.TestCase):
 
     def test_account_equity_cutover_replay_after_reopen_is_idempotent_and_conflict_safe(self):
         path = self.fresh_account_db("cutover-restart-replay.sqlite3", establish_cutover=False)
-        ledger.record_funding_coverage(
+        record_verified_funding_coverage(
             path,
             coverage_id="restart-replay-funding-coverage",
             start_at_ms=self.now - 86_400_000,
@@ -1542,7 +1568,7 @@ os._exit(0)
                     f"cutover-crash-{crash_point}.sqlite3",
                     establish_cutover=False,
                 )
-                ledger.record_funding_coverage(
+                record_verified_funding_coverage(
                     path,
                     coverage_id=f"crash-{crash_point}-coverage",
                     start_at_ms=self.now - 86_400_000,
@@ -1679,7 +1705,7 @@ os._exit(0)
             "cutover-process-crash-after-commit.sqlite3",
             establish_cutover=False,
         )
-        ledger.record_funding_coverage(
+        record_verified_funding_coverage(
             path,
             coverage_id="post-commit-crash-coverage",
             start_at_ms=self.now - 86_400_000,
@@ -1766,7 +1792,7 @@ os._exit(0)
             "funding-refresh-risk-unready.sqlite3",
             establish_cutover=False,
         )
-        ledger.record_funding_coverage(
+        record_verified_funding_coverage(
             path,
             coverage_id="risk-unready-funding-coverage",
             start_at_ms=self.now - 86_400_000,
@@ -1809,7 +1835,7 @@ os._exit(0)
     def test_funding_coverage_rejects_overlap_after_cutover(self):
         path = self.path
         with self.assertRaisesRegex(ValueError, "FUNDING_COVERAGE_INTERVAL_OVERLAP"):
-            ledger.record_funding_coverage(
+            record_verified_funding_coverage(
                 path,
                 coverage_id="overlap-after-cutover",
                 start_at_ms=self.now - 10 * 60_000,
@@ -1920,7 +1946,7 @@ os._exit(0)
 
     def test_mark_advancement_requires_contiguous_funding_coverage_and_allows_admission(self):
         advanced_now = self.now + 5 * 60_000
-        ledger.record_funding_coverage(
+        record_verified_funding_coverage(
             self.path,
             coverage_id="mark-advance-adjacent-funding-coverage",
             start_at_ms=self.now,
@@ -1976,7 +2002,7 @@ os._exit(0)
     def test_utc_day_rollover_does_not_silently_reset_daily_loss_baseline(self):
         next_day = (self.now // 86_400_000 + 1) * 86_400_000
         advanced_now = next_day + 5 * 60_000
-        ledger.record_funding_coverage(
+        record_verified_funding_coverage(
             self.path,
             coverage_id="utc-rollover-contiguous-funding-coverage",
             start_at_ms=self.now,
@@ -2306,7 +2332,7 @@ os._exit(0)
             payload_hash="sha256:" + "4" * 64,
             recorded_at_ms=watermark,
         )
-        ledger.record_funding_coverage(
+        record_verified_funding_coverage(
             self.path,
             coverage_id="replay-funding-coverage",
             start_at_ms=self.now,
