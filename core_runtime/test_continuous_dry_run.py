@@ -1,7 +1,10 @@
 """No-side-effect static dry-run contracts for the Continuous Core Runner."""
 
+import json
 import os
 from pathlib import Path
+import subprocess
+import sys
 import tempfile
 import unittest
 
