@@ -4883,3 +4883,18 @@ Next: preserve this proof and do not rerun automatically. Any additional runtime
 - Artifact 14032107933, core-first-code-operational-proof-43417053584, SHA-256 7c2daa9d174ba08bab6cf255fe5c1f351909495315dd799d93e096ec8fd03858, expires 2026-11-20T11:26:15Z.
 - Added symlinked persisted bundle test. RED run 43417078609 at source ff4df525898ffe3585376bc77e77afe46d463ce3 showed recovery followed a symlink and executed the bundle. Fix commit 47876d1261c7c8efb65d46d9013a2ebf46d66557 rejects symlink references before resolve; CI run 43417451191 at that source is in progress at last read.
 - Added T0 canonical DB path isolation test in commit 8681ca55e97ffcbb6f5603a9eb8f379c193c7976. It is expected to fail until ContinuousJournal explicitly rejects MARKET_DATA_DB/T0_FEEDER_LEASE_DB/PaperLedger paths. Current CI run at source 8681ca55e97ffcbb6f5603a9eb8f379c193c7976 is queued/pending.
+
+## 2026-11-13 — Continuous Core Runner full C1-C8 GREEN
+
+- T0 isolation RED: run 43417468238 at source 8681ca55e97ffcbb6f5603a9eb8f379c193c7976 showed ContinuousJournal accepted the exact MARKET_DATA_DB path.
+- Fix commit eb84d4a05cd0d7f9c3c72af272a42ce0d90d10de adds pre-initialization path isolation against MARKET_DATA_DB and T0_FEEDER_LEASE_DB, including resolved symlink paths and samefile hard-link identity. No parent directory creation or SQLite open occurs before this guard.
+- Additional negative tests commit 2ccffcc8ed50ea9e1091f03db5cbcc7f305ed061 covers T0 feeder lease path, symlink alias and hard-link alias. Tests use temporary fixtures only and assert T0 bytes/files are untouched.
+- Final exact-SHA full regression: GitHub Actions run 43417964017, job 131861213048, source SHA 2ccffcc8ed50ea9e1091f03db5cbcc7f305ed061, SUCCESS. Continuous tests: cadence 5/5, journal 15/15, orchestration 23/23 = 43/43 PASS. Every workflow step SUCCESS, including Core/One-shot/Bundle/Risk Engine/PaperLedger and T1/T2 integration regressions.
+- Artifact ID 14033146677, name core-first-code-operational-proof-43417964017, SHA-256 1e09ea90801122f85b6afeccc9cdd5c3cd94207d9c6834b1729adca512e31afd, expires 2026-11-20T11:33:06Z.
+- Separate T1/T2 contract workflow run 43417964070 also SUCCESS at the same source; artifact ID 14032612220, SHA-256 660fdf9bbf92a36b1ed3af40491f0c5d89040deb2bbd8bc2ba4b71b9136270d8.
+- C1-C8 status at tested source: cadence PASS; exclusive process ownership PASS; durable cycle claims, CAS transitions and monotonic checkpoint PASS; immutable Bundle validation, digest/provenance and latest M15 identity PASS; One-shot intent callback and paper-only execution PASS; restart/recovery and PaperLedger audit reconciliation PASS; Shared Risk Engine/Kill Switch PASS; graceful stop/provider failure/symlink/T0 database isolation PASS.
+- Evidence specification updated in commit 44fe0ff4d2cee5d6ab7957813df23be431f7b95c (blob 62013d632e142f8fa380022de478c235a1253698).
+- Current disposition: Continuous Core Runner implementation and full C1-C8 CI regression GREEN at source 2ccffcc8ed50ea9e1091f03db5cbcc7f305ed061. Documentation update is committed separately; final branch HEAD must be read back and its workflow rerun verified before claiming latest HEAD is GREEN.
+- Strict boundary: implementation is CI-verified, not activated. No VPS runtime, systemd/autostart, exchange connection or real order. AI_EXECUTION_ENABLED=false. T0 remains independent and unmodified. T1/T2 and protected Core/Risk Engine/PaperLedger behavior unchanged.
+- Next allowed work: verify documentation commit and rerun CI at exact latest HEAD; after latest HEAD GREEN, present completion status. Any VPS activation/deployment is separate and NOT authorized by this approval.
+
