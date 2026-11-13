@@ -302,3 +302,6 @@ This function does not read or write SQLite; it accepts caller-supplied rows. A 
 
 
 Funding sign convention: `amountQuote = signedPositionBase × markPrice × fundingRate` represents **cost** (positive = debit, negative = credit), not account income. This matches the ledger equity equation, which subtracts accumulated funding cost. Binance states that a positive rate means longs pay and shorts receive: [official explanation](https://www.binance.com/en/support/faq/detail/98488a516eb84e3eb34605683dffd554).
+
+
+The position projector now processes sorted settlements incrementally: each event and coverage row is consumed at most once per strategy, and event-to-coverage lookup uses binary search. The daily UTC replay function retains its original UTC-boundary requirement.
