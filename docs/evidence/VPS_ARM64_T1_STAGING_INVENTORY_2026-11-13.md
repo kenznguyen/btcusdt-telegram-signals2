@@ -261,3 +261,13 @@ Next: no automatic rerun or expansion. Any ENTRY-path test requires separate bou
 | Temporary fixture cleanup | NOT VERIFIED | No post-cleanup check in supplied output |
 
 The run's indicator preconditions do not establish that a valid Bundle reached Core Strategy. The Runner rejected input before signal/risk/ledger processing. The supplied output does not identify the validation failure; do not infer a strategy bug or bypass validation. No retry or code/fixture change is authorized by this attempt. No GitHub Actions run/artifact exists for this manual test. Preserve paper-only posture, `AI_EXECUTION_ENABLED=false`, and all T0/T1/T2 boundaries. Next gate is read-only diagnosis of the exact Bundle validator rejection; any subsequent execution requires separate approval.
+
+
+## Addendum — static Bundle rejection diagnosis (2026-11-13)
+
+- Read-only source inspection only; no runtime, tests, fixture recreation, or source changes.
+- `core_runtime/one_shot.py` catches `BundleValidationError` from `validate_bundle()` and intentionally collapses it to generic `INPUT_REJECTED`. The failed ENTRY attempt therefore did not preserve the specific validator code.
+- `core_runtime/input_bundle.py` recomputes the T1 snapshot identity from exact bid/ask levels and provenance fields. If a fixture mutates bids/asks, `t1Evidence.snapshotId` must also be recomputed with the exact contract algorithm; otherwise `ORDER_BOOK_T1_SNAPSHOT_ID_MISMATCH` is a leading hypothesis. Outer `bundleId` recomputation alone is insufficient.
+- Exact root cause: **NOT VERIFIED**. The original full fixture and specific exception were not captured. Other validator families remain possible (JSON float, candle constraints, spread/order, risk digest, bundle digest).
+- Source references at inspection: `one_shot.py` blob `1f96bc63c448a4204e9de92a9e5aae97e9df26ff`; `input_bundle.py` blob `19fb3065da1e7d40c8b4376fe3b51e11c8cc8f87`; `orderbook_contract.py` blob `1620c9f21b1f3df3c2fb65833f2afd80374bf6a5`.
+- Next: request separate approval for a pure, read-only Bundle validator diagnostic that captures the precise exception and does not invoke Runner/Core/Risk/Ledger or any exchange/service. No retry, mutation, or execution is authorized by this static diagnosis.
