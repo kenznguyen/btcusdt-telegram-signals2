@@ -82,7 +82,7 @@ jobs:
       - name: Compile bootstrap implementation and tests
         run: |
           set -euo pipefail
-          python -m py_compile paper_execution/bootstrap.py paper_execution/__main__.py paper_execution/ledger.py paper_execution/funding.py paper_execution/test_dual_ledger_bootstrap.py paper_execution/funding_reconciliation.py paper_execution/test_funding_reconciliation.py paper_execution/test_funding_reconciliation_persistence.py paper_execution/funding_provenance.py paper_execution/test_funding_provenance.py paper_execution/funding_model.py paper_execution/test_funding_model.py paper_execution/test_dual_ledger_red.py paper_execution/test_core_first_operational.py paper_execution/test_daily_baseline_persistence.py paper_execution/test_dual_ledger_migration_red.py
+          python -m py_compile paper_execution/bootstrap.py paper_execution/__main__.py paper_execution/ledger.py paper_execution/funding.py paper_execution/test_dual_ledger_bootstrap.py paper_execution/funding_reconciliation.py paper_execution/test_funding_reconciliation.py paper_execution/test_funding_reconciliation_persistence.py paper_execution/funding_provenance.py paper_execution/test_funding_provenance.py paper_execution/funding_model.py paper_execution/test_funding_model.py paper_execution/binance_public_funding.py paper_execution/test_binance_public_funding.py paper_execution/test_dual_ledger_red.py paper_execution/test_core_first_operational.py paper_execution/test_daily_baseline_persistence.py paper_execution/test_dual_ledger_migration_red.py
           echo "BOOTSTRAP_COMPILE=PASS" | tee bootstrap-compile.txt
 
       - name: Run focused bootstrap tests
