@@ -44,6 +44,21 @@ class DualLedgerRedTest(unittest.TestCase):
             )
         if establish_cutover:
             self.core, self.ai = core, ai
+            funding_reconciliation = ledger.record_funding_reconciliation(
+                path,
+                expected_population={
+                    "schemaVersion": 1,
+                    "populationType": "EXPECTED_FUNDING_EVENTS",
+                    "populationDefinitionId": "fixture-owner-statement-v1",
+                    "snapshotId": "fixture:funding-history",
+                    "source": "fixture-owner-funding-statement",
+                    "startAtMs": self.now - 86_400_000,
+                    "endAtMs": self.now,
+                    "currency": "USDT",
+                    "events": [],
+                },
+                recorded_at_ms=self.now,
+            )
             ledger.record_funding_coverage(
                 path, coverage_id="fixture-funding-coverage",
                 start_at_ms=self.now - 86_400_000, end_at_ms=self.now,
@@ -51,6 +66,7 @@ class DualLedgerRedTest(unittest.TestCase):
                 source_snapshot_id="fixture:funding-history",
                 payload_hash="sha256:" + "a" * 64,
                 config_version="fixture-funding-v1", recorded_at_ms=self.now,
+                reconciliation_id=funding_reconciliation["reconciliationId"],
             )
             ledger.record_account_equity_cutover(
                 path, cutover_id="fixture-account-cutover",
