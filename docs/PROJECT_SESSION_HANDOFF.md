@@ -5083,3 +5083,12 @@ Next: preserve this proof and do not rerun automatically. Any additional runtime
 - Replaced repeated O(P×R) scans with per-strategy sorted position indexes and binary-search as-of selection; added early output event cap enforcement.
 - Workflow [43520760804](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43520760804) SUCCESS at source SHA `bf112ec9f31b90e77dbef509acbf632a9dd4a173`; focused model tests 19/19 PASS; full PaperLedger regression 502/502 PASS.
 - Artifact `14083140820`, 13,960 bytes, digest `sha256:1a72fd5ce1f89aad1020d6e1133feba11ca0e50976f9078e10d2c9cef25e62b5`.
+
+
+## 2026-11-14 — D07.4 Binance public funding parser
+- Added `paper_execution/binance_public_funding.py` and 19 focused tests. It parses captured bytes only; no network client or credentials. Exact byte length/SHA, strict five-field Binance USDⓈ-M funding response, BTCUSDT/Regular-only, ascending unique timestamps, half-open scope and max 1,000 records.
+- Official endpoint contract: `GET /fapi/v1/fundingRate`, inclusive start/end, ascending result, max 1,000; response includes symbol, fundingRate, fundingTime, markPrice, rateType. Parser binds records to the D07.2 evidence snapshot ID. Source URL: https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/Get-Funding-Rate-History.
+- TDD RED run [43521263087](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43521263087) failed as expected before module implementation. Final GREEN run [43521409826](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43521409826), source SHA `c791c0d3e9c5661ee7be85f7fccfd0d312823a9b`, parser tests 19/19 PASS, funding model 19/19 PASS, D07.2 17/17 PASS, full regression 521/521 PASS.
+- Artifact `14083630474`, 15,068 bytes, digest `sha256:5e2c2eab0a459200ffcc9b7dbda7c9ca69b7abd54dce0f185c0a7fa4b34bbe1a`.
+- Evidence doc: `docs/evidence/D07_4_BINANCE_PUBLIC_FUNDING_PARSER_2026-11-14.md`. D07.4 parser/CI PASS; D07 overall remains PARTIAL.
+- Remaining: read-only PAPER position projection from cutover snapshots + verified execution journal coverage; then an end-to-end proof linking D07.2 byte verification, parser, PAPER expected population, independently generated observed ledger events, reconciliation persistence and verified coverage. No live network, account data, credentials, VPS, T0, Runner/One-shot or orders.
