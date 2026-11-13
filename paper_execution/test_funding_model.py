@@ -145,6 +145,20 @@ class PaperFundingModelTest(unittest.TestCase):
         )
         self.assertEqual(first, second)
 
+    def test_population_identity_preserves_high_precision_position_inputs(self):
+        first_positions = positions(
+            core="1234567890123456789012345678901234567890", ai="0", legacy="0"
+        )
+        second_positions = positions(
+            core="1234567890123456789012345678901234567891", ai="0", legacy="0"
+        )
+
+        first = self.build(position_rows=first_positions)
+        second = self.build(position_rows=second_positions)
+
+        self.assertNotEqual(first["snapshotId"], second["snapshotId"])
+        self.assertNotEqual(first["events"][0]["payloadHash"], second["events"][0]["payloadHash"])
+
     def test_generated_population_reconciles_with_matching_paper_ledger_events(self):
         expected = self.build()
         observed = {
