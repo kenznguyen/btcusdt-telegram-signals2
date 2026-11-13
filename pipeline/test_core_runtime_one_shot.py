@@ -163,6 +163,32 @@ class CoreOneShotRunnerTest(unittest.TestCase):
         self.assertEqual(result["runStatus"], "PAPER_COMMIT_FAILED")
         self.assertEqual(len(created), 1)
 
+    def test_missing_runner_risk_limits_reject_before_ledger_construction(self):
+        config = json.loads(self.config_path.read_text(encoding="utf-8"))
+        del config["risk_limits"]
+        self.config_path.write_text(json.dumps(config), encoding="utf-8")
+        result, created = self.run_patched(producer_report())
+        self.assertEqual(result["runStatus"], "INPUT_REJECTED")
+        self.assertEqual(len(created), 0)
+
+    def test_ai_execution_environment_override_is_rejected_before_ledger_construction(self):
+        class NeverConstructLedger:
+            def __init__(self, *args, **kwargs):
+                raise AssertionError("Ledger must not be constructed")
+
+        with (
+            patch.dict("os.environ", {
+                "AI_EXECUTION_ENABLED": "true",
+                "BINANCE_API_KEY": "",
+                "BINANCE_API_SECRET": "",
+                "OKX_API_KEY": "",
+                "OKX_API_SECRET": "",
+            }, clear=False),
+            patch("paper_execution.ledger.PaperLedger", NeverConstructLedger),
+        ):
+            result = run_once(self.config_path, self.bundle_path, now_ms=NOW)
+        self.assertEqual(result["runStatus"], "INPUT_REJECTED")
+
     def test_non_object_bundle_is_rejected_without_crashing(self):
         self.bundle_path.write_text('["not-an-object"]', encoding="utf-8")
         result, created = self.run_patched(producer_report())
