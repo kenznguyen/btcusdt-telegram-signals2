@@ -4531,3 +4531,16 @@ These findings make the current stop condition explicit: completing Trusted Admi
 - Evidence file: `docs/evidence/CORE_ONE_SHOT_RUNNER_T1_LEDGER_COMPATIBILITY_BLOCKER_2026-11-13.md`; evidence commit `c3988a9f8ec3162f9ba073513a32f590c3f6d716`.
 - Status: Bundle v1/T1 **PASS** (prior exact-SHA evidence unchanged); Runner design/pre-existing contracts **PASS as prior evidence**; T1-to-PaperLedger admission compatibility **BLOCKED**; Runner implementation **NOT STARTED**; new Ledger-boundary tests **NOT AUTHORIZED / NOT RUN**; runtime/VPS/systemd/autostart/live orders **NOT AUTHORIZED / NOT RUN**.
 - Required next decision: separately authorize a narrowly scoped T1-compatible PaperLedger book-input contract. It must preserve exact T1 provenance/snapshot identity and levels, retain existing risk/Kill Switch/reservation/idempotency behavior and ledger schema, and prove regressions with TDD. Until that scope is approved, do not implement a bypass or claim Runner completion.
+
+
+## 2026-11-13 — Owner approved T1-compatible PaperLedger boundary; RED checkpoint
+
+- Owner separately approved a narrowly scoped T1-compatible PaperLedger book-input contract. The extension must preserve exact T1 provenance, reconstructed snapshot identity, levels and timestamps; retain existing Shared Risk Engine, Kill Switch, reservation, idempotency, fill and Ledger schema semantics.
+- Added T1 compatibility tests in `paper_execution/test_ledger.py`: opt-in valid T1 admission, default legacy-path rejection, wrong source/connector/symbol, tampered projection, snapshot digest mismatch, stale and future timestamps. Test commit: `97ea99be2647c682f10fdca496731805b06ae2d8`.
+- Added focused GitHub Actions workflow `.github/workflows/paper-ledger-t1-compatibility.yml` for the active branch, read-only permissions, Python 3.12, requirements installation and `python -m unittest paper_execution.test_ledger -v`. Workflow commit: `20583fc7542a5373dc39aa30ecc5d6bef527d90e`.
+- Branch remains `feature/core-operational-proof-20261112`; compared from prior HEAD `a034729d7c0946f35937e6c29a5c5c8dd7f8a898` to `20583fc7542a5373dc39aa30ecc5d6bef527d90e`: 2 ahead / 0 behind. No branch rewrite, merge, rebase or force-push.
+- RED execution is **NOT VERIFIED**: GitHub combined status returned no statuses and commit workflow-run lookup returned no runs for the workflow commit. Workflow run/job/artifact identifiers are unavailable. Test authoring is not test execution.
+- No production Ledger behavior/source, schema, risk policy, database, Runner, T0/T1/T2 runtime, VPS, systemd/autostart, AI execution or live orders were changed.
+- Evidence: `docs/evidence/CORE_ONE_SHOT_RUNNER_T1_LEDGER_RED_CHECKPOINT_2026-11-13.md`, created in commit `e6fc346634bde7f0940183ccb76f0008e71d2e05`.
+- Status: owner scope APPROVED; T1 boundary test specification RECORDED; RED execution NOT VERIFIED; Ledger implementation NOT STARTED; One-shot Runner BLOCKED pending exact-SHA RED/GREEN proof.
+- Next: obtain an observable GitHub Actions execution for the exact branch SHA, confirm RED, then implement the minimal compatibility boundary using TDD. Do not skip RED or claim GREEN. All existing paper-only/no-runtime boundaries remain in force.
