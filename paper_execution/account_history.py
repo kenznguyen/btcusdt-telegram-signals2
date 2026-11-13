@@ -68,10 +68,12 @@ def _replay_text(number):
     return rendered or "0"
 
 
-def replay_ledger_events(snapshot, execution_events, funding_events, *, boundary_ms, coverage_watermark_at_ms):
+def replay_ledger_events(snapshot, execution_events, funding_events, *, boundary_ms, coverage_watermark_at_ms, require_utc_boundary=True):
     """Replay one ledger using strict event-time ordering and half-open UTC cutoff."""
     boundary = _stamp(boundary_ms, "ACCOUNT_HISTORY_UTC_DAY_INVALID")
-    if boundary % DAY_MS:
+    if type(require_utc_boundary) is not bool:
+        raise ValueError("ACCOUNT_HISTORY_UTC_DAY_INVALID")
+    if require_utc_boundary and boundary % DAY_MS:
         raise ValueError("ACCOUNT_HISTORY_UTC_DAY_INVALID")
     if not isinstance(snapshot, dict):
         raise ValueError("ACCOUNT_HISTORY_CUTOVER_SNAPSHOT_INVALID")
