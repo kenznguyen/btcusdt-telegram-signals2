@@ -248,7 +248,7 @@ class DualLedgerBootstrapContractTest(unittest.TestCase):
 
         with patch(
             "paper_execution.__main__.subprocess.run",
-            return_value=SimpleNamespace(stdout="b" * 40),
+            side_effect=[SimpleNamespace(stdout="b" * 40), SimpleNamespace(stdout="")],
         ), redirect_stdout(output):
             with self.assertRaisesRegex(ValueError, "BOOTSTRAP_SOURCE_SHA_MISMATCH"):
                 paper_cli_main([
@@ -265,7 +265,7 @@ class DualLedgerBootstrapContractTest(unittest.TestCase):
 
         with patch(
             "paper_execution.__main__.subprocess.run",
-            return_value=SimpleNamespace(stdout=self.source_sha),
+            side_effect=[SimpleNamespace(stdout=self.source_sha), SimpleNamespace(stdout="")],
         ), redirect_stdout(output):
             self.assertEqual(paper_cli_main([
                 "--db", str(self.db_path),
