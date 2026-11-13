@@ -34,6 +34,25 @@ def _load_manifest(path):
     return manifest
 
 
+def _current_source_sha():
+    try:
+        completed = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=Path(__file__).resolve().parents[1],
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+    except (OSError, subprocess.CalledProcessError):
+        raise ValueError("BOOTSTRAP_SOURCE_SHA_UNAVAILABLE") from None
+    source_sha = completed.stdout.strip()
+    if (len(source_sha) != 40
+            or any(character not in "0123456789abcdef" for character in source_sha)):
+        raise ValueError("BOOTSTRAP_SOURCE_SHA_UNAVAILABLE")
+    return source_sha
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--db", required=True, help="SQLite database path")
@@ -67,7 +86,10 @@ def main(argv=None):
         if args.now_ms is not None:
             parser.error("--now-ms is only valid with --inspect")
         from paper_execution.bootstrap import bootstrap_paper_account
-        result = bootstrap_paper_account(args.db, _load_manifest(args.bootstrap_manifest))
+        manifest = _load_manifest(args.bootstrap_manifest)
+        if manifest.get("sourceSha") != _current_source_sha():
+            raise ValueError("BOOTSTRAP_SOURCE_SHA_MISMATCH")
+        result = bootstrap_paper_account(args.db, manifest)
         print(json.dumps(result, allow_nan=False, sort_keys=True))
         return 0
 
