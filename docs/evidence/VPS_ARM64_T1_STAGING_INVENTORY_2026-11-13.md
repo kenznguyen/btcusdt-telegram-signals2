@@ -158,3 +158,16 @@ Next proposed step: isolated no-install resolver/wheel-availability check for th
 - Source SHA before/after: 562362a69d8455a34e08385d26a47fa21d2b50ed. Owner-reported Git working tree clean. Local prompt still reports [ahead 165] due to stale origin/* tracking metadata; this is not branch divergence and no push was needed.
 - Gate status: host venv support install PASS; isolated venv and pip PASS; wheel download/resolution PASS; package install/import NOT DONE/NOT VERIFIED; project tests/build/runtime NOT VERIFIED; Runner NOT AUTHORIZED / NOT RUN.
 - Next gate requires separate approval to install only rfc8785==0.1.4 into the isolated venv and verify import. Tests/build and Runner invocation remain separate approval gates. Maintain paper-only posture and AI_EXECUTION_ENABLED=false.
+
+
+## Addendum — isolated Core Runner dependency installation and import (2026-11-13)
+
+- Owner-approved scope: install only `rfc8785==0.1.4` into `/home/ubuntu/.venvs/btcusdt-core-runtime`, then verify import and package version.
+- Local wheel SHA-256 expected/actual: `520d690b448ecf0703691c76e1a34a24ddcd4fc5bc41d589cb7c58ec651bcd48` — PASS.
+- Installed from the local wheel using `--no-index --no-deps`; pip reported `Successfully installed rfc8785-0.1.4`.
+- Verified interpreter: `/home/ubuntu/.venvs/btcusdt-core-runtime/bin/python`; Python 3.12.3; `platform.machine()=aarch64`; package version `0.1.4`; import PASS.
+- `pip list`: `pip 24.0`, `rfc8785 0.1.4`; no other package installed in this venv.
+- Repository HEAD remained `562362a69d8455a34e08385d26a47fa21d2b50ed`; owner-provided output reports no working-tree modifications. Prompt `[ahead 165]` remains stale remote-tracking metadata, not evidence of branch divergence.
+- Updated gate status: Python venv support and isolated venv PASS; wheel resolution and checksum PASS; minimal dependency install/import PASS; project tests/build and ARM64 end-to-end runtime NOT VERIFIED; Core Runner invocation NOT AUTHORIZED / NOT RUN.
+- No tests, build, Runner execution, service activation, T0/T1/T2 modification, or trading occurred.
+- Next step requires a separate explicit approval for bounded Core Runner tests. This dependency-install approval does not authorize tests or execution.
