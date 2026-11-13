@@ -16,7 +16,7 @@ from paper_execution.bootstrap import (
     bootstrap_paper_account,
     inspect_paper_account,
 )
-from paper_execution.__main__ import main as paper_cli_main
+from paper_execution.__main__ import _current_source_sha, main as paper_cli_main
 from paper_execution.ledger import read_account_risk_snapshot, dual_ledger_ready
 from risk_policy import CORE_LEVERAGE
 
@@ -228,6 +228,18 @@ class DualLedgerBootstrapContractTest(unittest.TestCase):
 
         self.assertFalse(result["riskReady"])
         self.assertEqual(self.db_path.read_bytes(), before)
+
+    def test_source_sha_check_rejects_dirty_worktree(self):
+        responses = [
+            SimpleNamespace(stdout=self.source_sha),
+            SimpleNamespace(stdout=" M paper_execution/bootstrap.py\\n"),
+        ]
+        with patch(
+            "paper_execution.__main__.subprocess.run",
+            side_effect=responses,
+        ):
+            with self.assertRaisesRegex(ValueError, "BOOTSTRAP_SOURCE_TREE_DIRTY"):
+                _current_source_sha()
 
     def test_cli_bootstrap_requires_exact_checked_out_source_sha(self):
         manifest_path = self.root / "bootstrap-manifest.json"
