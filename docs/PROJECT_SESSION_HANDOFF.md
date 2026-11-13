@@ -4433,3 +4433,17 @@ These findings make the current stop condition explicit: completing Trusted Admi
 - T2 branch was observed heavily diverged from main (3,664 ahead / 82 behind); do not rebase, merge, force-push or synchronize automatically. Recheck heads before code; if fast-forward-safe commits are not possible, stop and report BLOCKED.
 - Status: design decision APPROVED; implementation scope RECORDED; source implementation NOT STARTED; runtime delivery NOT VERIFIED.
 - Next: request explicit approval to begin source implementation. After approval, inspect both branch heads and T1 server/bootstrap conventions, then begin T1 RED tests. Commit only on existing branch if history-safe.
+
+
+## 2026-11-13 — C2.2 T1 loopback HTTP endpoint GREEN; proceed to T2 RED
+
+- Owner granted automatic approval to continue the already bounded C2.2 implementation until GREEN. This authorizes T1/T2 source, tests and CI strictly within docs/evidence/C2_2_LOOPBACK_HTTP_IMPLEMENTATION_SCOPE_2026-11-13.md; it does not authorize runtime activation or any excluded work.
+- T1 existing branch: feature/t1-connection-sidecar-integration-20261107; exact tested source SHA 8326ac2075ebd644e5cca0146a77ce1ae110954c.
+- T1 endpoint: GET /internal/v1/orderbook/{symbol}, loopback 127.0.0.1:8787, opt-in via T1_ORDERBOOK_HTTP_TOKEN, Bearer auth, one freshness-checked immutable publisher read, bounded request/response/concurrency/time, no-store, no cached last-good response.
+- Exact-SHA T1 workflow #637, run 43355193041: SUCCESS at 2026-11-13T02:56:20Z. All six jobs PASS: x86_64 collector 131655458945; ARM64 collector 131655458795; dashboard frontend 131655458874; dashboard backend 131655458978; security 131655458484; Docker 131655458759.
+- x86_64 and ARM64 each passed test groups 103 + 3 + 12 + 27 = 145 tests, plus sidecar-writer offline checks. Artifacts: x86_64 ID 14006001176, SHA-256 54fcea918ed96f4e036f8d483c87bb6376f71d54fc226319a3067c12be1b0112; ARM64 ID 14005816766, SHA-256 ae9b52040fa46caf82c04069679c9b1d9213e737db318c9f52911ab77f40a8e3. Both expire 2026-11-20 UTC and are CI evidence only, not deployment approval.
+- T1 evidence commit: 00449ed7fccf60a28a4c5502dfb9035ea98c68a9; evidence blob: 02546caa6ec880a9e87275a43063013422d4cb29.
+- T1 endpoint implementation and exact-SHA CI: PASS. Runtime activation, actual inter-process delivery, reconnect/re-anchor soak and VPS behavior remain NOT VERIFIED / NOT RUN.
+- Revalidated T2 branch feature/core-operational-proof-20261112 at HEAD 2efb647aa99c48b925a8129bf658bf7dfd22c7ae. Compared with main: diverged, 3,668 ahead / 82 behind, merge base f5b74affb8777953fa66d241784965fbb0e577ba. Do not merge, rebase, force-push or synchronize. Continue only by appending commits to this exact existing branch head; stop if a concurrent update or non-fast-forward condition is detected.
+- Next: implement T2 one-shot read-only HTTP adapter using existing strict T1_T2_ORDERBOOK_V1 validation. TDD order: T2 RED tests first, then minimal GREEN adapter, focused/full exact-SHA CI. Then deterministic cross-boundary integration tests and final evidence. Do not implement Core Runner yet.
+- No T0, VPS/runtime, systemd/autostart, deployment, Core, Risk, Ledger, AI execution or live orders.
