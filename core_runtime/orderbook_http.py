@@ -17,7 +17,7 @@ _ROUTE = "/internal/v1/orderbook/btcusdt"
 _DEFAULT_MAX_RESPONSE_BYTES = 65_536
 _MAX_ALLOWED_RESPONSE_BYTES = 65_536
 _SAFE_INTEGER = 9_007_199_254_740_991
-_TOKEN = re.compile(r"[A-Za-z0-9._~+/-]+=*\\Z")
+_TOKEN = re.compile(r"[A-Za-z0-9._~+/-]+=*\Z")
 
 
 class OrderBookHttpError(RuntimeError):
