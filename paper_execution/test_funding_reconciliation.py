@@ -81,7 +81,7 @@ class FundingPopulationReconciliationTest(unittest.TestCase):
         self.assertIn("f-3", result["duplicate"])
 
     def test_same_event_id_with_different_content_is_not_matched(self):
-        self.observed["events"][0] = event("f-1", 120, "9.99", "z")
+        self.observed["events"][0] = event("f-1", 120, "9.99", "c")
         result = reconcile_funding_population(self.expected, self.observed)
 
         self.assertEqual(result["reconciliationStatus"], "BLOCKED")
