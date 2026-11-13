@@ -51,6 +51,8 @@ class OrderBookHttpConfig:
             if (isinstance(value, bool) or not isinstance(value, (int, float))
                     or not 0 < value <= 5):
                 raise OrderBookHttpError("CONFIG_INVALID")
+        if self.timeout_connect_s + self.timeout_read_s > self.timeout_total_s:
+            raise OrderBookHttpError("CONFIG_INVALID")
         if (type(self.max_response_bytes) is not int
                 or not 1 <= self.max_response_bytes <= _MAX_ALLOWED_RESPONSE_BYTES):
             raise OrderBookHttpError("CONFIG_INVALID")
