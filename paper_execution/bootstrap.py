@@ -98,7 +98,16 @@ def _target_path(db_path):
     return target
 
 
-def _verify_evidence(path_value, expected_digest, expected_snapshot_id):
+def _reject_duplicate_json_keys(pairs):
+    document = {}
+    for key, value in pairs:
+        if key in document:
+            raise ValueError("BOOTSTRAP_EVIDENCE_DUPLICATE_KEY")
+        document[key] = value
+    return document
+
+
+def _verify_evidence(path_value, expected_digest, expected_snapshot_id, expected_document):
     path = Path(_required_text(path_value, "BOOTSTRAP_EVIDENCE_PATH_INVALID")).expanduser()
     if path.is_symlink() or not path.is_file():
         raise ValueError("BOOTSTRAP_EVIDENCE_FILE_UNAVAILABLE")
@@ -112,11 +121,15 @@ def _verify_evidence(path_value, expected_digest, expected_snapshot_id):
     if actual != expected_digest:
         raise ValueError("BOOTSTRAP_EVIDENCE_DIGEST_MISMATCH")
     try:
-        document = json.loads(raw.decode("utf-8"))
+        document = json.loads(
+            raw.decode("utf-8"), object_pairs_hook=_reject_duplicate_json_keys
+        )
     except (UnicodeDecodeError, json.JSONDecodeError):
         raise ValueError("BOOTSTRAP_EVIDENCE_JSON_INVALID") from None
     if not isinstance(document, dict) or document.get("snapshotId") != expected_snapshot_id:
         raise ValueError("BOOTSTRAP_EVIDENCE_SNAPSHOT_MISMATCH")
+    if document != expected_document:
+        raise ValueError("BOOTSTRAP_EVIDENCE_CONTENT_MISMATCH")
     return actual
 
 
@@ -180,11 +193,41 @@ def _validate_manifest(manifest, target):
     )
     config_version = _required_text(manifest["configVersion"], "ACCOUNT_EQUITY_CUTOVER_CONFIG_REQUIRED", 200)
 
+    funding_evidence = {
+        "snapshotId": funding_snapshot,
+        "status": "VERIFIED",
+        "startAtMs": coverage_start,
+        "endAtMs": observed,
+        "source": funding_source,
+        "configVersion": config_version,
+        "fundingByStrategy": {
+            "STRATEGY_CORE": "0",
+            "AI_FREQAI": "0",
+            "LEGACY_UNATTRIBUTED": "0",
+        },
+    }
+    cutover_evidence = {
+        "snapshotId": cutover_snapshot,
+        "initialCapitalQuote": str(capital),
+        "realizedPnlQuote": "0",
+        "feesQuote": "0",
+        "fundingQuote": "0",
+        "accountEquityQuote": str(capital),
+        "markPrice": str(mark),
+        "markCandleCloseMs": candle,
+        "markObservedAtMs": observed,
+        "datasetVersion": dataset,
+        "fundingCoverageStartAtMs": coverage_start,
+        "source": cutover_source,
+        "configVersion": config_version,
+    }
     _verify_evidence(
-        manifest["fundingEvidencePath"], funding_digest, funding_snapshot
+        manifest["fundingEvidencePath"], funding_digest, funding_snapshot,
+        funding_evidence,
     )
     _verify_evidence(
-        manifest["cutoverEvidencePath"], cutover_digest, cutover_snapshot
+        manifest["cutoverEvidencePath"], cutover_digest, cutover_snapshot,
+        cutover_evidence,
     )
     for evidence_path in (manifest["fundingEvidencePath"], manifest["cutoverEvidencePath"]):
         resolved = Path(evidence_path).expanduser().resolve(strict=True)
@@ -294,6 +337,8 @@ def bootstrap_paper_account(db_path, manifest):
             "aiLeverage": values["ai_leverage"],
             "sourceSha": values["source_sha"],
             "databaseCreated": True,
+            "evidenceIntegrity": "SHA256_AND_CONTENT_MATCHED",
+            "sourceAuthenticity": "NOT_VERIFIED",
         }
     finally:
         for suffix in ("-wal", "-shm"):
@@ -345,4 +390,5 @@ def inspect_paper_account(db_path, *, now_ms):
         "unavailableReason": reason,
         "strategyScopes": scopes,
         "readOnly": True,
+        "sourceAuthenticity": "NOT_VERIFIED",
     }
