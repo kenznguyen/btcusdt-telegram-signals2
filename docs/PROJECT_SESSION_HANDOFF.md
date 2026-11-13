@@ -4363,3 +4363,13 @@ These findings make the current stop condition explicit: completing Trusted Admi
 - GitHub commit metadata/diff and branch file re-fetch verified. Workflow run ID/status and artifact IDs/ELF/SHA256 remain **NOT VERIFIED**; available GitHub actions do not expose a general push-run listing or workflow dispatch action. Do not infer success from commit creation.
 - Next: inspect GitHub Actions for exact SHA `adaa972664cad074101a4ecdf12e55396b8e30a1`; if absent, manually dispatch CI on the existing branch; verify all jobs and both architecture artifacts before any artifact use.
 - Limits: no collector runtime/VPS, T0, T1→T2, persistent service/autostart, merge, credentials, or trading/orders. PR #1 remains unmerged; runtime requires separate approval.
+
+
+## 2026-11-13 — Core-First C1 single-response T0 consumer
+
+- Owner approved C1-only implementation on the existing Core branch. Evidence: `docs/evidence/T0_SINGLE_RESPONSE_CANDLE_CONSUMER_C1_2026-11-13.md`.
+- TDD RED commit `7f6f89528d6beb1a9a8bec19e8546d65b146215b`; expected failure on the two new 100-candle cases because the method was absent. RED run `43346208499`, job `131626080248`.
+- GREEN commit `6fc860d7f696b3faacdb87b69a9017909e6f92d9`; `CandleHttpClient.fetch_one_page()` validates a single response and returns the original envelope unchanged. Existing paginated `fetch()` remains unchanged.
+- Exact-SHA workflow run `43346301451`, job `131626382017`: **SUCCESS**. Compile PASS; HTTP adapter 48/48 PASS; HTTP context/migration 11/11 PASS; exporter regressions 6/6 PASS. Artifact ID `14001207782`, ZIP SHA-256 `0a0073b97c7428f1dbc0aa6862f36b5a0627bdcb33de5db169ce2664f7d56f82`.
+- Status: C1 client API implementation and CI evidence **PASS**. T0 runtime connectivity **NOT VERIFIED**; Core runner integration **NOT IMPLEMENTED**; C2 T1 Order Book remains **BLOCKED**. No T0/T1/VPS/runtime/ledger/strategy/risk/AI/live-trading changes.
+- Next: keep C1 implementation isolated; resolve C2 under a separate bounded authorization before implementing the Core one-shot runner. No runtime activation or live trading.
