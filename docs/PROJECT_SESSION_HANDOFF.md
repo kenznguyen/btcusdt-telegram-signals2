@@ -4822,3 +4822,22 @@ Next: preserve this proof and do not rerun automatically. Any additional runtime
 - Current implementation module `core_runtime/continuous_journal.py` is not yet present. Do not implement the journal until CI demonstrates the intended RED failure, preserving RED-first order.
 - Next: wait for run `43411595131`, inspect the journal test step/log, record the exact RED result; then implement the minimum SQLite journal and rerun the same focused tests to GREEN. Keep atomic claim conflict behavior fail-closed.
 - No Continuous Runner runtime/scheduler, VPS process, systemd/autostart, exchange connection, AI Strategy/execution or real orders were introduced. No Strategy Core, Risk Engine, PaperLedger, T0/T1/T2 changes. `AI_EXECUTION_ENABLED=false` remains mandatory.
+
+## 2026-11-13 — Continuous Core journal and M15 cadence component evidence
+
+- Owner expanded authorization: continue automatically through Continuous Core Runner implementation and CI until GREEN. This authorization remains limited to code/tests/evidence on the existing branch; it does not authorize VPS activation, services/systemd/autostart, exchange access, AI execution or real orders.
+- Added core_runtime/continuous_journal.py: isolated SQLite cycle journal, atomic BEGIN IMMEDIATE claim, unique cycle key, idempotent exact-input duplicate, fail-closed conflicting input, state transitions with compare-and-swap, terminal replay rejection, and pre-submit intent persistence API.
+- Added core_runtime/continuous_cadence.py: validated M15 cycle identity, latest eligible closed candle, next close+settlement deadline, and monotonic wait unaffected by wall-clock jumps.
+- RED-first evidence:
+  - Journal claim tests initially failed because module was absent: run 43411595131, source aa1e3c840055da5f88233283f739293518c91b46, exact ModuleNotFoundError: core_runtime.continuous_journal.
+  - State-transition tests failed because transition_cycle was absent: run 43414066659 and later confirmed test-level failure at run 43414485163 for missing record_intent.
+  - Cadence tests failed because continuous_cadence module was absent: run 43414221740, source a91973ffcc6c28355c7cca9555e3b384cd8a1a1f.
+- Component GREEN baseline: GitHub Actions run 43414415701, job 131848574931, exact source SHA 4fa3064903e041862fbb07ad2285ac400688de90, conclusion SUCCESS. M15 cadence 5/5 PASS; durable journal 6/6 PASS; existing Core, One-shot, Bundle, adapter, paper operational, account-risk, risk/ledger and T1/T2 orderbook steps all SUCCESS.
+- Artifact: ID 14030612833, name core-first-code-operational-proof-43414415701, SHA-256 digest 28d3365ab0b371c50c8df072a3e49c201379de1468e8841c068da625c8037aa8, expires 2026-11-20T11:06:55Z.
+- Subsequent RED-first addition: test_pre_submit_intent_persistence_is_idempotent_and_conflict_safe failed at source 35c795096634a4dde3d7b20e26b3f9cb352fba01 because record_intent was absent. Implementation commit 83124de4e69a49ff828da3529d22c542d23e587a adds that method; GREEN is pending CI.
+- Added core_runtime/test_continuous_runner.py for one-shot orchestration, duplicate delivery, conflicting bundle, settlement/input fail-closed, risk rejection, crash-after-ledger reconciliation, unreadable-ledger blocking and graceful stop. Workflow step added in commit 1e710ce6db33e6623957f4de700f6ca2f733a6ac. The earlier workflow attempt for these tests was cancelled before execution; a later run at source dfc2f1e877d4c4ea1e5f7d56affd3191a777872c is pending at last read.
+- Current status: M15 cadence component PASS; journal claim/state transition component PASS; pre-submit intent persistence implementation committed but test NOT VERIFIED; orchestration tests staged but RED not yet confirmed; core_runtime/continuous_runner.py not implemented; full C1-C8 GREEN NOT ACHIEVED.
+- Known CI reporting defect to fix: One-shot suite now runs 14 tests, but workflow summary still expects/reports 11. Raw unittest output on run 43414415701 showed 14 tests OK; update the workflow count and artifact verdict before final GREEN.
+- Next: verify journal 7-test GREEN and orchestration RED on the current CI run; implement the minimum continuous orchestration/recovery layer; expand C1-C8 coverage; run complete regression and exact-SHA CI; update this handoff and evidence with final run/artifact metadata.
+- Safety boundaries unchanged: no Strategy Core, Shared Risk Engine or PaperLedger schema/behavior changes; no T0/T1/T2 changes; no AI Strategy/execution; AI_EXECUTION_ENABLED=false; no VPS runtime, services, exchange connections, credentials or real orders.
+
