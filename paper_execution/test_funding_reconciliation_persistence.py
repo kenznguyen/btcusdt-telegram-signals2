@@ -188,6 +188,48 @@ class FundingReconciliationPersistenceTest(unittest.TestCase):
                 0,
             )
 
+    def test_verified_coverage_freezes_event_population(self):
+        certificate = record_funding_reconciliation(
+            self.db_path, expected_population=self.expected,
+            recorded_at_ms=self.now,
+        )
+        self.coverage(reconciliation_id=certificate["reconciliationId"])
+
+        with self.assertRaisesRegex(ValueError, "FUNDING_RECONCILIATION_REQUIRED"):
+            record_funding_event(
+                self.db_path,
+                funding_event_id="funding-evt-after-coverage",
+                strategy_id="STRATEGY_CORE",
+                amount_quote="0.01",
+                event_at_ms=self.now - 1,
+                source="paper-test-funding",
+                source_snapshot_id="paper-test-event-snapshot",
+                payload_hash="sha256:" + "9" * 64,
+                recorded_at_ms=self.now,
+            )
+
+        with sqlite3.connect(self.db_path) as db:
+            self.assertEqual(
+                db.execute("SELECT COUNT(*) FROM paper_funding_events").fetchone()[0],
+                0,
+            )
+
+    def test_database_trigger_rejects_direct_verified_coverage_without_certificate(self):
+        with sqlite3.connect(self.db_path) as db:
+            with self.assertRaisesRegex(sqlite3.IntegrityError, "FUNDING_RECONCILIATION_REQUIRED"):
+                db.execute(
+                    """INSERT INTO paper_funding_coverage
+                       (coverage_id,account_id,start_at_ms,end_at_ms,status,source,
+                        source_snapshot_id,payload_hash,config_version,recorded_at_ms,
+                        reconciliation_id)
+                       VALUES ('direct-bypass',1,?,?, 'VERIFIED',
+                        'OWNER_RECONCILED_EVIDENCE',?,?, 'paper-risk-v1',?,NULL)""",
+                    (
+                        self.expected["startAtMs"], self.expected["endAtMs"],
+                        self.expected["snapshotId"], "sha256:" + "a" * 64, self.now,
+                    ),
+                )
+
     def test_certificate_is_append_only(self):
         result = record_funding_reconciliation(
             self.db_path, expected_population=self.expected,
