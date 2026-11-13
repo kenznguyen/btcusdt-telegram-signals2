@@ -1,0 +1,39 @@
+name: Paper Ledger T1 Compatibility
+
+on:
+  push:
+    branches:
+      - feature/core-operational-proof-20261112
+    paths:
+      - "paper_execution/ledger.py"
+      - "paper_execution/test_ledger.py"
+      - ".github/workflows/paper-ledger-t1-compatibility.yml"
+  pull_request:
+    paths:
+      - "paper_execution/ledger.py"
+      - "paper_execution/test_ledger.py"
+      - ".github/workflows/paper-ledger-t1-compatibility.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: paper-ledger-t1-compatibility-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  paper-ledger-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+      - name: Install test dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Run PaperLedger contract tests
+        run: python -m unittest paper_execution.test_ledger -v
