@@ -104,7 +104,7 @@ class CoreOneShotRunnerTest(unittest.TestCase):
         return result, created
 
     def test_actionable_core_signal_is_submitted_once_to_paper_ledger(self):
-        result, ledger_class = self.run_patched(producer_report())
+        result, created = self.run_patched(producer_report())
         self.assertEqual(result["runStatus"], "PAPER_ACCEPTED", result)
         self.assertEqual(result["signal"]["action"], "BUY")
         self.assertEqual(result["riskDecision"]["decision"], "ACCEPT")
@@ -113,23 +113,23 @@ class CoreOneShotRunnerTest(unittest.TestCase):
         self.assertEqual(created[0].submit_calls, 1)
 
     def test_no_signal_does_not_construct_or_write_paper_ledger(self):
-        result, ledger_class = self.run_patched(producer_report("WAIT"))
+        result, created = self.run_patched(producer_report("WAIT"))
         self.assertEqual(result["runStatus"], "NO_SIGNAL", result)
-        self.assertEqual(ledger_class.call_count, 0)
+        self.assertEqual(len(created), 0)
 
     def test_invalid_bundle_is_rejected_before_ledger_construction(self):
         self.bundle["mode"] = "LIVE"
         self.bundle_path.write_text(json.dumps(self.bundle), encoding="utf-8")
-        result, ledger_class = self.run_patched(producer_report())
+        result, created = self.run_patched(producer_report())
         self.assertEqual(result["runStatus"], "INPUT_REJECTED")
-        self.assertEqual(ledger_class.call_count, 0)
+        self.assertEqual(len(created), 0)
 
     def test_changed_account_risk_snapshot_is_rejected_before_submit(self):
         changed = dict(self.bundle["accountRisk"]["snapshot"])
         changed["accountEquityQuote"] = "99"
-        result, ledger_class = self.run_patched(producer_report(), risk=changed)
+        result, created = self.run_patched(producer_report(), risk=changed)
         self.assertEqual(result["runStatus"], "INPUT_REJECTED")
-        self.assertEqual(ledger_class.call_count, 0)
+        self.assertEqual(len(created), 0)
 
     def test_changed_core_paper_state_is_rejected_before_submit(self):
         changed = {
@@ -140,9 +140,9 @@ class CoreOneShotRunnerTest(unittest.TestCase):
                 "strategyId": "STRATEGY_CORE",
             },
         }
-        result, ledger_class = self.run_patched(producer_report(), paper_state=changed)
+        result, created = self.run_patched(producer_report(), paper_state=changed)
         self.assertEqual(result["runStatus"], "INPUT_REJECTED")
-        self.assertEqual(ledger_class.call_count, 0)
+        self.assertEqual(len(created), 0)
 
     def test_shared_risk_rejection_is_reported_without_ai_fallback(self):
         rejected = {
@@ -151,23 +151,23 @@ class CoreOneShotRunnerTest(unittest.TestCase):
             "status": "REJECTED",
             "reason": "KILL_SWITCH",
         }
-        result, ledger_class = self.run_patched(producer_report(), order=rejected)
+        result, created = self.run_patched(producer_report(), order=rejected)
         self.assertEqual(result["runStatus"], "RISK_REJECTED")
         self.assertEqual(result["riskDecision"]["reason"], "KILL_SWITCH")
-        self.assertEqual(ledger_class.call_count, 1)
+        self.assertEqual(len(created), 1)
 
     def test_ledger_exception_is_reported_as_commit_failure(self):
-        result, ledger_class = self.run_patched(
+        result, created = self.run_patched(
             producer_report(), submit_error=RuntimeError("injected"),
         )
         self.assertEqual(result["runStatus"], "PAPER_COMMIT_FAILED")
-        self.assertEqual(ledger_class.call_count, 1)
+        self.assertEqual(len(created), 1)
 
     def test_bundle_json_duplicate_keys_are_rejected(self):
         self.bundle_path.write_text('{"contract":"x","contract":"y"}', encoding="utf-8")
-        result, ledger_class = self.run_patched(producer_report())
+        result, created = self.run_patched(producer_report())
         self.assertEqual(result["runStatus"], "INPUT_REJECTED")
-        self.assertEqual(ledger_class.call_count, 0)
+        self.assertEqual(len(created), 0)
 
 
 if __name__ == "__main__":
