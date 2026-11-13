@@ -103,7 +103,7 @@ jobs:
         run: |
           set -euo pipefail
           python -m unittest pipeline.test_core_runtime_one_shot -v 2>&1 | tee core-runtime-one-shot-tests.log
-          echo "CORE_RUNTIME_ONE_SHOT_TESTS=8_PASS" | tee core-runtime-one-shot-status.txt
+          echo "CORE_RUNTIME_ONE_SHOT_TESTS=9_PASS" | tee core-runtime-one-shot-status.txt
 
       - name: Run Core decision input bundle v1 validator contract tests
         run: |
@@ -174,7 +174,7 @@ jobs:
             echo "VPS_OR_PERSISTENT_RUNTIME_USED=false"
             echo "CORE_RUNTIME_PREFLIGHT=PASS"
             echo "CORE_RUNTIME_PREFLIGHT_TESTS=5_PASS"
-            if grep -q "^OK$" core-runtime-one-shot-tests.log && grep -q "Ran 8 tests" core-runtime-one-shot-tests.log; then
+            if grep -q "^OK$" core-runtime-one-shot-tests.log && grep -q "Ran 9 tests" core-runtime-one-shot-tests.log; then
               echo "CORE_RUNTIME_DECISION_CYCLE=ONE_SHOT_TESTS_PASS"
               echo "CORE_RUNTIME_ONE_SHOT=PASS"
             else
