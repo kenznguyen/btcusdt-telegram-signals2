@@ -7,6 +7,8 @@ import json
 from pathlib import Path
 import sqlite3
 
+from paper_execution.funding_reconciliation import reconcile_funding_population
+
 
 MIGRATION_VERSION = 4
 MIGRATION_CHECKSUM = hashlib.sha256(
@@ -15,6 +17,10 @@ MIGRATION_CHECKSUM = hashlib.sha256(
 CUTOVER_MIGRATION_VERSION = 5
 CUTOVER_MIGRATION_CHECKSUM = hashlib.sha256(
     b"dual-ledger-v5:verified-account-equity-cutover"
+).hexdigest()
+RECONCILIATION_MIGRATION_VERSION = 6
+RECONCILIATION_MIGRATION_CHECKSUM = hashlib.sha256(
+    b"dual-ledger-v6:persisted-funding-population-reconciliation-gate"
 ).hexdigest()
 STRATEGIES = {"STRATEGY_CORE", "AI_FREQAI", "LEGACY_UNATTRIBUTED"}
 
@@ -287,6 +293,198 @@ def migrate_account_equity_cutover(connection, source_sha):
         (CUTOVER_MIGRATION_CHECKSUM, applied_at, source_sha.lower()),
     )
 
+
+
+
+def migrate_funding_population_reconciliation(connection, source_sha):
+    """Add immutable reconciliation certificates and bind them to coverage."""
+    if (not isinstance(source_sha, str) or len(source_sha) != 40
+            or any(c not in "0123456789abcdef" for c in source_sha.lower())):
+        raise ValueError("DUAL_LEDGER_SOURCE_SHA_REQUIRED")
+    prerequisite = connection.execute(
+        "SELECT checksum,status FROM paper_schema_migrations WHERE version=5"
+    ).fetchone()
+    if prerequisite != (CUTOVER_MIGRATION_CHECKSUM, "APPLIED"):
+        raise sqlite3.DatabaseError("FUNDING_RECONCILIATION_PREREQUISITE_MISSING")
+
+    applied = connection.execute(
+        "SELECT checksum,status FROM paper_schema_migrations WHERE version=?",
+        (RECONCILIATION_MIGRATION_VERSION,),
+    ).fetchone()
+    columns = {
+        row[1] for row in connection.execute("PRAGMA table_info(paper_funding_coverage)")
+    }
+    triggers = {
+        row[0] for row in connection.execute(
+            "SELECT name FROM sqlite_master WHERE type='trigger'"
+        )
+    }
+    required_triggers = {
+        "paper_funding_reconciliations_immutable_update",
+        "paper_funding_reconciliations_immutable_delete",
+    }
+    if applied:
+        if applied != (RECONCILIATION_MIGRATION_CHECKSUM, "APPLIED"):
+            raise sqlite3.DatabaseError("FUNDING_RECONCILIATION_MIGRATION_CHECKSUM_MISMATCH")
+        exists = connection.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='paper_funding_reconciliations'"
+        ).fetchone()
+        if "reconciliation_id" not in columns or not exists or not required_triggers.issubset(triggers):
+            raise sqlite3.DatabaseError("FUNDING_RECONCILIATION_SCHEMA_INCOMPLETE")
+        return
+
+    if "reconciliation_id" not in columns:
+        connection.execute(
+            "ALTER TABLE paper_funding_coverage ADD COLUMN reconciliation_id TEXT"
+        )
+    connection.execute("""CREATE TABLE paper_funding_reconciliations (
+        reconciliation_id TEXT PRIMARY KEY,
+        account_id INTEGER NOT NULL REFERENCES paper_accounts(account_id),
+        start_at_ms INTEGER NOT NULL,
+        end_at_ms INTEGER NOT NULL,
+        currency TEXT NOT NULL,
+        expected_snapshot_id TEXT NOT NULL,
+        observed_snapshot_id TEXT NOT NULL,
+        status TEXT NOT NULL CHECK(status IN (
+            'COMPLETE_WITHIN_DECLARED_POPULATION','BLOCKED'
+        )),
+        document TEXT NOT NULL,
+        payload_hash TEXT NOT NULL UNIQUE CHECK(
+            length(payload_hash)=71 AND substr(payload_hash,1,7)='sha256:'
+            AND substr(payload_hash,8) NOT GLOB '*[^0-9a-f]*'
+        ),
+        recorded_at_ms INTEGER NOT NULL,
+        CHECK(start_at_ms < end_at_ms)
+    )""")
+    connection.execute("""CREATE TRIGGER paper_funding_reconciliations_immutable_update
+        BEFORE UPDATE ON paper_funding_reconciliations
+        BEGIN SELECT RAISE(ABORT,'FUNDING_RECONCILIATION_IMMUTABLE'); END""")
+    connection.execute("""CREATE TRIGGER paper_funding_reconciliations_immutable_delete
+        BEFORE DELETE ON paper_funding_reconciliations
+        BEGIN SELECT RAISE(ABORT,'FUNDING_RECONCILIATION_IMMUTABLE'); END""")
+    connection.execute(
+        """UPDATE paper_account_risk_state
+           SET risk_ready=0,unavailable_reason='FUNDING_RECONCILIATION_REQUIRED',
+               version=version+1
+           WHERE account_id=1 AND EXISTS (
+               SELECT 1 FROM paper_funding_coverage
+               WHERE account_id=1 AND status='VERIFIED'
+           )"""
+    )
+    applied_at = connection.execute(
+        "SELECT updated_at_ms FROM paper_account_risk_state WHERE account_id=1"
+    ).fetchone()[0]
+    connection.execute(
+        """INSERT INTO paper_schema_migrations
+           (version,name,checksum,applied_at_ms,source_sha,status)
+           VALUES (6,'funding_population_reconciliation_v6',?,?,?,'APPLIED')""",
+        (RECONCILIATION_MIGRATION_CHECKSUM, applied_at, source_sha.lower()),
+    )
+
+
+def record_funding_reconciliation(
+    db_path, *, expected_population, recorded_at_ms,
+):
+    """Persist a deterministic comparison of owner-supplied expected events vs ledger enumeration."""
+    path = Path(db_path).resolve()
+    if not path.is_file():
+        raise FileNotFoundError("Paper ledger is unavailable")
+    recorded = _stamp(recorded_at_ms)
+    if not isinstance(expected_population, dict):
+        raise ValueError("FUNDING_POPULATION_FIELDS_INVALID")
+
+    with closing(sqlite3.connect(path, timeout=10)) as db, db:
+        db.row_factory = sqlite3.Row
+        db.execute("PRAGMA foreign_keys=ON")
+        db.execute("BEGIN IMMEDIATE")
+        migration = db.execute(
+            "SELECT checksum,status FROM paper_schema_migrations WHERE version=?",
+            (RECONCILIATION_MIGRATION_VERSION,),
+        ).fetchone()
+        if migration != (RECONCILIATION_MIGRATION_CHECKSUM, "APPLIED"):
+            raise sqlite3.DatabaseError("FUNDING_RECONCILIATION_MIGRATION_NOT_APPLIED")
+
+        start = _stamp(expected_population.get("startAtMs"))
+        end = _stamp(expected_population.get("endAtMs"))
+        if start >= end or end > recorded:
+            raise ValueError("FUNDING_POPULATION_INTERVAL_INVALID")
+        rows = db.execute(
+            """SELECT funding_event_id,event_at_ms,amount_quote,payload_hash,
+                      source,source_snapshot_id
+               FROM paper_funding_events
+               WHERE account_id=1 AND event_at_ms>=? AND event_at_ms<?
+               ORDER BY funding_event_id""",
+            (start, end),
+        ).fetchall()
+        observed_events = []
+        for row in rows:
+            if (row["source"] == "LEGACY_UNVERIFIED"
+                    or not row["source_snapshot_id"] or not row["payload_hash"]):
+                raise ValueError("FUNDING_POPULATION_OBSERVED_PROVENANCE_INCOMPLETE")
+            observed_events.append({
+                "eventId": row["funding_event_id"],
+                "eventAtMs": row["event_at_ms"],
+                "amountQuote": row["amount_quote"],
+                "payloadHash": row["payload_hash"],
+            })
+        observed_bytes = json.dumps(
+            observed_events, sort_keys=True, separators=(",", ":"), allow_nan=False
+        ).encode("utf-8")
+        observed_digest = "sha256:" + hashlib.sha256(observed_bytes).hexdigest()
+        observed_population = {
+            "schemaVersion": 1,
+            "populationType": "OBSERVED_FUNDING_EVENTS",
+            "populationDefinitionId": "paper-ledger-funding-events-v1",
+            "snapshotId": observed_digest,
+            "source": "paper_ledger:paper_funding_events",
+            "startAtMs": start,
+            "endAtMs": end,
+            "currency": expected_population.get("currency"),
+            "events": observed_events,
+        }
+        result = reconcile_funding_population(expected_population, observed_population)
+        document = json.dumps(result, sort_keys=True, separators=(",", ":"), allow_nan=False)
+        payload_hash = "sha256:" + hashlib.sha256(document.encode("utf-8")).hexdigest()
+        reconciliation_id = result["reconciliationId"]
+        old = db.execute(
+            "SELECT payload_hash,document FROM paper_funding_reconciliations WHERE reconciliation_id=?",
+            (reconciliation_id,),
+        ).fetchone()
+        if old:
+            if old["payload_hash"] != payload_hash or old["document"] != document:
+                raise ValueError("FUNDING_RECONCILIATION_ID_CONFLICT")
+            return result
+
+        db.execute(
+            """INSERT INTO paper_funding_reconciliations
+               (reconciliation_id,account_id,start_at_ms,end_at_ms,currency,
+                expected_snapshot_id,observed_snapshot_id,status,document,payload_hash,recorded_at_ms)
+               VALUES (?,1,?,?,?,?,?,?,?,?,?)""",
+            (
+                reconciliation_id, start, end, expected_population["currency"],
+                expected_population["snapshotId"], result["observedSnapshotId"],
+                result["reconciliationStatus"], document, payload_hash, recorded,
+            ),
+        )
+        if result["reconciliationStatus"] != "COMPLETE_WITHIN_DECLARED_POPULATION":
+            db.execute(
+                """UPDATE paper_account_risk_state
+                   SET risk_ready=0,unavailable_reason='FUNDING_POPULATION_RECONCILIATION_BLOCKED',
+                       updated_at_ms=?,version=version+1 WHERE account_id=1""",
+                (recorded,),
+            )
+        audit = {
+            "reconciliationId": reconciliation_id,
+            "status": result["reconciliationStatus"],
+            "payloadHash": payload_hash,
+            "recordedAtMs": recorded,
+            "mode": "PAPER",
+        }
+        db.execute(
+            "INSERT INTO paper_audit(at_ms,kind,document) VALUES (?, 'FUNDING_POPULATION_RECONCILIATION', ?)",
+            (recorded, json.dumps(audit, allow_nan=False)),
+        )
+        return result
 
 def record_account_equity_cutover(
     db_path, *, cutover_id, expected_initial_capital_quote,
@@ -613,6 +811,7 @@ def record_funding_event(
 def record_funding_coverage(
     db_path, *, coverage_id, start_at_ms, end_at_ms, status, source,
     source_snapshot_id, payload_hash, config_version, recorded_at_ms,
+    reconciliation_id=None,
 ):
     path = Path(db_path).resolve()
     if not path.is_file():
@@ -629,26 +828,51 @@ def record_funding_coverage(
     digest = _hash(payload_hash)
     if status == "DISABLED" and source != "PAPER_TEST_CONFIGURATION":
         raise ValueError("FUNDING_DISABLED_REQUIRES_PAPER_TEST_EVIDENCE")
+    if status == "VERIFIED":
+        reconciliation_id = _required_text(
+            reconciliation_id, "FUNDING_RECONCILIATION_REQUIRED", 71
+        )
+        _hash(reconciliation_id)
+    elif reconciliation_id is not None:
+        raise ValueError("FUNDING_RECONCILIATION_UNEXPECTED")
+
     with closing(sqlite3.connect(path, timeout=10)) as db, db:
         db.execute("PRAGMA foreign_keys=ON")
         db.execute("BEGIN IMMEDIATE")
         migration = db.execute(
-            "SELECT checksum,status FROM paper_schema_migrations WHERE version=4"
+            "SELECT checksum,status FROM paper_schema_migrations WHERE version=?",
+            (RECONCILIATION_MIGRATION_VERSION,),
         ).fetchone()
-        if migration != (MIGRATION_CHECKSUM, "APPLIED"):
-            raise sqlite3.DatabaseError("FUNDING_PROVENANCE_MIGRATION_NOT_APPLIED")
+        if migration != (RECONCILIATION_MIGRATION_CHECKSUM, "APPLIED"):
+            raise sqlite3.DatabaseError("FUNDING_RECONCILIATION_MIGRATION_NOT_APPLIED")
+        if status == "VERIFIED":
+            evidence = db.execute(
+                """SELECT start_at_ms,end_at_ms,currency,expected_snapshot_id,status,recorded_at_ms
+                   FROM paper_funding_reconciliations WHERE reconciliation_id=?""",
+                (reconciliation_id,),
+            ).fetchone()
+            if evidence is None:
+                raise ValueError("FUNDING_RECONCILIATION_NOT_FOUND")
+            if evidence[4] != "COMPLETE_WITHIN_DECLARED_POPULATION":
+                raise ValueError("FUNDING_RECONCILIATION_NOT_COMPLETE")
+            if (evidence[0], evidence[1], evidence[2], evidence[3]) != (
+                start, end, "USDT", snapshot
+            ) or evidence[5] > recorded:
+                raise ValueError("FUNDING_RECONCILIATION_SCOPE_MISMATCH")
+
         old = db.execute(
             """SELECT start_at_ms,end_at_ms,status,source,source_snapshot_id,
-                      payload_hash,config_version,recorded_at_ms
+                      payload_hash,config_version,recorded_at_ms,reconciliation_id
                FROM paper_funding_coverage WHERE coverage_id=?""", (coverage_id,)
         ).fetchone()
-        expected = (start, end, status, source, snapshot, digest, config)
+        expected = (start, end, status, source, snapshot, digest, config, reconciliation_id)
         if old:
-            if old[:7] != expected:
+            if old[:7] != expected[:7] or old[8] != reconciliation_id:
                 raise ValueError("FUNDING_COVERAGE_ID_CONFLICT")
             return {"coverageId": coverage_id, "startAtMs": start, "endAtMs": end,
                     "status": status, "source": source, "sourceSnapshotId": snapshot,
-                    "payloadHash": digest, "configVersion": config, "recordedAtMs": old[7]}
+                    "payloadHash": digest, "configVersion": config,
+                    "reconciliationId": reconciliation_id, "recordedAtMs": old[7]}
         if db.execute(
             """SELECT 1 FROM paper_funding_coverage
                WHERE account_id=1 AND start_at_ms < ? AND end_at_ms > ? LIMIT 1""",
@@ -660,9 +884,9 @@ def record_funding_coverage(
         db.execute(
             """INSERT INTO paper_funding_coverage
                (coverage_id,account_id,start_at_ms,end_at_ms,status,source,
-                source_snapshot_id,payload_hash,config_version,recorded_at_ms)
-               VALUES (?,1,?,?,?,?,?,?,?,?)""",
-            (coverage_id, start, end, status, source, snapshot, digest, config, recorded),
+                source_snapshot_id,payload_hash,config_version,recorded_at_ms,reconciliation_id)
+               VALUES (?,1,?,?,?,?,?,?,?,?,?)""",
+            (coverage_id, start, end, status, source, snapshot, digest, config, recorded, reconciliation_id),
         )
         if status == "UNKNOWN":
             db.execute(
@@ -672,7 +896,8 @@ def record_funding_coverage(
             )
         audit = {"coverageId": coverage_id, "startAtMs": start, "endAtMs": end,
                  "status": status, "source": source, "sourceSnapshotId": snapshot,
-                 "payloadHash": digest, "configVersion": config, "mode": "PAPER"}
+                 "payloadHash": digest, "configVersion": config,
+                 "reconciliationId": reconciliation_id, "mode": "PAPER"}
         db.execute("INSERT INTO paper_audit(at_ms,kind,document) VALUES (?, 'FUNDING_COVERAGE', ?)",
                    (recorded, json.dumps(audit, allow_nan=False)))
         return {**audit, "recordedAtMs": recorded}
