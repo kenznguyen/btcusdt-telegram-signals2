@@ -635,16 +635,20 @@ def record_account_equity_cutover(
                 if not reconciliation_id:
                     raise ValueError("FUNDING_RECONCILIATION_REQUIRED")
                 certificate = db.execute(
-                    """SELECT start_at_ms,end_at_ms,expected_snapshot_id,status
+                    """SELECT start_at_ms,end_at_ms,expected_snapshot_id,status,
+                              observed_snapshot_id
                        FROM paper_funding_reconciliations WHERE reconciliation_id=?""",
                     (reconciliation_id,),
                 ).fetchone()
-                if certificate is None:
+                        if certificate is None:
                     raise ValueError("FUNDING_RECONCILIATION_NOT_FOUND")
                 if certificate[3] != "COMPLETE_WITHIN_DECLARED_POPULATION":
                     raise ValueError("FUNDING_RECONCILIATION_NOT_COMPLETE")
                 if certificate[:3] != (start, end, coverage_snapshot):
                     raise ValueError("FUNDING_RECONCILIATION_SCOPE_MISMATCH")
+                _, current_observed_digest = _observed_funding_events(db, start, end)
+                if certificate[4] != current_observed_digest:
+                    raise ValueError("FUNDING_RECONCILIATION_STALE")
             elif status != "DISABLED":
                 raise ValueError("FUNDING_PROVENANCE_INCOMPLETE")
             previous_end = end
@@ -859,13 +863,13 @@ def record_funding_event(
                WHERE account_id=1 AND strategy_id=?""",
             (format(current + amount, "f"), recorded, strategy_id),
         )
-        _refresh_equity(db, recorded)
         db.execute(
             """UPDATE paper_account_risk_state
                SET risk_ready=0,unavailable_reason='FUNDING_RECONCILIATION_REQUIRED',
                    updated_at_ms=?,version=version+1 WHERE account_id=1""",
             (recorded,),
         )
+        _refresh_equity(db, recorded)
         audit = {"fundingEventId": event_id, "strategyId": strategy_id,
                  "amountQuote": format(amount, "f"), "eventAtMs": event_at,
                  "source": source, "sourceSnapshotId": snapshot,
