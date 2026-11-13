@@ -176,3 +176,17 @@ Implementation must begin with failing tests (RED). No runtime/VPS retest, persi
 - Next action: implement failing tests for monotonic receive-time propagation and typed rejection classification, then verify RED through the existing GitHub Actions CI before any production implementation.
 - Execution-environment check (2026-11-13): BLOCKED. The available working container has no `cargo` executable and cannot resolve `github.com` for `git clone`/remote execution. GitHub repository metadata/file operations are available, but they cannot execute Rust tests. No source/test files were changed and no RED result is claimed.
 - Resume condition: obtain a checkout-capable Rust environment or use a controlled commit-driven CI RED/GREEN sequence; preserve the same target branch and verify each exact SHA before proceeding.
+
+
+### 2026-11-13 CI RED evidence update
+
+- Test-only source commit: `9aab5f7d2df656825063f0c1d1aeb11104f65329` (superseded by formatting-only follow-up below).
+- Formatting-only follow-up commit: `16c5e054cc502c7cbef6bdd96b224d2dc5fc9ce5`.
+- CI run #563: [43339488935](https://github.com/kenznguyen/binance-futures-collector/actions/runs/43339488935).
+- Rust x86_64 job: `131603933925`; Rust native ARM64 job: `131603933936`.
+- Both Rust jobs passed formatting and failed at Clippy compilation with the expected unresolved import `super::BufferedDepthUpdate` in `src/websocket/connection_manager.rs:951`. This confirms RED for the receive-time wrapper tests, not for typed rejection classification.
+- Dashboard frontend, dashboard backend, security audit and Docker build jobs: PASS.
+- Rust build, Rust tests, sidecar tests and artifacts: NOT RUN / NOT GENERATED because Clippy stopped the job.
+- Disposition: receive-time wrapper RED = CONFIRMED; typed rejection RED = NOT YET IMPLEMENTED/VERIFIED; overall spec = IN PROGRESS.
+- Next bounded action: add test-first coverage for typed rejection classification and precedence, verify those tests fail for the intended missing typed contract, then implement receive-time propagation through ring buffer and BTCUSDT attach/live buffers, bounded monotonic timing summaries, and typed classification. Preserve all Section 7 non-goals.
+- No runtime/VPS test, T0 access, T1→T2 integration, persistent service, or trading was performed or authorized.
