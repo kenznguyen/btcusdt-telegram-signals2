@@ -167,6 +167,89 @@ class ContinuousJournal:
         except sqlite3.Error as exc:
             raise JournalError("JOURNAL_CLAIM_FAILED") from exc
 
+
+    _TRANSITIONS = {
+        "CLAIMED": {"VALIDATING", "EXECUTING", "INPUT_REJECTED", "FAILED",
+                    "UNKNOWN_REQUIRES_RECONCILIATION"},
+        "VALIDATING": {"EXECUTING", "NO_SIGNAL", "INPUT_REJECTED", "FAILED",
+                       "UNKNOWN_REQUIRES_RECONCILIATION"},
+        "EXECUTING": {"NO_SIGNAL", "PAPER_ACCEPTED", "RISK_REJECTED",
+                      "INPUT_REJECTED", "FAILED", "UNKNOWN_REQUIRES_RECONCILIATION"},
+        "UNKNOWN_REQUIRES_RECONCILIATION": {
+            "NO_SIGNAL", "PAPER_ACCEPTED", "RISK_REJECTED", "FAILED",
+        },
+    }
+    _TERMINAL_STATES = {
+        "NO_SIGNAL", "PAPER_ACCEPTED", "RISK_REJECTED", "INPUT_REJECTED", "FAILED",
+    }
+
+    def transition_cycle(
+        self,
+        cycle_key,
+        *,
+        expected_status,
+        status,
+        updated_at_ms,
+        run_id=None,
+        intent_id=None,
+        order_id=None,
+        terminal_result=None,
+    ):
+        """Compare-and-swap a cycle state; terminal outcomes cannot be replayed."""
+        cycle_key = self._required_text(cycle_key, "cycle_key")
+        expected_status = self._required_text(expected_status, "expected_status")
+        status = self._required_text(status, "status")
+        updated_at_ms = self._timestamp(updated_at_ms)
+        optional = {
+            "run_id": run_id,
+            "intent_id": intent_id,
+            "order_id": order_id,
+            "terminal_result": terminal_result,
+        }
+        for field, value in optional.items():
+            if value is not None:
+                self._required_text(value, field)
+        if status not in self._TRANSITIONS.get(expected_status, set()):
+            raise ValueError("JOURNAL_TRANSITION_NOT_ALLOWED")
+        if status in self._TERMINAL_STATES and terminal_result is None:
+            raise ValueError("JOURNAL_TERMINAL_RESULT_REQUIRED")
+
+        try:
+            with closing(self._connect()) as connection:
+                connection.execute("BEGIN IMMEDIATE")
+                row = connection.execute(
+                    """SELECT status,updated_at_ms,intent_id,run_id
+                       FROM continuous_cycles WHERE cycle_key=?""",
+                    (cycle_key,),
+                ).fetchone()
+                if row is None or row["status"] != expected_status:
+                    raise CycleConflict("CYCLE_STATE_CONFLICT")
+                if updated_at_ms < row["updated_at_ms"]:
+                    raise ValueError("JOURNAL_TIMESTAMP_REGRESSION")
+                if row["intent_id"] is not None and intent_id not in (None, row["intent_id"]):
+                    raise CycleConflict("CYCLE_INTENT_CONFLICT")
+                if row["run_id"] is not None and run_id not in (None, row["run_id"]):
+                    raise CycleConflict("CYCLE_RUN_CONFLICT")
+                connection.execute(
+                    """UPDATE continuous_cycles
+                       SET status=?,updated_at_ms=?,state_version=state_version+1,
+                           run_id=COALESCE(?,run_id),
+                           intent_id=COALESCE(?,intent_id),
+                           order_id=COALESCE(?,order_id),
+                           terminal_result=COALESCE(?,terminal_result)
+                       WHERE cycle_key=? AND status=?""",
+                    (
+                        status, updated_at_ms, run_id, intent_id, order_id,
+                        terminal_result, cycle_key, expected_status,
+                    ),
+                )
+                connection.commit()
+                return True
+        except (CycleConflict, ValueError):
+            raise
+        except sqlite3.Error as exc:
+            raise JournalError("JOURNAL_TRANSITION_FAILED") from exc
+
     @staticmethod
     def _cycle_document(row):
         if row is None:
