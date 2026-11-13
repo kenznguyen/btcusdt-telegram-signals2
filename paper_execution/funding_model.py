@@ -48,14 +48,20 @@ def _decimal(value, code, *, positive=False):
         result = Decimal(value)
     except (DecimalException, TypeError, ValueError):
         raise ValueError(code) from None
-    if (not result.is_finite() or not -200 <= result.as_tuple().exponent <= 200
+    if (not result.is_finite() or len(result.as_tuple().digits) > 80
+            or not -200 <= result.as_tuple().exponent <= 200
             or result.adjusted() > 200 or (positive and result <= 0)):
         raise ValueError(code)
     return result
 
 
 def _decimal_text(value):
-    return format(value.normalize(), "f") if value else "0"
+    if not value:
+        return "0"
+    rendered = format(value, "f")
+    if "." in rendered:
+        rendered = rendered.rstrip("0").rstrip(".")
+    return rendered or "0"
 
 
 def _digest(document):
@@ -175,7 +181,7 @@ def build_expected_funding_population(
     rates = _normalise_rates(funding_rate_events, start, end)
 
     with localcontext() as context:
-        context.prec = 80
+        context.prec = 240
         expected_events = []
         for market_event in rates:
             settlement = market_event["fundingTimeMs"]
