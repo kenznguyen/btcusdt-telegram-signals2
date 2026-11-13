@@ -24,6 +24,15 @@ class DualLedgerBootstrapContractTest(unittest.TestCase):
         self.root = Path(self.temp.name)
         self.now = 1_800_000_000_000
         self.source_sha = "a" * 40
+        self.environment = patch.dict(os.environ, {
+            "AI_EXECUTION_ENABLED": "false",
+            "BINANCE_API_KEY": "",
+            "BINANCE_API_SECRET": "",
+            "OKX_API_KEY": "",
+            "OKX_API_SECRET": "",
+        })
+        self.environment.start()
+        self.addCleanup(self.environment.stop)
         self.funding_evidence = self.root / "funding-evidence.json"
         self.cutover_evidence = self.root / "equity-cutover-evidence.json"
         self.funding_evidence.write_text(
@@ -37,6 +46,7 @@ class DualLedgerBootstrapContractTest(unittest.TestCase):
         self.manifest = {
             "schemaVersion": 1,
             "mode": "PAPER",
+            "sourceSha": self.source_sha,
             "initialCapitalQuote": "100",
             "maxPositionBase": "0.01",
             "riskLimits": {
@@ -71,9 +81,7 @@ class DualLedgerBootstrapContractTest(unittest.TestCase):
         self.db_path.parent.mkdir()
 
     def test_bootstrap_creates_three_scopes_and_ready_only_after_reconciliation(self):
-        result = bootstrap_paper_account(
-            self.db_path, self.manifest, source_sha=self.source_sha
-        )
+        result = bootstrap_paper_account(self.db_path, self.manifest)
 
         self.assertTrue(self.db_path.is_file())
         self.assertEqual(result["mode"], "PAPER")
@@ -109,7 +117,7 @@ class DualLedgerBootstrapContractTest(unittest.TestCase):
         bad["fundingPayloadHash"] = "sha256:" + "0" * 64
 
         with self.assertRaisesRegex(ValueError, "EVIDENCE_DIGEST_MISMATCH"):
-            bootstrap_paper_account(self.db_path, bad, source_sha=self.source_sha)
+            bootstrap_paper_account(self.db_path, bad)
 
         self.assertFalse(self.db_path.exists())
         self.assertEqual(list(self.db_path.parent.iterdir()), [])
@@ -119,7 +127,7 @@ class DualLedgerBootstrapContractTest(unittest.TestCase):
         bad["unrecognized"] = "must be rejected"
 
         with self.assertRaisesRegex(ValueError, "BOOTSTRAP_MANIFEST_FIELDS_INVALID"):
-            bootstrap_paper_account(self.db_path, bad, source_sha=self.source_sha)
+            bootstrap_paper_account(self.db_path, bad)
 
         self.assertFalse(self.db_path.exists())
 
@@ -128,7 +136,7 @@ class DualLedgerBootstrapContractTest(unittest.TestCase):
         before = self.db_path.read_bytes()
 
         with self.assertRaisesRegex(ValueError, "BOOTSTRAP_TARGET_ALREADY_EXISTS"):
-            bootstrap_paper_account(self.db_path, self.manifest, source_sha=self.source_sha)
+            bootstrap_paper_account(self.db_path, self.manifest)
 
         self.assertEqual(self.db_path.read_bytes(), before)
 
@@ -140,17 +148,15 @@ class DualLedgerBootstrapContractTest(unittest.TestCase):
             "T0_FEEDER_LEASE_DB": str(lease_db),
         }):
             with self.assertRaisesRegex(ValueError, "BOOTSTRAP_TARGET_PROTECTED_PATH"):
-                bootstrap_paper_account(t0_db, self.manifest, source_sha=self.source_sha)
+                bootstrap_paper_account(t0_db, self.manifest)
             with self.assertRaisesRegex(ValueError, "BOOTSTRAP_TARGET_PROTECTED_PATH"):
-                bootstrap_paper_account(lease_db, self.manifest, source_sha=self.source_sha)
+                bootstrap_paper_account(lease_db, self.manifest)
 
         self.assertFalse(t0_db.exists())
         self.assertFalse(lease_db.exists())
 
     def test_inspect_is_read_only_and_reports_ready_state(self):
-        bootstrap_paper_account(
-            self.db_path, self.manifest, source_sha=self.source_sha
-        )
+        bootstrap_paper_account(self.db_path, self.manifest)
         before = self.db_path.read_bytes()
 
         result = inspect_paper_account(self.db_path, now_ms=self.now)
@@ -161,9 +167,7 @@ class DualLedgerBootstrapContractTest(unittest.TestCase):
         self.assertEqual(self.db_path.read_bytes(), before)
 
     def test_stale_inspection_fails_closed_without_mutation(self):
-        bootstrap_paper_account(
-            self.db_path, self.manifest, source_sha=self.source_sha
-        )
+        bootstrap_paper_account(self.db_path, self.manifest)
         before = self.db_path.read_bytes()
 
         result = inspect_paper_account(self.db_path, now_ms=self.now + 31 * 60_000)
