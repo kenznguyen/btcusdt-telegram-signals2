@@ -3,6 +3,7 @@
 import unittest
 
 from paper_execution.funding_model import build_expected_funding_population
+from paper_execution.funding_reconciliation import reconcile_funding_population
 
 
 START = 1_800_000_000_000
@@ -143,6 +144,25 @@ class PaperFundingModelTest(unittest.TestCase):
             rate_rows=[rate()],
         )
         self.assertEqual(first, second)
+
+    def test_generated_population_reconciles_with_matching_paper_ledger_events(self):
+        expected = self.build()
+        observed = {
+            **expected,
+            "populationType": "OBSERVED_FUNDING_EVENTS",
+            "populationDefinitionId": "paper-ledger-funding-events-v1",
+            "snapshotId": "paper-ledger-snapshot-001",
+            "source": "paper_ledger:paper_funding_events",
+        }
+
+        result = reconcile_funding_population(expected, observed)
+
+        self.assertEqual(
+            result["reconciliationStatus"], "COMPLETE_WITHIN_DECLARED_POPULATION"
+        )
+        self.assertEqual(result["counts"]["matched"], 2)
+        self.assertEqual(result["independence"], "DECLARED_NOT_VERIFIED")
+        self.assertEqual(result["globalCompleteness"], "NOT_VERIFIED")
 
     def test_population_matches_d07_expected_population_contract(self):
         result = self.build()
