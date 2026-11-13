@@ -1,5 +1,6 @@
 """Paper-only Continuous Core orchestration over the existing One-shot Runner."""
 
+import fcntl
 import hashlib
 import json
 import os
@@ -63,6 +64,7 @@ class ContinuousCoreRunner:
         self.audit_reader = audit_reader
         self.preflight_fn = _preflight if preflight_fn is None else preflight_fn
         self._stop_requested = False
+        self._lock_fd = None
 
     @staticmethod
     def _text(value, code):
@@ -312,9 +314,41 @@ class ContinuousCoreRunner:
         now_ms = self._nonnegative_int(now_ms, "NOW_MS")
         recovered = []
         for cycle in self.journal.list_cycles():
-            if cycle["status"] in self._TERMINAL:
-                continue
             cycle_key = cycle["cycleKey"]
+            if cycle["status"] in self._TERMINAL:
+                if cycle["status"] in ("PAPER_ACCEPTED", "RISK_REJECTED"):
+                    try:
+                        self._verify_persisted_cycle(cycle)
+                        if not cycle["intentId"]:
+                            raise ValueError("TERMINAL_INTENT_MISSING")
+                        order = self._read_ledger_intent(cycle["intentId"])
+                    except Exception:
+                        recovered.append({
+                            "cycleKey": cycle_key, "status": "BLOCKED",
+                            "reason": "LEDGER_RECONCILIATION_UNAVAILABLE",
+                        })
+                        continue
+                    expected_status = (
+                        "REJECTED" if cycle["status"] == "RISK_REJECTED"
+                        else ("FILLED", "OPEN", "PARTIALLY_FILLED")
+                    )
+                    order_status = order.get("status") if order else None
+                    status_matches = (
+                        order_status == expected_status
+                        if isinstance(expected_status, str)
+                        else order_status in expected_status
+                    )
+                    if (not order or not status_matches
+                            or order.get("orderId") != cycle["orderId"]):
+                        recovered.append({
+                            "cycleKey": cycle_key, "status": "BLOCKED",
+                            "reason": "TERMINAL_LEDGER_DISAGREEMENT",
+                        })
+                    else:
+                        recovered.append({
+                            "cycleKey": cycle_key, "status": "VERIFIED",
+                        })
+                continue
             try:
                 bundle_path = self._verify_persisted_cycle(cycle)
                 if cycle["status"] in (
@@ -388,6 +422,40 @@ class ContinuousCoreRunner:
                 })
         return recovered
 
+    def acquire_process_lock(self):
+        """Acquire exclusive OS ownership for this runner-state directory."""
+        if self._lock_fd is not None:
+            return True
+        self.bundle_store_dir.mkdir(parents=True, exist_ok=True)
+        lock_path = self.bundle_store_dir / "continuous-runner.lock"
+        flags = os.O_CREAT | os.O_RDWR
+        if hasattr(os, "O_NOFOLLOW"):
+            flags |= os.O_NOFOLLOW
+        fd = os.open(lock_path, flags, 0o600)
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            os.close(fd)
+            return False
+        except Exception:
+            os.close(fd)
+            raise
+        os.ftruncate(fd, 0)
+        os.write(fd, f"{os.getpid()}\\n".encode("ascii"))
+        os.fsync(fd)
+        self._lock_fd = fd
+        return True
+
+    def release_process_lock(self):
+        fd = self._lock_fd
+        if fd is None:
+            return
+        self._lock_fd = None
+        try:
+            fcntl.flock(fd, fcntl.LOCK_UN)
+        finally:
+            os.close(fd)
+
     def request_stop(self):
         self._stop_requested = True
 
@@ -402,28 +470,35 @@ class ContinuousCoreRunner:
         max_sleep_seconds=1.0,
     ):
         """Explicitly invoked scheduler loop; never started by import or deployment."""
-        now_ms = wall_clock_ms()
-        self.preflight_fn(self.config_path, now_ms=now_ms)
-        self.recover_incomplete(now_ms=now_ms)
-        while not self._stop_requested and not stop_requested():
+        if not self.acquire_process_lock():
+            return "BLOCKED"
+        try:
             now_ms = wall_clock_ms()
-            deadline = next_m15_deadline_ms(
-                now_ms, settlement_ms=self.settlement_ms
-            )
-            completed = wait_until_deadline(
-                deadline_ms=deadline,
-                wall_now_ms=now_ms,
-                monotonic=monotonic,
-                sleep=sleep,
-                stop_requested=lambda: self._stop_requested or stop_requested(),
-                max_sleep_seconds=max_sleep_seconds,
-            )
-            if not completed or self._stop_requested or stop_requested():
-                return "STOPPED"
-            candle_open = latest_eligible_m15_open_ms(
-                wall_clock_ms(), settlement_ms=self.settlement_ms
-            )
-            bundle_path = bundle_provider(candle_open)
-            if bundle_path is not None:
-                self.process_bundle(bundle_path, now_ms=wall_clock_ms())
-        return "STOPPED"
+            self.preflight_fn(self.config_path, now_ms=now_ms)
+            recovery = self.recover_incomplete(now_ms=now_ms)
+            if any(item.get("status") == "BLOCKED" for item in recovery):
+                return "BLOCKED"
+            while not self._stop_requested and not stop_requested():
+                now_ms = wall_clock_ms()
+                deadline = next_m15_deadline_ms(
+                    now_ms, settlement_ms=self.settlement_ms
+                )
+                completed = wait_until_deadline(
+                    deadline_ms=deadline,
+                    wall_now_ms=now_ms,
+                    monotonic=monotonic,
+                    sleep=sleep,
+                    stop_requested=lambda: self._stop_requested or stop_requested(),
+                    max_sleep_seconds=max_sleep_seconds,
+                )
+                if not completed or self._stop_requested or stop_requested():
+                    return "STOPPED"
+                candle_open = latest_eligible_m15_open_ms(
+                    wall_clock_ms(), settlement_ms=self.settlement_ms
+                )
+                bundle_path = bundle_provider(candle_open)
+                if bundle_path is not None:
+                    self.process_bundle(bundle_path, now_ms=wall_clock_ms())
+            return "STOPPED"
+        finally:
+            self.release_process_lock()
