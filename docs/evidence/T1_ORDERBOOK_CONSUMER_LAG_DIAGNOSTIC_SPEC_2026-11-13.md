@@ -190,3 +190,17 @@ Implementation must begin with failing tests (RED). No runtime/VPS retest, persi
 - Disposition: receive-time wrapper RED = CONFIRMED; typed rejection RED = NOT YET IMPLEMENTED/VERIFIED; overall spec = IN PROGRESS.
 - Next bounded action: add test-first coverage for typed rejection classification and precedence, verify those tests fail for the intended missing typed contract, then implement receive-time propagation through ring buffer and BTCUSDT attach/live buffers, bounded monotonic timing summaries, and typed classification. Preserve all Section 7 non-goals.
 - No runtime/VPS test, T0 access, T1→T2 integration, persistent service, or trading was performed or authorized.
+
+### 2026-11-13 typed rejection RED evidence
+
+- Typed-rejection test-only commit: `769ba7a06a32e3cc42fb2f66c64c6fdb94fcb02e`.
+- Formatting-only follow-up commit: `90d0a0510a2281e25c086ad6e8f233d2381cf91e`.
+- Exact T1 source file blob after formatting: `src/orderbook_v1.rs` blob `1b9a71110fb80cd3b65f97996ec93f255d199d6b`.
+- CI push run #567: [43342388400](https://github.com/kenznguyen/binance-futures-collector/actions/runs/43342388400), source SHA `90d0a0510a2281e25c086ad6e8f233d2381cf91e`.
+- Rust x86_64 job: `131613562376`. Format: PASS. Clippy compile: expected RED.
+- Compiler confirms the missing typed contract: `apply_live_diff_classified` and `LiveDiffRejection` are not yet implemented. It also confirms the earlier missing `BufferedDepthUpdate` wrapper test remains RED.
+- Rust build, Rust unit tests, sidecar tests and collector artifact generation are skipped after the expected Clippy failure. The workflow was still running in non-Rust jobs when this evidence was recorded; do not claim overall CI completion from this entry.
+- Four typed-classification test groups added: source/observation/future-skew freshness; PU/watermark sequence; malformed header/invalid levels/depth/crossed book shape; combined-invalid validation precedence.
+- Explicit precedence encoded by tests to preserve current validator order: malformed header (shape) before sequence; sequence before levels/freshness; level/structural shape before freshness. Existing decision watermark remains immutable on rejection.
+- Disposition: typed rejection RED = CONFIRMED at compile boundary; assertions have not executed because the typed API is intentionally absent. Receive-time wrapper RED = previously CONFIRMED. Overall source implementation remains NOT STARTED.
+- Next action: implement typed validation boundary without parsing error strings, then thread original monotonic receive time and insertion time through ring and BTCUSDT attach/live buffers. Preserve all Section 7 restrictions.
