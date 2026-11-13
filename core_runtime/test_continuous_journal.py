@@ -118,4 +118,7 @@ class ContinuousJournalClaimTest(unittest.TestCase):
                 updated_at_ms=1_800_000_003_000,
             )
 
+
+
+if __name__ == "__main__":
     unittest.main()
