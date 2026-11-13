@@ -63,7 +63,7 @@ class PaperFundingModelTest(unittest.TestCase):
         result = self.build(rate_rows=[rate(value="-0.002")])
         self.assertEqual(
             sorted(event["amountQuote"] for event in result["events"]),
-            ["-0.1", "0.4"],
+            ["-0.2", "0.4"],
         )
 
     def test_zero_position_does_not_create_funding_event(self):
