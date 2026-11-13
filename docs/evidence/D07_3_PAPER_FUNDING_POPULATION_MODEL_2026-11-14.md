@@ -72,3 +72,13 @@ Next bounded work: implement a read-only position-history projection from the ex
 - Actual public-source completeness/freshness/authenticity and independent provenance: **NOT VERIFIED**.
 - Production bootstrap: **BLOCKED / NOT APPROVED**.
 - VPS, production DB, T0, Runner/One-shot, credentials and orders: **NOT TOUCHED**.
+
+
+## Verification addendum — 2026-11-14
+
+- High-precision regression RED: run [43519711137](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43519711137), source `a7e028588786f1284559636b6caa2d71df5c0dfe`. It reproduced a real identity collision: two different 40-digit position inputs produced the same population snapshot ID because Decimal normalization used the default precision.
+- Fix: `_decimal_text` now formats without context rounding; each input is capped at 80 significant digits; the calculation context is 240 digits to preserve exact products. Source SHA: `8264fef6ad257411f18b14cba6ee3fdb4fb50e65`.
+- GREEN exact-source workflow: [43519778241](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43519778241), SUCCESS, exact source SHA `8264fef6ad257411f18b14cba6ee3fdb4fb50e65`.
+- Focused D07 PAPER funding model tests: **18/18 PASS**. Existing bootstrap, D07 reconciliation, D07.2 provenance and persistence/coverage gates also PASS. Full PaperLedger regression: **501/501 PASS** in 141.759s.
+- Artifact: `14081998893`, name `dual-ledger-bootstrap-proof-8264fef6ad257411f18b14cba6ee3fdb4fb50e65`, 13,907 bytes, GitHub ZIP digest `sha256:21d20f3079197433869fdcdfc4572ca925740c548f87a642453557bb70e0c252`, expires 2026-11-20T22:30:10Z.
+- D07.3 model + CI: **PASS**. D07 overall remains **PARTIAL** because there is not yet a position-history projection, a public-rate response parser/provenance ingestion path, or an end-to-end staging/reconciliation run against persisted PAPER funding events from an independent producer. No network calls or real account data were used.
