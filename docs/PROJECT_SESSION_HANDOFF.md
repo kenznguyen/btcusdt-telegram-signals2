@@ -5045,3 +5045,5 @@ Next: preserve this proof and do not rerun automatically. Any additional runtime
 - Next: obtain an exact-SHA CI result for the verifier and full regression; then prepare a source-specific evidence/lineage decision only if an independently authoritative source can be named. Do not connect or read real account data without separate exact-scope approval.
 
 - Review correction before CI: cursor-chain validation now distinguishes a cursor's expected appearance as the prior page's `nextCursor` and the next page's `requestCursor`; repeated request cursors and cursor loops remain rejected. The corrected code is in the following commit.
+
+- CI diagnosis: workflow run `43517654854` at `a222a00927fb8ba00a481ee893459655b55ffab0` failed before job creation (`jobs=[]`). Inspection found literal escaped newline sequences in the new YAML step and artifact path; this is a workflow-authoring defect, not a test failure. Corrected in the next commit and requires a fresh workflow run.
