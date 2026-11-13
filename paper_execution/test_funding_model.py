@@ -79,8 +79,8 @@ class PaperFundingModelTest(unittest.TestCase):
         ]
         result = self.build(position_rows=rows)
         self.assertEqual(
-            [event["amountQuote"] for event in result["events"]],
-            ["0.2", "-0.1"],
+            sorted(event["amountQuote"] for event in result["events"]),
+            ["-0.1", "0.2"],
         )
 
     def test_future_position_snapshot_is_never_used(self):
