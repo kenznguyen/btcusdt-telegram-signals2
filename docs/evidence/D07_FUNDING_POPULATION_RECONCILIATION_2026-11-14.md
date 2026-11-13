@@ -77,7 +77,7 @@ Final workflow:
 - Artifact payload digest has not been independently recomputed.
 
 Adjacent compatibility evidence:
-- Core-First operational proof [43514137221](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43514137221), source `92168d6efedece4f92b969da37ce99a78`? **Use workflow metadata for exact SHA:** `92168d6efedece4f92b969da37ce99a78` is not a verified source pin here; the exact source pin for that run is `92168d6efedece4f92b969da37ce99a78` only if independently confirmed. This adjacent run is not used as the D07 implementation proof.
+- Adjacent Core-First operational proof [43514137221](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43514137221), exact source `92168d6efedece4f99cc3551ffcac933d70f1e4a`: all operational proof steps PASS; artifact `14080196974`, GitHub-reported digest `sha256:ab29fc8def0745055627971527bfdef3331559a6d328998fdbb3369c1e8fab9a`.
 - Paper Ledger T1 compatibility [43514137410](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43514137410): 100 tests PASS at the preceding compatible source. The D07 proof above remains the authoritative exact-SHA regression.
 
 ## Status and limits
