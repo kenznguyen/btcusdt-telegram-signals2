@@ -285,3 +285,10 @@ coverage integration are not implemented by this increment. Until those
 pieces are completed and tested, D07 remains PARTIAL and must not be used to
 claim actual-source independence, global completeness, issuer authenticity,
 freshness or production readiness.
+
+
+## D07.4 Binance USDⓈ-M public funding page parser
+
+`paper_execution.binance_public_funding.parse_binance_usdm_funding_rate_page` parses captured bytes from the public `GET /fapi/v1/fundingRate` market-data endpoint. It accepts only BTCUSDT Regular funding records and verifies the declared page byte length and SHA-256 before parsing. It rejects Special rate types, malformed/duplicate JSON keys, invalid numeric types, duplicate or out-of-order timestamps, out-of-scope events and pages over 1,000 records. It binds normalized records to the D07.2 evidence snapshot ID and emits the funding-model input schema.
+
+The parser is offline only: no HTTP client, API key, account data, network request or scheduler. Binance documents inclusive start/end query parameters, ascending results, a 1,000-record maximum, and response fields including fundingTime, fundingRate, markPrice and rateType: [official endpoint documentation](https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/Get-Funding-Rate-History). D07.2 still does not prove issuer authenticity or global enumeration completeness.
