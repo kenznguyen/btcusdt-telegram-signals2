@@ -4709,3 +4709,14 @@ These findings make the current stop condition explicit: completing Trusted Admi
 - The pasted terminal output ends at an `AssertionError: UNEXPECTED_RUN_STATUS: INPUT_REJECTED`. The shell's final source guard and temporary-fixture cleanup verification are not present; classify both as **NOT VERIFIED**. No GitHub Actions run or artifact is associated with this manual attempt.
 - No retry, fixture alteration, code change, service activation, exchange connection, T0/T1/T2 mutation, AI execution, or real order is authorized by this result. Preserve `AI_EXECUTION_ENABLED=false` and paper-only posture.
 - Next step: diagnose the precise Input Bundle rejection using read-only inspection of the existing run output and validator contract; any rerun, fixture change, or source change requires a separate bounded approval. No automatic retry.
+
+
+## Addendum — static diagnosis of ENTRY fixture INPUT_REJECTED (2026-11-13)
+
+- Read-only source inspection on the active branch; no VPS command, Runner invocation, test, fixture recreation, or source modification was performed.
+- Inspected `core_runtime/one_shot.py` (blob `1f96bc63c448a4204e9de92a9e5aae97e9df26ff`), `core_runtime/input_bundle.py` (blob `19fb3065da1e7d40c8b4376fe3b51e11c8cc8f87`), and `core_runtime/orderbook_contract.py` (blob `1620c9f21b1f3df3c2fb65833f2afd80374bf6a5`).
+- Confirmed control flow: `run_once()` calls `validate_bundle()` before importing/calling Core `produce()`. Its input exception handler catches `BundleValidationError` and returns only `runStatus=INPUT_REJECTED` / `reasonCode=INPUT_REJECTED`, suppressing the specific validator exception. Thus the supplied output cannot identify the exact failing field.
+- Highest-priority hypothesis: the fixture script changed Order Book bid/ask levels to recenter the book but may not have recomputed `orderBook.t1Evidence.snapshotId`. The contract hashes the snapshot identity including the exact projected bid/ask levels and rejects mismatch as `ORDER_BOOK_T1_SNAPSHOT_ID_MISMATCH`. Recomputing only the outer `bundleId` does not repair a stale T1 snapshot identity.
+- This remains a **hypothesis, NOT VERIFIED** because the complete script/input and validator exception were not captured. Other possible rejection classes include JSON floats, candle envelope/sequence/OHLC/freshness constraints, T1 spread/order constraints, account-risk digest, and bundle digest.
+- Next diagnostic gate: inspect/reconstruct the exact disposable fixture and invoke only the pure `validate_bundle()` function with exception code captured, without calling `run_once()`, Core, Risk Engine, PaperLedger, exchange, or any persistent service. This requires a separate bounded approval before any command execution. No automatic rerun or fixture/code change.
+- Preserve paper-only posture, `AI_EXECUTION_ENABLED=false`, and all T0/T1/T2 boundaries.
