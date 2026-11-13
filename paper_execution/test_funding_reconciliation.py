@@ -103,6 +103,11 @@ class FundingPopulationReconciliationTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "FUNDING_EVENT_OUTSIDE_SCOPE"):
             reconcile_funding_population(self.expected, self.observed)
 
+    def test_float_amount_is_rejected_to_avoid_binary_float_money_input(self):
+        self.expected["events"][0]["amountQuote"] = 0.1
+        with self.assertRaisesRegex(ValueError, "FUNDING_EVENT_AMOUNT_INVALID"):
+            reconcile_funding_population(self.expected, self.observed)
+
     def test_unknown_fields_are_rejected(self):
         self.expected["untrusted"] = True
         with self.assertRaisesRegex(ValueError, "FUNDING_POPULATION_FIELDS_INVALID"):
