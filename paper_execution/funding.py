@@ -441,7 +441,9 @@ def record_funding_reconciliation(
             "SELECT checksum,status FROM paper_schema_migrations WHERE version=?",
             (RECONCILIATION_MIGRATION_VERSION,),
         ).fetchone()
-        if migration != (RECONCILIATION_MIGRATION_CHECKSUM, "APPLIED"):
+        if migration is None or tuple(migration) != (
+            RECONCILIATION_MIGRATION_CHECKSUM, "APPLIED"
+        ):
             raise sqlite3.DatabaseError("FUNDING_RECONCILIATION_MIGRATION_NOT_APPLIED")
 
         start = _stamp(expected_population.get("startAtMs"))
