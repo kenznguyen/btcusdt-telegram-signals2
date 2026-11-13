@@ -4409,3 +4409,15 @@ These findings make the current stop condition explicit: completing Trusted Admi
 - T1 evidence file was finalized in commit `6c688878fe8bf40fb8581a1d23693490fe9df8ef`, blob `00a16e41e6d5243236fcd1d694cc7c64fe6b01a0`, on the existing T1 branch.
 - C2 source-side watermark and exact T2 wire-schema checks are **PASS — exact-SHA CI verified**. T1 live runtime, reconnect/re-anchor soak, transport/storage atomicity to T2, T2 live read-only adapter and end-to-end Core delivery remain **NOT VERIFIED / NOT IMPLEMENTED**.
 - Next: continue the bounded read-only C2 contract audit and close any remaining producer-side contract gaps; no runtime activation or deployment without separate approval.
+
+
+## 2026-11-13 — Core-first C2.2 T1→T2 transport design review
+
+- Read-only review completed on T2 branch `feature/core-operational-proof-20261112` at starting HEAD `6032f77e681ce8e4b4147a5ab0e12da3ea00453e`, and T1 branch `feature/t1-connection-sidecar-integration-20261107` at HEAD `6c688878fe8bf40fb8581a1d23693490fe9df8ef`.
+- T1 `SnapshotPublisher::read_fresh()` exposes an immutable in-process snapshot only; no inter-process transport exists. T2 `SnapshotSlot` is also in-process only.
+- T1 Dashboard FastAPI backend reads `stats.json` and CSV capture files; its existing `/api/orderbook/{symbol}` reconstruction is not connected to the live publisher and is not an acceptable trusted V1 feed.
+- Transport options were compared in `docs/evidence/C2_2_T1_T2_TRANSPORT_OPTIONS_2026-11-13.md`. Recommendation: a dedicated read-only HTTP endpoint in the T1 collector process, bound to loopback, returning one immutable snapshot response. Atomic JSON file is a fallback; shared SQLite is rejected for V1 and must not involve T0 canonical storage.
+- This is a recommendation only. Owner transport selection is PENDING; no transport is frozen.
+- No T1/T2 source code, runtime, VPS, T0, dashboard, CI, ledger, risk, AI execution or trading changes were made. `AI_EXECUTION_ENABLED=false`.
+- Status: C1 PASS; C2 source-side watermark/schema CI PASS; C2.2 transport design comparison RECORDED / OWNER DECISION PENDING; T2 live reader and One-shot Core Runner NOT IMPLEMENTED.
+- Next: obtain owner approval/rejection of loopback HTTP. Only after approval, define a separate bounded TDD implementation scope. No runtime activation or deployment.
