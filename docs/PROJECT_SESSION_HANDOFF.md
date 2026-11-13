@@ -4458,3 +4458,19 @@ These findings make the current stop condition explicit: completing Trusted Admi
 - T2 RED evidence file: docs/evidence/C2_2_T2_HTTP_READER_RED_2026-11-13.md; commit 6ca90cb8274c7d7df45e6a674e534ccfcf5091b.
 - Status: T1 endpoint source/CI GREEN PASS; T2 HTTP reader RED PASS; T2 adapter source NOT IMPLEMENTED; cross-boundary integration NOT IMPLEMENTED; runtime delivery NOT VERIFIED.
 - Next: implement the minimal T2 one-shot HTTP adapter on this same branch, use the existing strict validate_snapshot validator, run one bounded GET without retry/fallback, then run T2 RED→GREEN focused/full CI. Do not connect Core producer, PaperLedger, Shared Risk Engine or execution.
+
+## 2026-11-13 — C2.2 T1→T2 loopback HTTP transport and reader GREEN closure
+
+- Owner authorized automatic continuation of the bounded C2.2 source implementation through GREEN. Scope remained limited to T1 loopback HTTP publisher transport, T2 one-shot reader, deterministic tests, CI and evidence.
+- T1 exact source SHA 8326ac2075ebd644e5cca0146a77ce1ae110954c; workflow #637 ID 43355193041 SUCCESS, all six jobs PASS. x86_64 and ARM64 each passed 145 Rust tests. T1 evidence commit 00449ed7fccf60a28a4c5502dfb9035ea98c68a9.
+- T1 artifacts: x86_64 ID 14006001176 SHA-256 54fcea918ed96f4e036f8d483c87bb6376f71d54fc226319a3067c12be1b0112; ARM64 ID 14005816766 SHA-256 ae9b52040fa46caf82c04069679c9b1d9213e737db318c9f52911ab77f40a8e3. Both are CI-only, expire 2026-11-20 UTC and are not approved for deployment.
+- T2 reader source blob core_runtime/orderbook_http.py: 89e5129eea4c9e7ceaa4439a546daf112d15c3e3; test blob core_runtime/test_orderbook_http.py: 6edb8dea8ea208c229439b2655f1ed03c173e055; integration test blob core_runtime/test_orderbook_http_integration.py: eaa282ae4ea6fd0d7dba611a124eea36ad31c7d8.
+- T2 exact tested source SHA 75b8dde6194195f4fd0bc7d1dc07e737f73a4d5c. Focused workflow #18 ID 43357183373 SUCCESS: 49 tests passed, 0 failed (32 contract + 16 HTTP reader + 1 loopback TCP integration).
+- Full Core-First operational proof workflow #110 ID 43357183307 also SUCCESS on the same SHA. It passed the broader live-data probe, Strategy Core, paper preflight, input bundle, producer adapter, paper lifecycle, account-risk read-only, shared risk/ledger and all 49 T1→T2 tests.
+- Focused artifact ID 14005783966 SHA-256 ad9ad2250a20a0c72c8d80afa398f68e2f98ce3c636f1e13409c19bc8077cff3. Full operational artifact ID 14005994516 SHA-256 4131b5184e57a336c9baf63ccb7c730e29c247700fa49f1cbaaaff44a1d95df1. Both expire 2026-11-20 UTC and are CI evidence only.
+- T2 RED was reproduced in workflow #5 ID 43356028851 at SHA 08257c7953dbc9a3ff5ca54ae2a71e5213d265ce (expected ModuleNotFoundError for missing adapter). T2 GREEN is now PASS at exact SHA 75b8dde6194195f4fd0bc7d1dc07e737f73a4d5c.
+- Evidence file docs/evidence/C2_2_T2_HTTP_READER_RED_2026-11-13.md finalized in commit aad4dc77b195295f0886b53e9811b8e91708755e; blob 6c2731a94b9db690c364f96d20b5c8afd9786d75.
+- Combined C2.2 disposition: T1 source/CI PASS; T2 one-shot reader/strict validator PASS; deterministic loopback TCP fixture PASS. Actual T1 process-to-T2 process delivery, reconnect/re-anchor soak and live runtime freshness remain NOT VERIFIED / NOT RUN. The integration fixture uses T1 V1 wire fields but does not launch a T1 process.
+- T2 branch remains deliberately unsynchronized with main: 3,687 ahead / 82 behind, merge base f5b74affb8777953fa66d241784965fbb0e577ba. All commits were appended to the existing branch; no merge, rebase, force-push or replacement branch.
+- No T0, VPS/runtime, systemd/autostart, deployment, Core Runner, strategy, ledger, Shared Risk Engine, AI execution or real-order changes.
+- C2.2 status: **GREEN / PASS — exact-SHA focused and full CI verified**. Next work item is the separately scoped One-shot Core Runner; do not start it under this C2.2 approval without a distinct scope/authorization.
