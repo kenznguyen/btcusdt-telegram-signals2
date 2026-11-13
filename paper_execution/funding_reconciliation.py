@@ -80,6 +80,9 @@ def _population(document, expected_type):
             "payloadHash": digest,
         })
 
+    normalized.sort(key=lambda item: (
+        item["eventId"], item["eventAtMs"], item["amountQuote"], item["payloadHash"]
+    ))
     return {
         "populationDefinitionId": definition_id,
         "snapshotId": snapshot_id,
