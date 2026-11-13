@@ -100,6 +100,10 @@ class OrderBookHttpConfigTests(unittest.TestCase):
             OrderBookHttpConfig("http://127.0.0.1:8787", "", max_response_bytes=65_536)
         with self.assertRaises(OrderBookHttpError):
             OrderBookHttpConfig("http://127.0.0.1:8787", "token", max_response_bytes=0)
+        with self.assertRaises(OrderBookHttpError):
+            OrderBookHttpConfig(
+                "http://127.0.0.1:8787", "token", timeout_total_s=0,
+            )
 
     def test_secret_is_not_exposed_by_config_repr(self):
         config = OrderBookHttpConfig(
@@ -153,6 +157,18 @@ class OneShotOrderBookHttpTests(unittest.TestCase):
         with self.assertRaisesRegex(OrderBookHttpError, "HTTP_UNAVAILABLE"):
             client.fetch(decision_at_ms=NOW)
         self.assertEqual(len(session.calls), 1)
+
+    def test_total_deadline_rejects_a_slow_response_without_retry(self):
+        response = response_for(valid_snapshot())
+        client, session = make_client(response)
+        clock_values = iter((0.0, 0.8))
+        client.monotonic = lambda: next(clock_values)
+
+        with self.assertRaisesRegex(OrderBookHttpError, "HTTP_TIMEOUT"):
+            client.fetch(decision_at_ms=NOW)
+
+        self.assertEqual(len(session.calls), 1)
+        self.assertTrue(response.closed)
 
     def test_malformed_json_and_duplicate_keys_are_rejected(self):
         for body in (
