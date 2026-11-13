@@ -796,6 +796,14 @@ def record_funding_event(
         ).fetchone()
         if migration != (MIGRATION_CHECKSUM, "APPLIED"):
             raise sqlite3.DatabaseError("FUNDING_PROVENANCE_MIGRATION_NOT_APPLIED")
+        reconciliation_migration = db.execute(
+            "SELECT checksum,status FROM paper_schema_migrations WHERE version=?",
+            (RECONCILIATION_MIGRATION_VERSION,),
+        ).fetchone()
+        if reconciliation_migration != (
+            RECONCILIATION_MIGRATION_CHECKSUM, "APPLIED"
+        ):
+            raise sqlite3.DatabaseError("FUNDING_RECONCILIATION_MIGRATION_NOT_APPLIED")
         old = db.execute(
             """SELECT strategy_id,amount_quote,event_at_ms,source_snapshot_id,
                       payload_hash,source,recorded_at_ms
@@ -813,12 +821,13 @@ def record_funding_event(
                WHERE account_id=1 AND start_at_ms <= ? AND end_at_ms > ?""",
             (event_at, event_at),
         ).fetchall()
-        if (len(coverage_rows) != 1 or coverage_rows[0][0] == "UNKNOWN"
-                or coverage_rows[0][0] not in {"VERIFIED", "DISABLED"}
-                or (coverage_rows[0][0] == "DISABLED"
-                    and coverage_rows[0][1] != "PAPER_TEST_CONFIGURATION")
-                or (coverage_rows[0][0] == "VERIFIED" and not coverage_rows[0][2])):
+        if (len(coverage_rows) > 1):
             raise ValueError("FUNDING_PROVENANCE_INCOMPLETE")
+        if coverage_rows and not (
+            coverage_rows[0][0] == "DISABLED"
+            and coverage_rows[0][1] == "PAPER_TEST_CONFIGURATION"
+        ):
+            raise ValueError("FUNDING_RECONCILIATION_REQUIRED")
         if db.execute("SELECT 1 FROM paper_funding_events WHERE payload_hash=?", (digest,)).fetchone():
             raise ValueError("FUNDING_EVENT_PAYLOAD_DUPLICATE")
         row = db.execute(
@@ -843,6 +852,12 @@ def record_funding_event(
             (format(current + amount, "f"), recorded, strategy_id),
         )
         _refresh_equity(db, recorded)
+        db.execute(
+            """UPDATE paper_account_risk_state
+               SET risk_ready=0,unavailable_reason='FUNDING_RECONCILIATION_REQUIRED',
+                   updated_at_ms=?,version=version+1 WHERE account_id=1""",
+            (recorded,),
+        )
         audit = {"fundingEventId": event_id, "strategyId": strategy_id,
                  "amountQuote": format(amount, "f"), "eventAtMs": event_at,
                  "source": source, "sourceSnapshotId": snapshot,
