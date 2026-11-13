@@ -817,6 +817,8 @@ def record_funding_event(
     if event_at > recorded:
         raise ValueError("FUNDING_EVENT_TIMESTAMP_INVALID")
     source = _required_text(source, "FUNDING_SOURCE_REQUIRED")
+    if source == "LEGACY_UNVERIFIED":
+        raise ValueError("FUNDING_EVENT_SOURCE_UNVERIFIED")
     snapshot = _required_text(source_snapshot_id, "FUNDING_SOURCE_SNAPSHOT_REQUIRED")
     digest = _hash(payload_hash)
     with closing(sqlite3.connect(path, timeout=10)) as db, db, localcontext() as ctx:
