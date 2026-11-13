@@ -309,8 +309,13 @@ class ContinuousCoreRunner:
     def _verify_persisted_cycle(self, cycle):
         self._assert_config_digest()
         try:
-            path = Path(cycle["bundlePath"]).resolve(strict=True)
-            if path.parent != self.bundle_store_dir or path.is_symlink() or not path.is_file():
+            raw_path = Path(cycle["bundlePath"]).expanduser()
+            if raw_path.is_symlink():
+                raise ContinuousInputError("CONTINUOUS_PERSISTED_BUNDLE_SYMLINK_FORBIDDEN")
+            if raw_path.parent.resolve(strict=True) != self.bundle_store_dir:
+                raise ContinuousInputError("CONTINUOUS_PERSISTED_BUNDLE_PATH_INVALID")
+            path = raw_path.resolve(strict=True)
+            if path.parent != self.bundle_store_dir or not path.is_file():
                 raise ContinuousInputError("CONTINUOUS_PERSISTED_BUNDLE_PATH_INVALID")
             raw = path.read_bytes()
         except (OSError, KeyError, ValueError):
