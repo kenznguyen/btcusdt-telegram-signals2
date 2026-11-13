@@ -115,6 +115,11 @@ jobs:
           set -euo pipefail
           python -m unittest core_runtime.test_continuous_journal -v 2>&1 | tee continuous-core-journal-tests.log
 
+      - name: Run Continuous Core orchestration RED-first tests
+        run: |
+          set -euo pipefail
+          python -m unittest core_runtime.test_continuous_runner -v 2>&1 | tee continuous-core-runner-tests.log
+
       - name: Run Core decision input bundle v1 validator contract tests
         run: |
           set -euo pipefail
