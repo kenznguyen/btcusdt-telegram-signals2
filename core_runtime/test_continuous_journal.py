@@ -4,7 +4,9 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 import tempfile
 import sqlite3
+import os
 import unittest
+from unittest.mock import patch
 
 from core_runtime.continuous_journal import (
     ContinuousJournal,
@@ -46,6 +48,15 @@ class ContinuousJournalClaimTest(unittest.TestCase):
         self.assertFalse(self.claim(journal))
         self.assertEqual(len(journal.list_cycles()), 1)
 
+
+
+    def test_journal_refuses_t0_canonical_database_path(self):
+        with tempfile.TemporaryDirectory() as directory:
+            t0_path = Path(directory) / "market-data.sqlite3"
+            with patch.dict(os.environ, {"MARKET_DATA_DB": str(t0_path)}, clear=False):
+                with self.assertRaises(JournalError):
+                    ContinuousJournal(t0_path)
+            self.assertFalse(t0_path.exists())
 
     def test_schema_version_mismatch_fails_closed_without_reset(self):
         with sqlite3.connect(self.db) as connection:
