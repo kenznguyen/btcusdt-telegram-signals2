@@ -104,7 +104,7 @@ jobs:
           set -euo pipefail
           python -m unittest core_runtime.test_input_bundle_contract -v 2>&1 | tee core-input-bundle-tests.log
           echo "CORE_INPUT_BUNDLE_V1_VALIDATOR=PASS" | tee core-input-bundle-status.txt
-          echo "CORE_INPUT_BUNDLE_V1_TESTS=15_PASS" | tee -a core-input-bundle-status.txt
+          echo "CORE_INPUT_BUNDLE_V1_TESTS=19_TOTAL_EXPECTED" | tee -a core-input-bundle-status.txt
           echo "CORE_INPUT_BUNDLE_V1_SIDE_EFFECTS=PURE_VALIDATION_ONLY" | tee -a core-input-bundle-status.txt
 
       - name: Run Core producer adapter contract tests
@@ -172,7 +172,7 @@ jobs:
             echo "CORE_RUNTIME_ADAPTER=PASS"
             echo "CORE_RUNTIME_ADAPTER_TESTS=6_PASS"
             echo "CORE_INPUT_BUNDLE_V1_VALIDATOR=PASS"
-            echo "CORE_INPUT_BUNDLE_V1_TESTS=15_PASS"
+            echo "CORE_INPUT_BUNDLE_V1_TESTS=19_TOTAL_EXPECTED"
             echo "CORE_ENTRY_PAPER_FLOW=PASS"
             echo "CORE_DCA_END_TO_END=PASS"
             echo "CORE_DCA_MARGIN_BUDGET=PASS_ENTRY_AND_DCA_EACH_WITHIN_1_PERCENT"
