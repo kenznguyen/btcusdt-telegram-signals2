@@ -141,6 +141,16 @@ class ContinuousCoreRunner:
             raise
         return target, digest
 
+    def _assert_config_digest(self):
+        try:
+            raw = self.config_path.read_bytes()
+        except OSError:
+            raise ContinuousInputError("CONTINUOUS_CONFIG_UNAVAILABLE") from None
+        actual = "sha256:" + hashlib.sha256(raw).hexdigest()
+        if actual != self.config_sha256:
+            raise ContinuousInputError("CONTINUOUS_CONFIG_DIGEST_MISMATCH")
+        return actual
+
     def _validated_bundle(self, raw):
         bundle = self._strict_bundle(raw)
         try:
@@ -156,6 +166,7 @@ class ContinuousCoreRunner:
     def process_bundle(self, bundle_path, *, now_ms):
         """Validate, persist, claim and execute one immutable M15 cycle at most once."""
         now_ms = self._nonnegative_int(now_ms, "NOW_MS")
+        self._assert_config_digest()
         self.preflight_fn(self.config_path, now_ms=now_ms)
         try:
             raw = Path(bundle_path).expanduser().read_bytes()
@@ -291,6 +302,7 @@ class ContinuousCoreRunner:
             before_id = next_before
 
     def _verify_persisted_cycle(self, cycle):
+        self._assert_config_digest()
         try:
             path = Path(cycle["bundlePath"]).resolve(strict=True)
             if path.parent != self.bundle_store_dir or path.is_symlink() or not path.is_file():
@@ -313,7 +325,15 @@ class ContinuousCoreRunner:
         """Reconcile known ledger commits; resume only cycles proven pre-submit."""
         now_ms = self._nonnegative_int(now_ms, "NOW_MS")
         recovered = []
-        for cycle in self.journal.list_cycles():
+        cycles = self.journal.list_cycles()
+        try:
+            self._assert_config_digest()
+        except ContinuousInputError:
+            return [{
+                "cycleKey": cycle["cycleKey"], "status": "BLOCKED",
+                "reason": "CONFIG_PROVENANCE_MISMATCH",
+            } for cycle in cycles]
+        for cycle in cycles:
             cycle_key = cycle["cycleKey"]
             if cycle["status"] in self._TERMINAL:
                 if cycle["status"] in ("PAPER_ACCEPTED", "RISK_REJECTED"):
@@ -474,6 +494,7 @@ class ContinuousCoreRunner:
             return "BLOCKED"
         try:
             now_ms = wall_clock_ms()
+            self._assert_config_digest()
             self.preflight_fn(self.config_path, now_ms=now_ms)
             recovery = self.recover_incomplete(now_ms=now_ms)
             if any(item.get("status") == "BLOCKED" for item in recovery):
