@@ -1,0 +1,210 @@
+"""Durable, isolated SQLite journal for Continuous Core cycle claims.
+
+This journal coordinates runner ownership of immutable candle cycles. It is
+intentionally separate from T0 market-data storage and PaperLedger; PaperLedger
+remains the authority for paper-order side effects.
+"""
+
+from contextlib import closing
+from pathlib import Path
+import sqlite3
+
+
+class CycleConflict(ValueError):
+    """Raised when one canonical cycle key is presented with conflicting input."""
+
+
+class JournalError(RuntimeError):
+    """Raised when the durable journal cannot be trusted or updated safely."""
+
+
+_SCHEMA_VERSION = 1
+_BUSY_TIMEOUT_MS = 10_000
+
+
+class ContinuousJournal:
+    """SQLite-backed durable journal with atomic, idempotent cycle claims."""
+
+    def __init__(self, path):
+        self.path = Path(path).expanduser().resolve()
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self._initialize()
+
+    def _connect(self):
+        connection = sqlite3.connect(
+            self.path,
+            timeout=_BUSY_TIMEOUT_MS / 1000,
+            isolation_level=None,
+        )
+        connection.row_factory = sqlite3.Row
+        connection.execute(f"PRAGMA busy_timeout={_BUSY_TIMEOUT_MS}")
+        connection.execute("PRAGMA foreign_keys=ON")
+        return connection
+
+    def _initialize(self):
+        try:
+            with closing(self._connect()) as connection:
+                connection.execute("PRAGMA journal_mode=WAL")
+                connection.execute("BEGIN IMMEDIATE")
+                try:
+                    connection.execute(
+                        """CREATE TABLE IF NOT EXISTS journal_meta (
+                               singleton INTEGER PRIMARY KEY CHECK(singleton=1),
+                               schema_version INTEGER NOT NULL
+                           )"""
+                    )
+                    row = connection.execute(
+                        "SELECT schema_version FROM journal_meta WHERE singleton=1"
+                    ).fetchone()
+                    if row is None:
+                        connection.execute(
+                            "INSERT INTO journal_meta(singleton,schema_version) VALUES (1,?)",
+                            (_SCHEMA_VERSION,),
+                        )
+                    elif row["schema_version"] != _SCHEMA_VERSION:
+                        raise JournalError("JOURNAL_SCHEMA_VERSION_MISMATCH")
+
+                    connection.execute(
+                        """CREATE TABLE IF NOT EXISTS continuous_cycles (
+                               cycle_key TEXT PRIMARY KEY,
+                               bundle_id TEXT NOT NULL,
+                               bundle_sha256 TEXT NOT NULL,
+                               bundle_path TEXT NOT NULL,
+                               source_sha TEXT NOT NULL,
+                               config_sha256 TEXT NOT NULL,
+                               status TEXT NOT NULL,
+                               claimed_at_ms INTEGER NOT NULL,
+                               updated_at_ms INTEGER NOT NULL,
+                               state_version INTEGER NOT NULL DEFAULT 1,
+                               run_id TEXT,
+                               intent_id TEXT,
+                               order_id TEXT,
+                               terminal_result TEXT
+                           )"""
+                    )
+                    connection.execute(
+                        """CREATE INDEX IF NOT EXISTS continuous_cycles_status_idx
+                           ON continuous_cycles(status, claimed_at_ms)"""
+                    )
+                    connection.commit()
+                except Exception:
+                    connection.rollback()
+                    raise
+        except JournalError:
+            raise
+        except sqlite3.Error as exc:
+            raise JournalError("JOURNAL_INITIALIZATION_FAILED") from exc
+
+    @staticmethod
+    def _required_text(value, field):
+        if not isinstance(value, str) or not value.strip() or len(value) > 2048:
+            raise ValueError(f"JOURNAL_{field.upper()}_INVALID")
+        if not value.isprintable():
+            raise ValueError(f"JOURNAL_{field.upper()}_INVALID")
+        return value
+
+    @staticmethod
+    def _timestamp(value):
+        if type(value) is not int or value < 0:
+            raise ValueError("JOURNAL_TIMESTAMP_INVALID")
+        return value
+
+    def claim_cycle(
+        self,
+        cycle_key,
+        bundle_id,
+        bundle_sha256,
+        bundle_path,
+        source_sha,
+        config_sha256,
+        claimed_at_ms,
+    ):
+        """Claim a cycle once; exact duplicate delivery is a no-op."""
+        values = {
+            "cycle_key": self._required_text(cycle_key, "cycle_key"),
+            "bundle_id": self._required_text(bundle_id, "bundle_id"),
+            "bundle_sha256": self._required_text(bundle_sha256, "bundle_sha256"),
+            "bundle_path": self._required_text(bundle_path, "bundle_path"),
+            "source_sha": self._required_text(source_sha, "source_sha"),
+            "config_sha256": self._required_text(config_sha256, "config_sha256"),
+            "claimed_at_ms": self._timestamp(claimed_at_ms),
+        }
+        try:
+            with closing(self._connect()) as connection:
+                connection.execute("BEGIN IMMEDIATE")
+                row = connection.execute(
+                    """SELECT bundle_id,bundle_sha256,bundle_path,source_sha,config_sha256
+                       FROM continuous_cycles WHERE cycle_key=?""",
+                    (values["cycle_key"],),
+                ).fetchone()
+                if row is not None:
+                    existing = tuple(row[key] for key in (
+                        "bundle_id", "bundle_sha256", "bundle_path", "source_sha", "config_sha256"
+                    ))
+                    incoming = tuple(values[key] for key in (
+                        "bundle_id", "bundle_sha256", "bundle_path", "source_sha", "config_sha256"
+                    ))
+                    if existing != incoming:
+                        raise CycleConflict("CYCLE_INPUT_CONFLICT")
+                    connection.commit()
+                    return False
+
+                connection.execute(
+                    """INSERT INTO continuous_cycles (
+                           cycle_key,bundle_id,bundle_sha256,bundle_path,source_sha,
+                           config_sha256,status,claimed_at_ms,updated_at_ms,state_version
+                       ) VALUES (?,?,?,?,?,?,'CLAIMED',?,?,1)""",
+                    (
+                        values["cycle_key"], values["bundle_id"], values["bundle_sha256"],
+                        values["bundle_path"], values["source_sha"], values["config_sha256"],
+                        values["claimed_at_ms"], values["claimed_at_ms"],
+                    ),
+                )
+                connection.commit()
+                return True
+        except (CycleConflict, ValueError):
+            raise
+        except sqlite3.Error as exc:
+            raise JournalError("JOURNAL_CLAIM_FAILED") from exc
+
+    @staticmethod
+    def _cycle_document(row):
+        if row is None:
+            return None
+        return {
+            "cycleKey": row["cycle_key"],
+            "bundleId": row["bundle_id"],
+            "bundleSha256": row["bundle_sha256"],
+            "bundlePath": row["bundle_path"],
+            "sourceSha": row["source_sha"],
+            "configSha256": row["config_sha256"],
+            "status": row["status"],
+            "claimedAtMs": row["claimed_at_ms"],
+            "updatedAtMs": row["updated_at_ms"],
+            "stateVersion": row["state_version"],
+            "runId": row["run_id"],
+            "intentId": row["intent_id"],
+            "orderId": row["order_id"],
+            "terminalResult": row["terminal_result"],
+        }
+
+    def get_cycle(self, cycle_key):
+        cycle_key = self._required_text(cycle_key, "cycle_key")
+        try:
+            with closing(self._connect()) as connection:
+                row = connection.execute(
+                    "SELECT * FROM continuous_cycles WHERE cycle_key=?", (cycle_key,)
+                ).fetchone()
+                return self._cycle_document(row)
+        except sqlite3.Error as exc:
+            raise JournalError("JOURNAL_READ_FAILED") from exc
+
+    def list_cycles(self):
+        try:
+            with closing(self._connect()) as connection:
+                rows = connection.execute(
+                    "SELECT * FROM continuous_cycles ORDER BY claimed_at_ms,cycle_key"
+                ).fetchall()
+                return [self._cycle_document(row) for row in rows]
+        except sqlite3.Error as exc:
+            raise JournalError("JOURNAL_READ_FAILED") from exc
