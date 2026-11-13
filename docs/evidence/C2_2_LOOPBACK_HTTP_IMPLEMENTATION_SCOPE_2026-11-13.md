@@ -1,18 +1,20 @@
 # C2.2 Implementation Scope — T1 Loopback HTTP Snapshot + T2 One-shot Reader
 
 Date: 2026-11-13
-Decision: **OWNER APPROVED** dedicated read-only loopback HTTP transport.
-Status: **SCOPE FROZEN FOR IMPLEMENTATION PLANNING; CODE NOT YET CHANGED**
+Decision: **OWNER APPROVED** dedicated read-only loopback HTTP transport design and requested preparation of the bounded TDD scope.
+Status: **SCOPE PLAN RECORDED; SOURCE IMPLEMENTATION REQUIRES SEPARATE EXPLICIT APPROVAL**
 Related design: `docs/evidence/C2_2_T1_T2_TRANSPORT_OPTIONS_2026-11-13.md`
 
-## 1. Authorization boundary
+## 1. Approval and authorization boundary
 
-Approved:
-- A dedicated read-only HTTP resource in the T1 collector process, bound to loopback only.
-- T1 serves the current immutable `OrderbookSnapshotV1` from its live `SnapshotPublisher`.
-- T2 obtains one complete response per decision cycle and validates the existing frozen V1 contract.
+Approved by the owner:
+- Selection of a dedicated read-only HTTP resource in the T1 collector process, bound to loopback only.
+- Preparation and recording of this bounded TDD implementation scope.
 
-Not approved:
+Not yet authorized (requires a separate explicit approval before source changes):
+- Implementing or changing T1/T2 source code, tests or CI workflows.
+
+Also not approved:
 - Public network exposure, browser/React access, Nginx public routing, or reuse of the Dashboard CSV reconstruction endpoint.
 - T0 changes, shared T0 SQLite, shared database, VPS/runtime activation, systemd/autostart, deployment, or production operation.
 - Core strategy changes, ledger writes, Shared Risk Engine admission changes, AI execution, or real orders.
@@ -88,12 +90,13 @@ Requirements:
 
 ## 6. Sequencing and gates
 
-1. Revalidate both branch heads and inspect existing T1 server/bootstrap conventions.
-2. T1 RED → T1 GREEN → focused/full CI; record exact tested source SHA and workflow/artifacts.
-3. T2 RED → T2 GREEN → focused/full CI; record exact tested source SHA and workflow/artifacts.
-4. Add a deterministic cross-repository integration fixture/test if repository structure permits without creating a runtime dependency.
-5. Update each repository's evidence and T2 `docs/PROJECT_SESSION_HANDOFF.md`; commit on existing branches only when fast-forward-safe.
-6. Report PASS/BLOCKED/NOT VERIFIED and preserve exact SHA, workflow run IDs, artifact IDs/hashes, test counts and expiry.
+1. Obtain separate explicit owner approval to begin source implementation.
+2. After approval, revalidate both branch heads and inspect existing T1 server/bootstrap conventions.
+3. T1 RED → T1 GREEN → focused/full CI; record exact tested source SHA and workflow/artifacts.
+4. T2 RED → T2 GREEN → focused/full CI; record exact tested source SHA and workflow/artifacts.
+5. Add a deterministic cross-repository integration fixture/test if repository structure permits without creating a runtime dependency.
+6. Update each repository's evidence and T2 `docs/PROJECT_SESSION_HANDOFF.md`; commit on existing branches only when fast-forward-safe.
+7. Report PASS/BLOCKED/NOT VERIFIED and preserve exact SHA, workflow run IDs, artifact IDs/hashes, test counts and expiry.
 
 No end-to-end live T1→T2 soak, runtime activation, VPS changes, or Core Runner implementation is included in this authorization.
 
@@ -105,4 +108,4 @@ C2.2 implementation can be marked PASS only when:
 - cross-boundary integration tests prove complete immutable snapshot delivery and fail-closed behavior;
 - evidence and handoff records contain source SHAs, workflow runs, artifact metadata and remaining limits.
 
-Until then: transport implementation status is NOT VERIFIED; runtime delivery is NOT VERIFIED.
+Until separate implementation approval: source implementation is NOT STARTED; transport implementation status is NOT VERIFIED; runtime delivery is NOT VERIFIED.
