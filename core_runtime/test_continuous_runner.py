@@ -321,6 +321,18 @@ class ContinuousCoreRunnerTest(unittest.TestCase):
         self.assertEqual(result["status"], "PAPER_ACCEPTED")
         self.assertEqual(self.journal.get_cycle(result["cycleKey"])["status"],
                          "PAPER_ACCEPTED")
+        cycle = self.journal.get_cycle(result["cycleKey"])
+        runner.audit_reader = lambda *_args, **_kwargs: {
+            "events": [{
+                "id": 1,
+                "document": {
+                    "intentId": cycle["intentId"],
+                    "orderId": "paper:stopped",
+                    "status": "FILLED",
+                },
+            }],
+            "nextBeforeId": None,
+        }
         provider_calls = []
         stopped = runner.run_forever(
             bundle_provider=lambda candle_open: provider_calls.append(candle_open),
