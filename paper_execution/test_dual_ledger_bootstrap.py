@@ -45,6 +45,7 @@ class DualLedgerBootstrapContractTest(unittest.TestCase):
         self.addCleanup(self.environment.stop)
         self.funding_evidence = self.root / "funding-evidence.json"
         self.cutover_evidence = self.root / "equity-cutover-evidence.json"
+        self.owner_attestation = self.root / "owner-attestation.json"
         self.manifest = {
             "schemaVersion": 1,
             "mode": "PAPER",
@@ -72,6 +73,8 @@ class DualLedgerBootstrapContractTest(unittest.TestCase):
             "cutoverSnapshotId": "owner-equity-001",
             "cutoverEvidencePath": str(self.cutover_evidence),
             "cutoverPayloadHash": "",
+            "ownerAttestationPath": str(self.owner_attestation),
+            "ownerAttestationPayloadHash": "",
             "configVersion": "paper-risk-v1",
             "recordedAtMs": self.now,
         }
@@ -108,6 +111,29 @@ class DualLedgerBootstrapContractTest(unittest.TestCase):
         )
         self.manifest["cutoverPayloadHash"] = write_json(
             self.cutover_evidence, cutover_document
+        )
+        owner_attestation = {
+            "schemaVersion": 1,
+            "attestationType": "DUAL_LEDGER_BOOTSTRAP_EVIDENCE_REVIEW",
+            "attestorRole": "OWNER_DECLARATION",
+            "claimScope": "FUNDING_AND_EQUITY_SNAPSHOT_REVIEW",
+            "sourceSha": self.source_sha,
+            "fundingSnapshotId": "owner-funding-001",
+            "fundingPayloadHash": self.manifest["fundingPayloadHash"],
+            "cutoverSnapshotId": "owner-equity-001",
+            "cutoverPayloadHash": self.manifest["cutoverPayloadHash"],
+            "reviewedAtMs": self.now + 30_000,
+            "reviewStatement": "I_REVIEWED_THE_IDENTIFIED_FUNDING_AND_EQUITY_SNAPSHOTS",
+            "nonClaims": [
+                "FACTUAL_TRUTH",
+                "FRESHNESS",
+                "POPULATION_COMPLETENESS",
+                "PRIVILEGED_ACTION_AUTHORIZATION",
+                "SOURCE_AUTHENTICITY",
+            ],
+        }
+        self.manifest["ownerAttestationPayloadHash"] = write_json(
+            self.owner_attestation, owner_attestation
         )
         self.db_path = self.root / "paper" / "account.sqlite3"
         self.db_path.parent.mkdir()
