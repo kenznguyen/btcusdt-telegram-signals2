@@ -338,3 +338,14 @@ Next gate: owner review of this design and a separate explicit approval for impl
 - A new test now requires the runner journal to reject the exact T0 canonical database path. Commit 8681ca55e97ffcbb6f5603a9eb8f379c193c7976 adds the RED test; explicit path guard implementation and GREEN evidence are pending.
 - Full C1-C8 GREEN remains pending.
 
+
+## Addendum — T0 database isolation and full Continuous Runner regression GREEN (2026-11-13)
+
+- RED run 43417468238 at source 8681ca55e97ffcbb6f5603a9eb8f379c193c7976 failed because ContinuousJournal accepted the exact MARKET_DATA_DB path. The failure was isolated to test_journal_refuses_t0_canonical_database_path; other journal tests in that run passed.
+- Implemented a pre-initialization path guard in commit eb84d4a05cd0d7f9c3c72af272a42ce0d90d10de. ContinuousJournal checks resolved path identity against MARKET_DATA_DB and T0_FEEDER_LEASE_DB before creating parent directories or opening SQLite. It also checks os.path.samefile when both paths exist, preventing hard-link aliases; resolve(strict=False) catches symlink aliases.
+- Added tests for canonical MARKET_DATA_DB, T0_FEEDER_LEASE_DB, symlink alias and hard-link alias in commit 2ccffcc8ed50ea9e1091f03db5cbcc7f305ed061. These use disposable temporary paths and assert no T0 file is created or modified.
+- Full GREEN workflow: run 43417964017, job 131861213048, exact source SHA 2ccffcc8ed50ea9e1091f03db5cbcc7f305ed061, SUCCESS. Cadence 5/5, durable journal 15/15, orchestration 23/23 (43/43 Continuous Runner tests); every workflow step SUCCESS including Core, One-shot, Bundle, Risk Engine, PaperLedger and T1/T2 integration regression.
+- Artifact ID 14033146677, name core-first-code-operational-proof-43417964017, SHA-256 1e09ea90801122f85b6afeccc9cdd5c3cd94207d9c6834b1729adca512e31afd, expires 2026-11-20T11:33:06Z.
+- Separate T1/T2 workflow run 43417964070 also SUCCESS at the same source; artifact 14032612220, SHA-256 660fdf9bbf92a36b1ed3af40491f0c5d89040deb2bbd8bc2ba4b71b9136270d8.
+- Component disposition at this tested SHA: C1 cadence PASS; C2 exclusive ownership PASS; C3 durable claims/state/checkpoint PASS; C4 bundle validation, immutable storage, digest/provenance and latest-candle gate PASS; C5 one-shot intent persistence and paper-only execution PASS; C6 crash/restart and audit reconciliation PASS; C7 risk/Kill Switch and Core/PaperLedger isolation PASS; C8 graceful stop/provider failure fail-closed PASS. Full CI is GREEN.
+- Safety boundaries unchanged: AI_EXECUTION_ENABLED=false; no real orders, exchange credentials/connections, T0 data mutation, T1/T2 source/runtime mutation, VPS activation, service manager or autostart. Continuous Runner is implemented and CI-verified only; operational activation remains a separate approval gate.
