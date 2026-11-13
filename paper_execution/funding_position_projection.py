@@ -3,8 +3,11 @@
 import hashlib
 import json
 import re
+import sqlite3
 from bisect import bisect_right
+from contextlib import closing
 from decimal import localcontext
+from pathlib import Path
 
 from paper_execution.account_history import (
     STRATEGIES, _replay_decimal, _replay_text, _stamp,
@@ -463,3 +466,207 @@ def build_paper_position_snapshots(
                 })
     output.sort(key=lambda row: (row["observedAtMs"], row["strategyId"]))
     return output
+
+
+def load_paper_position_snapshots_from_db(db_path, *, settlement_times, now_ms):
+    """Load cutover, execution journal and coverage from SQLite in read-only mode.
+
+    The loader requires the append-only schema migrations and triggers used by
+    the PaperLedger. It never migrates, writes, repairs or creates a database.
+    """
+    now = _stamp(now_ms, "FUNDING_POSITION_NOW_INVALID")
+    if (not isinstance(settlement_times, list) or not settlement_times
+            or len(settlement_times) > _MAX_ROWS
+            or any(type(item) is not int or item < 0 for item in settlement_times)
+            or any(left >= right for left, right in zip(settlement_times, settlement_times[1:]))
+            or settlement_times[-1] >= now):
+        raise ValueError("FUNDING_POSITION_SETTLEMENTS_INVALID")
+    first_settlement = settlement_times[0]
+    last_settlement = settlement_times[-1]
+    required_end = last_settlement + 1
+
+    try:
+        path = Path(db_path).expanduser().resolve(strict=True)
+    except (OSError, TypeError, ValueError):
+        raise ValueError("FUNDING_POSITION_DATABASE_UNAVAILABLE") from None
+    if not path.is_file():
+        raise ValueError("FUNDING_POSITION_DATABASE_UNAVAILABLE")
+
+    from paper_execution import account_history, funding
+
+    expected_migrations = {
+        funding.MIGRATION_VERSION: funding.MIGRATION_CHECKSUM,
+        funding.CUTOVER_MIGRATION_VERSION: funding.CUTOVER_MIGRATION_CHECKSUM,
+        funding.RECONCILIATION_MIGRATION_VERSION: funding.RECONCILIATION_MIGRATION_CHECKSUM,
+        account_history.MIGRATION_VERSION: account_history.MIGRATION_CHECKSUM,
+        account_history.CUTOVER_SNAPSHOT_MIGRATION_VERSION:
+            account_history.CUTOVER_SNAPSHOT_MIGRATION_CHECKSUM,
+        account_history.FEE_PROVENANCE_MIGRATION_VERSION:
+            account_history.FEE_PROVENANCE_MIGRATION_CHECKSUM,
+    }
+    required_columns = {
+        "paper_account_equity_cutovers": {
+            "cutover_id", "account_id", "mark_observed_at_ms", "recorded_at_ms",
+        },
+        "paper_account_cutover_ledger_snapshots": {
+            "cutover_id", "strategy_id", "snapshot_at_ms", "position_base",
+            "average_entry_price", "realized_pnl_quote", "fees_quote",
+            "funding_quote", "source_snapshot_id", "payload_hash", "canonical_payload",
+        },
+        "paper_account_event_journal": {
+            "event_id", "account_id", "strategy_id", "event_type", "event_at_ms",
+            "recorded_at_ms", "order_id", "intent_id", "source_event_id",
+            "quantity_delta_base", "fill_price", "fee_quote", "fee_currency",
+            "source", "source_snapshot_id", "payload_hash", "canonical_payload",
+        },
+        "paper_account_history_coverage": {
+            "coverage_id", "account_id", "stream_type", "strategy_id",
+            "start_at_ms", "end_at_ms", "status", "source",
+            "source_snapshot_id", "payload_hash", "recorded_at_ms",
+        },
+    }
+    required_triggers = {
+        "paper_account_equity_cutovers_immutable_update",
+        "paper_account_equity_cutovers_immutable_delete",
+        "paper_account_cutover_ledger_snapshots_immutable_update",
+        "paper_account_cutover_ledger_snapshots_immutable_delete",
+        "paper_account_event_journal_immutable_update",
+        "paper_account_event_journal_immutable_delete",
+        "paper_account_history_coverage_immutable_update",
+        "paper_account_history_coverage_immutable_delete",
+        "paper_account_event_journal_fee_currency_required",
+    }
+
+    try:
+        uri = path.as_uri() + "?mode=ro"
+        with closing(sqlite3.connect(uri, uri=True, timeout=5)) as db:
+            db.row_factory = sqlite3.Row
+            db.execute("PRAGMA query_only=ON")
+            db.execute("BEGIN")
+
+            migrations = {
+                row["version"]: (row["checksum"], row["status"])
+                for row in db.execute(
+                    "SELECT version,checksum,status FROM paper_schema_migrations"
+                ).fetchall()
+            }
+            for version, checksum in expected_migrations.items():
+                if migrations.get(version) != (checksum, "APPLIED"):
+                    raise ValueError("FUNDING_POSITION_SCHEMA_NOT_SUPPORTED")
+
+            tables = {
+                row["name"] for row in db.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table'"
+                ).fetchall()
+            }
+            triggers = {
+                row["name"] for row in db.execute(
+                    "SELECT name FROM sqlite_master WHERE type='trigger'"
+                ).fetchall()
+            }
+            if not set(required_columns).issubset(tables) or not required_triggers.issubset(triggers):
+                raise ValueError("FUNDING_POSITION_SCHEMA_NOT_SUPPORTED")
+            for table, columns in required_columns.items():
+                actual = {
+                    row["name"] for row in db.execute(f"PRAGMA table_info({table})").fetchall()
+                }
+                if not columns.issubset(actual):
+                    raise ValueError("FUNDING_POSITION_SCHEMA_NOT_SUPPORTED")
+
+            cutover = db.execute(
+                """SELECT cutover_id,mark_observed_at_ms,recorded_at_ms
+                   FROM paper_account_equity_cutovers
+                   WHERE account_id=1 AND mark_observed_at_ms < ?
+                   ORDER BY mark_observed_at_ms DESC,cutover_id DESC LIMIT 1""",
+                (first_settlement,),
+            ).fetchone()
+            if cutover is None:
+                raise ValueError("FUNDING_POSITION_CUTOVER_NOT_FOUND")
+            if cutover["recorded_at_ms"] > now:
+                raise ValueError("FUNDING_POSITION_CUTOVER_NOT_READY")
+            cutover_id = cutover["cutover_id"]
+            snapshot_at = cutover["mark_observed_at_ms"]
+
+            snapshot_rows = db.execute(
+                """SELECT cutover_id,strategy_id,snapshot_at_ms,position_base,
+                          average_entry_price,realized_pnl_quote,fees_quote,funding_quote,
+                          source_snapshot_id,payload_hash,canonical_payload
+                   FROM paper_account_cutover_ledger_snapshots
+                   WHERE cutover_id=? ORDER BY strategy_id""",
+                (cutover_id,),
+            ).fetchall()
+            cutover_snapshots = [{
+                "cutoverId": row["cutover_id"],
+                "strategyId": row["strategy_id"],
+                "snapshotAtMs": row["snapshot_at_ms"],
+                "positionBase": row["position_base"],
+                "averageEntryPrice": row["average_entry_price"],
+                "realizedPnlQuote": row["realized_pnl_quote"],
+                "feesQuote": row["fees_quote"],
+                "fundingQuote": row["funding_quote"],
+                "sourceSnapshotId": row["source_snapshot_id"],
+                "payloadHash": row["payload_hash"],
+                "canonicalPayload": row["canonical_payload"],
+            } for row in snapshot_rows]
+
+            event_rows = db.execute(
+                """SELECT event_id,strategy_id,event_type,event_at_ms,recorded_at_ms,
+                          quantity_delta_base,fill_price,fee_quote,fee_currency,source,
+                          source_snapshot_id,payload_hash,order_id,intent_id,
+                          source_event_id,canonical_payload
+                   FROM paper_account_event_journal
+                   WHERE account_id=1 AND event_at_ms <= ?
+                   ORDER BY event_at_ms,event_id""",
+                (last_settlement,),
+            ).fetchall()
+            execution_events = [{
+                "eventId": row["event_id"],
+                "strategyId": row["strategy_id"],
+                "eventType": row["event_type"],
+                "eventAtMs": row["event_at_ms"],
+                "recordedAtMs": row["recorded_at_ms"],
+                "quantityDeltaBase": row["quantity_delta_base"],
+                "fillPrice": row["fill_price"],
+                "feeQuote": row["fee_quote"],
+                "feeCurrency": row["fee_currency"],
+                "source": row["source"],
+                "sourceSnapshotId": row["source_snapshot_id"],
+                "payloadHash": row["payload_hash"],
+                "orderId": row["order_id"],
+                "intentId": row["intent_id"],
+                "sourceEventId": row["source_event_id"],
+                "canonicalPayload": row["canonical_payload"],
+            } for row in event_rows]
+
+            coverage_rows = db.execute(
+                """SELECT coverage_id,strategy_id,start_at_ms,end_at_ms,status,
+                          source,source_snapshot_id,payload_hash,recorded_at_ms
+                   FROM paper_account_history_coverage
+                   WHERE account_id=1 AND stream_type='EXECUTION'
+                     AND end_at_ms > ? AND start_at_ms < ?
+                   ORDER BY start_at_ms,end_at_ms,coverage_id""",
+                (snapshot_at, required_end),
+            ).fetchall()
+            execution_coverage = [{
+                "coverageId": row["coverage_id"],
+                "strategyId": row["strategy_id"],
+                "startAtMs": row["start_at_ms"],
+                "endAtMs": row["end_at_ms"],
+                "status": row["status"],
+                "source": row["source"],
+                "sourceSnapshotId": row["source_snapshot_id"],
+                "payloadHash": row["payload_hash"],
+                "recordedAtMs": row["recorded_at_ms"],
+            } for row in coverage_rows]
+
+            return build_paper_position_snapshots(
+                cutover_snapshots=cutover_snapshots,
+                execution_events=execution_events,
+                execution_coverage=execution_coverage,
+                settlement_times=settlement_times,
+                now_ms=now,
+            )
+    except ValueError:
+        raise
+    except (sqlite3.Error, OSError, OverflowError):
+        raise ValueError("FUNDING_POSITION_DATABASE_READ_FAILED") from None
