@@ -171,3 +171,33 @@ Next proposed step: isolated no-install resolver/wheel-availability check for th
 - Updated gate status: Python venv support and isolated venv PASS; wheel resolution and checksum PASS; minimal dependency install/import PASS; project tests/build and ARM64 end-to-end runtime NOT VERIFIED; Core Runner invocation NOT AUTHORIZED / NOT RUN.
 - No tests, build, Runner execution, service activation, T0/T1/T2 modification, or trading occurred.
 - Next step requires a separate explicit approval for bounded Core Runner tests. This dependency-install approval does not authorize tests or execution.
+
+
+## Addendum — bounded Core Runner ARM64 VPS test batch (2026-11-13)
+
+### Scope and exact source
+- Owner explicitly approved the bounded Core Runner test batch; this did not authorize standalone Runner invocation or service activation.
+- VPS repository: `/home/ubuntu/btcusdt-telegram-signals2`; branch `feature/core-operational-proof-20261112`.
+- Exact source SHA reported before/after: `562362a69d8455a34e08385d26a47fa21d2b50ed`; final `git status --short` output was empty.
+- Environment: dedicated venv `/home/ubuntu/.venvs/btcusdt-core-runtime`; Python 3.12.3; aarch64; `rfc8785==0.1.4`; `AI_EXECUTION_ENABLED=false`.
+
+### Test evidence (owner-provided VPS logs)
+| Test group | Command/module scope | Tests | Result | Log |
+|---|---|---:|---|---|
+| Core CLI contract | `pipeline.test_core_runtime_contract` | 5 | PASS | `/tmp/core-cli-tests.log` |
+| One-shot Runner contract | `pipeline.test_core_runtime_one_shot` | 11 | PASS | `/tmp/core-one-shot-tests.log` |
+| Input Bundle v1 | `core_runtime.test_input_bundle_contract` | 19 | PASS | `/tmp/core-bundle-tests.log` |
+| Producer adapter | `pipeline.test_core_runtime_adapter_contract` | 6 | PASS | `/tmp/core-adapter-tests.log` |
+| Core paper operational + short lifecycle | `paper_execution.test_core_first_operational`, `paper_execution.test_core_short_lifecycle` | 41 | PASS | `/tmp/core-operational-tests.log` |
+| **Total** | | **82** | **PASS** | |
+
+- All five logs report `Ran N tests` followed by `OK`; operational group: 41 tests in 93.335s.
+- Final shell markers: `AI_EXECUTION_ENABLED=false`, `CORE_TEST_BATCH=COMPLETED`, `SOURCE_UNCHANGED=PASS`.
+
+### Disposition and limitations
+- Bounded VPS test batch: **PASS (82/82)**.
+- Exact source guard and clean worktree: **PASS (owner-provided)**.
+- This is manual VPS test evidence, not a GitHub Actions run; no workflow run or artifact ID is claimed for this batch.
+- It does not prove standalone one-shot runtime operation, persistent process/service behavior, deployment readiness, or live-trading readiness.
+- No standalone `python -m core_runtime ... --run-once`, service/autostart, T0/T1/T2 mutation, exchange execution, or real orders were performed in this scope. Paper-only posture and `AI_EXECUTION_ENABLED=false` remain in force.
+- Next gate: separate explicit approval is required before standalone one-shot Runner invocation. Until then: **NOT AUTHORIZED / NOT RUN**.
