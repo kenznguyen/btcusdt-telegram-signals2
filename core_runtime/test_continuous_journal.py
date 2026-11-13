@@ -64,5 +64,58 @@ class ContinuousJournalClaimTest(unittest.TestCase):
         self.assertEqual(len(ContinuousJournal(self.db).list_cycles()), 1)
 
 
-if __name__ == "__main__":
+    def test_cycle_state_transition_persists_intent_and_terminal_result(self):
+        journal = ContinuousJournal(self.db)
+        self.claim(journal)
+        cycle_key = "binance:USDT_PERPETUAL:BTCUSDT:15m:1800000000000:STRATEGY_CORE"
+        self.assertTrue(journal.transition_cycle(
+            cycle_key,
+            expected_status="CLAIMED",
+            status="EXECUTING",
+            updated_at_ms=1_800_000_002_000,
+            run_id="core-run:fixture",
+            intent_id="intent:fixture",
+        ))
+        executing = journal.get_cycle(cycle_key)
+        self.assertEqual(executing["status"], "EXECUTING")
+        self.assertEqual(executing["intentId"], "intent:fixture")
+        self.assertTrue(journal.transition_cycle(
+            cycle_key,
+            expected_status="EXECUTING",
+            status="PAPER_ACCEPTED",
+            updated_at_ms=1_800_000_003_000,
+            order_id="paper:fixture",
+            terminal_result="PAPER_ACCEPTED",
+        ))
+        terminal = journal.get_cycle(cycle_key)
+        self.assertEqual(terminal["status"], "PAPER_ACCEPTED")
+        self.assertEqual(terminal["orderId"], "paper:fixture")
+        self.assertEqual(terminal["terminalResult"], "PAPER_ACCEPTED")
+
+    def test_cycle_transition_uses_compare_and_swap_and_rejects_terminal_replay(self):
+        journal = ContinuousJournal(self.db)
+        self.claim(journal)
+        cycle_key = "binance:USDT_PERPETUAL:BTCUSDT:15m:1800000000000:STRATEGY_CORE"
+        with self.assertRaises(CycleConflict):
+            journal.transition_cycle(
+                cycle_key,
+                expected_status="EXECUTING",
+                status="PAPER_ACCEPTED",
+                updated_at_ms=1_800_000_002_000,
+            )
+        journal.transition_cycle(
+            cycle_key,
+            expected_status="CLAIMED",
+            status="NO_SIGNAL",
+            updated_at_ms=1_800_000_002_000,
+            terminal_result="NO_SIGNAL",
+        )
+        with self.assertRaises(CycleConflict):
+            journal.transition_cycle(
+                cycle_key,
+                expected_status="NO_SIGNAL",
+                status="EXECUTING",
+                updated_at_ms=1_800_000_003_000,
+            )
+
     unittest.main()
