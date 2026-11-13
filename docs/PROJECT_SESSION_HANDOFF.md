@@ -4354,3 +4354,12 @@ These findings make the current stop condition explicit: completing Trusted Admi
 - Status: exact-source CI code/test gates **PASS**; binary artifacts, ELF identity and binary SHA256 **NOT VERIFIED / NOT GENERATED**. No runtime acceptance inferred.
 - No T0/VPS/runtime, T1→T2, persistent service, or trading action performed.
 - Next: only if binary artifact evidence is required, obtain a push-triggered run for the same SHA or separately approve an artifact-only workflow adjustment; verify artifact provenance/ELF/SHA256 before runtime. Runtime still requires explicit approval.
+
+
+## 2026-11-13 — T1 artifact workflow enablement
+
+- Owner approved a CI-only change on the existing T1 branch. T1 workflow commit `adaa972664cad074101a4ecdf12e55396b8e30a1`: https://github.com/kenznguyen/binance-futures-collector/commit/adaa972664cad074101a4ecdf12e55396b8e30a1.
+- `.github/workflows/ci.yml` adds `workflow_dispatch` and updates exactly four x86_64/ARM64 artifact preparation/ELF/checksum/upload guards to allow `push` or `workflow_dispatch`. No collector code changed. Old/new workflow blob: `e907972128d680d7d4b3cf0f0e1cbc533a53c869` → `3c542d66203d705c1ffc3e2c3a7387d400a574bb`.
+- GitHub commit metadata/diff and branch file re-fetch verified. Workflow run ID/status and artifact IDs/ELF/SHA256 remain **NOT VERIFIED**; available GitHub actions do not expose a general push-run listing or workflow dispatch action. Do not infer success from commit creation.
+- Next: inspect GitHub Actions for exact SHA `adaa972664cad074101a4ecdf12e55396b8e30a1`; if absent, manually dispatch CI on the existing branch; verify all jobs and both architecture artifacts before any artifact use.
+- Limits: no collector runtime/VPS, T0, T1→T2, persistent service/autostart, merge, credentials, or trading/orders. PR #1 remains unmerged; runtime requires separate approval.
