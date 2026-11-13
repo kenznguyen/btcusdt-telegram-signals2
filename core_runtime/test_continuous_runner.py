@@ -102,6 +102,52 @@ class ContinuousCoreRunnerTest(unittest.TestCase):
             self.runner.process_bundle(other_path, now_ms=NOW)
         self.assertEqual(len(self.calls), 1)
 
+
+    def test_old_bundle_is_not_reused_for_a_later_m15_cycle(self):
+        runner = ContinuousCoreRunner(
+            config_path=self.config,
+            journal=self.journal,
+            bundle_store_dir=self.bundle_dir,
+            source_sha="source-sha",
+            config_sha256=self.config_sha256,
+            settlement_ms=0,
+            max_book_age_ms=2_000_000,
+            run_once_fn=self.fake_run_once,
+            audit_reader=self.fake_audit_reader,
+            preflight_fn=lambda *_args, **_kwargs: {"status": "PREFLIGHT_PASS"},
+        )
+        with self.assertRaises(ContinuousInputError):
+            runner.process_bundle(self.bundle_path, now_ms=NOW + 900_000)
+        self.assertEqual(self.journal.list_cycles(), [])
+        self.assertEqual(self.calls, [])
+
+    def test_provider_timeout_fails_closed_without_reusing_cached_bundle(self):
+        wall_values = iter([NOW, NOW, NOW + 900_000])
+        monotonic_value = [1.0]
+
+        result = self.runner.run_forever(
+            bundle_provider=lambda _candle_open: (_ for _ in ()).throw(
+                TimeoutError("injected provider timeout")
+            ),
+            wall_clock_ms=lambda: next(wall_values),
+            monotonic=lambda: monotonic_value[0],
+            sleep=lambda seconds: monotonic_value.__setitem__(
+                0, monotonic_value[0] + seconds
+            ),
+            stop_requested=lambda: False,
+            max_sleep_seconds=1_000,
+        )
+        self.assertEqual(result, "BLOCKED")
+        self.assertEqual(self.journal.list_cycles(), [])
+        self.assertEqual(self.calls, [])
+
+    def test_missing_bundle_file_is_not_claimed(self):
+        missing = self.bundle_path.with_name("missing-bundle.json")
+        with self.assertRaises(ContinuousInputError):
+            self.runner.process_bundle(missing, now_ms=NOW)
+        self.assertEqual(self.journal.list_cycles(), [])
+        self.assertEqual(self.calls, [])
+
     def test_unsettled_or_invalid_bundle_is_not_claimed(self):
         delayed = self.make_runner(settlement_ms=30_000)
         with self.assertRaises(CycleNotReady):
