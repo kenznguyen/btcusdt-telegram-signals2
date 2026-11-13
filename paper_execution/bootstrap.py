@@ -17,6 +17,7 @@ from paper_execution.ledger import (
 from paper_execution.funding import (
     record_account_equity_cutover,
     record_funding_coverage,
+    record_funding_reconciliation,
 )
 from risk_policy import CORE_LEVERAGE
 from paper_execution.owner_attestation import load_manual_owner_attestation
@@ -28,6 +29,7 @@ MANIFEST_FIELDS = {
     "markCandleCloseMs", "markObservedAtMs", "datasetVersion",
     "fundingCoverageStartAtMs", "fundingCoverageId", "fundingSource",
     "fundingSnapshotId", "fundingEvidencePath", "fundingPayloadHash",
+    "fundingExpectedPopulation",
     "cutoverId", "cutoverSource", "cutoverSnapshotId",
     "cutoverEvidencePath", "cutoverPayloadHash", "ownerAttestationPath",
     "ownerAttestationPayloadHash", "configVersion",
@@ -185,6 +187,21 @@ def _validate_manifest(manifest, target):
         manifest["fundingSnapshotId"], "FUNDING_SOURCE_SNAPSHOT_REQUIRED"
     )
     funding_digest = _digest(manifest["fundingPayloadHash"], "FUNDING_PAYLOAD_HASH_INVALID")
+    expected_population = manifest["fundingExpectedPopulation"]
+    expected_population_fields = {
+        "schemaVersion", "populationType", "populationDefinitionId",
+        "snapshotId", "source", "startAtMs", "endAtMs", "currency", "events",
+    }
+    if (not isinstance(expected_population, dict)
+            or set(expected_population) != expected_population_fields
+            or expected_population.get("schemaVersion") != 1
+            or expected_population.get("populationType") != "EXPECTED_FUNDING_EVENTS"
+            or expected_population.get("snapshotId") != funding_snapshot
+            or expected_population.get("startAtMs") != coverage_start
+            or expected_population.get("endAtMs") != observed
+            or expected_population.get("currency") != "USDT"
+            or expected_population.get("events") != []):
+        raise ValueError("BOOTSTRAP_FUNDING_EXPECTED_POPULATION_INVALID")
     cutover_id = _required_text(manifest["cutoverId"], "ACCOUNT_EQUITY_CUTOVER_ID_INVALID", 200)
     cutover_source = _required_text(manifest["cutoverSource"], "ACCOUNT_EQUITY_CUTOVER_SOURCE_REQUIRED")
     cutover_snapshot = _required_text(
@@ -207,6 +224,7 @@ def _validate_manifest(manifest, target):
             "AI_FREQAI": "0",
             "LEGACY_UNATTRIBUTED": "0",
         },
+        "expectedPopulation": expected_population,
     }
     cutover_evidence = {
         "snapshotId": cutover_snapshot,
@@ -261,6 +279,7 @@ def _validate_manifest(manifest, target):
         "funding_source": funding_source,
         "funding_snapshot": funding_snapshot,
         "funding_digest": funding_digest,
+        "expected_population": expected_population,
         "cutover_id": cutover_id,
         "cutover_source": cutover_source,
         "cutover_snapshot": cutover_snapshot,
@@ -305,6 +324,12 @@ def bootstrap_paper_account(db_path, manifest):
             risk_limits=values["limits"], require_risk_limits=True,
             leverage=values["ai_leverage"],
         )
+        reconciliation = record_funding_reconciliation(
+            temporary, expected_population=values["expected_population"],
+            recorded_at_ms=values["recorded"],
+        )
+        if reconciliation["reconciliationStatus"] != "COMPLETE_WITHIN_DECLARED_POPULATION":
+            raise sqlite3.DatabaseError("BOOTSTRAP_FUNDING_RECONCILIATION_BLOCKED")
         record_funding_coverage(
             temporary, coverage_id=values["funding_id"],
             start_at_ms=values["coverage_start"], end_at_ms=values["observed"],
@@ -313,6 +338,7 @@ def bootstrap_paper_account(db_path, manifest):
             payload_hash=values["funding_digest"],
             config_version=values["config_version"],
             recorded_at_ms=values["recorded"],
+            reconciliation_id=reconciliation["reconciliationId"],
         )
         record_account_equity_cutover(
             temporary, cutover_id=values["cutover_id"],
@@ -350,6 +376,10 @@ def bootstrap_paper_account(db_path, manifest):
             "sourceSha": values["source_sha"],
             "databaseCreated": True,
             "evidenceIntegrity": "SHA256_AND_CONTENT_MATCHED",
+            "fundingReconciliationId": reconciliation["reconciliationId"],
+            "fundingReconciliationStatus": reconciliation["reconciliationStatus"],
+            "fundingPopulationCompleteness": reconciliation["globalCompleteness"],
+            "fundingPopulationIndependence": reconciliation["independence"],
             "sourceAuthenticity": "NOT_VERIFIED",
             "ownerAttestation": values["owner_attestation"],
         }
