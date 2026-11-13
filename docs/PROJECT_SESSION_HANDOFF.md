@@ -4874,3 +4874,12 @@ Next: preserve this proof and do not rerun automatically. Any additional runtime
 - Added RED for stale M15 bundle reuse and provider timeout. Run 43416745198 at source 15b497a8e78e96026e33cd9fc70478069565f6d5 failed because old bundle was accepted for a later candle and provider TimeoutError escaped the runner. Fix commit e72739ee6cb89d55c4513ba4aec83213765933bb now rejects non-latest eligible M15 input and returns BLOCKED on provider exception without retry/cache fallback. Run 43417053584 at that source is in progress at last read.
 - Added a RED test for symlinked immutable bundle references in commit ff4df525898ffe3585376bc77e77afe46d463ce3; it has not yet executed. Recovery must reject the symlink before resolving it.
 - Current status: ownership/config/audit/kill-switch checks PASS at 9f01fa3; stale-candle/provider-failure implementation committed / CI pending; symlink recovery NOT VERIFIED; full C1-C8 GREEN not yet achieved.
+
+## 2026-11-13 — Latest-candle validation and provider fail-closed GREEN
+
+- RED run 43416745198, source 15b497a8e78e96026e33cd9fc70478069565f6d5, showed stale M15 bundle reuse and provider timeout escaping run_forever.
+- Implemented exact latest-eligible M15 candle identity check and provider exception fail-closed behavior in commit e72739ee6cb89d55c4513ba4aec83213765933bb. Provider timeout returns BLOCKED, releases runner lock, does not reuse cache, and does not create a new intent. A bundle for a prior candle cannot be consumed for a later M15 cycle.
+- GREEN run 43417053584, job 131857474094, source SHA e72739ee6cb89d55c4513ba4aec83213765933bb, SUCCESS. Cadence 5/5, journal 11/11, orchestration 22/22; all existing Core/One-shot/Bundle/adapter/PaperLedger/risk/T1-T2 workflow steps SUCCESS.
+- Artifact 14032107933, core-first-code-operational-proof-43417053584, SHA-256 7c2daa9d174ba08bab6cf255fe5c1f351909495315dd799d93e096ec8fd03858, expires 2026-11-20T11:26:15Z.
+- Added symlinked persisted bundle test. RED run 43417078609 at source ff4df525898ffe3585376bc77e77afe46d463ce3 showed recovery followed a symlink and executed the bundle. Fix commit 47876d1261c7c8efb65d46d9013a2ebf46d66557 rejects symlink references before resolve; CI run 43417451191 at that source is in progress at last read.
+- Added T0 canonical DB path isolation test in commit 8681ca55e97ffcbb6f5603a9eb8f379c193c7976. It is expected to fail until ContinuousJournal explicitly rejects MARKET_DATA_DB/T0_FEEDER_LEASE_DB/PaperLedger paths. Current CI run at source 8681ca55e97ffcbb6f5603a9eb8f379c193c7976 is queued/pending.
