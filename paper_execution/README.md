@@ -162,3 +162,16 @@ separately reviewed reconciliation/reset procedure.
 
 Both migrations are additive and execute only when a scoped Core/AI writer opens
 an isolated test database. No persistent account database migration is implied.
+
+## Dual Ledger bootstrap và Manual Owner Attestation — test/CI only
+
+`python -m paper_execution --db <new-paper-db.sqlite3> --bootstrap-manifest <manifest.json>` chỉ tạo database PAPER mới chưa tồn tại. Manifest phải bind đúng source SHA, funding snapshot, equity cutover và một file Manual Owner Attestation riêng. Attestation được kiểm tra theo exact-byte SHA-256, schema đóng, timestamp và các ID/hash của đúng hai snapshot; sai hoặc thiếu bằng chứng phải dừng trước khi tạo database.
+
+Attestation v1 chỉ ghi nhận tuyên bố thủ công rằng người khai báo đã xem xét đúng funding/equity snapshots. `OWNER_DECLARATION` là nội dung khai báo, không phải xác thực danh tính. Không có chữ ký mật mã hoặc issuer authentication. Kết quả luôn giữ:
+- source authenticity, factual truth, completeness và freshness: `NOT_VERIFIED`;
+- privileged action authorization: `NOT_GRANTED`;
+- cryptographic signature: `NOT_USED`.
+
+Theo D09, một commit/action được GitHub xác thực có thể được ghi nhận là `PLATFORM_ATTRIBUTED_OWNER_ACTION`; điều này chỉ là quy thuộc nền tảng cho hành động GitHub, không biến file attestation thành chữ ký Owner và không cấp quyền bootstrap production. Manual review attestation, privileged-action authorization và trust administration là ba phạm vi tách biệt.
+
+Các test chỉ dùng fixture tổng hợp và SQLite tạm trong GitHub Actions. Không dùng VPS, không tạo database production, không chạm T0, không chạy Runner/One-shot và không gửi lệnh. Bootstrap production vẫn BLOCKED cho đến khi có evidence thực tế được kiểm chứng độc lập và một phê duyệt riêng đúng phạm vi.
