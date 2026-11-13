@@ -36,10 +36,19 @@ def _load_manifest(path):
 
 
 def _current_source_sha():
+    repository_root = Path(__file__).resolve().parents[1]
     try:
         completed = subprocess.run(
             ["git", "rev-parse", "HEAD"],
-            cwd=Path(__file__).resolve().parents[1],
+            cwd=repository_root,
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        status = subprocess.run(
+            ["git", "status", "--porcelain", "--untracked-files=all"],
+            cwd=repository_root,
             check=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -51,6 +60,8 @@ def _current_source_sha():
     if (len(source_sha) != 40
             or any(character not in "0123456789abcdef" for character in source_sha)):
         raise ValueError("BOOTSTRAP_SOURCE_SHA_UNAVAILABLE")
+    if status.stdout.strip():
+        raise ValueError("BOOTSTRAP_SOURCE_TREE_DIRTY")
     return source_sha
 
 
