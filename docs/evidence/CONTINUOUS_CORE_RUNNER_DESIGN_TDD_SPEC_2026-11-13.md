@@ -1,7 +1,7 @@
 # Continuous Core Runner — Design and TDD Specification
 
 Date: 2026-11-13 (Asia/Ho_Chi_Minh)
-Status: DESIGN COMPLETE / IMPLEMENTATION NOT AUTHORIZED
+Status: IMPLEMENTATION IN PROGRESS / C6.3 PRE-SUBMIT HOOK ADDED; C1-C8 NOT VERIFIED
 Repository: kenznguyen/btcusdt-telegram-signals2
 Branch: feature/core-operational-proof-20261112
 Inspected source HEAD: d2e7f46c2a631a5673e56279fe80d9976891489a
@@ -262,3 +262,16 @@ CI GREEN proves code and isolated fixtures only. It does not authorize or prove 
 - AI strategy/execution and real orders: NOT AUTHORIZED.
 
 Next gate: owner review of this design and a separate explicit approval for implementation of the Continuous Core Runner on the same branch. Implementation must begin with C1-C8 RED tests and must stop if an unresolved interface requires modifying protected layers.
+
+
+## Addendum — pre-ledger intent persistence hook (2026-11-13)
+
+- Owner explicitly approved the additional One-shot interface change: optional `on_intent_prepared` callback in `core_runtime/one_shot.py`.
+- Implemented `run_once(..., on_intent_prepared=None)`. For an actionable validated Core intent, the callback receives the exact validated `intent` object after Core signal validation and before PaperLedger construction/submission. The callback can durably persist `intentId`, `bundleId` (from its immutable cycle context) and `cycleKey` (from the Continuous Runner context).
+- If the callback is absent, existing One-shot behavior is preserved. If it is non-callable or raises, the runner returns `RUN_FAILED / INTENT_PREPARE_CALLBACK_FAILED` and does not construct or call PaperLedger.
+- Added three One-shot contract tests: callback runs before submit and sees the same intent ID; callback failure aborts before Ledger construction; omitted callback preserves existing behavior.
+- Commits on the existing branch: tests `b06c97179afa4fa2d46bea19af7eef4e209cc893`; implementation `14df039546990c3bb16952aaa17a34175631d5c6`. Implementation file blob: `683e1a96061724c265bb6bf8dcdc956f9c18acfb`; test file blob: `8123bd6e9b6b3d0c356c462969658a56b8305762`.
+- The existing Core operational workflow includes `pipeline.test_core_runtime_one_shot`, so the new tests are in its existing test command path. No workflow run/job log/artifact has yet been retrieved for these commits; test execution status is **NOT VERIFIED**.
+- This hook closes the missing pre-submit identity persistence interface, but it does not itself implement the durable Continuous Runner journal or crash recovery. C6.3 end-to-end reconciliation remains **NOT VERIFIED**.
+- No Strategy Core, Risk Engine, PaperLedger schema/behavior, T0/T1/T2, AI strategy, VPS runtime, service, exchange connection or real-order behavior was changed.
+- Next: implement and test the journal/recovery layer, then C1-C8 in RED-first order. Maintain paper-only and `AI_EXECUTION_ENABLED=false`; runtime activation remains separately gated.
