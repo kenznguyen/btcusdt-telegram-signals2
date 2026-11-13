@@ -29,7 +29,8 @@ MANIFEST_FIELDS = {
     "fundingCoverageStartAtMs", "fundingCoverageId", "fundingSource",
     "fundingSnapshotId", "fundingEvidencePath", "fundingPayloadHash",
     "cutoverId", "cutoverSource", "cutoverSnapshotId",
-    "cutoverEvidencePath", "cutoverPayloadHash", "ownerAttestationPath",\n    "ownerAttestationPayloadHash", "configVersion",
+    "cutoverEvidencePath", "cutoverPayloadHash", "ownerAttestationPath",
+    "ownerAttestationPayloadHash", "configVersion",
     "recordedAtMs",
 }
 STRATEGY_SCOPES = (
