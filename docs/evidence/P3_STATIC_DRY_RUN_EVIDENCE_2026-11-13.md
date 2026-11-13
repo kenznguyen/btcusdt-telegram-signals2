@@ -42,12 +42,22 @@ This is a static config/path check, not a Continuous Runner scheduler simulation
 | `a71d67ffac70260a1322ed15e2668aded8187602`, run `43421061835` | PASS | Full operational workflow success; 8 static dry-run tests passed; predates CLI subprocess test |
 | `a82034631293e07e4537ee8ba6cadb41a0b1365b`, run `43421133314` | FAIL | CLI test missing `subprocess` import; fixed |
 | `bd05e69d943231c1f2ca19a386fd1a7219a168b4`, run `43421353331`, attempt 1 | FAIL | Existing journal concurrency test hit transient SQLite `database is locked`; unrelated to dry-run |
-| Same source, run `43421353331`, attempt 2 | PARTIAL | Static dry-run contract step passed: 9 tests. Remaining full workflow was still running at evidence capture |
+| Same source, run `43421353331`, attempt 2 | PASS | Full workflow SUCCESS; all steps passed; dry-run 9/9 |
 
-## Current disposition
+## Final disposition
 
 - Static dry-run implementation: committed.
-- Static dry-run contracts: **PASS 9/9** on current implementation source.
-- Full current-source CI regression: **NOT VERIFIED** until run `43421353331` attempt 2 reaches a terminal conclusion.
+- Static dry-run contracts: **PASS 9/9**.
+- Full current-source CI regression: **PASS** — run `43421353331`, attempt 2, job `131872065732`, exact code SHA `bd05e69d943231c1f2ca19a386fd1a7219a168b4`, all workflow steps SUCCESS.
+- Artifact ID `14034337071`, name `core-first-code-operational-proof-43421353331`, 11,110 bytes, GitHub-reported SHA-256 `11fbeebcc6cfa968ec016fbf069b14345291428c3066964acba83eea14d78e34`, expires `2026-11-20T11:59:24Z`. Payload hash NOT independently verified.
 - P3 VPS execution: **NOT APPROVED / NOT RUN**.
 - No VPS, T0, T1, T2, PaperLedger runtime, exchange credentials, exchange connection, or real orders were accessed or changed by this work.
+
+
+## Final CI readback
+
+- Workflow run: [43421353331](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43421353331), attempt 2, job 131872065732, SUCCESS.
+- Exact checked-out implementation SHA: `bd05e69d943231c1f2ca19a386fd1a7219a168b4`.
+- All 22 workflow steps succeeded. Continuous cadence 5/5, journal 15/15, orchestration 23/23, static dry-run 9/9. Remaining Core/One-shot/Bundle/adapter/PaperLedger/risk/T1-T2 regression steps succeeded.
+- Artifact ID `14034337071`, name `core-first-code-operational-proof-43421353331`, 11,110 bytes, GitHub-reported digest `sha256:11fbeebcc6cfa968ec016fbf069b14345291428c3066964acba83eea14d78e34`, expires `2026-11-20T11:59:24Z`. Payload hash was not independently re-computed.
+- Branch HEAD at final documentation readback: `837ee6f41dadeffbfec7aaaf52582d3da957020f`. Compare from tested code SHA to documentation HEAD: 1 ahead, 0 behind, only `docs/PROJECT_SESSION_HANDOFF.md` and this evidence file changed. No code changes after tested SHA.
