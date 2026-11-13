@@ -1944,6 +1944,9 @@ os._exit(0)
         path = self.path
         with sqlite3.connect(path) as connection:
             connection.execute(
+                "DROP TRIGGER paper_funding_coverage_verified_requires_reconciliation"
+            )
+            connection.execute(
                 """INSERT INTO paper_funding_coverage
                    (coverage_id,account_id,start_at_ms,end_at_ms,status,source,
                     source_snapshot_id,payload_hash,config_version,recorded_at_ms)
