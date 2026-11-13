@@ -72,7 +72,11 @@ class BinancePublicFundingParserTest(unittest.TestCase):
             with self.subTest(field=field):
                 item = row()
                 item[field] = 0.001
-                with self.assertRaisesRegex(ValueError, "BINANCE_FUNDING_DECIMAL_INVALID"):
+                code = (
+                    "BINANCE_FUNDING_RATE_INVALID"
+                    if field == "fundingRate" else "BINANCE_FUNDING_MARK_PRICE_INVALID"
+                )
+                with self.assertRaisesRegex(ValueError, code):
                     parse([item])
 
     def test_mark_price_must_be_positive_and_finite(self):
