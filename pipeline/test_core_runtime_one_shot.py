@@ -163,6 +163,12 @@ class CoreOneShotRunnerTest(unittest.TestCase):
         self.assertEqual(result["runStatus"], "PAPER_COMMIT_FAILED")
         self.assertEqual(len(created), 1)
 
+    def test_non_object_bundle_is_rejected_without_crashing(self):
+        self.bundle_path.write_text('["not-an-object"]', encoding="utf-8")
+        result, created = self.run_patched(producer_report())
+        self.assertEqual(result["runStatus"], "INPUT_REJECTED")
+        self.assertEqual(len(created), 0)
+
     def test_bundle_json_duplicate_keys_are_rejected(self):
         self.bundle_path.write_text('{"contract":"x","contract":"y"}', encoding="utf-8")
         result, created = self.run_patched(producer_report())
