@@ -315,3 +315,16 @@ Next gate: owner review of this design and a separate explicit approval for impl
 - CI status script now expects the actual 14 One-shot tests, and the artifact includes the cadence/journal/orchestration logs. The run above completed SUCCESS with the corrected workflow.
 - Remaining implementation/test work: exclusive process ownership, config digest revalidation, terminal journal-vs-ledger reconciliation, runner Kill Switch integration, claim-before-execution recovery, and corrupted-bundle recovery. Full C1-C8 GREEN is not yet achieved.
 
+
+## Addendum — exclusive ownership, provenance and terminal audit verification (2026-11-13)
+
+- Added an OS flock lock in the runner-state directory; only one continuous process may own that directory at a time. The lock is released in a finally block on graceful stop or provider/preflight failure.
+- Added config file SHA-256 verification before every cycle and recovery. A changed config blocks execution; incomplete cycles with mismatched config/source provenance remain BLOCKED.
+- Startup recovery now verifies terminal PAPER_ACCEPTED/RISK_REJECTED journal states against the existing read-only PaperLedger audit by intentId and orderId. Missing/unreadable/mismatched audit blocks new cycle claims; terminal NO_SIGNAL remains checkpointed and is not replayed.
+- RED run 43416470434 at source 1909bb1ae9c1eeafb1d695805fd27d5cd6e9591a exposed the missing lock, config digest and terminal audit consistency behavior. Implemented in commits 613064da9cca9f7de4cb65e9e0ae0cbd54cde003 and 6977f6ecffde41156d57e03912fcb73dec9bac8a.
+- GREEN run 43416688399, source SHA 9f01fa3e97b78fb93538624a1326f1b2b8903776, SUCCESS: cadence 5/5, journal 11/11, orchestration 19/19, all existing workflow regressions SUCCESS. Artifact 14032062564, core-first-code-operational-proof-43416688399, SHA-256 efab594af81354bde55bc70db6d69fbdd86ee1d62025b7353f3c02f7fef6b3ef, expires 2026-11-20T11:23:32Z.
+- Real Kill Switch runner integration test passes with an actual PaperLedger fixture: no Core position increase/fill and no AI ledger activity.
+- RED run 43416745198 at source 15b497a8e78e96026e33cd9fc70478069565f6d5 exposed stale M15 bundle reuse and uncaught provider timeout. Commit e72739ee6cb89d55c4513ba4aec83213765933bb rejects any bundle not matching the latest eligible closed M15 candle and fails closed on provider exceptions without reusing cached data or retrying with a new intent. Run 43417053584 at that source is in progress.
+- A symlinked persisted-bundle recovery test was added in commit ff4df525898ffe3585376bc77e77afe46d463ce3; implementation/test verification is pending.
+- Full C1-C8 GREEN is not yet achieved. Keep the bundle-provider boundary injected; do not select/change T0/T1 transport, and do not activate VPS runtime. Preserve AI_EXECUTION_ENABLED=false and no real orders.
+
