@@ -4653,3 +4653,16 @@ These findings make the current stop condition explicit: completing Trusted Admi
 - Important boundary: rfc8785 was downloaded only; it was NOT installed into the virtual environment. No package import test, project test, build, Core Runner invocation, service activation, or trading was performed. No T0/T1/T2 files, data, or services were changed.
 - Gate status: APT venv support installation PASS; isolated venv creation and pip availability PASS; rfc8785 wheel resolution/download PASS; dependency installation NOT DONE; dependency import NOT VERIFIED; ARM64 project tests/build/runtime NOT VERIFIED; Core Runner invocation NOT AUTHORIZED / NOT RUN.
 - Next proposed gate: separately approve installing only rfc8785==0.1.4 into the isolated venv, then perform bounded import verification. Any project test/build or one-shot Runner execution remains a separate authorization gate. Preserve paper-only posture and AI_EXECUTION_ENABLED=false.
+
+
+## Addendum — Core Runner minimal dependency install/import verification (2026-11-13)
+
+- Owner explicitly approved installing only `rfc8785==0.1.4` into the isolated virtualenv and verifying package import/version. No broader dependency installation was authorized.
+- Owner-provided wheel verification: expected and actual SHA-256 both `520d690b448ecf0703691c76e1a34a24ddcd4fc5bc41d589cb7c58ec651bcd48`; `WHEEL_SHA256=PASS`.
+- Installation command used the local wheel with `pip install --no-index --no-deps`; output: `Successfully installed rfc8785-0.1.4`.
+- Import verification: Python executable `/home/ubuntu/.venvs/btcusdt-core-runtime/bin/python`; Python 3.12; architecture `aarch64`; package version `0.1.4`; module resolved inside the dedicated venv; `RFC8785_IMPORT=PASS`.
+- Installed package inventory: `pip 24.0`, `rfc8785 0.1.4` only.
+- Owner-reported repository source remains `562362a69d8455a34e08385d26a47fa21d2b50ed`; no source change reported. The shell prompt still shows `[ahead 165]` against potentially stale `origin/*` metadata; this does not establish divergence. No push is required.
+- Gate status: wheel SHA PASS; minimal dependency installation PASS; package/version/import PASS; isolated package inventory PASS; source unchanged PASS (owner-reported); ARM64 project tests/build/end-to-end runtime NOT VERIFIED; Core Runner invocation NOT AUTHORIZED / NOT RUN.
+- No tests, build, Core Runner invocation, service activation, T0/T1/T2 mutation, or real orders occurred. Paper-only posture and `AI_EXECUTION_ENABLED=false` remain unchanged.
+- Next gate: request separate explicit authorization before any bounded Core Runner tests or invocation. Do not infer authorization from the dependency-install approval.
