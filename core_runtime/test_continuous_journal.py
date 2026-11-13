@@ -58,6 +58,41 @@ class ContinuousJournalClaimTest(unittest.TestCase):
                     ContinuousJournal(t0_path)
             self.assertFalse(t0_path.exists())
 
+    def test_journal_refuses_t0_feeder_lease_database_path(self):
+        with tempfile.TemporaryDirectory() as directory:
+            t0_lease_path = Path(directory) / "t0-lease.sqlite3"
+            with patch.dict(
+                os.environ, {"T0_FEEDER_LEASE_DB": str(t0_lease_path)}, clear=False
+            ):
+                with self.assertRaises(JournalError):
+                    ContinuousJournal(t0_lease_path)
+            self.assertFalse(t0_lease_path.exists())
+
+    def test_journal_refuses_symlink_alias_of_t0_database(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            t0_path = root / "market-data.sqlite3"
+            alias = root / "runner-journal.sqlite3"
+            alias.symlink_to(t0_path)
+            with patch.dict(os.environ, {"MARKET_DATA_DB": str(t0_path)}, clear=False):
+                with self.assertRaises(JournalError):
+                    ContinuousJournal(alias)
+            self.assertFalse(t0_path.exists())
+            self.assertTrue(alias.is_symlink())
+
+    def test_journal_refuses_hardlink_alias_of_t0_database(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            t0_path = root / "market-data.sqlite3"
+            alias = root / "runner-journal.sqlite3"
+            t0_path.write_bytes(b"canonical-t0-bytes")
+            os.link(t0_path, alias)
+            with patch.dict(os.environ, {"MARKET_DATA_DB": str(t0_path)}, clear=False):
+                with self.assertRaises(JournalError):
+                    ContinuousJournal(alias)
+            self.assertEqual(t0_path.read_bytes(), b"canonical-t0-bytes")
+            self.assertTrue(os.path.samefile(t0_path, alias))
+
     def test_schema_version_mismatch_fails_closed_without_reset(self):
         with sqlite3.connect(self.db) as connection:
             connection.execute(
