@@ -403,9 +403,11 @@ def _observed_funding_events(connection, start_at_ms, end_at_ms):
                   source,source_snapshot_id
            FROM paper_funding_events
            WHERE account_id=1 AND event_at_ms>=? AND event_at_ms<?
-           ORDER BY funding_event_id""",
+           ORDER BY funding_event_id LIMIT 100001""",
         (start_at_ms, end_at_ms),
     ).fetchall()
+    if len(rows) > 100_000:
+        raise ValueError("FUNDING_POPULATION_EVENTS_INVALID")
     events = []
     for row in rows:
         if (row["source"] == "LEGACY_UNVERIFIED"
