@@ -252,6 +252,42 @@ class ContinuousJournal:
         except sqlite3.Error as exc:
             raise JournalError("JOURNAL_TRANSITION_FAILED") from exc
 
+
+    def record_intent(self, cycle_key, intent_id, *, updated_at_ms):
+        """Persist the exact validated intent before PaperLedger can be constructed."""
+        cycle_key = self._required_text(cycle_key, "cycle_key")
+        intent_id = self._required_text(intent_id, "intent_id")
+        updated_at_ms = self._timestamp(updated_at_ms)
+        try:
+            with closing(self._connect()) as connection:
+                connection.execute("BEGIN IMMEDIATE")
+                row = connection.execute(
+                    """SELECT status,intent_id,updated_at_ms
+                       FROM continuous_cycles WHERE cycle_key=?""",
+                    (cycle_key,),
+                ).fetchone()
+                if row is None or row["status"] != "EXECUTING":
+                    raise CycleConflict("CYCLE_NOT_EXECUTING")
+                if updated_at_ms < row["updated_at_ms"]:
+                    raise ValueError("JOURNAL_TIMESTAMP_REGRESSION")
+                if row["intent_id"] is not None:
+                    if row["intent_id"] != intent_id:
+                        raise CycleConflict("CYCLE_INTENT_CONFLICT")
+                    connection.commit()
+                    return False
+                connection.execute(
+                    """UPDATE continuous_cycles
+                       SET intent_id=?,updated_at_ms=?,state_version=state_version+1
+                       WHERE cycle_key=? AND status='EXECUTING' AND intent_id IS NULL""",
+                    (intent_id, updated_at_ms, cycle_key),
+                )
+                connection.commit()
+                return True
+        except (CycleConflict, ValueError):
+            raise
+        except sqlite3.Error as exc:
+            raise JournalError("JOURNAL_INTENT_PERSIST_FAILED") from exc
+
     @staticmethod
     def _cycle_document(row):
         if row is None:
