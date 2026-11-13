@@ -581,7 +581,8 @@ def record_account_equity_cutover(
         if account is None or Decimal(account[0]) != expected_capital:
             raise ValueError("ACCOUNT_EQUITY_CAPITAL_RECONCILIATION_MISMATCH")
         coverage = db.execute(
-            """SELECT start_at_ms,end_at_ms,status,source FROM paper_funding_coverage
+            """SELECT start_at_ms,end_at_ms,status,source,reconciliation_id,source_snapshot_id
+               FROM paper_funding_coverage
                WHERE start_at_ms < ? AND end_at_ms > ?
                ORDER BY start_at_ms,end_at_ms""",
             (observed, coverage_start),
@@ -589,12 +590,28 @@ def record_account_equity_cutover(
         cursor = coverage_start
         previous_end = None
         for row in coverage:
-            start, end, status, coverage_source = row
+            start, end, status, coverage_source, reconciliation_id, coverage_snapshot = row
             if previous_end is not None and start < previous_end:
                 raise ValueError("FUNDING_COVERAGE_INTERVAL_OVERLAP")
             if start > cursor or status == "UNKNOWN":
                 raise ValueError("FUNDING_PROVENANCE_INCOMPLETE")
             if status == "DISABLED" and coverage_source != "PAPER_TEST_CONFIGURATION":
+                raise ValueError("FUNDING_PROVENANCE_INCOMPLETE")
+            if status == "VERIFIED":
+                if not reconciliation_id:
+                    raise ValueError("FUNDING_RECONCILIATION_REQUIRED")
+                certificate = db.execute(
+                    """SELECT start_at_ms,end_at_ms,expected_snapshot_id,status
+                       FROM paper_funding_reconciliations WHERE reconciliation_id=?""",
+                    (reconciliation_id,),
+                ).fetchone()
+                if certificate is None:
+                    raise ValueError("FUNDING_RECONCILIATION_NOT_FOUND")
+                if certificate[3] != "COMPLETE_WITHIN_DECLARED_POPULATION":
+                    raise ValueError("FUNDING_RECONCILIATION_NOT_COMPLETE")
+                if certificate[:3] != (start, end, coverage_snapshot):
+                    raise ValueError("FUNDING_RECONCILIATION_SCOPE_MISMATCH")
+            elif status != "DISABLED":
                 raise ValueError("FUNDING_PROVENANCE_INCOMPLETE")
             previous_end = end
             cursor = max(cursor, end)
