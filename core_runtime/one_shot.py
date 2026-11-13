@@ -108,8 +108,8 @@ def _result(bundle, run_status, *, signal=None, risk=None, ledger_ref=None, reas
     }
 
 
-def run_once(config_path, bundle_path, *, now_ms=None):
-    """Validate all inputs, produce at most one Core signal, and submit at most once."""
+def run_once(config_path, bundle_path, *, now_ms=None, on_intent_prepared=None):
+    """Validate inputs and submit at most once; journal actionable intent before submit."""
     now = time.time_ns() // 1_000_000 if now_ms is None else now_ms
     bundle = {}
     try:
@@ -189,6 +189,18 @@ def run_once(config_path, bundle_path, *, now_ms=None):
             }, reason="CORE_TARGET_UNCHANGED")
     except Exception:
         return _result(bundle, "RUN_FAILED", reason="CORE_PRODUCER_FAILED")
+
+    if on_intent_prepared is not None:
+        try:
+            if not callable(on_intent_prepared):
+                raise TypeError("INTENT_PREPARE_CALLBACK_NOT_CALLABLE")
+            on_intent_prepared(signal["intent"])
+        except Exception:
+            return _result(
+                bundle, "RUN_FAILED",
+                signal={"action": signal["action"], "reason": signal.get("reason")},
+                reason="INTENT_PREPARE_CALLBACK_FAILED",
+            )
 
     try:
         from paper_execution.ledger import PaperLedger
