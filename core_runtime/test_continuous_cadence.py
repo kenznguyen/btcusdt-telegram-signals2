@@ -27,8 +27,9 @@ class ContinuousCadenceTest(unittest.TestCase):
         now = 1_800_000_000_000
         settlement = 30_000
         latest_open = latest_eligible_m15_open_ms(now, settlement_ms=settlement)
+        expected_close = ((now - settlement) // INTERVAL_MS) * INTERVAL_MS
         self.assertEqual(latest_open + INTERVAL_MS + settlement,
-                         (now // INTERVAL_MS) * INTERVAL_MS + settlement)
+                         expected_close + settlement)
         self.assertEqual(latest_eligible_m15_open_ms(
             now + settlement - 1, settlement_ms=settlement
         ), latest_open)
