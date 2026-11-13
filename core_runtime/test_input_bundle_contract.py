@@ -333,5 +333,43 @@ class CoreDecisionInputBundleContractTest(unittest.TestCase):
             )
 
 
+    def test_t1_order_book_preserves_verified_snapshot_provenance(self):
+        _, _, validate = contract_api()
+        bundle = valid_bundle()
+        result = validate(bundle, max_book_age_ms=5_000)
+        evidence = bundle["orderBook"]["t1Evidence"]
+        self.assertEqual(bundle["orderBook"]["source"], "t1")
+        self.assertEqual(evidence["contractVersion"], "T1_T2_ORDERBOOK_V1")
+        self.assertEqual(evidence["decisionWatermark"], evidence["lastAppliedU"])
+        self.assertEqual(evidence["depth"], {"bids": 20, "asks": 20})
+        self.assertEqual(result["status"], "BUNDLE_VALID")
+
+    def test_t1_unverified_continuity_is_rejected(self):
+        Error, _, validate = contract_api()
+        bundle = valid_bundle()
+        bundle["orderBook"]["t1Evidence"]["continuity"] = "BROKEN"
+        _rehash(bundle)
+        with self.assertRaises(Error):
+            validate(bundle, max_book_age_ms=5_000)
+
+    def test_t1_projection_must_match_published_snapshot_levels(self):
+        Error, _, validate = contract_api()
+        bundle = valid_bundle()
+        bundle["orderBook"]["bids"][0]["price"] = "50000.5"
+        _rehash(bundle)
+        with self.assertRaises(Error):
+            validate(bundle, max_book_age_ms=5_000)
+
+    def test_hummingbot_provenance_is_not_accepted_for_core_bundle(self):
+        Error, _, validate = contract_api()
+        bundle = valid_bundle()
+        bundle["orderBook"]["source"] = "hummingbot"
+        bundle["orderBook"]["connector"] = "binance_perpetual"
+        bundle["orderBook"].pop("t1Evidence")
+        _rehash(bundle)
+        with self.assertRaises(Error):
+            validate(bundle, max_book_age_ms=5_000)
+
+
 if __name__ == "__main__":
     unittest.main()
