@@ -3,11 +3,13 @@
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 import tempfile
+import sqlite3
 import unittest
 
 from core_runtime.continuous_journal import (
     ContinuousJournal,
     CycleConflict,
+    JournalError,
 )
 
 
@@ -43,6 +45,23 @@ class ContinuousJournalClaimTest(unittest.TestCase):
         self.assertTrue(self.claim(journal))
         self.assertFalse(self.claim(journal))
         self.assertEqual(len(journal.list_cycles()), 1)
+
+
+    def test_schema_version_mismatch_fails_closed_without_reset(self):
+        with sqlite3.connect(self.db) as connection:
+            connection.execute(
+                "CREATE TABLE journal_meta(singleton INTEGER PRIMARY KEY, schema_version INTEGER NOT NULL)"
+            )
+            connection.execute(
+                "INSERT INTO journal_meta(singleton,schema_version) VALUES (1,999)"
+            )
+        with self.assertRaises(JournalError):
+            ContinuousJournal(self.db)
+        with sqlite3.connect(self.db) as connection:
+            version = connection.execute(
+                "SELECT schema_version FROM journal_meta WHERE singleton=1"
+            ).fetchone()[0]
+        self.assertEqual(version, 999)
 
     def test_same_cycle_with_different_bundle_fails_closed(self):
         journal = ContinuousJournal(self.db)
