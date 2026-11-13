@@ -450,7 +450,7 @@ class ContinuousCoreRunnerTest(unittest.TestCase):
         runner = self.make_runner()
         self.config.write_text(json.dumps({
             "mode": "PAPER", "ai_execution_enabled": False,
-            "ledger_path": str(self.config.parent / "paper-ledger.sqlite3"),
+            "ledger_path": str(self.config.parent / "changed-paper-ledger.sqlite3"),
         }), encoding="utf-8")
         with self.assertRaises(ContinuousInputError):
             runner.process_bundle(self.bundle_path, now_ms=NOW)
