@@ -140,6 +140,9 @@ class ContinuousCoreRunnerTest(unittest.TestCase):
         self.assertEqual(result, "BLOCKED")
         self.assertEqual(self.journal.list_cycles(), [])
         self.assertEqual(self.calls, [])
+        second = self.make_runner()
+        self.assertTrue(second.acquire_process_lock())
+        second.release_process_lock()
 
     def test_missing_bundle_file_is_not_claimed(self):
         missing = self.bundle_path.with_name("missing-bundle.json")
@@ -468,6 +471,23 @@ class ContinuousCoreRunnerTest(unittest.TestCase):
             claimed_at_ms=NOW,
         )
         stored_path.write_bytes(b'{"tampered":true}')
+        recovered = self.runner.recover_incomplete(now_ms=NOW + 1)
+        self.assertEqual(recovered[0]["status"], "BLOCKED")
+        self.assertEqual(self.calls, [])
+
+
+    def test_symlink_bundle_reference_fails_closed_during_recovery(self):
+        raw = self.bundle_path.read_bytes()
+        bundle, cycle_key = self.runner._validated_bundle(raw)
+        stored_path, digest = self.runner._store_immutable_bundle(raw)
+        alias = self.bundle_dir / "alias.json"
+        alias.symlink_to(stored_path.name)
+        self.journal.claim_cycle(
+            cycle_key=cycle_key, bundle_id=bundle["bundleId"],
+            bundle_sha256=digest, bundle_path=str(alias),
+            source_sha="source-sha", config_sha256=self.config_sha256,
+            claimed_at_ms=NOW,
+        )
         recovered = self.runner.recover_incomplete(now_ms=NOW + 1)
         self.assertEqual(recovered[0]["status"], "BLOCKED")
         self.assertEqual(self.calls, [])
