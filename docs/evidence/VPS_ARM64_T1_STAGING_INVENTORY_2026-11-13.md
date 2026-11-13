@@ -201,3 +201,45 @@ Next proposed step: isolated no-install resolver/wheel-availability check for th
 - It does not prove standalone one-shot runtime operation, persistent process/service behavior, deployment readiness, or live-trading readiness.
 - No standalone `python -m core_runtime ... --run-once`, service/autostart, T0/T1/T2 mutation, exchange execution, or real orders were performed in this scope. Paper-only posture and `AI_EXECUTION_ENABLED=false` remain in force.
 - Next gate: separate explicit approval is required before standalone one-shot Runner invocation. Until then: **NOT AUTHORIZED / NOT RUN**.
+
+
+## Addendum — bounded standalone Core Runner PAPER invocation (2026-11-13)
+
+### Authorization and source guard
+- Owner approved one bounded one-shot invocation on a disposable fixture database only; this did not authorize service activation, repeated runs, exchange connectivity, or live trading.
+- VPS checkout: `/home/ubuntu/btcusdt-telegram-signals2`, branch `feature/core-operational-proof-20261112`.
+- Owner-provided source guard: expected/actual SHA `562362a69d8455a34e08385d26a47fa21d2b50ed`; clean worktree; final `SOURCE_UNCHANGED=PASS`.
+
+### Runtime result
+| Field | Observed result |
+|---|---|
+| Runner exit code | `0` |
+| Run status | `NO_SIGNAL` |
+| Core signal | `WAIT / CORE_INDICATORS_WARMUP` |
+| Risk decision | `null` |
+| Paper ledger reference | `null` |
+| Core position before → after | `0 → 0` |
+| AI position before → after | `0 → 0` |
+| AI orders after | `0` |
+| AI execution | `false` |
+| Fixture-only marker | `PASS` |
+| One-shot runtime marker | `PASS` |
+
+### Interpretation and limits
+- The actual one-shot CLI invocation completed successfully and the Core Strategy returned a warmup WAIT. No entry/exit intent, risk approval, ledger reference, fill, or trade lifecycle was exercised.
+- This is a **bounded no-signal runtime PASS**, not evidence of successful paper trading or production readiness.
+- The supplied script invokes `case.doCleanups()` in `finally`; however, the owner output did not include a post-cleanup filesystem check. Fixture cleanup verification remains **NOT VERIFIED**.
+- No source mutation, persistent process, service/autostart, exchange connection, API credentials, T0/T1/T2 mutation, or real order is reported. No GitHub Actions run/artifact is associated with this manual invocation.
+
+### Gate disposition
+| Gate | Status |
+|---|---|
+| Exact source guard / clean worktree | PASS (owner-provided) |
+| One-shot Runner CLI invocation | PASS (exit 0) |
+| Core signal outcome | NO_SIGNAL — warmup |
+| Risk Engine / PaperLedger trade path | NOT EXERCISED |
+| Fixture cleanup | NOT VERIFIED |
+| Persistent runtime / deployment | NOT VERIFIED |
+| Live trading / real orders | NOT AUTHORIZED |
+
+Next: no automatic rerun or expansion. Any ENTRY-path test requires separate bounded approval for a deterministic, sufficiently warmed fixture. Preserve `AI_EXECUTION_ENABLED=false` and paper-only posture.
