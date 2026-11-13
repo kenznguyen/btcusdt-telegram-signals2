@@ -2010,7 +2010,7 @@ os._exit(0)
 
 
     def test_mark_advancement_requires_contiguous_funding_coverage_and_allows_admission(self):
-        advanced_now = self.now + 5 * 60_000
+        advanced_now = self.now + 10 * 60_000
         record_verified_funding_coverage(
             self.path,
             coverage_id="mark-advance-adjacent-funding-coverage",
