@@ -233,3 +233,12 @@ Implementation must begin with failing tests (RED). No runtime/VPS retest, persi
 - Latest CI push run #595: [43343313970](https://github.com/kenznguyen/binance-futures-collector/actions/runs/43343313970), head SHA `40711fd013e734b3cfc30bad68656d5e7b5249ca`; all jobs QUEUED when recorded.
 - Prior source SHA `1ff34809a951b61236a0b5f6b7770cbc66b3bf34` and its run #593 are superseded for final acceptance; do not use the earlier SHA as the tested source head.
 - Current status remains implementation IN PROGRESS / final validation NOT VERIFIED. No artifacts are claimed.
+
+### CI queue progress — 2026-11-13
+
+- Latest run #595 [43343313970](https://github.com/kenznguyen/binance-futures-collector/actions/runs/43343313970) remains tied to exact T1 source SHA `40711fd013e734b3cfc30bad68656d5e7b5249ca`.
+- Native ARM64 job `131616595149` has started; checkout and toolchain setup passed; `Swatinem/rust-cache@v2` is still in progress. ARM64 format/Clippy/build/test have not started yet.
+- Rust x86_64, Docker, security, dashboard backend and frontend jobs remain QUEUED at this observation.
+- No CI conclusion is available. This is runner queue/cache delay, not a source-code PASS or FAIL.
+- Review spot-check: both text and binary WebSocket frames pass the original monotonic receive instant; only BTCUSDT consumes the typed V1 result; non-BTC symbols unwrap the original `DepthUpdateWs` and retain their legacy processing path; ring capacity/eviction code is unchanged. This is a source inspection only, not compiler verification.
+- Overall status remains NOT VERIFIED pending run #595's Rust checks and artifacts.
