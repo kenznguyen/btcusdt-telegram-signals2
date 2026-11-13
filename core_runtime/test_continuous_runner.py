@@ -178,6 +178,184 @@ class ContinuousCoreRunnerTest(unittest.TestCase):
         self.assertEqual(recovered[0]["status"], "BLOCKED")
         self.assertEqual(self.calls, ["attempt"])
 
+
+    def test_actual_paperledger_commit_is_reconciled_after_simulated_crash(self):
+        import os
+        from unittest.mock import patch
+
+        import paper_execution.test_core_first_operational as operational
+        from core_runtime.input_bundle import compute_bundle_id
+        from core_runtime.one_shot import run_once
+        from core_runtime.test_input_bundle_contract import valid_bundle
+        from paper_execution.ledger import read_account_risk_snapshot, read_snapshot
+        from pipeline.test_core_runtime_one_shot import producer_report
+
+        fixture = operational.CoreFirstOperationalProofTest()
+        fixture.setUp()
+        try:
+            bundle = valid_bundle()
+            risk = read_account_risk_snapshot(fixture.path, now_ms=fixture.now)
+            bundle["accountRisk"]["snapshot"] = risk
+            bundle["accountRisk"]["snapshotDigest"] = (
+                "sha256:" + __import__("hashlib").sha256(
+                    __import__("rfc8785").dumps(risk)
+                ).hexdigest()
+            )
+            paper = read_snapshot(fixture.path, strategy_id="STRATEGY_CORE")
+            bundle["paperState"] = {
+                "positionBase": paper["positionBase"],
+                "averageEntryPrice": paper["averageEntryPrice"],
+                "strategyState": {
+                    "owner": paper["strategyState"]["owner"],
+                    "dcaUsed": paper["strategyState"]["dcaUsed"],
+                    "strategyId": "STRATEGY_CORE",
+                },
+            }
+            bundle["bundleId"] = compute_bundle_id(bundle)
+            root = Path(fixture.temp.name)
+            config_path = root / "continuous-paper-config.json"
+            bundle_path = root / "continuous-bundle-v1.json"
+            config_path.write_text(json.dumps({
+                "mode": "PAPER",
+                "ai_execution_enabled": False,
+                "ledger_path": str(fixture.path),
+                "risk_limits": {
+                    "maxDrawdownPct": "50",
+                    "maxDailyLossUsdt": "50",
+                    "maxExposureUsdt": "1000",
+                },
+                "max_book_age_ms": 2_000,
+                "max_position_base": "0.01",
+            }), encoding="utf-8")
+            bundle_path.write_text(json.dumps(bundle), encoding="utf-8")
+            calls = []
+
+            def crash_after_commit(config, stored_bundle, *, now_ms, on_intent_prepared):
+                result = run_once(
+                    config, stored_bundle, now_ms=now_ms,
+                    on_intent_prepared=on_intent_prepared,
+                )
+                self.assertEqual(result["runStatus"], "PAPER_ACCEPTED", result)
+                calls.append(result)
+                raise RuntimeError("simulated process crash after committed PaperLedger submit")
+
+            runner = ContinuousCoreRunner(
+                config_path=config_path,
+                journal=ContinuousJournal(root / "continuous-journal.sqlite3"),
+                bundle_store_dir=root / "immutable-bundles",
+                source_sha="source-sha",
+                config_sha256="config-sha256",
+                settlement_ms=0,
+                max_book_age_ms=2_000,
+                run_once_fn=crash_after_commit,
+                preflight_fn=lambda *_args, **_kwargs: {"status": "PREFLIGHT_PASS"},
+            )
+            with patch.dict(os.environ, {
+                "AI_EXECUTION_ENABLED": "false",
+                "MARKET_DATA_DB": "",
+                "BINANCE_API_KEY": "",
+                "BINANCE_API_SECRET": "",
+                "OKX_API_KEY": "",
+                "OKX_API_SECRET": "",
+            }, clear=False), patch(
+                "pipeline.core_strategy.produce", return_value=producer_report()
+            ):
+                interrupted = runner.process_bundle(bundle_path, now_ms=fixture.now)
+                self.assertEqual(interrupted["status"], "UNKNOWN_REQUIRES_RECONCILIATION")
+                recovered = runner.recover_incomplete(now_ms=fixture.now + 1)
+
+            self.assertEqual(recovered[0]["status"], "PAPER_ACCEPTED")
+            self.assertEqual(len(calls), 1)
+            self.assertEqual(len(fixture.core.snapshot()["orders"]), 1)
+            self.assertEqual(fixture.core.snapshot()["positionBase"], "0.0001")
+            self.assertEqual(fixture.ai.snapshot()["positionBase"], "0")
+            self.assertEqual(len(fixture.ai.snapshot()["orders"]), 0)
+        finally:
+            fixture.doCleanups()
+
+    def test_delayed_scheduler_wake_selects_latest_eligible_closed_candle(self):
+        delayed_now = NOW + 900_000
+        wall_values = iter([NOW, NOW, delayed_now])
+        monotonic_value = [1.0]
+        requested = []
+        stop = [False]
+
+        def provider(candle_open):
+            requested.append(candle_open)
+            stop[0] = True
+            return None
+
+        result = self.runner.run_forever(
+            bundle_provider=provider,
+            wall_clock_ms=lambda: next(wall_values),
+            monotonic=lambda: monotonic_value[0],
+            sleep=lambda seconds: monotonic_value.__setitem__(
+                0, monotonic_value[0] + seconds
+            ),
+            stop_requested=lambda: stop[0],
+            max_sleep_seconds=1_000,
+        )
+        self.assertEqual(result, "STOPPED")
+        self.assertEqual(requested, [NOW])
+
+    def test_stop_requested_during_execution_allows_current_cycle_to_finish(self):
+        holder = {}
+
+        def stop_after_intent(config_path, bundle_path, *, now_ms, on_intent_prepared):
+            bundle = json.loads(Path(bundle_path).read_text(encoding="utf-8"))
+            on_intent_prepared({"intentId": "intent:" + bundle["bundleId"]})
+            holder["runner"].request_stop()
+            return {
+                "runId": "core-run:stopped",
+                "runStatus": "PAPER_ACCEPTED",
+                "paperLedgerReference": {"orderId": "paper:stopped"},
+            }
+
+        runner = self.make_runner(run_once_fn=stop_after_intent)
+        holder["runner"] = runner
+        result = runner.process_bundle(self.bundle_path, now_ms=NOW)
+        self.assertEqual(result["status"], "PAPER_ACCEPTED")
+        self.assertEqual(self.journal.get_cycle(result["cycleKey"])["status"],
+                         "PAPER_ACCEPTED")
+        provider_calls = []
+        stopped = runner.run_forever(
+            bundle_provider=lambda candle_open: provider_calls.append(candle_open),
+            wall_clock_ms=lambda: NOW,
+            monotonic=lambda: 1.0,
+            sleep=lambda _seconds: None,
+            stop_requested=lambda: False,
+        )
+        self.assertEqual(stopped, "STOPPED")
+        self.assertEqual(provider_calls, [])
+
+    def test_ai_execution_environment_override_blocks_before_cycle_claim(self):
+        import os
+        from core_runtime.preflight import PreflightError, _preflight
+        from unittest.mock import patch
+
+        runner = ContinuousCoreRunner(
+            config_path=self.config,
+            journal=self.journal,
+            bundle_store_dir=self.bundle_dir,
+            source_sha="source-sha",
+            config_sha256="config-sha256",
+            settlement_ms=0,
+            run_once_fn=self.fake_run_once,
+            audit_reader=self.fake_audit_reader,
+            preflight_fn=_preflight,
+        )
+        with patch.dict(os.environ, {
+            "AI_EXECUTION_ENABLED": "true",
+            "BINANCE_API_KEY": "",
+            "BINANCE_API_SECRET": "",
+            "OKX_API_KEY": "",
+            "OKX_API_SECRET": "",
+        }, clear=False):
+            with self.assertRaises(PreflightError):
+                runner.process_bundle(self.bundle_path, now_ms=NOW)
+        self.assertEqual(self.journal.list_cycles(), [])
+        self.assertEqual(self.calls, [])
+
     def test_stop_during_cadence_wait_does_not_request_or_claim_bundle(self):
         requested = []
         result = self.runner.run_forever(
