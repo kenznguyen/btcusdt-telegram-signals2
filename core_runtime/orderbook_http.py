@@ -3,6 +3,7 @@
 from dataclasses import dataclass, field
 import json
 import re
+import time
 from urllib.parse import urlsplit
 
 import requests
@@ -37,6 +38,7 @@ class OrderBookHttpConfig:
     token: str = field(repr=False)
     timeout_connect_s: float = 0.25
     timeout_read_s: float = 0.5
+    timeout_total_s: float = 0.75
     max_response_bytes: int = _DEFAULT_MAX_RESPONSE_BYTES
 
     def __post_init__(self):
@@ -45,7 +47,7 @@ class OrderBookHttpConfig:
         if (not isinstance(self.token, str) or not self.token
                 or len(self.token) > 4096 or not _TOKEN.fullmatch(self.token)):
             raise OrderBookHttpError("CONFIG_INVALID")
-        for value in (self.timeout_connect_s, self.timeout_read_s):
+        for value in (self.timeout_connect_s, self.timeout_read_s, self.timeout_total_s):
             if (isinstance(value, bool) or not isinstance(value, (int, float))
                     or not 0 < value <= 5):
                 raise OrderBookHttpError("CONFIG_INVALID")
@@ -70,7 +72,7 @@ class OrderBookHttpConfig:
 class OrderBookHttpClient:
     """Fetch exactly one T1 snapshot per call; never retries or falls back."""
 
-    def __init__(self, config, *, session=None):
+    def __init__(self, config, *, session=None, monotonic=None):
         if not isinstance(config, OrderBookHttpConfig):
             raise OrderBookHttpError("CONFIG_INVALID")
         self.config = config
@@ -80,6 +82,7 @@ class OrderBookHttpClient:
         else:
             self.session = session
         self.url = config.base_url + _ROUTE
+        self.monotonic = monotonic if monotonic is not None else time.monotonic
 
     @staticmethod
     def _unique_object(pairs):
@@ -101,6 +104,7 @@ class OrderBookHttpClient:
             raise OrderBookHttpError("DECISION_TIMESTAMP_INVALID")
 
         response = None
+        started_at = self.monotonic()
         try:
             response = self.session.get(
                 self.url,
@@ -115,6 +119,8 @@ class OrderBookHttpClient:
                 allow_redirects=False,
                 verify=True,
             )
+            if self.monotonic() - started_at > self.config.timeout_total_s:
+                raise OrderBookHttpError("HTTP_TIMEOUT")
             status = response.status_code
             if status == 401:
                 raise OrderBookHttpError("AUTH_REJECTED")
@@ -138,6 +144,8 @@ class OrderBookHttpClient:
 
             body = bytearray()
             for chunk in response.iter_content(chunk_size=8192):
+                if self.monotonic() - started_at > self.config.timeout_total_s:
+                    raise OrderBookHttpError("HTTP_TIMEOUT")
                 if not chunk:
                     continue
                 if not isinstance(chunk, bytes):
