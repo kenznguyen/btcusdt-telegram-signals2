@@ -6,11 +6,14 @@ on:
       - feature/core-operational-proof-20261112
     paths:
       - "paper_execution/bootstrap.py"
+      - "paper_execution/funding.py"
+      - "paper_execution/ledger.py"
       - "paper_execution/__main__.py"
       - "paper_execution/test_dual_ledger_bootstrap.py"
       - "paper_execution/funding_reconciliation.py"
       - "paper_execution/test_funding_reconciliation.py"
       - "paper_execution/test_funding_reconciliation_persistence.py"
+      - "paper_execution/test_dual_ledger_bootstrap.py"
       - ".github/workflows/dual-ledger-bootstrap-contract.yml"
   workflow_dispatch:
 
@@ -69,7 +72,7 @@ jobs:
       - name: Compile bootstrap implementation and tests
         run: |
           set -euo pipefail
-          python -m py_compile paper_execution/bootstrap.py paper_execution/__main__.py paper_execution/test_dual_ledger_bootstrap.py paper_execution/funding_reconciliation.py paper_execution/test_funding_reconciliation.py paper_execution/test_funding_reconciliation_persistence.py
+          python -m py_compile paper_execution/bootstrap.py paper_execution/__main__.py paper_execution/ledger.py paper_execution/funding.py paper_execution/test_dual_ledger_bootstrap.py paper_execution/funding_reconciliation.py paper_execution/test_funding_reconciliation.py paper_execution/test_funding_reconciliation_persistence.py
           echo "BOOTSTRAP_COMPILE=PASS" | tee bootstrap-compile.txt
 
       - name: Run focused bootstrap tests
