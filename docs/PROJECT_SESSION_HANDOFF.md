@@ -4326,3 +4326,12 @@ These findings make the current stop condition explicit: completing Trusted Admi
 - Safety boundary: the owner did not install `websockets`, `websocat`, `wscat`, or any other package; no runner was installed on the VPS; no binary was downloaded or executed; no service/autostart/systemd was configured; no T0 access; no exchange credentials or trade orders. `AI_EXECUTION_ENABLED=false`; paper-only.
 - Status: public REST **PASS** (two GET probes); public depth WebSocket **PASS** (148/148 valid events); ARM64 CI implementation **COMMITTED / NOT VERIFIED**; ARM64 artifact **NOT VERIFIED**; T1 collector runtime acceptance **BLOCKED** pending successful exact-SHA ARM64 CI build/artifact verification and explicit bounded runtime step. T1→T2 integration remains **BLOCKED**.
 - Next step: verify the new ARM64 CI run for exact commit `9b2af66e68206898e51f638b67497d574a7252c4`; if green, record workflow run ID, artifact ID, ELF machine and SHA-256 before downloading anything to the VPS. Do not execute until artifact provenance and explicit runtime scope are confirmed. T0 remains independent and untouched.
+
+
+## Latest T1 consumer-lag diagnostic checkpoint — 2026-11-13
+
+- T1 CI #595 run `43343313970` checked source SHA `40711fd013e734b3cfc30bad68656d5e7b5249ca`; Rust x86_64 job `131616594745` and native ARM64 job `131616595149` both failed only at `cargo fmt --all --check`. Clippy/build/tests/artifacts were skipped. Dashboard backend/frontend passed; Docker and security were still running at last poll.
+- Two formatter-only line-wrap differences in T1 `src/collectors/orderbook_manager.rs` were corrected in T1 commit `37c20475423d02fb4aea710232f7fc347051c3d0` on the existing T1 branch. No logic or runtime policy changed.
+- New SHA CI status: NOT VERIFIED; no workflow run tied to the corrected SHA was visible at checkpoint. Do not reuse #595 jobs as evidence for the new SHA.
+- Detailed run/job/blob evidence and limits: `docs/evidence/T1_ORDERBOOK_CONSUMER_LAG_DIAGNOSTIC_SPEC_2026-11-13.md` in this branch.
+- Next: identify/await CI for exact T1 SHA `37c20475423d02fb4aea710232f7fc347051c3d0`; confirm Rust x86_64 + native ARM64 fmt/Clippy/build/tests and artifacts before any PASS claim. No VPS retest, T0 access, T1→T2 integration, persistent service, or trading.
