@@ -152,7 +152,8 @@ class FundingPositionProjectionDatabaseTest(unittest.TestCase):
     def test_missing_required_migration_fails_closed(self):
         with sqlite3.connect(self.db_path) as db:
             db.execute(
-                "UPDATE paper_schema_migrations SET status='PENDING' WHERE version=8"
+                "UPDATE paper_schema_migrations SET checksum=? WHERE version=8",
+                ("0" * 64,),
             )
         with self.assertRaisesRegex(ValueError, "FUNDING_POSITION_SCHEMA_NOT_SUPPORTED"):
             load_paper_position_snapshots_from_db(
