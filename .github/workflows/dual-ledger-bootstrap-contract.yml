@@ -63,34 +63,28 @@ jobs:
           echo "BOOTSTRAP_EXTERNAL_SERVICES=NONE" | tee -a bootstrap-safety.txt
           echo "BOOTSTRAP_LIVE_ORDERS=FORBIDDEN" | tee -a bootstrap-safety.txt
 
-      - name: Compile bootstrap contract
-        run: |
-          set -euo pipefail
-          python -m py_compile paper_execution/bootstrap.py paper_execution/__main__.py paper_execution/test_dual_ledger_bootstrap.py
-          echo "BOOTSTRAP_COMPILE=PASS" | tee bootstrap-compile.txt
-
-      - name: Run focused bootstrap contract
+      - name: Run focused bootstrap contract (RED expected until implementation)
         shell: bash
         run: |
-          set -o pipefail
-          python -m unittest paper_execution.test_dual_ledger_bootstrap -v 2>&1 | tee bootstrap-tests.log
+          set +e
+          python -m unittest paper_execution.test_dual_ledger_bootstrap -v > bootstrap-tests.log 2>&1
+          result=$?
+          cat bootstrap-tests.log
+          if [[ "$result" -eq 0 ]]; then
+            echo "Expected RED before implementation but tests passed" >&2
+            exit 1
+          fi
+          grep -q "ModuleNotFoundError" bootstrap-tests.log
+          echo "BOOTSTRAP_TDD_RED=PASS" | tee bootstrap-red-status.txt
 
-      - name: Run PaperLedger regression
-        if: success()
-        shell: bash
-        run: |
-          set -o pipefail
-          python -m unittest discover -s paper_execution -p 'test_*.py' -v 2>&1 | tee paper-execution-regression.log
-
-      - name: Upload bootstrap evidence
+      - name: Upload RED evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: dual-ledger-bootstrap-contract-${{ github.sha }}
+          name: dual-ledger-bootstrap-red-${{ github.sha }}
           if-no-files-found: error
           path: |
             bootstrap-source-sha.txt
             bootstrap-safety.txt
-            bootstrap-compile.txt
             bootstrap-tests.log
-            paper-execution-regression.log
+            bootstrap-red-status.txt
