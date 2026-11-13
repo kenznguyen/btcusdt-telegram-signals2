@@ -8,6 +8,7 @@ from pathlib import Path
 from paper_execution.funding import (
     record_account_equity_cutover,
     record_funding_coverage,
+    record_funding_event,
     record_funding_reconciliation,
 )
 from paper_execution.ledger import PaperLedger
@@ -125,6 +126,49 @@ class FundingReconciliationPersistenceTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "FUNDING_RECONCILIATION_NOT_COMPLETE"):
             self.coverage(reconciliation_id=result["reconciliationId"])
 
+    def test_observed_population_is_enumerated_from_persisted_funding_events(self):
+        record_funding_coverage(
+            self.db_path,
+            coverage_id="paper-test-coverage",
+            start_at_ms=self.expected["startAtMs"],
+            end_at_ms=self.expected["endAtMs"],
+            status="DISABLED",
+            source="PAPER_TEST_CONFIGURATION",
+            source_snapshot_id="paper-test-config",
+            payload_hash="sha256:" + "6" * 64,
+            config_version="paper-risk-v1",
+            recorded_at_ms=self.now,
+        )
+        event = {
+            "eventId": "funding-evt-001",
+            "eventAtMs": self.now - 1,
+            "amountQuote": "0.125",
+            "payloadHash": "sha256:" + "7" * 64,
+        }
+        record_funding_event(
+            self.db_path,
+            funding_event_id=event["eventId"],
+            strategy_id="STRATEGY_CORE",
+            amount_quote=event["amountQuote"],
+            event_at_ms=event["eventAtMs"],
+            source="paper-test-funding",
+            source_snapshot_id="paper-test-event-snapshot",
+            payload_hash=event["payloadHash"],
+            recorded_at_ms=self.now,
+        )
+        expected = dict(self.expected)
+        expected["events"] = [event]
+
+        result = record_funding_reconciliation(
+            self.db_path, expected_population=expected,
+            recorded_at_ms=self.now,
+        )
+
+        self.assertEqual(
+            result["reconciliationStatus"], "COMPLETE_WITHIN_DECLARED_POPULATION"
+        )
+        self.assertEqual(result["counts"]["matched"], 1)
+
     def test_certificate_is_append_only(self):
         result = record_funding_reconciliation(
             self.db_path, expected_population=self.expected,
@@ -139,6 +183,7 @@ class FundingReconciliationPersistenceTest(unittest.TestCase):
 
     def test_cutover_rejects_legacy_verified_coverage_without_reconciliation(self):
         with sqlite3.connect(self.db_path) as db:
+            db.execute("DROP TRIGGER paper_funding_coverage_verified_requires_reconciliation")
             db.execute(
                 """INSERT INTO paper_funding_coverage
                    (coverage_id,account_id,start_at_ms,end_at_ms,status,source,
