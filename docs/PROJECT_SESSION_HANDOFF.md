@@ -4544,3 +4544,16 @@ These findings make the current stop condition explicit: completing Trusted Admi
 - Evidence: `docs/evidence/CORE_ONE_SHOT_RUNNER_T1_LEDGER_RED_CHECKPOINT_2026-11-13.md`, created in commit `e6fc346634bde7f0940183ccb76f0008e71d2e05`.
 - Status: owner scope APPROVED; T1 boundary test specification RECORDED; RED execution NOT VERIFIED; Ledger implementation NOT STARTED; One-shot Runner BLOCKED pending exact-SHA RED/GREEN proof.
 - Next: obtain an observable GitHub Actions execution for the exact branch SHA, confirm RED, then implement the minimal compatibility boundary using TDD. Do not skip RED or claim GREEN. All existing paper-only/no-runtime boundaries remain in force.
+
+
+## 2026-11-13 — T1 → PaperLedger compatibility GREEN; One-shot Runner implementation authorized
+
+- T1 PaperLedger compatibility implemented in `paper_execution/ledger.py` after observed RED. Explicit opt-in `allow_t1=False` preserves legacy Hummingbot behavior; only the `STRATEGY_CORE` scoped submit path enables T1. AI and MANUAL paths remain legacy-only.
+- T1 evidence is strictly reconstructed and validated against `T1_T2_ORDERBOOK_V1`, including canonical SHA256 snapshot identity, exact projection, timestamp, continuity, sequence, freshness and depth. Stable book identity binds source/connector/symbol/snapshotId. Existing per-level reservation semantics are retained; shared snapshot use is bounded by remaining visible depth.
+- Focused CI run `43363662032`, exact SHA `3adf741f5a454d677c003c375141acdd179b37f5`, job `131682851514`: **100/100 tests PASS**.
+- Core-First operational proof run `43363662013`, exact SHA `3adf741f5a454d677c003c375141acdd179b37f5`: **SUCCESS**, all jobs PASS including Core operational proof, account-wide read-only risk snapshot, shared risk/PaperLedger regressions and T1/T2 contract/HTTP/integration.
+- Artifact `14009053121`, SHA256 `c4a1dbffb4a1cb98a08d5577419a424e86ad5146838d147bc5921077a9bf26be`.
+- T1 compatibility evidence: `docs/evidence/CORE_ONE_SHOT_RUNNER_T1_LEDGER_COMPATIBILITY_GREEN_2026-11-13.md`, commit `39fe561d7e54530f5ba96e2bdb213ca047da4aff`.
+- Branch `feature/core-operational-proof-20261112` continues without divergence; tested SHA was 9 ahead / 0 behind from prior handoff checkpoint. Documentation commits follow the tested source.
+- Status: T1 → PaperLedger **PASS (CI)**; runtime **NOT VERIFIED**; One-shot Core Runner implementation **AUTHORIZED / NOT STARTED**.
+- Continue to One-shot Core Runner TDD. Consume validated Bundle v1 only; call existing Core RSI/ADX/Smart DCA producer and Core signal validator; all actionable intents must pass existing Core-scoped Shared Risk/PaperLedger admission; paper only; one invocation; no AI Strategy; no background loop; no VPS/runtime/systemd/autostart; no T0/T1 mutation; no live orders. Use read-only preflight before any write; no implicit migrations.
