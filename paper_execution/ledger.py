@@ -1693,11 +1693,11 @@ class PaperLedger:
                     migrate_reservation_expiry(connection, self.source_sha)
                     migrate_funding_provenance(connection, self.source_sha)
                     migrate_account_equity_cutover(connection, self.source_sha)
-                    migrate_funding_population_reconciliation(connection, self.source_sha)
                     migrate_account_history(connection, self.source_sha)
                     migrate_cutover_ledger_snapshots(connection, self.source_sha)
                     migrate_fee_currency_provenance(connection, self.source_sha)
                     migrate_daily_baseline_audit(connection, self.source_sha)
+                    migrate_funding_population_reconciliation(connection, self.source_sha)
                 elif not _dual_ledger_migrations_ready(connection):
                     raise sqlite3.DatabaseError("DUAL_LEDGER_MIGRATION_NOT_READY")
 
