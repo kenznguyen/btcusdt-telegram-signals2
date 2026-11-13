@@ -31,7 +31,7 @@ from paper_execution.funding import (
     migrate_funding_provenance, migrate_account_equity_cutover,
     migrate_funding_population_reconciliation,
     record_funding_event, record_funding_coverage, record_account_equity_cutover,
-    record_funding_reconciliation,
+    record_funding_reconciliation, _observed_funding_events,
 )
 
 ZERO = Decimal(0)
@@ -300,7 +300,8 @@ def _funding_provenance_ready(connection, coverage_start_at_ms, coverage_end_at_
                 if not reconciliation_id:
                     return False
                 certificate = connection.execute(
-                    """SELECT start_at_ms,end_at_ms,expected_snapshot_id,status,recorded_at_ms
+                    """SELECT start_at_ms,end_at_ms,expected_snapshot_id,status,
+                              recorded_at_ms,observed_snapshot_id
                        FROM paper_funding_reconciliations WHERE reconciliation_id=?""",
                     (reconciliation_id,),
                 ).fetchone()
@@ -310,6 +311,9 @@ def _funding_provenance_ready(connection, coverage_start_at_ms, coverage_end_at_
                             "COMPLETE_WITHIN_DECLARED_POPULATION",
                         )
                         or certificate[4] > now):
+                    return False
+                _, observed_digest = _observed_funding_events(connection, start, end)
+                if certificate[5] != observed_digest:
                     return False
             previous_end = end
 
