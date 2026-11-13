@@ -3,6 +3,7 @@
 import argparse
 import json
 from pathlib import Path
+import subprocess
 
 from paper_execution.ledger import PaperLedger
 
