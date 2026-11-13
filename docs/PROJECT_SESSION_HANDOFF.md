@@ -4593,3 +4593,16 @@ These findings make the current stop condition explicit: completing Trusted Admi
 - No packages were installed, no file ownership/permissions changed, no binary was executed, no service/container was started, no repository checkout was modified on the VPS, no T0/T1/T2 data was changed, and no order/trading action occurred.
 - Evidence report: `docs/evidence/VPS_ARM64_T1_STAGING_INVENTORY_2026-11-13.md`.
 - Next: establish the T1 ZIP's exact producing commit/workflow/artifact and independently compare the archive digest to a trusted published digest. Separately plan a read-only source-parity check for the Core Runner checkout. No test execution, T1 activation, dependency installation, Core Runner invocation, systemd/autostart, or live trading is authorized by this inventory.
+
+
+## 2026-11-13 — T1 ARM64 artifact provenance reconciled
+
+- The previously recorded VPS archive `t1-arm64-9b2af66.zip` is now bound to the exact native ARM64 GitHub Actions artifact.
+- Source repository: `kenznguyen/binance-futures-collector`; branch `feature/t1-connection-sidecar-integration-20261107`; exact source SHA `9b2af66e68206898e51f638b67497d574a7252c4`; source commit message: `ci: add native ARM64 collector build artifact`.
+- Push workflow run `43334117748`: completed SUCCESS; exact `head_sha` matches the source SHA. Native ARM64 build/test/artifact job `131585840822`: SUCCESS, as recorded in the T1 artifact verification report. PR run `43334123943`: SUCCESS, but artifact upload was skipped for the PR event.
+- Workflow run artifact inventory independently read from GitHub: artifact ID `13996767785`, name `t1-collector-linux-aarch64-9b2af66e68206898e51f638b67497d574a7252c4`, size 3,985,895 bytes, created `2026-11-13T00:09:21Z`, expires `2026-11-20T00:09:20Z`, GitHub digest `sha256:a1fbb27bcdb7d47b223b3a85ed40bef0df2a2328a9ae3a0c4b735e3066a9e7b0`.
+- This digest and size exactly match the owner-measured VPS ZIP. The embedded binary SHA-256 also matches the manifest and the T1 artifact verification report. T1 archive provenance and binary integrity: **PASS**.
+- Historical bounded VPS smoke is already recorded in `docs/evidence/T1_ARM64_CI_ARTIFACT_VERIFICATION_2026-11-13.md`: BTCUSDT-only manual foreground run approximately 80–84 seconds, two WebSocket connections, captured data, then graceful SIGINT shutdown. This was not a persistent deployment. Runtime acceptance remains **PARTIAL** because a freshness rejection/resnapshot occurred and the exact rejected event/consumer lag root cause was not proven. T1→T2 remains **BLOCKED**.
+- Current supplied process/listener inventory shows no T1 process running. Distinguish historical bounded smoke PASS from current process state (not running).
+- Source parity comparison confirms the VPS checkout SHA `4af5bf0536c8b45f59033f0bc38625a031621c3e` is an ancestor of current Core First branch HEAD before this addendum and is **164 commits behind / 0 ahead**. Do not execute Core Runner tests or runtime on the stale checkout.
+- Updated evidence: `docs/evidence/VPS_ARM64_T1_STAGING_INVENTORY_2026-11-13.md` addendum. No VPS operation, binary execution, package installation, T0 access, or service change was performed in this reconciliation.

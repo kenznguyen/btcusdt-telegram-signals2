@@ -69,3 +69,29 @@ Read-only inventory of the owner-provided replacement Scaleway VPS, Python/depen
 2. Compare the measured archive SHA-256 against the trusted published artifact digest.
 3. Plan a bounded, read-only Core Runner source-parity check before any test proposal.
 4. Keep T0 independent and untouched. No installation, binary execution, runtime activation, background service, systemd/autostart, Core Runner invocation, or live trading without separate explicit authorization.
+
+
+## Addendum — exact T1 artifact provenance confirmed
+
+The initial inventory marked archive provenance NOT VERIFIED because no trusted source binding had yet been retrieved. This is superseded by the following exact GitHub evidence:
+
+- Source repository: `kenznguyen/binance-futures-collector`.
+- Branch: `feature/t1-connection-sidecar-integration-20261107`.
+- Source SHA: `9b2af66e68206898e51f638b67497d574a7252c4`.
+- Source commit: `ci: add native ARM64 collector build artifact`.
+- Push workflow run: `43334117748`, completed SUCCESS, head SHA exactly matches source SHA.
+- Native ARM64 job: `131585840822`, SUCCESS (per the source evidence report).
+- Artifact ID: `13996767785`.
+- Artifact name: `t1-collector-linux-aarch64-9b2af66e68206898e51f638b67497d574a7252c4`.
+- Artifact size: 3,985,895 bytes.
+- GitHub artifact digest: `sha256:a1fbb27bcdb7d47b223b3a85ed40bef0df2a2328a9ae3a0c4b735e3066a9e7b0`.
+- Artifact expiry: `2026-11-20T00:09:20Z`.
+- Owner-measured VPS ZIP digest and size exactly match GitHub artifact metadata. Embedded binary checksum matches the archive manifest.
+
+Updated disposition: T1 source/workflow/artifact provenance PASS; archive digest PASS; binary-to-manifest digest PASS; ELF AArch64 PASS.
+
+### Historical runtime evidence clarification
+The repository's `T1_ARM64_CI_ARTIFACT_VERIFICATION_2026-11-13.md` records a prior BTCUSDT-only manual foreground smoke lasting approximately 80–84 seconds, followed by SIGINT and graceful shutdown. It is historical bounded runtime evidence, not a persistent service. Overall runtime acceptance remains PARTIAL because the capture included a freshness rejection/resnapshot and exact root cause was NOT VERIFIED. T1→T2 remains BLOCKED. Current owner-pasted process scan found no T1 process running.
+
+### Core checkout freshness
+GitHub compare confirms VPS local SHA `4af5bf0536c8b45f59033f0bc38625a031621c3e` is an ancestor of the current branch and is 164 commits behind / 0 ahead at the latest recorded branch state. No tests or Core Runner runtime may be run from this stale checkout.
