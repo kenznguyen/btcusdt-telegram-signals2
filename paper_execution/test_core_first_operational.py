@@ -1,5 +1,6 @@
 import os
 import json
+import hashlib
 import multiprocessing
 from concurrent.futures import ThreadPoolExecutor
 from threading import Barrier
@@ -13,6 +14,7 @@ from unittest.mock import patch
 from paper_execution import ledger as ledger_module
 from paper_execution.ledger import PaperLedger
 from pipeline.api import core_decide
+import rfc8785
 
 
 def candles(count, interval, end_ms):
@@ -197,6 +199,96 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
             side_effect=indicator_values if indicator_values is not None else self.core_indicators(adx)
         ):
             return core_decide(decision_at, book or self.book)
+
+    def test_one_shot_runner_submits_only_validated_bundle_v1_to_core_paper_ledger(self):
+        from core_runtime.input_bundle import compute_bundle_id
+        from core_runtime.one_shot import run_once
+        from core_runtime.test_input_bundle_contract import valid_bundle
+        from paper_execution.ledger import read_account_risk_snapshot, read_snapshot
+
+        bundle = valid_bundle()
+        risk = read_account_risk_snapshot(self.path, now_ms=self.now)
+        bundle["accountRisk"]["snapshot"] = risk
+        bundle["accountRisk"]["snapshotDigest"] = (
+            "sha256:" + hashlib.sha256(rfc8785.dumps(risk)).hexdigest()
+        )
+        paper = read_snapshot(self.path, strategy_id="STRATEGY_CORE")
+        bundle["paperState"] = {
+            "positionBase": paper["positionBase"],
+            "averageEntryPrice": paper["averageEntryPrice"],
+            "strategyState": {
+                "owner": paper["strategyState"]["owner"],
+                "dcaUsed": paper["strategyState"]["dcaUsed"],
+                "strategyId": "STRATEGY_CORE",
+            },
+        }
+        bundle["bundleId"] = compute_bundle_id(bundle)
+
+        root = Path(self.temp.name)
+        config_path = root / "one-shot-paper-config.json"
+        bundle_path = root / "one-shot-bundle-v1.json"
+        config_path.write_text(json.dumps({
+            "mode": "PAPER",
+            "ai_execution_enabled": False,
+            "ledger_path": str(self.path),
+            "risk_limits": {
+                "maxDrawdownPct": "50",
+                "maxDailyLossUsdt": "50",
+                "maxExposureUsdt": "1000",
+            },
+            "max_book_age_ms": 2_000,
+            "max_position_base": "0.01",
+        }), encoding="utf-8")
+        bundle_path.write_text(json.dumps(bundle), encoding="utf-8")
+        report = {
+            "action": "BUY",
+            "reason": "RSI_ADX_ENTRY",
+            "intent": {
+                "schemaVersion": 1,
+                "source": "STRATEGY_CORE",
+                "exchange": "binance",
+                "marketType": "USDT_PERPETUAL",
+                "symbol": "BTCUSDT",
+                "timeframe": "15m",
+                "action": "LONG",
+                "reason": "RSI_ADX_ENTRY",
+                "strategyVersion": "rsi-adx-smart-dca-v1",
+                "datasetVersion": bundle["marketData"]["m15"]["datasetVersion"],
+                "inputSnapshotId": "core-one-shot-integration",
+                "decisionAtMs": self.now,
+                "validUntilMs": self.now + 30_000,
+                "targetPositionBase": "0.0001",
+                "limitPrice": "50001",
+                "initialMarginQuote": "1",
+                "candleOpenTimeMs": bundle["marketData"]["m15"]["candles"][-1]["openTimeMs"],
+            },
+        }
+        with patch.dict(os.environ, {
+            "AI_EXECUTION_ENABLED": "false",
+            "MARKET_DATA_DB": "",
+            "BINANCE_API_KEY": "",
+            "BINANCE_API_SECRET": "",
+            "OKX_API_KEY": "",
+            "OKX_API_SECRET": "",
+        }, clear=False), patch("pipeline.core_strategy.produce", return_value=report):
+            result = run_once(config_path, bundle_path, now_ms=self.now)
+
+        self.assertEqual(result["runStatus"], "PAPER_ACCEPTED", result)
+        self.assertEqual(result["signal"]["action"], "BUY")
+        self.assertEqual(self.core.snapshot()["positionBase"], "0.0001")
+        self.assertEqual(self.ai.snapshot()["positionBase"], "0")
+        self.assertEqual(len(self.ai.snapshot()["orders"]), 0)
+
+        # The first commit changes the account-risk snapshot. Replaying the old
+        # bundle is rejected before a second PaperLedger submission.
+        with patch.dict(os.environ, {
+            "AI_EXECUTION_ENABLED": "false", "MARKET_DATA_DB": "",
+            "BINANCE_API_KEY": "", "BINANCE_API_SECRET": "",
+            "OKX_API_KEY": "", "OKX_API_SECRET": "",
+        }, clear=False):
+            replay = run_once(config_path, bundle_path, now_ms=self.now + 1)
+        self.assertEqual(replay["runStatus"], "INPUT_REJECTED", replay)
+        self.assertEqual(self.core.snapshot()["positionBase"], "0.0001")
 
     def test_core_signal_flows_through_shared_risk_into_paper_ledger(self):
         signal = self.decide()
