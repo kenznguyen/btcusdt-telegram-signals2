@@ -5020,3 +5020,15 @@ Next: preserve this proof and do not rerun automatically. Any additional runtime
 - Real external expected-population source, actual independence, issuer authenticity, external source-byte readback, factual truth, global completeness and freshness remain **NOT VERIFIED**. Real non-empty funding history import is **NOT IMPLEMENTED**. Production bootstrap remains **BLOCKED / NOT APPROVED**.
 - No VPS, production DB, T0, Runner, One-shot, exchange credentials or orders were touched. Tests use temporary SQLite and synthetic fixtures. Paper-only and `AI_EXECUTION_ENABLED=false` remain unchanged.
 - Next: define the provenance contract for a genuinely independent expected funding population source and evidence readback. Do not connect a real source or use real account data without a separate exact-scope approval.
+
+
+## 2026-11-14 — D07.1 source-neutral expected-population provenance contract
+
+- Owner approved D07.1 as a bounded source-neutral contract/design increment on the existing branch `feature/core-operational-proof-20261112`; no new branch or PR.
+- Baseline HEAD before this documentation commit: `9cf1510ad21c73a23c2964f230a650b953e76481`.
+- Added `docs/evidence/D07_1_EXPECTED_FUNDING_POPULATION_PROVENANCE_CONTRACT_2026-11-14.md` and linked the contract from `paper_execution/README.md`.
+- Contract separates source identity, issuer authenticity, exact-byte integrity, independent byte readback, enumeration/pagination completeness, lineage independence, freshness and factual truth. It specifies the provenance envelope, page manifest, independence assessment, fail-closed cases, separate status semantics and a future synthetic test matrix.
+- SHA-256 is explicitly limited to exact-byte integrity; readback does not authenticate the issuer or prove completeness. Caller-supplied labels/IDs and distinct snapshots do not establish independence.
+- Disposition: **DOCUMENTED**. Source/provider selection, external source access/readback, source adapter, parser, signature/key workflow, database migration and runtime changes are **NOT APPROVED / NOT IMPLEMENTED**. Actual independence, issuer authenticity, global completeness, freshness and factual truth remain **NOT VERIFIED**.
+- No production credentials, real account evidence, VPS, production DB, T0, Runner/One-shot, exchange credentials or orders were used. Paper-only and `AI_EXECUTION_ENABLED=false` remain unchanged. Production bootstrap remains **BLOCKED / NOT APPROVED**.
+- Next bounded step: review the source-neutral contract and prepare a separate source-specific decision package only if an actual independent source is identified. Do not connect a source or use real account data without a separate exact-scope approval.

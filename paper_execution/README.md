@@ -229,3 +229,16 @@ This is synthetic test/CI integration only. `independence=DECLARED_NOT_VERIFIED`
 `issuerAuthenticity=NOT_VERIFIED` remain explicit. Real external source
 authentication and completeness are not established; production bootstrap
 remains blocked.
+
+
+## D07.1 source-neutral expected-population provenance contract
+
+Before any future independent-completeness claim, see
+[`docs/evidence/D07_1_EXPECTED_FUNDING_POPULATION_PROVENANCE_CONTRACT_2026-11-14.md`](../docs/evidence/D07_1_EXPECTED_FUNDING_POPULATION_PROVENANCE_CONTRACT_2026-11-14.md).
+The contract separates source identity, issuer authenticity, exact-byte integrity,
+independent byte readback, pagination/enumeration completeness, lineage independence,
+freshness and factual truth. A SHA-256 digest or successful readback does not
+authenticate the issuer or prove completeness. No source adapter, real-data access,
+signature/key workflow, database migration or runtime behavior is authorized by
+that design document. D07 continues to claim only
+`COMPLETE_WITHIN_DECLARED_POPULATION`; production bootstrap remains blocked.
