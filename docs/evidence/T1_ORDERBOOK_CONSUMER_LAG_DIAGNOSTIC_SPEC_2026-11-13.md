@@ -275,3 +275,19 @@ Implementation must begin with failing tests (RED). No runtime/VPS retest, persi
 - Disposition: exact-source CI code/test gates **PASS**. Binary artifact, ELF machine verification, embedded SHA256SUMS and binary SHA-256 **NOT VERIFIED / NOT GENERATED** by this PR run. Do not claim deployment-ready binaries or use this run as artifact provenance.
 - No source changes were made in response to this run. No VPS runtime retest, T0 access, T1→T2 integration, persistent service/autostart, credentials or trading occurred.
 - Next bounded action: if an ARM64/x86_64 binary artifact is required, obtain a push-triggered workflow run for the same source SHA or a separately approved artifact-only workflow change; verify exact source SHA, artifact IDs/names, ELF architecture and binary SHA-256 before any runtime use. Runtime execution still requires its own explicit authorization.
+
+
+### CI artifact workflow enablement — 2026-11-13
+
+- Owner approval: GRANTED for a CI-only change to enable x86_64/ARM64 artifact generation and verification; collector source/runtime code remains out of scope.
+- T1 repository: `kenznguyen/binance-futures-collector`; existing branch: `feature/t1-connection-sidecar-integration-20261107`.
+- Exact T1 workflow commit: `adaa972664cad074101a4ecdf12e55396b8e30a1`; commit URL: https://github.com/kenznguyen/binance-futures-collector/commit/adaa972664cad074101a4ecdf12e55396b8e30a1.
+- Changed file: `.github/workflows/ci.yml`; old blob `e907972128d680d7d4b3cf0f0e1cbc533a53c869`; new blob `3c542d66203d705c1ffc3e2c3a7387d400a574bb`.
+- Minimal diff: add `workflow_dispatch`; change exactly four x86_64/ARM64 artifact preparation, ELF verification, checksum and upload guards from push-only to `push || workflow_dispatch`. No collector source, test, runtime, or deployment configuration changed.
+- Exact commit metadata and diff were fetched from GitHub; workflow file was re-fetched from the target branch and verified to contain the manual trigger and all four updated guards.
+- Workflow execution/artifact evidence: **NOT VERIFIED** at this checkpoint. The available GitHub connector exposes PR-filtered commit-run lookup and artifact/job lookup by known run ID, but no workflow-dispatch or general push-run listing action. Do not invent a run ID or claim artifact creation. The commit is on a push-triggered branch, but run identity/status must be obtained from GitHub Actions before acceptance.
+- x86_64/ARM64 artifact IDs, ELF machine identities and binary SHA-256 values: **NOT VERIFIED**.
+- T1 source CI #598 at prior SHA `37c20475423d02fb4aea710232f7fc347051c3d0` remains the last fully verified code/test gate; it does not verify this newer workflow commit or produce artifacts.
+- Scope limits remain: no VPS runtime retest, no T0 access/change, no T1→T2 integration, no persistent service/autostart, no trading/orders, and no PR merge. PR #1 remains OPEN/DRAFT/NOT MERGED unless independently rechecked.
+- Next: inspect GitHub Actions for workflow run on exact SHA `adaa972664cad074101a4ecdf12e55396b8e30a1`; require all jobs PASS and both artifacts present; verify artifact source SHA, ELF architectures and embedded binary checksums. If the run did not trigger, use the Actions UI to dispatch `CI` manually on the same branch. No runtime use until artifact provenance is verified and separate runtime approval is confirmed.
+- Status: CI workflow change **COMMITTED / SOURCE VERIFIED**; workflow run **NOT VERIFIED**; artifacts **NOT VERIFIED**; runtime **NOT AUTHORIZED**.
