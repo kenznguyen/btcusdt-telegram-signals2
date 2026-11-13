@@ -252,3 +252,13 @@ Implementation must begin with failing tests (RED). No runtime/VPS retest, persi
 - Minimal formatting correction committed on the same T1 branch `feature/t1-connection-sidecar-integration-20261107`: commit `37c20475423d02fb4aea710232f7fc347051c3d0`, message `style: fix orderbook manager formatting from CI 595`. Updated file blob: `83441f406a0ede01df1bb1c448b378706ad9bbcf` (previous blob `64e493bdf431e044e62a6ea5d09738685ae120da`). Only the two formatter-requested line wraps were changed.
 - New-source validation: **NOT VERIFIED**. The commit's combined status query returned no status checks, and the PR-run lookup returned no associated run at the time of recording. Do not rerun jobs from #595 because they would validate the old SHA, not the correction.
 - Current T1 status: formatting correction COMMITTED; new-SHA Rust fmt/Clippy/build/tests and artifact **NOT VERIFIED / NOT GENERATED**. Next step: locate or await a workflow run whose checked-out SHA is exactly `37c20475423d02fb4aea710232f7fc347051c3d0`; then verify both Rust architectures and all remaining CI jobs. If no run is triggered, inspect the workflow trigger policy before taking any further action. No runtime/VPS retest, T0 access, T1→T2 integration, persistent service, or trading was performed.
+
+
+### Exact-source CI #598 progress — 2026-11-13
+
+- Corrected T1 source SHA: `37c20475423d02fb4aea710232f7fc347051c3d0`; confirmed as PR #1 head SHA and the source of CI run #598: [43344045479](https://github.com/kenznguyen/binance-futures-collector/actions/runs/43344045479).
+- Rust x86_64 job `131618970778`: Format PASS; Clippy PASS; Build IN_PROGRESS at latest poll; tests/sidecar/artifact steps pending.
+- Native ARM64 job `131618970678`: native runner assertion PASS; Format PASS; Clippy PASS; Build IN_PROGRESS at latest poll; tests/ELF/artifact steps pending.
+- Dashboard backend `131618970744` and frontend `131618970674`: PASS. Docker `131618970330` and security `131618970643`: IN_PROGRESS at latest poll.
+- Current disposition: exact-SHA formatting and Clippy gates **PASS** on both Rust architectures; complete CI, build/tests and artifacts remain **IN PROGRESS / NOT VERIFIED**. No artifact ID, filename or digest claimed.
+- Next: poll run #598 until all jobs complete; if Rust jobs pass, verify Collector and Sidecar test results and both x86_64/ARM64 artifact metadata, then independently verify artifact payload hashes/ELF as available. No runtime/VPS retest, T0 access, T1→T2 integration, persistent service, or trading.
