@@ -204,3 +204,24 @@ Implementation must begin with failing tests (RED). No runtime/VPS retest, persi
 - Explicit precedence encoded by tests to preserve current validator order: malformed header (shape) before sequence; sequence before levels/freshness; level/structural shape before freshness. Existing decision watermark remains immutable on rejection.
 - Disposition: typed rejection RED = CONFIRMED at compile boundary; assertions have not executed because the typed API is intentionally absent. Receive-time wrapper RED = previously CONFIRMED. Overall source implementation remains NOT STARTED.
 - Next action: implement typed validation boundary without parsing error strings, then thread original monotonic receive time and insertion time through ring and BTCUSDT attach/live buffers. Preserve all Section 7 restrictions.
+
+### 2026-11-13 bounded implementation progress — CI pending
+
+- Current T1 source branch head recorded: `feature/t1-connection-sidecar-integration-20261107`.
+- Current T1 source SHA: `1ff34809a951b61236a0b5f6b7770cbc66b3bf34`.
+- Implementation commits on the same branch:
+  - `950d92b7586a1709bd5d327db29ed4b4f627a40a` — typed live-diff rejection boundary; preserves the original validation order and keeps the legacy `apply_live_diff` API as an anyhow-compatible wrapper.
+  - `b0242d7d52c06fa904aa3bc4dbd6cef5c3213113` — internal buffered envelope with original receive instant and insertion instant; ring buffer retains the metadata.
+  - `6bc90865c9a91b6cf4a097c9991be612243918c6` — BTCUSDT live consumer typed classes and bounded per-batch timing/depth summary.
+  - `343be9fa62b184610eb7f229fa6f1b2bc47e71db` — capture receive instant for both text and binary WebSocket frames before decoding/parsing.
+  - `05bb5e3d3a161a9eac032306903d6c71d17bb32a` — preserve timing metadata through BTCUSDT REST-anchor attach and measure attach batch.
+  - `a5b57fdba6031e1c2a0d18211fa07e7ec3181b61` / `f55f575eb5a9671cd7ed7f58c4e427e4c87b35a8` — deterministic monotonic timing helper/tests and consumer use of the tested helper.
+  - `f9191f909376cfeda0b8f669df90c5ade0d10c45` / `af65a1acf0c369346758187a0db20b296cc4e7ef` / `1ff34809a951b61236a0b5f6b7770cbc66b3bf34` — stable five-class rejection labels, typed consumer mapping, and update-ID ordering classification.
+- Additional formatting-only commits are retained in the same branch; no branch rewrite or merge was performed.
+- Current instrumentation uses monotonic time only for receive-to-apply and buffer residence; UTC milliseconds remain the input to existing freshness validation. No Binance event-time substitution or freshness threshold change was made.
+- The ring drain reports pre/post depth atomically. BTCUSDT attach and live batches log bounded summaries only; no per-event timing logs, unbounded history, persistent telemetry, or high-cardinality labels were added.
+- Rejection labels are stable: `FRESHNESS_REJECTED`, `SEQUENCE_REJECTED`, `SHAPE_REJECTED`, `PUBLISH_FENCED`, `LEGACY_MIRROR_REJECTED`. Live-diff validation order is header -> sequence -> levels/structure -> source/observation freshness.
+- `MAX_BOOK_AGE_MS` remains exactly `2_000`; ring capacity, eviction, retry/replay, reconnect and resnapshot policies were not intentionally changed.
+- Latest CI push run #593: [43343115774](https://github.com/kenznguyen/binance-futures-collector/actions/runs/43343115774), head SHA `1ff34809a951b61236a0b5f6b7770cbc66b3bf34`; jobs were QUEUED when recorded. Earlier intermediate runs failed at `cargo fmt` before compile; their formatting findings were corrected in later same-branch commits. Do not treat those intermediate failures as implementation test failures.
+- Current disposition: implementation = IN PROGRESS; final fmt/Clippy/build/tests = NOT VERIFIED pending run #593; artifacts = NOT GENERATED/NOT VERIFIED. No VPS runtime retest or other non-goal activity performed.
+- Next action: await latest source-head CI; fix only concrete findings, then obtain Rust x86_64 + native ARM64 fmt/Clippy/build/test and artifact evidence before considering this increment PASS.
