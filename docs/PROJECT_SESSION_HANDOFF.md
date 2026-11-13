@@ -4854,3 +4854,12 @@ Next: preserve this proof and do not rerun automatically. Any additional runtime
 - Workflow reporting corrected: One-shot test count is now 14 (the prior status script incorrectly expected 11); workflow commit 5f49c98cde4f8bc03d67626db5052f16543ae4e8. Current workflow now compiles and archives continuous cadence, journal and orchestration test files/logs and publishes their statuses.
 - Current status: scheduler, journal, orchestration and real PaperLedger recovery PASS at source 8f1e916...; checkpoint implementation committed / CI NOT VERIFIED; full C1-C8 GREEN NOT ACHIEVED. Continue only on feature/core-operational-proof-20261112.
 - Safety: paper-only; AI_EXECUTION_ENABLED=false. No Strategy Core, Shared Risk Engine, PaperLedger schema/behavior, T0/T1/T2, AI Strategy, exchange, VPS runtime, service/autostart or real order changes.
+
+## 2026-11-13 — Checkpoint component GREEN
+
+- Checkpoint RED confirmed at run 43415426955, source ddef24fdc68fb55cdba7c59ce3f6399d574d498d, because ContinuousJournal.get_checkpoint was absent.
+- Added checkpoint storage and readback in commit 5d3e2987d952de0aaf125bf69d6d2bfc7ea0e52d. Checkpoint advancement occurs inside the same SQLite transaction as terminal NO_SIGNAL, PAPER_ACCEPTED or RISK_REJECTED state transition; it is monotonic by candle open time. UNKNOWN_REQUIRES_RECONCILIATION, INPUT_REJECTED and FAILED do not advance it.
+- GREEN regression run: 43415771895, job 131853156497, source SHA 5d3e2987d952de0aaf125bf69d6d2bfc7ea0e52d, SUCCESS. Cadence 5/5, journal 10/10, orchestration 12/12; all existing Core/One-shot/Bundle/adapter/PaperLedger/risk/T1-T2 steps SUCCESS.
+- Artifact: ID 14031268827, name core-first-code-operational-proof-43415771895, SHA-256 ee56dec1d12da849a8e271000d74c382a0adea04fba09210016c98fad0f00d76, expires 2026-11-20T11:16:45Z.
+- One-shot workflow reporting now checks 14 tests (not 11) and publishes continuous cadence/journal/orchestration logs in artifact. This run's full workflow completed SUCCESS.
+- Remaining C1-C8 gaps under test: exclusive process ownership, actual config-digest revalidation, terminal journal-vs-ledger audit consistency, kill-switch runner integration, restart after claim-before-execution, and corrupted-bundle recovery. New RED tests for these cases are being staged; current implementation is not yet full C1-C8 GREEN.
