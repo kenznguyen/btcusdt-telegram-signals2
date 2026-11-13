@@ -146,3 +146,15 @@ GitHub compare confirms VPS local SHA `4af5bf0536c8b45f59033f0bc38625a031621c3e`
 | Core Runner invocation/service activation | NOT AUTHORIZED / NOT RUN |
 
 Next proposed step: isolated no-install resolver/wheel-availability check for the minimal Core Runner dependency only, after verifying a safe pip invocation path. Do not bootstrap pip, install packages, create a persistent environment, build, test, invoke Runner, or activate services without separate explicit approval. T0/T1/T2 and paper-only boundaries remain unchanged.
+
+
+## Addendum — VPS ARM64 Core Runner venv preparation (2026-11-13)
+
+- Owner approved a bounded host-preparation step: install python3-venv, create an isolated Core Runner virtual environment, verify pip, and check availability of the minimal rfc8785 wheel without installing it.
+- APT installed python3-venv 3.12.3-0ubuntu2.1 (arm64). APT reported no service/container restarts required and no outdated user sessions; 46 unrelated package upgrades were left untouched.
+- Created /home/ubuntu/.venvs/btcusdt-core-runtime. Verified Python 3.12.3, pip 24.0 from that venv, its Python executable path, and aarch64 architecture.
+- pip download --no-deps --only-binary=:all: rfc8785==0.1.4 succeeded. Wheel: /tmp/core-runtime-dependency-check/rfc8785-0.1.4-py3-none-any.whl; 9,240 bytes; SHA-256 520d690b448ecf0703691c76e1a34a24ddcd4fc5bc41d589cb7c58ec651bcd48.
+- rfc8785 was downloaded but NOT installed. No import verification, tests, build, Core Runner execution, service activation, or trading occurred. T0/T1/T2 were not changed.
+- Source SHA before/after: 562362a69d8455a34e08385d26a47fa21d2b50ed. Owner-reported Git working tree clean. Local prompt still reports [ahead 165] due to stale origin/* tracking metadata; this is not branch divergence and no push was needed.
+- Gate status: host venv support install PASS; isolated venv and pip PASS; wheel download/resolution PASS; package install/import NOT DONE/NOT VERIFIED; project tests/build/runtime NOT VERIFIED; Runner NOT AUTHORIZED / NOT RUN.
+- Next gate requires separate approval to install only rfc8785==0.1.4 into the isolated venv and verify import. Tests/build and Runner invocation remain separate approval gates. Maintain paper-only posture and AI_EXECUTION_ENABLED=false.
