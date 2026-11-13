@@ -4952,3 +4952,13 @@ Next: preserve this proof and do not rerun automatically. Any additional runtime
 - Status: **IMPLEMENTATION + DISPOSABLE CI PASS** (9/9 focused; 425/425 full PaperLedger regression). **Production bootstrap remains NOT APPROVED / NOT VERIFIED** because source authenticity and the actual owner-supplied funding/equity evidence custody are not established. The CLI has not been run against any production database.
 - VPS, production database, T0, Runner, One-shot and trading: **NOT TOUCHED / NOT RUN**.
 - Next: retrieve final result and artifact for run `43438486990`, record exact regression count and artifact metadata, then review the remaining source-authenticity and source-SHA binding gaps before any separate production/VPS approval. Do not invoke the bootstrap CLI on VPS or create a production database.
+
+
+### Dual Ledger bootstrap CLI follow-up — checked-out source binding
+
+- Added CLI integration tests for both `--bootstrap-manifest` and read-only `--inspect --now-ms`, plus a negative case proving that a manifest source SHA different from the checked-out repository HEAD is rejected before database creation.
+- CLI now obtains the exact checkout SHA using local `git rev-parse HEAD` and rejects a manifest whose `sourceSha` differs. No network access is used by this check.
+- TDD RED was observed on source `acc7b05dc1d76ccc40b2d12c44fde4099cd90fd4`: the CLI source-binding tests could not run because the implementation lacked the `subprocess` import. The import was corrected in source commit `816c931a67e3ba3725cfc70d95a9a3f980791b2a`.
+- CI run `43439172915` checks out exact source `816c931a67e3ba3725cfc70d95a9a3f980791b2a`; compile and focused bootstrap tests (11 tests) PASS. Full `paper_execution` regression was IN_PROGRESS at this handoff update; no final result or artifact is claimed yet.
+- The source-SHA check currently binds the manifest to Git HEAD but does not yet reject a dirty working tree. This remains a production-hardening item; production/VPS use stays blocked regardless.
+- No VPS, production DB, T0, Runner, One-shot or trading activity occurred.
