@@ -804,14 +804,15 @@ def record_funding_event(
                     "sourceSnapshotId": snapshot, "payloadHash": digest,
                     "recordedAtMs": old[6], "mode": "PAPER"}
         coverage_rows = db.execute(
-            """SELECT status,source FROM paper_funding_coverage
+            """SELECT status,source,reconciliation_id FROM paper_funding_coverage
                WHERE account_id=1 AND start_at_ms <= ? AND end_at_ms > ?""",
             (event_at, event_at),
         ).fetchall()
         if (len(coverage_rows) != 1 or coverage_rows[0][0] == "UNKNOWN"
                 or coverage_rows[0][0] not in {"VERIFIED", "DISABLED"}
                 or (coverage_rows[0][0] == "DISABLED"
-                    and coverage_rows[0][1] != "PAPER_TEST_CONFIGURATION")):
+                    and coverage_rows[0][1] != "PAPER_TEST_CONFIGURATION")
+                or (coverage_rows[0][0] == "VERIFIED" and not coverage_rows[0][2])):
             raise ValueError("FUNDING_PROVENANCE_INCOMPLETE")
         if db.execute("SELECT 1 FROM paper_funding_events WHERE payload_hash=?", (digest,)).fetchone():
             raise ValueError("FUNDING_EVENT_PAYLOAD_DUPLICATE")
