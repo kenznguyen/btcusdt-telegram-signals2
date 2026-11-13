@@ -4335,3 +4335,12 @@ These findings make the current stop condition explicit: completing Trusted Admi
 - New SHA CI status: NOT VERIFIED; no workflow run tied to the corrected SHA was visible at checkpoint. Do not reuse #595 jobs as evidence for the new SHA.
 - Detailed run/job/blob evidence and limits: `docs/evidence/T1_ORDERBOOK_CONSUMER_LAG_DIAGNOSTIC_SPEC_2026-11-13.md` in this branch.
 - Next: identify/await CI for exact T1 SHA `37c20475423d02fb4aea710232f7fc347051c3d0`; confirm Rust x86_64 + native ARM64 fmt/Clippy/build/tests and artifacts before any PASS claim. No VPS retest, T0 access, T1→T2 integration, persistent service, or trading.
+
+
+## T1 CI #598 exact-source progress — 2026-11-13
+
+- T1 source/PR #1 head SHA `37c20475423d02fb4aea710232f7fc347051c3d0`; exact-source CI run #598 `43344045479`.
+- Rust x86_64 job `131618970778`: Format PASS, Clippy PASS, Build IN_PROGRESS at checkpoint. Native ARM64 job `131618970678`: native runner assertion PASS, Format PASS, Clippy PASS, Build IN_PROGRESS. Tests/artifact steps pending.
+- Dashboard backend/frontend PASS; Docker/security still IN_PROGRESS at checkpoint. Overall run not complete; no artifact claimed.
+- Detailed evidence and next gates: `docs/evidence/T1_ORDERBOOK_CONSUMER_LAG_DIAGNOSTIC_SPEC_2026-11-13.md`.
+- Next: continue polling run #598 and verify tests/artifacts on exact SHA before any PASS promotion. No runtime/VPS retest, T0 access, T1→T2 integration, persistent service, or trading.
