@@ -4557,3 +4557,24 @@ These findings make the current stop condition explicit: completing Trusted Admi
 - Branch `feature/core-operational-proof-20261112` continues without divergence; tested SHA was 9 ahead / 0 behind from prior handoff checkpoint. Documentation commits follow the tested source.
 - Status: T1 → PaperLedger **PASS (CI)**; runtime **NOT VERIFIED**; One-shot Core Runner implementation **AUTHORIZED / NOT STARTED**.
 - Continue to One-shot Core Runner TDD. Consume validated Bundle v1 only; call existing Core RSI/ADX/Smart DCA producer and Core signal validator; all actionable intents must pass existing Core-scoped Shared Risk/PaperLedger admission; paper only; one invocation; no AI Strategy; no background loop; no VPS/runtime/systemd/autostart; no T0/T1 mutation; no live orders. Use read-only preflight before any write; no implicit migrations.
+
+
+## 2026-11-13 — One-shot Core Runner COMPLETE (code/CI)
+
+- Owner authorized automatic continuation through Core Runner completion, and separately approved the T1 → PaperLedger compatibility boundary.
+- T1 → PaperLedger validator and Core-only opt-in compatibility are GREEN. Focused run `43363662032`, tested SHA `3adf741f5a454d677c003c375141acdd179b37f5`, job `131682851514`: 100/100 PASS. T1 evidence preserves `T1_T2_ORDERBOOK_V1` provenance, snapshot digest/identity, timestamp, sequence, depth and exact level projection. Shared per-level reservations continue to cap aggregate consumption at visible depth.
+- One-shot Runner implementation:
+  - `core_runtime/preflight.py`: strict PAPER-only read-only preflight.
+  - `core_runtime/one_shot.py`: Bundle v1 validation, account-risk and Core-state freshness fence, RSI/ADX/Smart DCA producer, Core signal adapter/validator, and at most one Core-scoped PaperLedger submission.
+  - `core_runtime/__main__.py`: explicit CLI `python -m core_runtime --config <paper-config.json> --run-once --bundle <bundle-v1.json>`; preflight-only mode remains available.
+  - `pipeline/test_core_runtime_one_shot.py`: 11/11 focused runner tests PASS.
+  - `paper_execution/test_core_first_operational.py`: CLI-to-real-PaperLedger integration PASS; verifies T1 Bundle v1 admission, Core paper fill, AI ledger untouched and stale bundle replay rejection.
+- Exact final tested source SHA: `8f774d7103f54681497837c7e4fd7c2e1c38c754`.
+- GitHub Actions run `43365609751`: **SUCCESS**, all 18 workflow steps PASS. Test counts: live probe 4; Strategy Core/signal 12; preflight CLI 5; one-shot runner 11; Bundle v1 19; adapter 6; Core operational integration 41; account-risk read-only 3; shared risk/PaperLedger 34; T1/T2 contract/HTTP/integration 49.
+- Artifact ID `14010098776`, SHA256 `008a574ce79cb8ba4637f5b49ade49d95d6087e5e6ad2df408b2a7d3d183026b`.
+- Evidence: `docs/evidence/CORE_ONE_SHOT_RUNNER_GREEN_2026-11-13.md`, commit `b4a1ebc2f7dfc6c71412b868cf2d76f994619185`.
+- Intermediate CLI test run `43365308216` failed because test fixture time was not injected through the CLI test entrypoint. Test-only injection was added to `main(..., now_ms=...)`; no CLI flag permits overriding production time. Corrected exact-SHA run `43365609751` is GREEN.
+- Branch `feature/core-operational-proof-20261112` remains ahead of the prior handoff checkpoint by 16 commits and 0 behind at the tested source SHA. Documentation commits follow that tested source; no merge/rebase/force-push or branch split.
+- Completion status: T1 → PaperLedger compatibility **PASS**; One-shot Core Runner code/CLI **PASS (CI)**; persistent VPS/runtime **NOT VERIFIED and NOT AUTHORIZED**.
+- Boundaries remain: PAPER only; AI execution false; no AI Strategy in this Runner increment; no exchange credentials or live orders; no T0/T1 production mutation; no database migrations; no VPS, service, systemd/autostart or background loop. Strategy Core, risk policy, Kill Switch, Ledger schema, reservations and fill semantics remain unchanged except approved T1 input compatibility.
+- Core-first One-shot Runner scope is complete. Any future runtime invocation/deployment requires separate explicit authorization and a fresh operational plan.
