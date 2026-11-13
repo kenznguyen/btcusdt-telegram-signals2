@@ -5101,3 +5101,10 @@ Next: preserve this proof and do not rerun automatically. Any additional runtime
 - Artifact `14084001315`, 16,012 bytes, digest `sha256:c8852603a60fede650961ced447f7e2cdec2f1d4911e2234c4520a6e521c48e4`.
 - Evidence doc: `docs/evidence/D07_5_PAPER_POSITION_PROJECTION_2026-11-14.md`. D07.5 pure projection/CI PASS; overall D07 remains PARTIAL.
 - Remaining: read-only SQLite adapter for actual PAPER cutover/journal/coverage rows; incremental multi-settlement replay optimization; strict end-to-end staging of independently produced observed PAPER funding events and persisted reconciliation/coverage. No real database, VPS, T0, exchange connection, credentials or orders touched.
+
+
+### D07.5 incremental multi-settlement replay — 2026-11-14
+- Replaced repeated per-settlement event replay with incremental per-strategy position/event/coverage cursors and chained digests; each event and coverage row is consumed at most once, with binary-search event-to-coverage lookup. The daily UTC replay API remains unchanged.
+- Workflow [43523109116](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43523109116) SUCCESS at source SHA `904b1cc7cd159f4bdf170fb5149414efef576d2c`; projection 19/19 PASS; full regression 540/540 PASS.
+- Artifact `14084346648`, 16,015 bytes, digest `sha256:707d90e49b65e5ccd736f645b398ee367c60ca23868e04ecc790dc57afd95463`.
+- Remaining D07 gate: read-only SQLite adapter to load actual cutover, execution journal and coverage rows. Pure projector still accepts caller-supplied rows; no database is opened.
