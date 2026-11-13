@@ -113,6 +113,17 @@ class FundingPopulationReconciliationTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "FUNDING_POPULATION_FIELDS_INVALID"):
             reconcile_funding_population(self.expected, self.observed)
 
+    def test_population_order_does_not_change_reconciliation_identity(self):
+        expected = self.expected
+        observed = self.observed
+        first = reconcile_funding_population(expected, observed)
+        expected_reordered = dict(expected, events=list(reversed(expected["events"])))
+        observed_reordered = dict(observed, events=list(reversed(observed["events"])))
+        second = reconcile_funding_population(expected_reordered, observed_reordered)
+
+        self.assertEqual(first["reconciliationId"], second["reconciliationId"])
+        self.assertEqual(first["counts"], second["counts"])
+
     def test_zero_event_scope_can_be_reconciled_but_not_globalized(self):
         self.expected["events"] = []
         self.observed["events"] = []
