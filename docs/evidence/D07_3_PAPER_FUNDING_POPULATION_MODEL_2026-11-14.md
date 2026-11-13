@@ -4,7 +4,7 @@ Date: 2026-11-14
 Repository: `kenznguyen/btcusdt-telegram-signals2`  
 Branch: `feature/core-operational-proof-20261112`  
 Owner decision: PAPER funding simulation approved; no real Binance account access  
-Disposition: **IMPLEMENTED — CI RESULT PENDING / END-TO-END NOT VERIFIED**
+Disposition: **D07.3 MODEL + CI PASS / END-TO-END NOT VERIFIED**
 
 ## Approved scope
 
@@ -48,10 +48,10 @@ The model's source is `paper_simulation:linear_usdt_perpetual`, and its populati
 
 - Test contract was committed before the model implementation.
 - Focused tests cover positive/negative rates, long/short sign, zero positions, latest as-of snapshot selection, future/missing/stale snapshots, duplicate inputs, scope/symbol checks, float rejection, invalid mark values, deterministic ordering, D07 schema compatibility, and reconciliation compatibility.
-- TDD RED workflow result: **NOT VERIFIED** (no exact RED run has been retrieved).
-- GREEN focused test result: **PENDING**.
-- Full PaperLedger regression after the model change: **PENDING**.
-- Exact implementation/test source at this documentation checkpoint: `bd0094764d30530d8c42ff8caab8691e2302a4d2`.
+- TDD RED was observed: run [43518943218](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43518943218), source `5052de6ae1958aa8314c2573406ecc93588abb02`, failed at the focused model test because the implementation module was intentionally not yet present.
+- Initial GREEN run [43518984947](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43518984947), source `84a6b0d413bb46411dc7f18d3a3feb44cc458833`: 16/16 model tests and 499/499 full regression PASS.
+- Final exact-source GREEN run [43519778241](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43519778241), source `8264fef6ad257411f18b14cba6ee3fdb4fb50e65`: 18/18 focused model tests and 501/501 full PaperLedger regression PASS.
+- First complete model/test source checkpoint: `bd0094764d30530d8c42ff8caab8691e2302a4d2`; latest verified implementation/test source: `8264fef6ad257411f18b14cba6ee3fdb4fb50e65`.
 - The preceding D07.2 exact-SHA CI remains PASS: run [43517898457](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43517898457), source `831a3fc9fcaa9a59b1bdc277664ae5e5c92fcc71`, full PaperLedger 483/483 PASS, artifact `14082675019` (12,809 bytes; GitHub digest `sha256:774a8d86382f860abc1f58fa019c5a6b21f1ccdb0857c58140ba75bd481f6166`). This run predates D07.3 and does not test the new model.
 
 ## Explicit limitations / next gates
