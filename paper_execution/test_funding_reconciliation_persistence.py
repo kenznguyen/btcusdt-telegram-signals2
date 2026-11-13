@@ -230,6 +230,25 @@ class FundingReconciliationPersistenceTest(unittest.TestCase):
                     ),
                 )
 
+    def test_database_trigger_rejects_event_insert_into_verified_interval(self):
+        certificate = record_funding_reconciliation(
+            self.db_path, expected_population=self.expected,
+            recorded_at_ms=self.now,
+        )
+        self.coverage(reconciliation_id=certificate["reconciliationId"])
+
+        with sqlite3.connect(self.db_path) as db:
+            with self.assertRaisesRegex(sqlite3.IntegrityError, "FUNDING_RECONCILIATION_REQUIRED"):
+                db.execute(
+                    """INSERT INTO paper_funding_events
+                       (funding_event_id,account_id,strategy_id,amount_quote,event_at_ms,
+                        source_snapshot_id,payload_hash,source,recorded_at_ms)
+                       VALUES ('direct-insert-event',1,'STRATEGY_CORE','0.01',?,
+                               'direct-insert-source','sha256:' || printf('%064d',1),
+                               'untrusted-direct-writer',?)""",
+                    (self.now - 1, self.now),
+                )
+
     def test_read_only_risk_gate_detects_direct_event_insert_after_certificate(self):
         certificate = record_funding_reconciliation(
             self.db_path, expected_population=self.expected,
@@ -256,6 +275,7 @@ class FundingReconciliationPersistenceTest(unittest.TestCase):
             recorded_at_ms=self.now,
         )
         with sqlite3.connect(self.db_path) as db:
+            db.execute("DROP TRIGGER paper_funding_events_no_insert_into_verified_coverage")
             db.execute(
                 """INSERT INTO paper_funding_events
                    (funding_event_id,account_id,strategy_id,amount_quote,event_at_ms,
