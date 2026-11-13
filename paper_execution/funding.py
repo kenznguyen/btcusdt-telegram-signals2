@@ -20,7 +20,7 @@ CUTOVER_MIGRATION_CHECKSUM = hashlib.sha256(
 ).hexdigest()
 RECONCILIATION_MIGRATION_VERSION = 10
 RECONCILIATION_MIGRATION_CHECKSUM = hashlib.sha256(
-    b"dual-ledger-v10:persisted-funding-population-reconciliation-gate"
+    b"dual-ledger-v10:persisted-funding-population-reconciliation-gate+freeze-event-insert"
 ).hexdigest()
 STRATEGIES = {"STRATEGY_CORE", "AI_FREQAI", "LEGACY_UNATTRIBUTED"}
 
