@@ -1,5 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor
 from decimal import Decimal
+import hashlib
 import json
 import sqlite3
 import subprocess
@@ -2861,6 +2862,60 @@ os._exit(0)
                 "SELECT status FROM paper_orders WHERE order_id=?", (partial["orderId"],)
             ).fetchone()
         self.assertEqual(status, ("PARTIALLY_FILLED",))
+
+
+    def test_core_paper_ledger_consumes_validated_t1_snapshot_once(self):
+        snapshot = {
+            "contractVersion": "T1_T2_ORDERBOOK_V1",
+            "symbol": "BTCUSDT",
+            "market": "BINANCE_USDM_PERPETUAL",
+            "bids": [[format(99.99-index*0.01, ".2f"), "1.000000"] for index in range(20)],
+            "asks": [[format(100.01+index*0.01, ".2f"), "1.000000"] for index in range(20)],
+            "snapshotLastUpdateId": 100,
+            "firstAppliedU": 101,
+            "lastAppliedU": 101,
+            "sourceTimestampMs": self.now-100,
+            "observedAtMs": self.now-90,
+            "decisionWatermark": 101,
+            "generation": 1,
+            "snapshotId": "",
+            "continuity": "VERIFIED",
+            "freshness": "FRESH",
+            "depth": {"bids": 20, "asks": 20},
+            "complete": True,
+        }
+        identity_payload = dict(snapshot)
+        identity_payload.pop("snapshotId")
+        snapshot["snapshotId"] = "sha256:" + hashlib.sha256(
+            json.dumps(identity_payload, sort_keys=True, separators=(",", ":")).encode()
+        ).hexdigest()
+        evidence = {key: value for key, value in snapshot.items()
+                    if key not in {"symbol", "bids", "asks"}}
+        book = {
+            "source": "t1",
+            "connector": "binance_usdm_perpetual",
+            "symbol": "BTCUSDT",
+            "observedAtMs": snapshot["observedAtMs"],
+            "bids": [{"price": p, "quantity": q} for p, q in snapshot["bids"]],
+            "asks": [{"price": p, "quantity": q} for p, q in snapshot["asks"]],
+            "t1Evidence": evidence,
+        }
+        first = self.core.submit(
+            self.intent("core-t1-snapshot-once", "0.0001", "100.01", "core-t1-input"),
+            book, self.now, strategy_event="ENTRY",
+        )
+        self.assertEqual(first["status"], "FILLED", first)
+        self.assertEqual(self.core.snapshot()["positionBase"], "0.0001")
+        second = self.core.submit(
+            self.intent("core-t1-snapshot-reuse", "0.0002", "100.01", "core-t1-input-2"),
+            book, self.now+1, strategy_event="DCA",
+        )
+        self.assertEqual(second["status"], "REJECTED", second)
+        self.assertEqual(second["reason"], "SNAPSHOT_ALREADY_USED")
+        self.assertEqual(self.core.snapshot()["positionBase"], "0.0001")
+        with sqlite3.connect(self.path) as connection:
+            used = connection.execute("SELECT COUNT(*) FROM paper_books").fetchone()[0]
+        self.assertEqual(used, 1)
 
 
 if __name__ == "__main__":
