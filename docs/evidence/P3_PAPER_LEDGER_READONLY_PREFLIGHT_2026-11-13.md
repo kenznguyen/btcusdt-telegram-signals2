@@ -37,20 +37,22 @@ New suite: core_runtime.test_paper_ledger_preflight — 6/6 PASS in the read-onl
 - Run 43422378468 failed at the existing Core CLI contract step because the first CLI edit contained a literal escaped newline; fixed.
 - Run 43422593680 failed at the same existing CLI contract step because the CLI flag had not been registered; fixed in the complete CLI rewrite.
 - Run 43422713480, attempt 1, hit the previously observed intermittent SQLite "database is locked" in the unrelated journal concurrency test. The failing job was retried without source changes.
-- Run 43422713480, attempt 2, exact checked-out source SHA 528a0f633673871ed65b5a6dab1894bd46e2b6a4. At the time this evidence was written, the read-only PaperLedger preflight step had completed successfully (6/6); the remaining end-to-end Core regression step was still running. Overall workflow conclusion and final artifact metadata were therefore NOT YET VERIFIED.
+- Run 43422713480, attempt 2, exact checked-out source SHA 528a0f633673871ed65b5a6dab1894bd46e2b6a4, conclusion SUCCESS. All workflow steps completed successfully, including Core end-to-end operational proof, account-wide risk snapshot read-only tests, shared risk/PaperLedger regressions, and T1/T2 integration. The read-only PaperLedger preflight step passed 6/6. The initial attempt failed only on the previously observed intermittent SQLite journal concurrency lock; attempt 2 passed without source changes.
 
 Workflow: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43422713480
+
+Final artifact: ID 14035196887, name core-first-code-operational-proof-43422713480, size 11,114 bytes, GitHub-reported digest sha256:7eb37b0b7ea88e704ddb60603a8ee1e82c97ec61454e26733ae2a2f23afe7e20, expires 2026-11-20T12:09:30Z. The artifact payload digest was not independently re-computed; the digest above is the GitHub-reported upload digest.
 
 ## Current disposition
 
 - PaperLedger read-only preflight contract: PASS — 6/6.
 - Existing Core CLI and One-shot suites in attempt 2: PASS.
-- Full workflow at exact source SHA 528a0f633673871ed65b5a6dab1894bd46e2b6a4: IN PROGRESS / NOT YET VERIFIED at time of writing.
+- Full workflow at exact source SHA 528a0f633673871ed65b5a6dab1894bd46e2b6a4: PASS — run 43422713480, attempt 2; all workflow steps SUCCESS.
 - P3 VPS execution/activation: NOT APPROVED / NOT RUN.
 - Full live-host runtime dependency/config readiness: NOT VERIFIED.
 
 ## Next step
 
-Read the final conclusion, job steps, exact checked-out SHA, and artifact metadata for run 43422713480 attempt 2. If full regression is green, append final evidence and update the session handoff. If any unrelated existing regression fails, preserve the failure and classify the preflight component separately.
+Code and CI verification are complete for this increment. Next: preserve P3 VPS activation as a separate owner approval gate; before that, reconcile the previously unresolved live-host dependency/config readiness from an explicitly approved, bounded read-only host inventory.
 
 Do not run this command on a VPS until a separate bounded VPS approval is granted. No runner startup, scheduler loop, One-shot, AI Strategy, deployment, exchange access, credentials, or real orders are authorized by this evidence.
