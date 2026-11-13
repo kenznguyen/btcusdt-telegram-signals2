@@ -352,7 +352,7 @@ def _funding_provenance_ready(connection, coverage_start_at_ms, coverage_end_at_
             covered = any(
                 start <= event_at < end and status in {"VERIFIED", "DISABLED"}
                 and (status != "DISABLED" or coverage_source == "PAPER_TEST_CONFIGURATION")
-                for start, end, status, coverage_source in coverage_rows
+                for start, end, status, coverage_source, *_ in coverage_rows
             )
             if (not amount.is_finite() or strategy_id not in event_totals
                     or not isinstance(source, str) or not source.strip()
