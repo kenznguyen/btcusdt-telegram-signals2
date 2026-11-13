@@ -38,7 +38,7 @@ The builder:
 - selects the latest position snapshot at or before each settlement for every strategy ledger;
 - fails closed if a strategy snapshot is missing or older than the default 60-second maximum age;
 - rejects duplicate strategy/time snapshots, duplicate settlement observations, binary floats, non-finite values, invalid marks and unknown fields;
-- computes amounts with Decimal precision 80 and deterministic canonical payload hashes, event IDs and population snapshot ID;
+- computes amounts with up to 80 significant digits per input and a 240-digit Decimal context, with non-rounding canonical formatting and deterministic payload hashes, event IDs and population snapshot ID;
 - emits the existing D07 `EXPECTED_FUNDING_EVENTS` population contract;
 - caps inputs and generated event populations at 100,000.
 
@@ -82,3 +82,11 @@ Next bounded work: implement a read-only position-history projection from the ex
 - Focused D07 PAPER funding model tests: **18/18 PASS**. Existing bootstrap, D07 reconciliation, D07.2 provenance and persistence/coverage gates also PASS. Full PaperLedger regression: **501/501 PASS** in 141.759s.
 - Artifact: `14081998893`, name `dual-ledger-bootstrap-proof-8264fef6ad257411f18b14cba6ee3fdb4fb50e65`, 13,907 bytes, GitHub ZIP digest `sha256:21d20f3079197433869fdcdfc4572ca925740c548f87a642453557bb70e0c252`, expires 2026-11-20T22:30:10Z.
 - D07.3 model + CI: **PASS**. D07 overall remains **PARTIAL** because there is not yet a position-history projection, a public-rate response parser/provenance ingestion path, or an end-to-end staging/reconciliation run against persisted PAPER funding events from an independent producer. No network calls or real account data were used.
+
+
+### As-of multi-settlement regression — 2026-11-14
+- Added coverage for two funding settlements with changing strategy positions, verifying that each settlement uses the latest snapshot at or before its own timestamp.
+- Exact-source workflow [43520315661](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43520315661): SUCCESS at SHA `29ff1274ba191f37660ecaa334ae5038d3247a36`.
+- Focused model tests: **19/19 PASS**. Full PaperLedger regression: **502/502 PASS**.
+- Artifact `14081429446`, 13,960 bytes, digest `sha256:d7f7ce308024ab9426be728381a48797ede00c27838b052e8de8adff8e9410a3`, expires 2026-11-20T22:34:01Z.
+- D07.3 remains PASS. Next code-review item: replace repeated full position-snapshot scans per settlement with indexed as-of lookup to keep the 100,000-row bound computationally safe. This is a performance hardening change, not a change to funding semantics.
