@@ -4400,3 +4400,12 @@ These findings make the current stop condition explicit: completing Trusted Admi
 - T1 evidence record: `docs/evidence/C2_T1_ORDERBOOK_V1_WATERMARK_FENCING_2026-11-13.md`; latest evidence commit `71f22e37f85c6b4c6357f22240aa9cea4f2ee378`; blob `d53cd0d6400c2bc36cee1ac4c7b27382034ccdcf`.
 - Status: watermark guard and wire-schema compatibility tests **PASS**; overall run #611 **PARTIAL pending Docker**. Runtime reconnect/re-anchor, transport atomicity, T2 live reader and end-to-end delivery remain **NOT VERIFIED / NOT IMPLEMENTED**.
 - No T0, VPS, T1 runtime, deployment, strategy, ledger, Shared Risk Engine, AI execution or live-order changes. Next: confirm run #611 Docker and overall conclusion; then continue C2 contract gaps without activating runtime.
+
+
+## C2 T1→T2 schema alignment — CI #611 final closure (2026-11-13)
+
+- T1 push workflow run #611 `43347993751` on exact source SHA `96cd94f3eb4d2bb5e449537672c145ee055b8076` completed **SUCCESS** at 2026-11-13T01:55:04Z.
+- All six jobs PASS, including Docker build. x86_64 and ARM64 collector format/Clippy/build/tests and artifacts PASS; dashboard backend/frontend and security PASS.
+- T1 evidence file was finalized in commit `6c688878fe8bf40fb8581a1d23693490fe9df8ef`, blob `00a16e41e6d5243236fcd1d694cc7c64fe6b01a0`, on the existing T1 branch.
+- C2 source-side watermark and exact T2 wire-schema checks are **PASS — exact-SHA CI verified**. T1 live runtime, reconnect/re-anchor soak, transport/storage atomicity to T2, T2 live read-only adapter and end-to-end Core delivery remain **NOT VERIFIED / NOT IMPLEMENTED**.
+- Next: continue the bounded read-only C2 contract audit and close any remaining producer-side contract gaps; no runtime activation or deployment without separate approval.
