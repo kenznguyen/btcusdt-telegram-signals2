@@ -92,6 +92,29 @@ class ContinuousJournalClaimTest(unittest.TestCase):
         self.assertEqual(terminal["orderId"], "paper:fixture")
         self.assertEqual(terminal["terminalResult"], "PAPER_ACCEPTED")
 
+
+    def test_pre_submit_intent_persistence_is_idempotent_and_conflict_safe(self):
+        journal = ContinuousJournal(self.db)
+        self.claim(journal)
+        cycle_key = "binance:USDT_PERPETUAL:BTCUSDT:15m:1800000000000:STRATEGY_CORE"
+        journal.transition_cycle(
+            cycle_key,
+            expected_status="CLAIMED",
+            status="EXECUTING",
+            updated_at_ms=1_800_000_002_000,
+        )
+        self.assertTrue(journal.record_intent(
+            cycle_key, "intent:stable", updated_at_ms=1_800_000_002_100
+        ))
+        self.assertFalse(journal.record_intent(
+            cycle_key, "intent:stable", updated_at_ms=1_800_000_002_200
+        ))
+        self.assertEqual(journal.get_cycle(cycle_key)["intentId"], "intent:stable")
+        with self.assertRaises(CycleConflict):
+            journal.record_intent(
+                cycle_key, "intent:changed", updated_at_ms=1_800_000_002_300
+            )
+
     def test_cycle_transition_uses_compare_and_swap_and_rejects_terminal_replay(self):
         journal = ContinuousJournal(self.db)
         self.claim(journal)
