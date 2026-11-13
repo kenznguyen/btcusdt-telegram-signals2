@@ -68,6 +68,17 @@ class DualLedgerBootstrapContractTest(unittest.TestCase):
             "fundingSnapshotId": "owner-funding-001",
             "fundingEvidencePath": str(self.funding_evidence),
             "fundingPayloadHash": "",
+            "fundingExpectedPopulation": {
+                "schemaVersion": 1,
+                "populationType": "EXPECTED_FUNDING_EVENTS",
+                "populationDefinitionId": "owner-statement-enumeration-v1",
+                "snapshotId": "owner-funding-001",
+                "source": "owner-funding-statement",
+                "startAtMs": self.now - 86_400_000,
+                "endAtMs": self.now,
+                "currency": "USDT",
+                "events": [],
+            },
             "cutoverId": "bootstrap-equity-cutover-001",
             "cutoverSource": "OWNER_RECONCILED_EVIDENCE",
             "cutoverSnapshotId": "owner-equity-001",
@@ -90,6 +101,7 @@ class DualLedgerBootstrapContractTest(unittest.TestCase):
                 "AI_FREQAI": "0",
                 "LEGACY_UNATTRIBUTED": "0",
             },
+            "expectedPopulation": self.manifest["fundingExpectedPopulation"],
         }
         cutover_document = {
             "snapshotId": "owner-equity-001",
@@ -150,6 +162,9 @@ class DualLedgerBootstrapContractTest(unittest.TestCase):
         ])
         self.assertEqual(result["coreLeverage"], str(CORE_LEVERAGE))
         self.assertEqual(result["aiLeverage"], "3")
+        self.assertEqual(result["fundingReconciliationStatus"], "COMPLETE_WITHIN_DECLARED_POPULATION")
+        self.assertEqual(result["fundingPopulationCompleteness"], "NOT_VERIFIED")
+        self.assertEqual(result["fundingPopulationIndependence"], "DECLARED_NOT_VERIFIED")
         self.assertEqual(
             result["ownerAttestation"]["attestationStatus"],
             "MANUAL_OWNER_ATTESTATION_PRESENT",
