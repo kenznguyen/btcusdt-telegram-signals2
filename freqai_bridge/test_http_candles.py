@@ -465,5 +465,90 @@ class T2HttpConsumerTest(unittest.TestCase):
         self.assertIn("return False", source)
 
 
+    def test_single_response_path_preserves_exact_100_candle_m15_envelope(self):
+        interval = 900_000
+        end = START + 100 * interval
+        as_of = end + 60_000
+        generated = as_of
+        candles = []
+        for index in range(100):
+            opened = START + index * interval
+            closed = opened + interval
+            candles.append({
+                "exchange": "binance", "marketType": "USDT_PERPETUAL",
+                "symbol": "BTCUSDT", "timeframe": "15m",
+                "openTimeMs": opened, "closeTimeMs": closed,
+                "open": "100.00", "high": "102", "low": "99",
+                "close": "101.25", "volume": "3.5", "isClosed": True,
+                "availableAtMs": closed + 30_000,
+                "availabilityKind": "FIRST_OBSERVED", "quality": "VALIDATED",
+                "source": "ccxt.binanceusdm",
+            })
+        payload = response_envelope(
+            endMs=end, asOfMs=as_of, candles=candles,
+            datasetVersion="sha256:" + "b" * 64,
+            coverage={"expected": 100, "returned": 100, "complete": True, "gaps": []},
+            generatedAtMs=generated,
+            freshness={
+                "latestExpectedOpenTimeMs": end - interval,
+                "latestReturnedOpenTimeMs": end - interval,
+                "latestCloseTimeMs": end,
+                "latestAvailableAtMs": end + 30_000,
+                "observationAgeMs": 30_000,
+                "closeLagMs": 60_000,
+                "evaluable": True,
+            },
+        )
+        client, session = self._client(responses=[FakeResponse(payload=payload)], clock_ms=generated)
+        result = client.fetch_one_page(start_ms=START, end_ms=end, as_of_ms=as_of, timeframe="15m")
+        self.assertEqual(len(session.calls), 1)
+        self.assertEqual(result, payload)
+        self.assertEqual(result["datasetVersion"], payload["datasetVersion"])
+
+    def test_single_response_path_supports_100_candle_h1_window(self):
+        interval = 3_600_000
+        start = 1_800_000_000_000
+        end = start + 100 * interval
+        as_of = end + 60_000
+        candles = []
+        for index in range(100):
+            opened = start + index * interval
+            closed = opened + interval
+            candles.append({
+                "exchange": "binance", "marketType": "USDT_PERPETUAL",
+                "symbol": "BTCUSDT", "timeframe": "1h",
+                "openTimeMs": opened, "closeTimeMs": closed,
+                "open": "100.00", "high": "102", "low": "99",
+                "close": "101.25", "volume": "3.5", "isClosed": True,
+                "availableAtMs": closed + 30_000,
+                "availabilityKind": "FIRST_OBSERVED", "quality": "VALIDATED",
+                "source": "ccxt.binanceusdm",
+            })
+        payload = response_envelope(
+            timeframe="1h", startMs=start, endMs=end, asOfMs=as_of,
+            candles=candles, coverage={"expected": 100, "returned": 100, "complete": True, "gaps": []},
+            generatedAtMs=as_of,
+            freshness={
+                "latestExpectedOpenTimeMs": end - interval,
+                "latestReturnedOpenTimeMs": end - interval,
+                "latestCloseTimeMs": end,
+                "latestAvailableAtMs": end + 30_000,
+                "observationAgeMs": 30_000, "closeLagMs": 60_000, "evaluable": True,
+            },
+        )
+        client, session = self._client(responses=[FakeResponse(payload=payload)], clock_ms=as_of)
+        result = client.fetch_one_page(start_ms=start, end_ms=end, as_of_ms=as_of, timeframe="1h")
+        self.assertEqual(len(session.calls), 1)
+        self.assertEqual(result, payload)
+        self.assertEqual(result["datasetVersion"], payload["datasetVersion"])
+
+    def test_single_response_path_rejects_windows_over_t0_api_limit_without_request(self):
+        client, session = self._client()
+        with self.assertRaises(Exception):
+            client.fetch_one_page(start_ms=START, end_ms=START + 2001 * STEP,
+                                  as_of_ms=AS_OF, timeframe="15m")
+        self.assertEqual(session.calls, [])
+
+
 if __name__ == "__main__":
     unittest.main()
