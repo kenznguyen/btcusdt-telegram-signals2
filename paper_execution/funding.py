@@ -330,6 +330,16 @@ def migrate_funding_population_reconciliation(connection, source_sha):
             "SELECT name FROM sqlite_master WHERE type='index'"
         )
     }
+    reconciliation_columns = {
+        row[1] for row in connection.execute(
+            "PRAGMA table_info(paper_funding_reconciliations)"
+        )
+    }
+    required_reconciliation_columns = {
+        "reconciliation_id", "account_id", "start_at_ms", "end_at_ms",
+        "currency", "expected_snapshot_id", "observed_snapshot_id", "status",
+        "document", "payload_hash", "recorded_at_ms",
+    }
     if applied:
         if applied != (RECONCILIATION_MIGRATION_CHECKSUM, "APPLIED"):
             raise sqlite3.DatabaseError("FUNDING_RECONCILIATION_MIGRATION_CHECKSUM_MISMATCH")
@@ -338,6 +348,7 @@ def migrate_funding_population_reconciliation(connection, source_sha):
         ).fetchone()
         if ("reconciliation_id" not in columns or not exists
                 or not required_triggers.issubset(triggers)
+                or not required_reconciliation_columns.issubset(reconciliation_columns)
                 or "paper_funding_events_account_time" not in indexes):
             raise sqlite3.DatabaseError("FUNDING_RECONCILIATION_SCHEMA_INCOMPLETE")
         return
