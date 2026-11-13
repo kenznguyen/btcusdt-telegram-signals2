@@ -1395,7 +1395,7 @@ class DualLedgerRedTest(unittest.TestCase):
                 ("corrupt-provenance-event",),
             )
 
-        with self.assertRaisesRegex(ValueError, "FUNDING_PROVENANCE_INCOMPLETE"):
+        with self.assertRaisesRegex(ValueError, "FUNDING_POPULATION_OBSERVED_PROVENANCE_INCOMPLETE"):
             ledger.record_account_equity_cutover(
                 path, cutover_id="cutover-corrupt-funding-event",
                 expected_initial_capital_quote="100", expected_realized_pnl_quote="0",
