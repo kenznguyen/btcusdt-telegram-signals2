@@ -328,3 +328,13 @@ Next gate: owner review of this design and a separate explicit approval for impl
 - A symlinked persisted-bundle recovery test was added in commit ff4df525898ffe3585376bc77e77afe46d463ce3; implementation/test verification is pending.
 - Full C1-C8 GREEN is not yet achieved. Keep the bundle-provider boundary injected; do not select/change T0/T1 transport, and do not activate VPS runtime. Preserve AI_EXECUTION_ENABLED=false and no real orders.
 
+
+## Addendum — latest M15 identity, provider timeout and symlink recovery (2026-11-13)
+
+- process_bundle now requires the supplied Bundle v1 M15 open time to equal the latest eligible closed M15 candle for now_ms and settlement_ms. Old/future bundles cannot be used for a later cycle.
+- run_forever treats provider exceptions as BLOCKED, releases the exclusive runner lock, does not retry with a different intent and never falls back to cached bundle bytes.
+- RED run 43416745198 at source 15b497a8e78e96026e33cd9fc70478069565f6d5 exposed both missing behaviors. GREEN run 43417053584, job 131857474094, source e72739ee6cb89d55c4513ba4aec83213765933bb, SUCCESS: cadence 5/5, journal 11/11, orchestration 22/22, all existing regression steps SUCCESS. Artifact 14032107933, core-first-code-operational-proof-43417053584, SHA-256 7c2daa9d174ba08bab6cf255fe5c1f351909495315dd799d93e096ec8fd03858, expires 2026-11-20T11:26:15Z.
+- RED run 43417078609 at source ff4df525898ffe3585376bc77e77afe46d463ce3 proved a symlinked immutable bundle path was followed during recovery. Commit 47876d1261c7c8efb65d46d9013a2ebf46d66557 checks the original path for symlink before resolving; run 43417451191 at this source was in progress.
+- A new test now requires the runner journal to reject the exact T0 canonical database path. Commit 8681ca55e97ffcbb6f5603a9eb8f379c193c7976 adds the RED test; explicit path guard implementation and GREEN evidence are pending.
+- Full C1-C8 GREEN remains pending.
+
