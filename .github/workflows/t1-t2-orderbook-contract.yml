@@ -51,17 +51,17 @@ jobs:
           done
           git rev-parse HEAD | tee t1-t2-source-sha.txt
           echo "PAPER_ONLY=PASS" | tee t1-t2-safety.txt
-      - name: Run RED T2 one-shot HTTP reader tests
-        run: python -m unittest core_runtime.test_orderbook_http -v
-      - name: Compile isolated contract suite
-        run: python -m py_compile core_runtime/orderbook_contract.py core_runtime/test_orderbook_contract.py core_runtime/test_orderbook_http.py
-      - name: Run GREEN T1 T2 contract suite
+      - name: Compile isolated T1 T2 reader and contract suites
+        run: python -m py_compile core_runtime/orderbook_contract.py core_runtime/test_orderbook_contract.py core_runtime/orderbook_http.py core_runtime/test_orderbook_http.py
+      - name: Run GREEN T2 HTTP reader and T1 T2 contract suites
         run: |
           set -euo pipefail
-          python -m unittest core_runtime.test_orderbook_contract -v 2>&1 | tee t1-t2-orderbook-tests.log
-          grep -q "Ran 32 tests" t1-t2-orderbook-tests.log
+          python -m unittest core_runtime.test_orderbook_http core_runtime.test_orderbook_contract -v 2>&1 | tee t1-t2-orderbook-tests.log
+          grep -q "Ran 46 tests" t1-t2-orderbook-tests.log
           echo "T1_T2_ORDERBOOK_V1=PASS" | tee t1-t2-orderbook-status.txt
           echo "T1_T2_ORDERBOOK_V1_TESTS=32_PASS" | tee -a t1-t2-orderbook-status.txt
+          echo "T2_ORDERBOOK_HTTP_READER=PASS" | tee -a t1-t2-orderbook-status.txt
+          echo "T2_ORDERBOOK_HTTP_READER_TESTS=14_PASS" | tee -a t1-t2-orderbook-status.txt
           echo "T1_T2_ORDERBOOK_V1_SIDE_EFFECT_GATE=PASS" | tee -a t1-t2-orderbook-status.txt
 
       - name: Upload GREEN contract evidence
