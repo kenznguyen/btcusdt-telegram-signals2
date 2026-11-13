@@ -242,3 +242,13 @@ Implementation must begin with failing tests (RED). No runtime/VPS retest, persi
 - No CI conclusion is available. This is runner queue/cache delay, not a source-code PASS or FAIL.
 - Review spot-check: both text and binary WebSocket frames pass the original monotonic receive instant; only BTCUSDT consumes the typed V1 result; non-BTC symbols unwrap the original `DepthUpdateWs` and retain their legacy processing path; ring capacity/eviction code is unchanged. This is a source inspection only, not compiler verification.
 - Overall status remains NOT VERIFIED pending run #595's Rust checks and artifacts.
+
+
+### CI #595 formatting finding and bounded correction — 2026-11-13
+
+- T1 run #595: [43343313970](https://github.com/kenznguyen/binance-futures-collector/actions/runs/43343313970), exact checked-out source SHA `40711fd013e734b3cfc30bad68656d5e7b5249ca`.
+- Rust x86_64 job `131616594745` and native ARM64 job `131616595149`: **FAIL at `cargo fmt --all --check` only**. Both Rust jobs skipped Clippy, build, unit tests, sidecar tests and artifact generation. ARM64 log identified two formatting-only diffs in `src/collectors/orderbook_manager.rs` around the buffered-drain tuple assignment and `build_snapshot` assignment. No compile or behavioral failure was reached.
+- Dashboard backend job `131616595410`: PASS. Dashboard frontend job `131616595509`: PASS. Docker job `131616595141` and security job `131616595216` were still IN_PROGRESS at the latest poll; no final conclusion claimed.
+- Minimal formatting correction committed on the same T1 branch `feature/t1-connection-sidecar-integration-20261107`: commit `37c20475423d02fb4aea710232f7fc347051c3d0`, message `style: fix orderbook manager formatting from CI 595`. Updated file blob: `83441f406a0ede01df1bb1c448b378706ad9bbcf` (previous blob `64e493bdf431e044e62a6ea5d09738685ae120da`). Only the two formatter-requested line wraps were changed.
+- New-source validation: **NOT VERIFIED**. The commit's combined status query returned no status checks, and the PR-run lookup returned no associated run at the time of recording. Do not rerun jobs from #595 because they would validate the old SHA, not the correction.
+- Current T1 status: formatting correction COMMITTED; new-SHA Rust fmt/Clippy/build/tests and artifact **NOT VERIFIED / NOT GENERATED**. Next step: locate or await a workflow run whose checked-out SHA is exactly `37c20475423d02fb4aea710232f7fc347051c3d0`; then verify both Rust architectures and all remaining CI jobs. If no run is triggered, inspect the workflow trigger policy before taking any further action. No runtime/VPS retest, T0 access, T1→T2 integration, persistent service, or trading was performed.
