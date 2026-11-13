@@ -41,6 +41,21 @@ class DailyBaselinePersistenceContractTest(unittest.TestCase):
             payload_hash="sha256:" + "d" * 64, recorded_at_ms=self.recorded,
         )
         from paper_execution import ledger
+        first_funding_reconciliation = ledger.record_funding_reconciliation(
+            self.path,
+            expected_population={
+                "schemaVersion": 1,
+                "populationType": "EXPECTED_FUNDING_EVENTS",
+                "populationDefinitionId": "fixture-owner-enumeration-after-cutover-v1",
+                "snapshotId": "fixture:funding-after-cutover",
+                "source": "fixture-owner-funding-statement",
+                "startAtMs": self.now,
+                "endAtMs": self.recorded,
+                "currency": "USDT",
+                "events": [],
+            },
+            recorded_at_ms=self.recorded,
+        )
         ledger.record_funding_coverage(
             self.path, coverage_id="fixture-funding-after-cutover",
             start_at_ms=self.now, end_at_ms=self.recorded,
@@ -48,6 +63,7 @@ class DailyBaselinePersistenceContractTest(unittest.TestCase):
             source_snapshot_id="fixture:funding-after-cutover",
             payload_hash="sha256:" + "e" * 64,
             config_version="fixture-funding-v2", recorded_at_ms=self.recorded,
+            reconciliation_id=first_funding_reconciliation["reconciliationId"],
         )
         account_history.record_market_mark_history(
             self.path, mark_id="fixture-boundary-mark",
@@ -178,6 +194,21 @@ class DailyBaselinePersistenceContractTest(unittest.TestCase):
             payload_hash="sha256:" + "2" * 64, recorded_at_ms=next_recorded,
         )
         from paper_execution import ledger
+        second_funding_reconciliation = ledger.record_funding_reconciliation(
+            self.path,
+            expected_population={
+                "schemaVersion": 1,
+                "populationType": "EXPECTED_FUNDING_EVENTS",
+                "populationDefinitionId": "fixture-owner-enumeration-next-v1",
+                "snapshotId": "fixture:funding-next",
+                "source": "fixture-owner-funding-statement",
+                "startAtMs": self.recorded,
+                "endAtMs": next_recorded,
+                "currency": "USDT",
+                "events": [],
+            },
+            recorded_at_ms=next_recorded,
+        )
         ledger.record_funding_coverage(
             self.path, coverage_id="fixture-funding-next",
             start_at_ms=self.recorded, end_at_ms=next_recorded,
@@ -185,6 +216,7 @@ class DailyBaselinePersistenceContractTest(unittest.TestCase):
             source_snapshot_id="fixture:funding-next",
             payload_hash="sha256:" + "3" * 64,
             config_version="fixture-funding-v2", recorded_at_ms=next_recorded,
+            reconciliation_id=second_funding_reconciliation["reconciliationId"],
         )
         account_history.record_market_mark_history(
             self.path, mark_id="fixture-boundary-mark-next",
