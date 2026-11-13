@@ -74,9 +74,11 @@ class CoreOneShotRunnerTest(unittest.TestCase):
         }
 
     def run_patched(self, report, order=None, *, risk=None, paper_state=None, submit_error=None):
+        created = []
         class FakeLedger:
             def __init__(self, *args, **kwargs):
                 self.submit_calls = 0
+                created.append(self)
 
             def submit(inner, *args, **kwargs):
                 inner.submit_calls += 1
@@ -96,10 +98,10 @@ class CoreOneShotRunnerTest(unittest.TestCase):
             patch("paper_execution.ledger.read_snapshot",
                   return_value=paper_state or self.paper_state),
             patch("pipeline.core_strategy.produce", return_value=report),
-            patch("paper_execution.ledger.PaperLedger", FakeLedger) as ledger_class,
+            patch("paper_execution.ledger.PaperLedger", FakeLedger),
         ):
             result = run_once(self.config_path, self.bundle_path, now_ms=NOW)
-        return result, ledger_class
+        return result, created
 
     def test_actionable_core_signal_is_submitted_once_to_paper_ledger(self):
         result, ledger_class = self.run_patched(producer_report())
@@ -107,7 +109,8 @@ class CoreOneShotRunnerTest(unittest.TestCase):
         self.assertEqual(result["signal"]["action"], "BUY")
         self.assertEqual(result["riskDecision"]["decision"], "ACCEPT")
         self.assertEqual(result["paperLedgerReference"]["orderId"], "paper-order-1")
-        self.assertEqual(ledger_class.call_count, 1)
+        self.assertEqual(len(created), 1)
+        self.assertEqual(created[0].submit_calls, 1)
 
     def test_no_signal_does_not_construct_or_write_paper_ledger(self):
         result, ledger_class = self.run_patched(producer_report("WAIT"))
