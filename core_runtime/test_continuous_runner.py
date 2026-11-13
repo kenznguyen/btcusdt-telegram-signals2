@@ -248,7 +248,7 @@ class ContinuousCoreRunnerTest(unittest.TestCase):
                 journal=ContinuousJournal(root / "continuous-journal.sqlite3"),
                 bundle_store_dir=root / "immutable-bundles",
                 source_sha="source-sha",
-                config_sha256=self.config_sha256,
+                config_sha256="sha256:" + hashlib.sha256(config_path.read_bytes()).hexdigest(),
                 settlement_ms=0,
                 max_book_age_ms=2_000,
                 run_once_fn=crash_after_commit,
