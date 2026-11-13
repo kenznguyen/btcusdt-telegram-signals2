@@ -4447,3 +4447,14 @@ These findings make the current stop condition explicit: completing Trusted Admi
 - Revalidated T2 branch feature/core-operational-proof-20261112 at HEAD 2efb647aa99c48b925a8129bf658bf7dfd22c7ae. Compared with main: diverged, 3,668 ahead / 82 behind, merge base f5b74affb8777953fa66d241784965fbb0e577ba. Do not merge, rebase, force-push or synchronize. Continue only by appending commits to this exact existing branch head; stop if a concurrent update or non-fast-forward condition is detected.
 - Next: implement T2 one-shot read-only HTTP adapter using existing strict T1_T2_ORDERBOOK_V1 validation. TDD order: T2 RED tests first, then minimal GREEN adapter, focused/full exact-SHA CI. Then deterministic cross-boundary integration tests and final evidence. Do not implement Core Runner yet.
 - No T0, VPS/runtime, systemd/autostart, deployment, Core, Risk, Ledger, AI execution or live orders.
+
+## 2026-11-13 — C2.2 T2 HTTP reader RED reproduced
+
+- T1 loopback HTTP endpoint reached GREEN on exact SHA 8326ac2075ebd644e5cca0146a77ce1ae110954c; evidence and T1 artifact digests are recorded in the prior section and T1 evidence file.
+- T2 RED tests added at core_runtime/test_orderbook_http.py; source commit e1c80438f0707995e8941d9bd2646ce78b4cb962; test blob 35f5a4944f9c3c3bd709afe54249490d448d0bb9.
+- Workflow updated to execute RED before the existing contract suite; workflow update commit 08257c7953dbc9a3ff5ca54ae2a71e5213d265ce; workflow blob bd2364cf1a726ed5ea5a35a44f0ca65c28438348.
+- Exact-SHA RED run #5 ID 43356028851 on SHA 08257c7953dbc9a3ff5ca54ae2a71e5213d265ce: expected failure at the RED step with ModuleNotFoundError: core_runtime.orderbook_http. The missing adapter is the intended failing condition; compile and GREEN steps were skipped.
+- Paper-only/no-provider boundary passed; AI_EXECUTION_ENABLED=false and database/provider credential environment variables were empty. RED metadata artifact ID 14005393795, SHA-256 0a6acc4d5b896ea231c506b99bfb4ac715ea0f1df9d72b3e3642d63021761432; not GREEN evidence.
+- T2 RED evidence file: docs/evidence/C2_2_T2_HTTP_READER_RED_2026-11-13.md; commit 6ca90cb8274c7d7df45e6a674e534ccfcf5091b.
+- Status: T1 endpoint source/CI GREEN PASS; T2 HTTP reader RED PASS; T2 adapter source NOT IMPLEMENTED; cross-boundary integration NOT IMPLEMENTED; runtime delivery NOT VERIFIED.
+- Next: implement the minimal T2 one-shot HTTP adapter on this same branch, use the existing strict validate_snapshot validator, run one bounded GET without retry/fallback, then run T2 RED→GREEN focused/full CI. Do not connect Core producer, PaperLedger, Shared Risk Engine or execution.
