@@ -4863,3 +4863,14 @@ Next: preserve this proof and do not rerun automatically. Any additional runtime
 - Artifact: ID 14031268827, name core-first-code-operational-proof-43415771895, SHA-256 ee56dec1d12da849a8e271000d74c382a0adea04fba09210016c98fad0f00d76, expires 2026-11-20T11:16:45Z.
 - One-shot workflow reporting now checks 14 tests (not 11) and publishes continuous cadence/journal/orchestration logs in artifact. This run's full workflow completed SUCCESS.
 - Remaining C1-C8 gaps under test: exclusive process ownership, actual config-digest revalidation, terminal journal-vs-ledger audit consistency, kill-switch runner integration, restart after claim-before-execution, and corrupted-bundle recovery. New RED tests for these cases are being staged; current implementation is not yet full C1-C8 GREEN.
+
+## 2026-11-13 — Runner ownership, config provenance and terminal audit reconciliation
+
+- RED at run 43416470434, source 1909bb1ae9c1eeafb1d695805fd27d5cd6e9591a: process lock API absent, terminal journal-vs-ledger audit disagreement not blocked, and config digest drift not detected. The config test was corrected to mutate the ledger path so the digest actually changes.
+- Implemented exclusive OS flock ownership, terminal PAPER_ACCEPTED/RISK_REJECTED audit reconciliation, BLOCKED startup on disagreement, and config SHA-256 revalidation before cycle execution/recovery. Commits 613064da9cca9f7de4cb65e9e0ae0cbd54cde003 and 6977f6ecffde41156d57e03912fcb73dec9bac8a.
+- GREEN regression run 43416688399, source SHA 9f01fa3e97b78fb93538624a1326f1b2b8903776, SUCCESS. Cadence 5/5, journal 11/11, orchestration 19/19; all existing Core, One-shot, Bundle, adapter, PaperLedger/risk and T1/T2 workflow steps SUCCESS.
+- Artifact 14032062564, core-first-code-operational-proof-43416688399, SHA-256 efab594af81354bde55bc70db6d69fbdd86ee1d62025b7353f3c02f7fef6b3ef, expires 2026-11-20T11:23:32Z.
+- Real Kill Switch integration test passed: an actual PaperLedger kill latch rejects the Core entry, no position increase occurs, AI ledger remains unchanged.
+- Added RED for stale M15 bundle reuse and provider timeout. Run 43416745198 at source 15b497a8e78e96026e33cd9fc70478069565f6d5 failed because old bundle was accepted for a later candle and provider TimeoutError escaped the runner. Fix commit e72739ee6cb89d55c4513ba4aec83213765933bb now rejects non-latest eligible M15 input and returns BLOCKED on provider exception without retry/cache fallback. Run 43417053584 at that source is in progress at last read.
+- Added a RED test for symlinked immutable bundle references in commit ff4df525898ffe3585376bc77e77afe46d463ce3; it has not yet executed. Recovery must reject the symlink before resolving it.
+- Current status: ownership/config/audit/kill-switch checks PASS at 9f01fa3; stale-candle/provider-failure implementation committed / CI pending; symlink recovery NOT VERIFIED; full C1-C8 GREEN not yet achieved.
