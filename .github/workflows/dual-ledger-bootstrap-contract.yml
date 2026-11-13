@@ -8,6 +8,8 @@ on:
       - "paper_execution/bootstrap.py"
       - "paper_execution/__main__.py"
       - "paper_execution/test_dual_ledger_bootstrap.py"
+      - "paper_execution/funding_reconciliation.py"
+      - "paper_execution/test_funding_reconciliation.py"
       - ".github/workflows/dual-ledger-bootstrap-contract.yml"
   workflow_dispatch:
 
@@ -66,7 +68,7 @@ jobs:
       - name: Compile bootstrap implementation and tests
         run: |
           set -euo pipefail
-          python -m py_compile paper_execution/bootstrap.py paper_execution/__main__.py paper_execution/test_dual_ledger_bootstrap.py
+          python -m py_compile paper_execution/bootstrap.py paper_execution/__main__.py paper_execution/test_dual_ledger_bootstrap.py paper_execution/funding_reconciliation.py paper_execution/test_funding_reconciliation.py
           echo "BOOTSTRAP_COMPILE=PASS" | tee bootstrap-compile.txt
 
       - name: Run focused bootstrap tests
@@ -74,6 +76,12 @@ jobs:
         run: |
           set -o pipefail
           python -m unittest paper_execution.test_dual_ledger_bootstrap -v 2>&1 | tee bootstrap-tests.log
+
+      - name: Run focused D07 funding reconciliation tests
+        shell: bash
+        run: |
+          set -o pipefail
+          python -m unittest paper_execution.test_funding_reconciliation -v 2>&1 | tee d07-funding-reconciliation-tests.log
 
       - name: Run full PaperLedger regression
         if: success()
@@ -93,4 +101,5 @@ jobs:
             bootstrap-safety.txt
             bootstrap-compile.txt
             bootstrap-tests.log
+            d07-funding-reconciliation-tests.log
             paper-execution-regression.log
