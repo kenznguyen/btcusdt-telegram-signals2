@@ -143,7 +143,8 @@ def verify_funding_source_evidence(envelope, evidence_root):
 
     page_ids = set()
     request_fingerprints = set()
-    cursor_values = set()
+    request_cursors = set()
+    next_cursors = set()
     normalized_pages = []
     for index, page in enumerate(pages):
         _require_fields(page, _PAGE_FIELDS, "FUNDING_PAGE_FIELDS_INVALID")
@@ -165,14 +166,14 @@ def verify_funding_source_evidence(envelope, evidence_root):
         next_cursor = page["nextCursor"]
         if request_cursor is not None:
             request_cursor = _text(request_cursor, "FUNDING_PAGE_CURSOR_INVALID")
-            if request_cursor in cursor_values:
+            if request_cursor in request_cursors:
                 raise ValueError("FUNDING_PAGE_CURSOR_DUPLICATE")
-            cursor_values.add(request_cursor)
+            request_cursors.add(request_cursor)
         if next_cursor is not None:
             next_cursor = _text(next_cursor, "FUNDING_PAGE_CURSOR_INVALID")
-            if next_cursor in cursor_values:
+            if next_cursor in next_cursors or next_cursor in request_cursors:
                 raise ValueError("FUNDING_PAGE_CURSOR_DUPLICATE")
-            cursor_values.add(next_cursor)
+            next_cursors.add(next_cursor)
         if index == 0 and request_cursor is not None:
             raise ValueError("FUNDING_PAGE_CURSOR_CHAIN_INVALID")
         if index > 0 and request_cursor != pages[index - 1]["nextCursor"]:

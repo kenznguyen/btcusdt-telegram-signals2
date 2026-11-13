@@ -5043,3 +5043,5 @@ Next: preserve this proof and do not rerun automatically. Any additional runtime
 - Workflow `dual-ledger-bootstrap-contract.yml` compiles and runs the new focused test module and includes its log in the evidence artifact. CI result for the GREEN SHA is pending/not yet observed; no workflow/artifact SHA is claimed until GitHub reports it.
 - No database migration, PaperLedger behavior change, real funding import, credentials, VPS, T0, Runner/One-shot or live order path was changed. Production bootstrap remains BLOCKED / NOT APPROVED.
 - Next: obtain an exact-SHA CI result for the verifier and full regression; then prepare a source-specific evidence/lineage decision only if an independently authoritative source can be named. Do not connect or read real account data without separate exact-scope approval.
+
+- Review correction before CI: cursor-chain validation now distinguishes a cursor's expected appearance as the prior page's `nextCursor` and the next page's `requestCursor`; repeated request cursors and cursor loops remain rejected. The corrected code is in the following commit.
