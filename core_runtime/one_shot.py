@@ -1,7 +1,6 @@
 """One-shot, Bundle-v1-only Strategy Core paper decision runner."""
 
 from decimal import Decimal, DecimalException
-import hashlib
 import json
 from pathlib import Path
 import time
@@ -78,8 +77,16 @@ def _state_matches(bundle_state, ledger_state):
 
 
 def _result(bundle, run_status, *, signal=None, risk=None, ledger_ref=None, reason=None):
+    bundle = bundle if isinstance(bundle, dict) else {}
+    market_data = bundle.get("marketData", {})
+    market_data = market_data if isinstance(market_data, dict) else {}
+    m15 = market_data.get("m15", {})
+    h1 = market_data.get("h1", {})
+    m15 = m15 if isinstance(m15, dict) else {}
+    h1 = h1 if isinstance(h1, dict) else {}
     order_book = bundle.get("orderBook", {})
     evidence = order_book.get("t1Evidence", {}) if isinstance(order_book, dict) else {}
+    evidence = evidence if isinstance(evidence, dict) else {}
     return {
         "runId": identity("core-run:", {
             "bundleId": bundle.get("bundleId"),
@@ -94,8 +101,8 @@ def _result(bundle, run_status, *, signal=None, risk=None, ledger_ref=None, reas
         "paperLedgerReference": ledger_ref,
         "reasonCode": reason,
         "sourceEvidence": {
-            "m15DatasetVersion": bundle.get("marketData", {}).get("m15", {}).get("datasetVersion"),
-            "h1DatasetVersion": bundle.get("marketData", {}).get("h1", {}).get("datasetVersion"),
+            "m15DatasetVersion": m15.get("datasetVersion"),
+            "h1DatasetVersion": h1.get("datasetVersion"),
             "t1SnapshotId": evidence.get("snapshotId"),
         },
     }
@@ -211,6 +218,9 @@ def run_once(config_path, bundle_path, *, now_ms=None):
         return _result(bundle, "RISK_REJECTED", signal=signal_view,
                        risk={"decision": "REJECT", "reason": order.get("reason")},
                        ledger_ref=ledger_ref, reason=order.get("reason", "RISK_REJECTED"))
+    if order.get("status") not in ("FILLED", "OPEN", "PARTIALLY_FILLED"):
+        return _result(bundle, "PAPER_COMMIT_FAILED", signal=signal_view,
+                       ledger_ref=ledger_ref, reason="PAPER_ORDER_STATUS_INVALID")
     return _result(bundle, "PAPER_ACCEPTED", signal=signal_view,
                    risk={"decision": "ACCEPT", "reason": None},
                    ledger_ref=ledger_ref, reason=None)
