@@ -6,13 +6,17 @@ import os
 import sqlite3
 import tempfile
 import unittest
+from contextlib import redirect_stdout
+from io import StringIO
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from paper_execution.bootstrap import (
     bootstrap_paper_account,
     inspect_paper_account,
 )
+from paper_execution.__main__ import main as paper_cli_main
 from paper_execution.ledger import read_account_risk_snapshot, dual_ledger_ready
 from risk_policy import CORE_LEVERAGE
 
@@ -223,6 +227,50 @@ class DualLedgerBootstrapContractTest(unittest.TestCase):
         result = inspect_paper_account(self.db_path, now_ms=self.now + 31 * 60_000)
 
         self.assertFalse(result["riskReady"])
+        self.assertEqual(self.db_path.read_bytes(), before)
+
+    def test_cli_bootstrap_requires_exact_checked_out_source_sha(self):
+        manifest_path = self.root / "bootstrap-manifest.json"
+        write_json(manifest_path, self.manifest)
+        output = StringIO()
+
+        with patch(
+            "paper_execution.__main__.subprocess.run",
+            return_value=SimpleNamespace(stdout="b" * 40),
+        ), redirect_stdout(output):
+            with self.assertRaisesRegex(ValueError, "BOOTSTRAP_SOURCE_SHA_MISMATCH"):
+                paper_cli_main([
+                    "--db", str(self.db_path),
+                    "--bootstrap-manifest", str(manifest_path),
+                ])
+
+        self.assertFalse(self.db_path.exists())
+
+    def test_cli_bootstrap_and_inspect_use_the_expected_modes(self):
+        manifest_path = self.root / "bootstrap-manifest.json"
+        write_json(manifest_path, self.manifest)
+        output = StringIO()
+
+        with patch(
+            "paper_execution.__main__.subprocess.run",
+            return_value=SimpleNamespace(stdout=self.source_sha),
+        ), redirect_stdout(output):
+            self.assertEqual(paper_cli_main([
+                "--db", str(self.db_path),
+                "--bootstrap-manifest", str(manifest_path),
+            ]), 0)
+
+        created = json.loads(output.getvalue())
+        self.assertTrue(created["riskReady"])
+        before = self.db_path.read_bytes()
+        inspected_output = StringIO()
+        with redirect_stdout(inspected_output):
+            self.assertEqual(paper_cli_main([
+                "--db", str(self.db_path), "--inspect", "--now-ms", str(self.now),
+            ]), 0)
+        inspected = json.loads(inspected_output.getvalue())
+        self.assertTrue(inspected["riskReady"])
+        self.assertTrue(inspected["readOnly"])
         self.assertEqual(self.db_path.read_bytes(), before)
 
 
