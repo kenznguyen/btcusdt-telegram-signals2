@@ -74,7 +74,11 @@ class OrderBookHttpClient:
         if not isinstance(config, OrderBookHttpConfig):
             raise OrderBookHttpError("CONFIG_INVALID")
         self.config = config
-        self.session = session if session is not None else requests.Session()
+        if session is None:
+            self.session = requests.Session()
+            self.session.trust_env = False
+        else:
+            self.session = session
         self.url = config.base_url + _ROUTE
 
     @staticmethod
