@@ -1,6 +1,8 @@
 import os
 import json
 import hashlib
+import io
+from contextlib import redirect_stdout
 import multiprocessing
 from concurrent.futures import ThreadPoolExecutor
 from threading import Barrier
@@ -202,7 +204,7 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
 
     def test_one_shot_runner_submits_only_validated_bundle_v1_to_core_paper_ledger(self):
         from core_runtime.input_bundle import compute_bundle_id
-        from core_runtime.one_shot import run_once
+        from core_runtime.__main__ import main as runtime_main
         from core_runtime.test_input_bundle_contract import valid_bundle
         from paper_execution.ledger import read_account_risk_snapshot, read_snapshot
 
@@ -263,6 +265,7 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
                 "candleOpenTimeMs": bundle["marketData"]["m15"]["candles"][-1]["openTimeMs"],
             },
         }
+        output = io.StringIO()
         with patch.dict(os.environ, {
             "AI_EXECUTION_ENABLED": "false",
             "MARKET_DATA_DB": "",
@@ -270,8 +273,12 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
             "BINANCE_API_SECRET": "",
             "OKX_API_KEY": "",
             "OKX_API_SECRET": "",
-        }, clear=False), patch("pipeline.core_strategy.produce", return_value=report):
-            result = run_once(config_path, bundle_path, now_ms=self.now)
+        }, clear=False), patch("pipeline.core_strategy.produce", return_value=report), redirect_stdout(output):
+            exit_code = runtime_main([
+                "--config", str(config_path), "--run-once", "--bundle", str(bundle_path),
+            ])
+        result = json.loads(output.getvalue())
+        self.assertEqual(exit_code, 0)
 
         self.assertEqual(result["runStatus"], "PAPER_ACCEPTED", result)
         self.assertEqual(result["signal"]["action"], "BUY")
@@ -281,12 +288,17 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
 
         # The first commit changes the account-risk snapshot. Replaying the old
         # bundle is rejected before a second PaperLedger submission.
+        replay_output = io.StringIO()
         with patch.dict(os.environ, {
             "AI_EXECUTION_ENABLED": "false", "MARKET_DATA_DB": "",
             "BINANCE_API_KEY": "", "BINANCE_API_SECRET": "",
             "OKX_API_KEY": "", "OKX_API_SECRET": "",
-        }, clear=False):
-            replay = run_once(config_path, bundle_path, now_ms=self.now + 1)
+        }, clear=False), redirect_stdout(replay_output):
+            replay_exit_code = runtime_main([
+                "--config", str(config_path), "--run-once", "--bundle", str(bundle_path),
+            ])
+        replay = json.loads(replay_output.getvalue())
+        self.assertEqual(replay_exit_code, 2)
         self.assertEqual(replay["runStatus"], "INPUT_REJECTED", replay)
         self.assertEqual(self.core.snapshot()["positionBase"], "0.0001")
 
