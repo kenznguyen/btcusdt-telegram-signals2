@@ -4811,3 +4811,14 @@ Next: preserve this proof and do not rerun automatically. Any additional runtime
 - Latest known branch commit after evidence update: `ad0eb67fa62ed0a15aff11c812a3bade18bc82c2`. Continue on this branch; do not create a new branch or PR.
 - Protected boundaries: do not change Strategy Core, Risk Engine, PaperLedger schema/behavior, T0/T1/T2, or AI Strategy; if implementation requires such changes, stop and seek approval. Keep `AI_EXECUTION_ENABLED=false`; no VPS activation, services, exchange access or real orders.
 - Next step: continue Continuous Runner implementation in RED-first order, verify each test batch through CI before claiming PASS, and record exact SHA/run/artifact evidence.
+
+
+## 2026-11-13 — Continuous Core journal claim RED tests staged
+
+- Continued the approved Continuous Core Runner implementation on the existing branch `feature/core-operational-proof-20261112`.
+- Added `core_runtime/test_continuous_journal.py` with four tests for durable claim persistence/readback, idempotent duplicate claim, conflicting bundle rejection, and concurrent claim uniqueness. Test commit: `fa86a08473be32fe495ec0021024194bcb4d4745`.
+- Added a dedicated test invocation to `.github/workflows/core-live-data-operational-proof.yml` so the new tests execute in CI. Workflow commit / exact source SHA: `aa1e3c840055da5f88233283f739293518c91b46`.
+- GitHub Actions run `43411595131` (run number 134, push) is **PENDING** at last read. It is queued behind prior run `43411582712`, which was still executing its existing Core operational regression job. Therefore the new tests have **NOT YET EXECUTED**; RED is not yet confirmed.
+- Current implementation module `core_runtime/continuous_journal.py` is not yet present. Do not implement the journal until CI demonstrates the intended RED failure, preserving RED-first order.
+- Next: wait for run `43411595131`, inspect the journal test step/log, record the exact RED result; then implement the minimum SQLite journal and rerun the same focused tests to GREEN. Keep atomic claim conflict behavior fail-closed.
+- No Continuous Runner runtime/scheduler, VPS process, systemd/autostart, exchange connection, AI Strategy/execution or real orders were introduced. No Strategy Core, Risk Engine, PaperLedger, T0/T1/T2 changes. `AI_EXECUTION_ENABLED=false` remains mandatory.
