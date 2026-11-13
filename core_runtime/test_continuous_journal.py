@@ -106,8 +106,14 @@ class ContinuousJournalClaimTest(unittest.TestCase):
         journal.transition_cycle(
             cycle_key,
             expected_status="CLAIMED",
-            status="NO_SIGNAL",
+            status="EXECUTING",
             updated_at_ms=1_800_000_002_000,
+        )
+        journal.transition_cycle(
+            cycle_key,
+            expected_status="EXECUTING",
+            status="NO_SIGNAL",
+            updated_at_ms=1_800_000_003_000,
             terminal_result="NO_SIGNAL",
         )
         with self.assertRaises(CycleConflict):
