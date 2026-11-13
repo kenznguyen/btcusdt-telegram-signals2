@@ -54,6 +54,7 @@ class ManualOwnerAttestationContractTest(unittest.TestCase):
 
         self.assertEqual(result["attestationStatus"], "MANUAL_OWNER_ATTESTATION_PRESENT")
         self.assertEqual(result["attestorRole"], "OWNER_DECLARATION")
+        self.assertEqual(result["ownerIdentity"], "NOT_AUTHENTICATED")
         self.assertEqual(result["sourceAuthenticity"], "NOT_VERIFIED")
         self.assertEqual(result["factualTruth"], "NOT_VERIFIED")
         self.assertEqual(result["completeness"], "NOT_VERIFIED")
