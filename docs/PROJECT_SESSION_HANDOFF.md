@@ -4628,3 +4628,16 @@ These findings make the current stop condition explicit: completing Trusted Admi
 - G4-preflight disposition: synchronized source SHA PASS; tested-source ancestry PASS; required Runner file presence PASS; ARM64 dependency/build/runtime compatibility NOT VERIFIED; runtime NOT AUTHORIZED / NOT RUN.
 - Shell status `[ahead 165]` against local `origin/*` remains stale remote-tracking metadata because the successful fetch used an explicit HTTPS URL. No push is required.
 - Next: prepare a separately bounded ARM64 dependency/build compatibility plan for owner review. No installation, build/test execution, Runner invocation, service activation, T0/T1/T2 mutation, or live trading is authorized.
+
+
+## 2026-11-13 — Core Runner ARM64 dependency static assessment
+
+- Assessment source: active branch `feature/core-operational-proof-20261112`, branch HEAD at start of assessment `fa02bffea4b1070e9ad203900f0fc7c45bef96b1` (GitHub compare: identical).
+- Read-only source files inspected: `requirements.txt`; `core_runtime/__main__.py`, `preflight.py`, `one_shot.py`, `input_bundle.py`, `adapter.py`, `orderbook_contract.py`; `pipeline/core_strategy.py`, `core_signal.py`, `values.py`; `paper_execution/ledger.py`, `risk_control.py`, `equity.py`, `account_history.py`, `replay_inputs.py`, `funding.py`; `risk_policy.py`.
+- Static import-graph finding: the Core Runner decision path's only third-party Python import identified is `rfc8785`. Its declared project constraint is `rfc8785>=0.1.4,<0.2`. The inspected Core Runner path otherwise uses Python standard library and in-repository modules. This is a static source audit, not a runtime import proof.
+- PyPI package metadata identifies `rfc8785 0.1.4` as pure Python, no dependencies, with a `py3-none-any` wheel and Python >=3.8. This supports CPython 3.12/aarch64 platform-tag compatibility in principle; actual install/import remains NOT VERIFIED.
+- Root `requirements.txt` is a broader application environment: requests, numpy, pandas, Flask, gunicorn, cryptography and rfc8785. Do not install all of it merely to run the one-shot Core Runner; NumPy/Pandas/Flask/Gunicorn/requests/cryptography were not found in the inspected Runner import path. Confirm this separation against any dynamically imported modules before defining an install set.
+- No `pyproject.toml` or `setup.cfg` was found at repository root. No lock file or dedicated Core Runner requirements manifest was established by this check.
+- Host constraints carried forward from owner inventory: Ubuntu 24.04.5, Python 3.12.3 aarch64, 2 vCPU, 3.8 GiB RAM, 5.3 GB free root disk, pip absent, GCC absent. These host facts have not been re-probed in this assessment.
+- Status: static dependency scope PASS (source-inspection level); rfc8785 wheel/platform compatibility CONDITIONAL PASS (PyPI metadata only); dependency resolution on this host NOT VERIFIED; import/test/build/runtime NOT RUN; installation NOT AUTHORIZED.
+- Next proposed gate: an isolated, no-install resolver/wheel-availability check for the minimal Core Runner dependency only, after confirming a safe way to invoke pip without installing or modifying system Python. Do not bootstrap pip, install packages, create a persistent environment, build, test, invoke Runner, or activate services without separate explicit approval.
