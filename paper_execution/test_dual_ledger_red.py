@@ -2864,13 +2864,13 @@ os._exit(0)
         self.assertEqual(status, ("PARTIALLY_FILLED",))
 
 
-    def test_core_paper_ledger_consumes_validated_t1_snapshot_once(self):
+    def test_core_paper_ledger_shares_t1_visible_depth_without_overconsumption(self):
         snapshot = {
             "contractVersion": "T1_T2_ORDERBOOK_V1",
             "symbol": "BTCUSDT",
             "market": "BINANCE_USDM_PERPETUAL",
             "bids": [[format(99.99-index*0.01, ".2f"), "1.000000"] for index in range(20)],
-            "asks": [[format(100.01+index*0.01, ".2f"), "1.000000"] for index in range(20)],
+            "asks": [[format(100.01+index*0.01, ".2f"), "0.000150"] for index in range(20)],
             "snapshotLastUpdateId": 100,
             "firstAppliedU": 101,
             "lastAppliedU": 101,
@@ -2910,12 +2910,17 @@ os._exit(0)
             self.intent("core-t1-snapshot-reuse", "0.0002", "100.01", "core-t1-input-2"),
             book, self.now+1, strategy_event="DCA",
         )
-        self.assertEqual(second["status"], "REJECTED", second)
-        self.assertEqual(second["reason"], "SNAPSHOT_ALREADY_USED")
-        self.assertEqual(self.core.snapshot()["positionBase"], "0.0001")
+        self.assertEqual(second["status"], "PARTIALLY_FILLED", second)
+        self.assertEqual(second["filledBase"], "0.00005")
+        self.assertEqual(self.core.snapshot()["positionBase"], "0.00015")
         with sqlite3.connect(self.path) as connection:
-            used = connection.execute("SELECT COUNT(*) FROM paper_books").fetchone()[0]
-        self.assertEqual(used, 1)
+            used = connection.execute(
+                "SELECT SUM(CAST(reserved_quantity AS REAL)) "
+                "FROM paper_book_level_reservations WHERE book_id=? "
+                "AND status IN (?,?)",
+                (first["bookId"], "ACTIVE", "CONSUMED"),
+            ).fetchone()[0]
+        self.assertAlmostEqual(used, 0.00015)
 
 
 if __name__ == "__main__":
