@@ -290,3 +290,18 @@ Next gate: owner review of this design and a separate explicit approval for impl
 - CI summary defect: One-shot unittest output reports 14 tests, while the workflow's status script still checks 11. This must be corrected before final acceptance.
 - Continue with RED-first verification of intent persistence and orchestration tests, then implement the minimum runner and recovery behavior. Do not alter Strategy Core, Shared Risk Engine, PaperLedger schema/behavior, T0/T1/T2, or AI Strategy. If a protected interface change proves necessary, stop and request approval. Maintain AI_EXECUTION_ENABLED=false and no live orders or VPS runtime.
 
+
+## Addendum — orchestration, real-ledger recovery and checkpoint (2026-11-13)
+
+- Implemented core_runtime/continuous_runner.py as an explicitly invoked, paper-only M15 scheduler. It validates Bundle v1, checks close+settlement, stores immutable content-addressed bundle bytes outside T0, claims one cycle in the separate SQLite journal, calls the existing One-shot Runner with the pre-submit intent callback, records terminal outcomes and supports graceful stop.
+- Recovery verifies bundle digest, cycle identity, source/config provenance and reads the existing PaperLedger audit through the read-only paginated read_audit API. If an intent exists but audit reconciliation is unavailable or no matching event is found, it returns BLOCKED; it never blindly submits a second order. If a cycle is proven pre-submit (no intent persisted), it can resume the exact stored bundle.
+- RED/GREEN evidence for this stage:
+  - RED for missing orchestration module: run 43414864777, source dfc2f1e877d4c4ea1e5f7d56affd3191a777872c.
+  - GREEN regression run 43415365632, job 131851922969, source SHA 8f1e916d07001e8330972b75a95d2d666b73a04b, SUCCESS. Cadence 5/5, journal 7/7, orchestration 12/12; all existing workflow regression steps SUCCESS.
+  - Artifact 14031547436, core-first-code-operational-proof-43415365632, SHA-256 3fca466c9b9389eade70a5bc99252ce3a211003ec543feca1eb6c1d7ecccd20a, expires 2026-11-20T11:13:44Z.
+- The 12 orchestration tests include a real fixture PaperLedger submit followed by an injected process interruption after the actual commit. Recovery locates the order by intentId in the real audit and reconciles PAPER_ACCEPTED without a second submit. Core ledger remains one order; AI ledger remains zero orders.
+- Checkpoint tests were added before implementation. RED run 43415426955 at source ddef24fdc68fb55cdba7c59ce3f6399d574d498d failed because get_checkpoint was not yet implemented. Commit 5d3e2987d952de0aaf125bf69d6d2bfc7ea0e52d adds a dedicated checkpoint table, get_checkpoint readback and atomic monotonic advancement in the same transaction as reconciled terminal transitions. Run 43415771895 at this source was in progress at last read.
+- CI reporting was corrected in commit 5f49c98cde4f8bc03d67626db5052f16543ae4e8: One-shot test count now expects 14 rather than stale 11; continuous component logs are compiled/archived and verdicted.
+- Current disposition: cadence PASS; durable claims/transitions/intent persistence PASS; orchestration and actual ledger recovery PASS; checkpoint implementation committed / NOT VERIFIED; full C1-C8 GREEN remains pending.
+- Continue RED-first for remaining lifecycle, idempotency, provenance and checkpoint cases. Do not modify Strategy Core, Shared Risk Engine, PaperLedger schema/behavior, T0/T1/T2 or AI Strategy. If a protected interface change is required, stop and seek approval. Keep AI_EXECUTION_ENABLED=false, no VPS activation, no exchange connections and no real orders.
+
