@@ -4344,3 +4344,13 @@ These findings make the current stop condition explicit: completing Trusted Admi
 - Dashboard backend/frontend PASS; Docker/security still IN_PROGRESS at checkpoint. Overall run not complete; no artifact claimed.
 - Detailed evidence and next gates: `docs/evidence/T1_ORDERBOOK_CONSUMER_LAG_DIAGNOSTIC_SPEC_2026-11-13.md`.
 - Next: continue polling run #598 and verify tests/artifacts on exact SHA before any PASS promotion. No runtime/VPS retest, T0 access, T1→T2 integration, persistent service, or trading.
+
+
+## T1 consumer-lag diagnostic — CI #598 completed (2026-11-13)
+
+- T1 source SHA `37c20475423d02fb4aea710232f7fc347051c3d0`; run #598 `43344045479`: https://github.com/kenznguyen/binance-futures-collector/actions/runs/43344045479.
+- All six jobs PASS: x86_64 collector `131618970778` (fmt/Clippy/build/tests/sidecar tests); native ARM64 collector `131618970678` (runner assertion/fmt/Clippy/build/tests/sidecar tests); dashboard frontend `131618970674`; dashboard backend `131618970744`; Docker `131618970330`; security `131618970643`.
+- Artifact list empty. x86_64 and ARM64 artifact preparation/ELF/checksum/upload steps were skipped because the workflow gates them to `github.event_name == 'push'`; #598 was a pull_request run.
+- Status: exact-source CI code/test gates **PASS**; binary artifacts, ELF identity and binary SHA256 **NOT VERIFIED / NOT GENERATED**. No runtime acceptance inferred.
+- No T0/VPS/runtime, T1→T2, persistent service, or trading action performed.
+- Next: only if binary artifact evidence is required, obtain a push-triggered run for the same SHA or separately approve an artifact-only workflow adjustment; verify artifact provenance/ELF/SHA256 before runtime. Runtime still requires explicit approval.
