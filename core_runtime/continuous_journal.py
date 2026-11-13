@@ -209,6 +209,8 @@ class ContinuousJournal:
         for field, value in optional.items():
             if value is not None:
                 self._required_text(value, field)
+        if expected_status in self._TERMINAL_STATES:
+            raise CycleConflict("CYCLE_TERMINAL")
         if status not in self._TRANSITIONS.get(expected_status, set()):
             raise ValueError("JOURNAL_TRANSITION_NOT_ALLOWED")
         if status in self._TERMINAL_STATES and terminal_result is None:
