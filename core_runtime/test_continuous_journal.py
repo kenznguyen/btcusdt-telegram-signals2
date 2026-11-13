@@ -102,6 +102,7 @@ class ContinuousJournalClaimTest(unittest.TestCase):
                 expected_status="EXECUTING",
                 status="PAPER_ACCEPTED",
                 updated_at_ms=1_800_000_002_000,
+                terminal_result="PAPER_ACCEPTED",
             )
         journal.transition_cycle(
             cycle_key,
