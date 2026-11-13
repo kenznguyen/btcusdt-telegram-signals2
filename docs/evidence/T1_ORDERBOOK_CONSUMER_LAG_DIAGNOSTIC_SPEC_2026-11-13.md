@@ -262,3 +262,16 @@ Implementation must begin with failing tests (RED). No runtime/VPS retest, persi
 - Dashboard backend `131618970744` and frontend `131618970674`: PASS. Docker `131618970330` and security `131618970643`: IN_PROGRESS at latest poll.
 - Current disposition: exact-SHA formatting and Clippy gates **PASS** on both Rust architectures; complete CI, build/tests and artifacts remain **IN PROGRESS / NOT VERIFIED**. No artifact ID, filename or digest claimed.
 - Next: poll run #598 until all jobs complete; if Rust jobs pass, verify Collector and Sidecar test results and both x86_64/ARM64 artifact metadata, then independently verify artifact payload hashes/ELF as available. No runtime/VPS retest, T0 access, T1→T2 integration, persistent service, or trading.
+
+
+### Exact-source CI #598 completed — 2026-11-13
+
+- T1 repository: `kenznguyen/binance-futures-collector`; branch `feature/t1-connection-sidecar-integration-20261107`; PR #1 remains OPEN / DRAFT / NOT MERGED.
+- Exact tested source SHA: `37c20475423d02fb4aea710232f7fc347051c3d0`.
+- Workflow run #598: [43344045479](https://github.com/kenznguyen/binance-futures-collector/actions/runs/43344045479).
+- Native ARM64 collector job `131618970678`: runner assertion, Format, Clippy, release Build, Collector tests and Sidecar writer offline tests all PASS. x86_64 collector job `131618970778`: Format, Clippy, Build, Collector tests, Sidecar writer format/Clippy/offline tests all PASS.
+- Dashboard frontend `131618970674` PASS; dashboard backend `131618970744` PASS; Docker `131618970330` PASS; Security `131618970643` PASS. All six jobs completed successfully.
+- Artifact check: workflow-run artifact list is empty. Both architecture jobs skipped their artifact preparation/ELF verification/checksum/upload steps because workflow conditions require `github.event_name == 'push'`; run #598 was a pull_request event. This is expected workflow gating, not a build/test failure.
+- Disposition: exact-source CI code/test gates **PASS**. Binary artifact, ELF machine verification, embedded SHA256SUMS and binary SHA-256 **NOT VERIFIED / NOT GENERATED** by this PR run. Do not claim deployment-ready binaries or use this run as artifact provenance.
+- No source changes were made in response to this run. No VPS runtime retest, T0 access, T1→T2 integration, persistent service/autostart, credentials or trading occurred.
+- Next bounded action: if an ARM64/x86_64 binary artifact is required, obtain a push-triggered workflow run for the same source SHA or a separately approved artifact-only workflow change; verify exact source SHA, artifact IDs/names, ELF architecture and binary SHA-256 before any runtime use. Runtime execution still requires its own explicit authorization.
