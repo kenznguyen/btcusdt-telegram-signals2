@@ -409,17 +409,22 @@ def _observed_funding_events(connection, start_at_ms, end_at_ms):
     if len(rows) > 100_000:
         raise ValueError("FUNDING_POPULATION_EVENTS_INVALID")
     events = []
+    provenance_snapshot = []
     for row in rows:
         if (row[4] == "LEGACY_UNVERIFIED" or not row[5] or not row[3]):
             raise ValueError("FUNDING_POPULATION_OBSERVED_PROVENANCE_INCOMPLETE")
-        events.append({
+        event = {
             "eventId": row[0],
             "eventAtMs": row[1],
             "amountQuote": row[2],
             "payloadHash": row[3],
+        }
+        events.append(event)
+        provenance_snapshot.append({
+            **event, "source": row[4], "sourceSnapshotId": row[5],
         })
     payload = json.dumps(
-        events, sort_keys=True, separators=(",", ":"), allow_nan=False
+        provenance_snapshot, sort_keys=True, separators=(",", ":"), allow_nan=False
     ).encode("utf-8")
     return events, "sha256:" + hashlib.sha256(payload).hexdigest()
 
