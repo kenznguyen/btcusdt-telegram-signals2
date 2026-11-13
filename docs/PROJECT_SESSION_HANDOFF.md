@@ -4798,3 +4798,16 @@ Next: preserve this proof and do not rerun automatically. Any additional runtime
 - Status: One-shot/interface inspection PASS; Continuous Runner design PASS; C1-C8 tests SPECIFIED / NOT WRITTEN / NOT RUN; implementation NOT AUTHORIZED; continuous CI NOT IMPLEMENTED; runtime/VPS/service/systemd/autostart NOT AUTHORIZED.
 - Next step: owner review and separate approval for implementation. If approved, begin with C1-C8 RED tests. Continue on this branch; no new branch or parallel PR.
 - Explicit limits: no Strategy Core changes, no Risk Engine/Ledger behavior changes unless separately scoped, no T0/T1/T2 changes, no AI strategy/execution, no exchange connection/credentials, no real orders, no VPS deployment, no persistent runtime, no systemd/autostart.
+
+
+## 2026-11-13 — Continuous Core Runner implementation: pre-ledger intent callback
+
+- Owner approved Continuous Core Runner implementation on the existing branch `feature/core-operational-proof-20261112`, with C1-C8 RED-first, GREEN/regression/CI. VPS runtime, systemd/autostart, exchange connection, AI execution and real orders remain excluded.
+- Owner separately approved the minimal One-shot interface addition needed for crash-safe journal recovery: optional `on_intent_prepared` callback in `core_runtime/one_shot.py`.
+- Implementation commit: `14df039546990c3bb16952aaa17a34175631d5c6`; test commit: `b06c97179afa4fa2d46bea19af7eef4e209cc893`; docs evidence commit: `ad0eb67fa62ed0a15aff11c812a3bade18bc82c2`.
+- Callback receives the exact validated intent after Core signal validation and before PaperLedger construction/submission. A missing callback preserves current One-shot behavior. A non-callable/raising callback returns `RUN_FAILED / INTENT_PREPARE_CALLBACK_FAILED` and aborts before Ledger construction.
+- Added 3 One-shot tests for callback ordering, fail-closed abort, and backward compatibility. Existing CI workflow invokes `pipeline.test_core_runtime_one_shot`, so the tests are on its execution path. Workflow result/log/artifact has not been retrieved: tests **NOT VERIFIED**.
+- Continuous journal, cycle scheduler, atomic claims, recovery/reconciliation, graceful shutdown, C1-C8 test suite and dedicated CI remain **NOT IMPLEMENTED / NOT VERIFIED**. The callback is an interface enabler only, not proof of C6.3 recovery.
+- Latest known branch commit after evidence update: `ad0eb67fa62ed0a15aff11c812a3bade18bc82c2`. Continue on this branch; do not create a new branch or PR.
+- Protected boundaries: do not change Strategy Core, Risk Engine, PaperLedger schema/behavior, T0/T1/T2, or AI Strategy; if implementation requires such changes, stop and seek approval. Keep `AI_EXECUTION_ENABLED=false`; no VPS activation, services, exchange access or real orders.
+- Next step: continue Continuous Runner implementation in RED-first order, verify each test batch through CI before claiming PASS, and record exact SHA/run/artifact evidence.
