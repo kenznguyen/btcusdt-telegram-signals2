@@ -4373,3 +4373,17 @@ These findings make the current stop condition explicit: completing Trusted Admi
 - Exact-SHA workflow run `43346301451`, job `131626382017`: **SUCCESS**. Compile PASS; HTTP adapter 48/48 PASS; HTTP context/migration 11/11 PASS; exporter regressions 6/6 PASS. Artifact ID `14001207782`, ZIP SHA-256 `0a0073b97c7428f1dbc0aa6862f36b5a0627bdcb33de5db169ce2664f7d56f82`.
 - Status: C1 client API implementation and CI evidence **PASS**. T0 runtime connectivity **NOT VERIFIED**; Core runner integration **NOT IMPLEMENTED**; C2 T1 Order Book remains **BLOCKED**. No T0/T1/VPS/runtime/ledger/strategy/risk/AI/live-trading changes.
 - Next: keep C1 implementation isolated; resolve C2 under a separate bounded authorization before implementing the Core one-shot runner. No runtime activation or live trading.
+
+
+## 2026-11-13 — Core-First C2 T1 Order Book V1 watermark fence
+
+- Owner approved bounded C2 work on the existing T1 branch `feature/t1-connection-sidecar-integration-20261107`; no new branch or PR created.
+- T1 source commit tested: `ac13a943595ec8a73f75d87ccff938b16498da55`; changed source blob `src/orderbook_v1.rs`: `ee38ef1ed5be4bc11b5e91ac3b85521d7b2a1964`.
+- Fixed a publication race: a delayed candidate from the same connection generation could previously replace a newer published watermark. `SnapshotPublisher::publish_if_current` now rejects same-generation candidates whose `last_applied_u` is less than or equal to the current watermark. Added regression test `publisher_rejects_same_generation_watermark_regression`.
+- Exact-source CI push run #603 `43346949935`: **SUCCESS**, all six jobs. x86_64 and ARM64 collector format/Clippy/build/tests PASS; dashboard frontend/backend PASS; Docker PASS; cargo-audit/npm audit PASS. The regression test passed on both architecture test jobs. Test binaries reported 99 + 3 + 12 + 27 tests per target, all passed.
+- Artifacts: x86_64 ID `14001009082`, SHA-256 `17c34408ac10d507fac332053c16c49c310cb8b8b213cbe09405b7d851186889`; ARM64 ID `14001523880`, SHA-256 `1803016963974aa232201ba8ce2d4e6168f14fbab67501b18309b22f696e5750`. Artifacts are CI evidence only, not approved for deployment.
+- T1 evidence record: `docs/evidence/C2_T1_ORDERBOOK_V1_WATERMARK_FENCING_2026-11-13.md`; evidence commit `ed5c72f798b4af4d1612be600245f71e1ad0b5c6`; evidence blob `71846840c4e949dd4b95373aaea44b3ed06004e1`.
+- TDD qualification: GREEN exact-SHA tests PASS; separate RED proof **NOT VERIFIED** because the earlier workflow stopped at rustfmt before running tests.
+- Status: same-generation watermark regression guard **PASS**. Broader C2 contract audit (T2-facing field semantics, exact decimal preservation, completeness/continuity/freshness/re-anchor behavior) remains **NOT VERIFIED / NEXT**. T0→T1→T2 runtime delivery, Core consumer integration and One-shot Runner remain **NOT VERIFIED / NOT IMPLEMENTED**.
+- No T0 code/data/API, VPS, T1 runtime activation, persistent service/autostart, strategy, ledger, Shared Risk Engine, AI execution, or real orders were changed. Paper-only posture remains.
+- Next: perform read-only contract audit against T2 consumer requirements; implement only concrete missing isolated guards/tests under the approved C2 boundary. Do not activate runtime or deploy artifacts without separate approval.
