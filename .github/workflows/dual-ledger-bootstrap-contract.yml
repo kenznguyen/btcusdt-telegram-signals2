@@ -1,0 +1,96 @@
+name: Dual Ledger Bootstrap Contract
+
+on:
+  push:
+    branches:
+      - feature/core-operational-proof-20261112
+    paths:
+      - "paper_execution/bootstrap.py"
+      - "paper_execution/__main__.py"
+      - "paper_execution/test_dual_ledger_bootstrap.py"
+      - ".github/workflows/dual-ledger-bootstrap-contract.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dual-ledger-bootstrap-contract
+  cancel-in-progress: false
+
+jobs:
+  bootstrap-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      AI_EXECUTION_ENABLED: "false"
+      MARKET_DATA_DB: ""
+      T0_FEEDER_LEASE_DB: ""
+      PAPER_DB: ""
+      PAPER_TRADING_DB: ""
+      BINANCE_API_KEY: ""
+      BINANCE_API_SECRET: ""
+      OKX_API_KEY: ""
+      OKX_API_SECRET: ""
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install isolated test dependencies
+        run: |
+          python -m pip install --disable-pip-version-check -r requirements-web.txt
+
+      - name: Enforce disposable paper-only environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${AI_EXECUTION_ENABLED}" = "false"
+          for key in MARKET_DATA_DB T0_FEEDER_LEASE_DB PAPER_DB PAPER_TRADING_DB BINANCE_API_KEY BINANCE_API_SECRET OKX_API_KEY OKX_API_SECRET; do
+            if [[ -n "${!key:-}" ]]; then
+              echo "Unexpected persistent database or credential environment: ${key}"
+              exit 1
+            fi
+          done
+          git rev-parse HEAD | tee bootstrap-source-sha.txt
+          echo "BOOTSTRAP_SCOPE=DISPOSABLE_SQLITE_CI_ONLY" | tee bootstrap-safety.txt
+          echo "BOOTSTRAP_EXTERNAL_SERVICES=NONE" | tee -a bootstrap-safety.txt
+          echo "BOOTSTRAP_LIVE_ORDERS=FORBIDDEN" | tee -a bootstrap-safety.txt
+
+      - name: Compile bootstrap contract
+        run: |
+          set -euo pipefail
+          python -m py_compile paper_execution/bootstrap.py paper_execution/__main__.py paper_execution/test_dual_ledger_bootstrap.py
+          echo "BOOTSTRAP_COMPILE=PASS" | tee bootstrap-compile.txt
+
+      - name: Run focused bootstrap contract
+        shell: bash
+        run: |
+          set -o pipefail
+          python -m unittest paper_execution.test_dual_ledger_bootstrap -v 2>&1 | tee bootstrap-tests.log
+
+      - name: Run PaperLedger regression
+        if: success()
+        shell: bash
+        run: |
+          set -o pipefail
+          python -m unittest discover -s paper_execution -p 'test_*.py' -v 2>&1 | tee paper-execution-regression.log
+
+      - name: Upload bootstrap evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dual-ledger-bootstrap-contract-${{ github.sha }}
+          if-no-files-found: error
+          path: |
+            bootstrap-source-sha.txt
+            bootstrap-safety.txt
+            bootstrap-compile.txt
+            bootstrap-tests.log
+            paper-execution-regression.log
