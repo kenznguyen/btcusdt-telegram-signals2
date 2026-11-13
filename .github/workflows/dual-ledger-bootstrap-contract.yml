@@ -20,6 +20,8 @@ on:
       - "paper_execution/funding_provenance.py"
       - "paper_execution/funding_model.py"
       - "paper_execution/test_funding_model.py"
+      - "paper_execution/binance_public_funding.py"
+      - "paper_execution/test_binance_public_funding.py"
       - "paper_execution/test_funding_provenance.py"
       - "paper_execution/test_dual_ledger_bootstrap.py"
       - ".github/workflows/dual-ledger-bootstrap-contract.yml"
@@ -107,6 +109,12 @@ jobs:
           set -o pipefail
           python -m unittest paper_execution.test_funding_model -v 2>&1 | tee d07-funding-model-tests.log
 
+      - name: Run focused D07 Binance public funding parser tests
+        shell: bash
+        run: |
+          set -o pipefail
+          python -m unittest paper_execution.test_binance_public_funding -v 2>&1 | tee d07-binance-public-funding-tests.log
+
       - name: Run focused D07 persistence and coverage gate tests
         shell: bash
         run: |
@@ -135,4 +143,5 @@ jobs:
             d07-funding-persistence-tests.log
             d07-provenance-tests.log
             d07-funding-model-tests.log
+            d07-binance-public-funding-tests.log
             paper-execution-regression.log
