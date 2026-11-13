@@ -4918,3 +4918,16 @@ Next: preserve this proof and do not rerun automatically. Any additional runtime
 
 
 - Final evidence update: full current-source workflow run 43421353331 attempt 2 completed SUCCESS; see `docs/evidence/P3_STATIC_DRY_RUN_EVIDENCE_2026-11-13.md`. Documentation-only commit updates the run result and artifact metadata. P3 remains NOT APPROVED / NOT RUN.
+
+
+## 2026-11-13 — Read-only PaperLedger readiness preflight
+
+- Added core_runtime/paper_ledger_preflight.py and CLI mode: python -m core_runtime --config <paper-config.json> --ledger-preflight.
+- The preflight uses the existing read-only account-wide PaperLedger snapshot reader. It requires PAPER mode, liveTradingSupported=false, riskReady=true, Kill Switch inactive, risk not paused, AI_EXECUTION_ENABLED=false, and no exchange credentials. Missing/corrupt/incomplete ledger state fails closed.
+- The command does not instantiate ContinuousCoreRunner/ContinuousJournal, invoke One-shot, execute a decision cycle, or submit orders. Output explicitly says decisionCycle=NOT_RUN, oneShotInvoked=false, persistentStateMutation=NONE.
+- New test suite core_runtime.test_paper_ledger_preflight: 6/6 PASS. It covers ready state, Kill Switch, Pause, riskReady=false, incomplete ledger, and environment safety. Each database read test verifies unchanged database bytes via SHA-256 before/after.
+- Initial CI attempts exposed two CLI integration defects (escaped newline, then missing argparse registration); both were corrected. The first full regression attempt also hit the previously observed intermittent SQLite lock in the existing journal concurrency test. No journal production code was changed; the failed job was retried.
+- Current exact source SHA: 528a0f633673871ed65b5a6dab1894bd46e2b6a4. GitHub Actions run 43422713480 attempt 2 has passed the existing Core CLI, One-shot, cadence, journal, orchestration, static dry-run, PaperLedger preflight (6/6), bundle and adapter steps. At handoff update time, the Core end-to-end operational regression step was still running; overall run conclusion and artifact are NOT YET VERIFIED.
+- Evidence report: docs/evidence/P3_PAPER_LEDGER_READONLY_PREFLIGHT_2026-11-13.md.
+- P3 VPS execution/activation remains NOT APPROVED / NOT RUN. No VPS/SSH, package install, config creation, runner activation, services/autostart, exchange access, credentials, or real orders.
+- Next: inspect final run 43422713480 attempt 2, record exact conclusion, completed steps and artifact metadata. If GREEN, update evidence/handoff. Keep runtime readiness and P3 VPS activation as separate approval gates.
