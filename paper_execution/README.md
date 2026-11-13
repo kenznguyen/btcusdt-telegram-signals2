@@ -278,7 +278,7 @@ result matches a real Binance account's funding cashflows. It performs no
 network access, credential access, account-data access, order placement or
 ledger writes.
 
-The function accepts caller-supplied snapshots and funding-rate observations.
+The function accepts caller-supplied snapshots and funding-rate observations. Each numeric input is limited to 80 significant digits; the Decimal arithmetic context is 240 digits and canonical formatting does not round through the ambient Decimal context.
 A read-only source adapter/replay of historical PAPER positions, public-rate
 acquisition, controlled staging into `paper_funding_events`, and end-to-end
 coverage integration are not implemented by this increment. Until those
