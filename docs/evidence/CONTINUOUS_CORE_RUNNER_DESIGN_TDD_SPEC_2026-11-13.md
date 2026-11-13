@@ -275,3 +275,18 @@ Next gate: owner review of this design and a separate explicit approval for impl
 - This hook closes the missing pre-submit identity persistence interface, but it does not itself implement the durable Continuous Runner journal or crash recovery. C6.3 end-to-end reconciliation remains **NOT VERIFIED**.
 - No Strategy Core, Risk Engine, PaperLedger schema/behavior, T0/T1/T2, AI strategy, VPS runtime, service, exchange connection or real-order behavior was changed.
 - Next: implement and test the journal/recovery layer, then C1-C8 in RED-first order. Maintain paper-only and `AI_EXECUTION_ENABLED=false`; runtime activation remains separately gated.
+
+## Addendum — journal and M15 cadence implementation evidence (2026-11-13)
+
+- Owner approved automatic continuation through Continuous Core Runner GREEN, within the existing paper-only code/CI scope. Runtime/VPS/service activation remains separately gated.
+- Durable journal implementation now exists in core_runtime/continuous_journal.py. It uses a dedicated SQLite file, WAL, busy timeout, BEGIN IMMEDIATE, unique cycle_key, exact-input idempotency, conflict rejection, compare-and-swap state transitions, terminal replay rejection and pre-submit intent persistence.
+- Cadence helpers now exist in core_runtime/continuous_cadence.py. They validate Bundle v1 before cycle identity construction, calculate latest eligible closed M15 candle and next close+settlement deadline, and wait against a monotonic deadline.
+- RED was observed for missing journal module (run 43411595131), missing transition API (run 43414066659), missing cadence module (run 43414221740), and missing record_intent API (run 43414485163).
+- Component GREEN baseline: run 43414415701, job 131848574931, source SHA 4fa3064903e041862fbb07ad2285ac400688de90, SUCCESS. Cadence tests 5/5 PASS; journal tests 6/6 PASS; all existing regression workflow steps also SUCCESS.
+- Artifact 14030612833, core-first-code-operational-proof-43414415701, SHA-256 28d3365ab0b371c50c8df072a3e49c201379de1468e8841c068da625c8037aa8, expires 2026-11-20T11:06:55Z.
+- The later journal test for pre-submit intent persistence was RED at source 35c795096634a4dde3d7b20e26b3f9cb352fba01. Implementation commit 83124de4e69a49ff828da3529d22c542d23e587a adds record_intent; test result is pending.
+- Orchestration tests have been added in core_runtime/test_continuous_runner.py, and the workflow includes their execution step. A previous run was cancelled before that step executed; the corrected workflow run is pending.
+- Component disposition: cadence PASS; journal claim/state transition PASS at the stated baseline; intent persistence implementation committed / test NOT VERIFIED; continuous orchestration and crash recovery NOT IMPLEMENTED / NOT VERIFIED; full C1-C8 GREEN NOT ACHIEVED.
+- CI summary defect: One-shot unittest output reports 14 tests, while the workflow's status script still checks 11. This must be corrected before final acceptance.
+- Continue with RED-first verification of intent persistence and orchestration tests, then implement the minimum runner and recovery behavior. Do not alter Strategy Core, Shared Risk Engine, PaperLedger schema/behavior, T0/T1/T2, or AI Strategy. If a protected interface change proves necessary, stop and request approval. Maintain AI_EXECUTION_ENABLED=false and no live orders or VPS runtime.
+
