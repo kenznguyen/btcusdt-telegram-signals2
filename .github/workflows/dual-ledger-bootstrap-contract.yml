@@ -93,7 +93,7 @@ jobs:
           set -o pipefail
           python -m unittest paper_execution.test_funding_reconciliation -v 2>&1 | tee d07-funding-reconciliation-tests.log
 
-      - name: Run focused D07 persistence and coverage gate tests
+      - name: Run focused D07.2 source evidence readback tests\n        shell: bash\n        run: |\n          set -o pipefail\n          python -m unittest paper_execution.test_funding_provenance -v 2>&1 | tee d07-provenance-tests.log\n\n      - name: Run focused D07 persistence and coverage gate tests
         shell: bash
         run: |
           set -o pipefail
@@ -118,5 +118,5 @@ jobs:
             bootstrap-compile.txt
             bootstrap-tests.log
             d07-funding-reconciliation-tests.log
-            d07-funding-persistence-tests.log
+            d07-funding-persistence-tests.log\n            d07-provenance-tests.log
             paper-execution-regression.log

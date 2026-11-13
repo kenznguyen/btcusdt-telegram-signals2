@@ -165,3 +165,31 @@ No signature scheme, key generation/import/custody, DSSE/Ed25519 verifier, KMS/H
 - Actual independence, issuer authenticity, completeness, freshness and factual truth: **NOT VERIFIED**.
 - Production bootstrap: **BLOCKED / NOT APPROVED**.
 - Runtime/code behavior: **UNCHANGED**.
+
+
+## D07.2 synthetic evidence-byte readback verifier
+
+A source-neutral, local verifier is implemented in
+`paper_execution/funding_provenance.py`. It accepts a strict version-1 envelope,
+validates the declared scope and page manifest, enforces contiguous cursor
+transitions and a terminal final page, checks duplicate page/request/cursor
+identities, checks source-total consistency, and independently reads each
+referenced regular file under a caller-supplied evidence root to recompute byte
+length and SHA-256.
+
+The verifier rejects absolute paths, traversal, symlinks and non-regular files.
+Missing files and digest/length mismatches return a BLOCKED result with reason
+codes. Malformed envelope/manifest structure raises a stable validation error.
+
+The output deliberately reports only `sourceByteIntegrity=PASS` and
+`sourceByteReadback=PASS` when the local bytes match. It keeps
+`enumerationCompleteness=NOT_VERIFIED`, `independence=DECLARED_NOT_VERIFIED`,
+`sourceIdentity=NOT_VERIFIED`, `issuerAuthenticity=NOT_VERIFIED`,
+`freshness=NOT_VERIFIED`, `factualTruth=NOT_VERIFIED` and
+`globalCompleteness=NOT_VERIFIED`. A declared shared lineage blocks the result.
+The verifier does not authenticate a source, interpret provider-specific cursor
+semantics, parse funding events, or connect to a network.
+
+Tests use synthetic byte fixtures and temporary directories only. This increment
+does not authorize provider access, credentials, real account evidence,
+non-empty historical funding import, production bootstrap or VPS operations.

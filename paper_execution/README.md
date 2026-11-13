@@ -242,3 +242,16 @@ authenticate the issuer or prove completeness. No source adapter, real-data acce
 signature/key workflow, database migration or runtime behavior is authorized by
 that design document. D07 continues to claim only
 `COMPLETE_WITHIN_DECLARED_POPULATION`; production bootstrap remains blocked.
+
+
+## D07.2 synthetic evidence-byte readback verifier
+
+`paper_execution.funding_provenance.verify_funding_source_evidence` validates
+a strict source-evidence envelope and re-reads each local page file to verify
+exact byte length and SHA-256. It checks declared cursor-chain structure and
+fails closed on missing/tampered files, unsafe paths, duplicate pages/cursors,
+invalid terminal markers, inconsistent source totals and declared shared
+lineage. A passing result proves only the captured local bytes were read back
+unchanged and the manifest is structurally consistent. It does not authenticate
+the issuer or prove actual pagination completeness, source independence,
+freshness or factual truth; those remain NOT VERIFIED.

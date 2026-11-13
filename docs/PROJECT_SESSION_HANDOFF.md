@@ -5032,3 +5032,14 @@ Next: preserve this proof and do not rerun automatically. Any additional runtime
 - Disposition: **DOCUMENTED**. Source/provider selection, external source access/readback, source adapter, parser, signature/key workflow, database migration and runtime changes are **NOT APPROVED / NOT IMPLEMENTED**. Actual independence, issuer authenticity, global completeness, freshness and factual truth remain **NOT VERIFIED**.
 - No production credentials, real account evidence, VPS, production DB, T0, Runner/One-shot, exchange credentials or orders were used. Paper-only and `AI_EXECUTION_ENABLED=false` remain unchanged. Production bootstrap remains **BLOCKED / NOT APPROVED**.
 - Next bounded step: review the source-neutral contract and prepare a separate source-specific decision package only if an actual independent source is identified. Do not connect a source or use real account data without a separate exact-scope approval.
+
+
+## 2026-11-14 — D07.2 synthetic source-evidence readback verifier
+
+- Scope: source-neutral local verifier only; synthetic fixtures and temporary directories. No provider/network adapter or real account data.
+- TDD RED contract commit: `24a0c43dcd3f1c53da8d4711c60bbb04893710b6` added `paper_execution/test_funding_provenance.py` and CI compile gate before implementation. GitHub Actions did not produce a run for this commit through the current GitHub integration; RED is specified by the missing module/compile target but **NOT VERIFIED by a workflow run**.
+- GREEN implementation adds `paper_execution/funding_provenance.py`: strict envelope/scope/page/lineage schema; exact local byte readback; byte-length/SHA-256 recomputation; safe relative regular-file paths; cursor continuity and terminal marker checks; duplicate page/request/cursor rejection; source-total consistency; declared shared-lineage block.
+- Output is intentionally bounded: byte integrity/readback may PASS for exact local bytes; enumeration completeness, actual independence, source identity, issuer authenticity, freshness, factual truth and global completeness remain NOT VERIFIED. Provider-specific cursor semantics and issuer authentication are not implemented.
+- Workflow `dual-ledger-bootstrap-contract.yml` compiles and runs the new focused test module and includes its log in the evidence artifact. CI result for the GREEN SHA is pending/not yet observed; no workflow/artifact SHA is claimed until GitHub reports it.
+- No database migration, PaperLedger behavior change, real funding import, credentials, VPS, T0, Runner/One-shot or live order path was changed. Production bootstrap remains BLOCKED / NOT APPROVED.
+- Next: obtain an exact-SHA CI result for the verifier and full regression; then prepare a source-specific evidence/lineage decision only if an independently authoritative source can be named. Do not connect or read real account data without separate exact-scope approval.
