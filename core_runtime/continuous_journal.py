@@ -86,6 +86,14 @@ class ContinuousJournal:
                         """CREATE INDEX IF NOT EXISTS continuous_cycles_status_idx
                            ON continuous_cycles(status, claimed_at_ms)"""
                     )
+                    connection.execute(
+                        """CREATE TABLE IF NOT EXISTS continuous_checkpoints (
+                               stream_key TEXT PRIMARY KEY,
+                               candle_open_ms INTEGER NOT NULL,
+                               cycle_key TEXT NOT NULL,
+                               updated_at_ms INTEGER NOT NULL
+                           )"""
+                    )
                     connection.commit()
                 except Exception:
                     connection.rollback()
@@ -245,6 +253,20 @@ class ContinuousJournal:
                         terminal_result, cycle_key, expected_status,
                     ),
                 )
+                if status in {"NO_SIGNAL", "PAPER_ACCEPTED", "RISK_REJECTED"}:
+                    stream_key, candle_open_ms = self._checkpoint_identity(cycle_key)
+                    connection.execute(
+                        """INSERT INTO continuous_checkpoints(
+                               stream_key,candle_open_ms,cycle_key,updated_at_ms
+                           ) VALUES (?,?,?,?)
+                           ON CONFLICT(stream_key) DO UPDATE SET
+                               candle_open_ms=excluded.candle_open_ms,
+                               cycle_key=excluded.cycle_key,
+                               updated_at_ms=excluded.updated_at_ms
+                           WHERE excluded.candle_open_ms >
+                                 continuous_checkpoints.candle_open_ms""",
+                        (stream_key, candle_open_ms, cycle_key, updated_at_ms),
+                    )
                 connection.commit()
                 return True
         except (CycleConflict, ValueError):
@@ -308,6 +330,41 @@ class ContinuousJournal:
             "orderId": row["order_id"],
             "terminalResult": row["terminal_result"],
         }
+
+
+    @staticmethod
+    def _checkpoint_identity(cycle_key):
+        parts = cycle_key.split(":")
+        if len(parts) != 6 or parts[3] != "15m" or parts[5] != "STRATEGY_CORE":
+            raise ValueError("JOURNAL_CYCLE_KEY_INVALID")
+        try:
+            candle_open_ms = int(parts[4])
+        except (TypeError, ValueError):
+            raise ValueError("JOURNAL_CYCLE_KEY_INVALID") from None
+        if candle_open_ms < 0:
+            raise ValueError("JOURNAL_CYCLE_KEY_INVALID")
+        stream_key = ":".join(parts[:4] + parts[5:])
+        return stream_key, candle_open_ms
+
+    def get_checkpoint(self, stream_key):
+        stream_key = self._required_text(stream_key, "stream_key")
+        try:
+            with closing(self._connect()) as connection:
+                row = connection.execute(
+                    """SELECT stream_key,candle_open_ms,cycle_key,updated_at_ms
+                       FROM continuous_checkpoints WHERE stream_key=?""",
+                    (stream_key,),
+                ).fetchone()
+                if row is None:
+                    return None
+                return {
+                    "streamKey": row["stream_key"],
+                    "candleOpenTimeMs": row["candle_open_ms"],
+                    "cycleKey": row["cycle_key"],
+                    "updatedAtMs": row["updated_at_ms"],
+                }
+        except sqlite3.Error as exc:
+            raise JournalError("JOURNAL_CHECKPOINT_READ_FAILED") from exc
 
     def get_cycle(self, cycle_key):
         cycle_key = self._required_text(cycle_key, "cycle_key")
