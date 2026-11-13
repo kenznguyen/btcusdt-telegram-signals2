@@ -7,7 +7,7 @@ import sys
 from core_runtime.preflight import PreflightError, _preflight
 
 
-def main(argv=None):
+def main(argv=None, *, now_ms=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", required=True, help="Explicit paper-only JSON config")
     parser.add_argument("--run-once", action="store_true",
@@ -21,7 +21,7 @@ def main(argv=None):
     try:
         if args.run_once:
             from core_runtime.one_shot import run_once
-            result = run_once(args.config, args.bundle)
+            result = run_once(args.config, args.bundle, now_ms=now_ms)
             print(json.dumps(result, sort_keys=True, separators=(",", ":"), allow_nan=False))
             return 0 if result["runStatus"] in ("NO_SIGNAL", "PAPER_ACCEPTED") else 2
         result = _preflight(args.config)
