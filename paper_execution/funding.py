@@ -410,14 +410,13 @@ def _observed_funding_events(connection, start_at_ms, end_at_ms):
         raise ValueError("FUNDING_POPULATION_EVENTS_INVALID")
     events = []
     for row in rows:
-        if (row["source"] == "LEGACY_UNVERIFIED"
-                or not row["source_snapshot_id"] or not row["payload_hash"]):
+        if (row[4] == "LEGACY_UNVERIFIED" or not row[5] or not row[3]):
             raise ValueError("FUNDING_POPULATION_OBSERVED_PROVENANCE_INCOMPLETE")
         events.append({
-            "eventId": row["funding_event_id"],
-            "eventAtMs": row["event_at_ms"],
-            "amountQuote": row["amount_quote"],
-            "payloadHash": row["payload_hash"],
+            "eventId": row[0],
+            "eventAtMs": row[1],
+            "amountQuote": row[2],
+            "payloadHash": row[3],
         })
     payload = json.dumps(
         events, sort_keys=True, separators=(",", ":"), allow_nan=False
