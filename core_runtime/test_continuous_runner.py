@@ -354,7 +354,7 @@ class ContinuousCoreRunnerTest(unittest.TestCase):
             journal=self.journal,
             bundle_store_dir=self.bundle_dir,
             source_sha="source-sha",
-            config_sha256="config-sha256",
+            config_sha256=self.config_sha256,
             settlement_ms=0,
             run_once_fn=self.fake_run_once,
             audit_reader=self.fake_audit_reader,
