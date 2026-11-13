@@ -54,7 +54,7 @@ This is a bounded human declaration record, not identity authentication, source 
 - Final explicit identity-boundary assertion at source `513978ef314e326195d2ea82ce65c480a27d3b11`:
   - Bootstrap workflow [43444319736](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43444319736): compile PASS; bootstrap tests 13/13 PASS; full PaperLedger regression 440/440 PASS (135.282s); job SUCCESS.
   - Artifact ID `14046847706`, name `dual-ledger-bootstrap-proof-513978ef314e326195d2ea82ce65c480a27d3b11`, 10,082 bytes, GitHub-reported ZIP digest `sha256:b476a14a78aeda98be2525eb57c3cefe9227b7ef22affb860f03d95a101537c1`, expires 2026-11-20T14:36:25Z. Payload digest has not been independently recomputed.
-  - Manual attestation workflow [43444319783](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43444319783): compile and focused attestation tests 11/11 PASS; full PaperLedger regression was still running at the time of this report update. Do not claim this workflow's final result until its conclusion is read back.
+  - Manual attestation workflow [43444319783](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43444319783): job `131950976034` SUCCESS; compile PASS, attestation tests 11/11 PASS, bootstrap tests 13/13 PASS, full PaperLedger regression 440/440 PASS (138.383s). Artifact ID `14047761865`, name `dual-ledger-owner-attestation-proof-43444319783`, 10,311 bytes, GitHub-reported ZIP digest `sha256:d540ea1fcb6a4a9173dca135b1be199530dd277c796a842a3dfd22f5b2d25138`, expires 2026-11-20T14:36:25Z. Payload digest has not been independently recomputed.
 
 ## 5. Status and boundaries
 
