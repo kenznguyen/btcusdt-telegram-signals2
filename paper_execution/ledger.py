@@ -284,23 +284,38 @@ def _funding_provenance_ready(connection, coverage_start_at_ms, coverage_end_at_
             return False
 
         coverage_rows = connection.execute(
-            """SELECT start_at_ms,end_at_ms,status,source FROM paper_funding_coverage
-               WHERE account_id=1 ORDER BY start_at_ms,end_at_ms"""
+            """SELECT start_at_ms,end_at_ms,status,source,reconciliation_id,source_snapshot_id
+               FROM paper_funding_coverage WHERE account_id=1 ORDER BY start_at_ms,end_at_ms"""
         ).fetchall()
         previous_end = None
         for row in coverage_rows:
-            start, end, status, source = row[0], row[1], row[2], row[3]
+            start, end, status, source, reconciliation_id, snapshot_id = row
             if start >= end or (previous_end is not None and start < previous_end):
                 return False
             if status not in {"VERIFIED", "UNKNOWN", "DISABLED"}:
                 return False
             if status == "DISABLED" and source != "PAPER_TEST_CONFIGURATION":
                 return False
+            if status == "VERIFIED":
+                if not reconciliation_id:
+                    return False
+                certificate = connection.execute(
+                    """SELECT start_at_ms,end_at_ms,expected_snapshot_id,status,recorded_at_ms
+                       FROM paper_funding_reconciliations WHERE reconciliation_id=?""",
+                    (reconciliation_id,),
+                ).fetchone()
+                if (certificate is None
+                        or certificate[:4] != (
+                            start, end, snapshot_id,
+                            "COMPLETE_WITHIN_DECLARED_POPULATION",
+                        )
+                        or certificate[4] > now):
+                    return False
             previous_end = end
 
         cursor = coverage_start
         for row in coverage_rows:
-            start, end, status, source = row[0], row[1], row[2], row[3]
+            start, end, status = row[0], row[1], row[2]
             if end <= coverage_start or start > observed:
                 continue
             if start > cursor or status == "UNKNOWN":
