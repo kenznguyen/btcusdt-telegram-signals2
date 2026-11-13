@@ -5070,3 +5070,10 @@ Next: preserve this proof and do not rerun automatically. Any additional runtime
 - GREEN workflow [43519778241](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43519778241), SUCCESS. Focused model tests 18/18 PASS; full PaperLedger regression 501/501 PASS. Artifact `14081998893`, 13,907 bytes, digest `sha256:21d20f3079197433869fdcdfc4572ca925740c548f87a642453557bb70e0c252`.
 - D07.3 model/CI = PASS. D07 overall remains PARTIAL: no read-only historical position projection, no public funding response parser/provenance ingestion, and no end-to-end persisted PAPER reconciliation driven by an independent funding producer. No network, private account data, credentials, VPS, production DB, T0, Runner/One-shot or orders were touched.
 - Next bounded work: inspect and implement a pure, fail-closed projection of as-of PAPER positions from immutable cutover snapshots + verified execution journal coverage, then add a strict parser for saved public BTCUSDT funding-rate response bytes. Do not add a network client or scheduler without separate approval.
+
+
+### D07.3 multi-settlement regression update — 2026-11-14
+- Added multi-settlement as-of selection test with changing position snapshots across funding times.
+- Workflow [43520315661](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43520315661) SUCCESS at source SHA `29ff1274ba191f37660ecaa334ae5038d3247a36`; focused model tests 19/19 PASS; full PaperLedger regression 502/502 PASS.
+- Artifact `14081429446`, 13,960 bytes, digest `sha256:d7f7ce308024ab9426be728381a48797ede00c27838b052e8de8adff8e9410a3`.
+- Code-review follow-up: optimize repeated position-history scans to indexed as-of lookup before expanding the 100,000-row input bound. Funding formula/semantics remain unchanged.
