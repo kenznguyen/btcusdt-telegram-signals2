@@ -218,13 +218,13 @@ class FundingPositionProjectionTest(unittest.TestCase):
         rows = proofs()
         rows[0] = coverage("STRATEGY_CORE", start=1_600, end=5_001)
         event = fill("STRATEGY_CORE", "fill-core-1", 1_500, "0.5")
-        with self.assertRaisesRegex(ValueError, "FUNDING_POSITION_EVENT_COVERAGE_INVALID"):
+        with self.assertRaisesRegex(ValueError, "FUNDING_POSITION_COVERAGE_INCOMPLETE"):
             self.project(events=[event], coverage_rows=rows)
 
     def test_event_recorded_after_coverage_watermark_is_rejected(self):
         rows = proofs()
-        rows[0] = coverage("STRATEGY_CORE", recorded=1_600)
-        event = fill("STRATEGY_CORE", "fill-core-1", 1_500, "0.5", recorded=1_700)
+        rows[0] = coverage("STRATEGY_CORE", end=4_001, recorded=4_500)
+        event = fill("STRATEGY_CORE", "fill-core-1", 1_500, "0.5", recorded=4_600)
         with self.assertRaisesRegex(ValueError, "FUNDING_POSITION_EVENT_COVERAGE_INVALID"):
             self.project(events=[event], coverage_rows=rows)
 
