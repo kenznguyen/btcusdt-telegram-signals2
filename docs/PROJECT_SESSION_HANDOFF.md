@@ -4720,3 +4720,17 @@ These findings make the current stop condition explicit: completing Trusted Admi
 - This remains a **hypothesis, NOT VERIFIED** because the complete script/input and validator exception were not captured. Other possible rejection classes include JSON floats, candle envelope/sequence/OHLC/freshness constraints, T1 spread/order constraints, account-risk digest, and bundle digest.
 - Next diagnostic gate: inspect/reconstruct the exact disposable fixture and invoke only the pure `validate_bundle()` function with exception code captured, without calling `run_once()`, Core, Risk Engine, PaperLedger, exchange, or any persistent service. This requires a separate bounded approval before any command execution. No automatic rerun or fixture/code change.
 - Preserve paper-only posture, `AI_EXECUTION_ENABLED=false`, and all T0/T1/T2 boundaries.
+
+
+## Addendum — pure Bundle validator diagnostic (2026-11-13)
+
+- Owner approved one bounded diagnostic. Owner-provided VPS output reports start/end source guards PASS on branch `feature/core-operational-proof-20261112`, source SHA `562362a69d8455a34e08385d26a47fa21d2b50ed`, and clean worktree.
+- Baseline contract fixture passed: `BUNDLE_VALID`.
+- Recentered Order Book with the old `t1Evidence.snapshotId` was rejected with exact code `ORDER_BOOK_T1_SNAPSHOT_ID_MISMATCH`.
+- Recomputing the T1 snapshot ID using the contract identity algorithm, then recomputing outer `bundleId`, passed validation: `BUNDLE_VALID`.
+- Diagnostic markers: `SNAPSHOT_ID_CAUSE_REPRODUCED=PASS`, `PURE_VALIDATOR_ONLY=PASS`, `NO_RUNNER_CORE_RISK_LEDGER=PASS`, `NO_NETWORK_OR_EXCHANGE=PASS`, `AI_EXECUTION_ENABLED=false`, `DIAGNOSTIC_COMPLETED=PASS`.
+- Conclusion: the stale Order Book snapshot ID is confirmed as the rejection cause for the reconstructed/recentered fixture diagnostic. This does **not** prove the exact original ENTRY fixture was identical, nor that Core Strategy emitted an ENTRY. Core/Risk/1% margin/PaperLedger path remains **NOT EXERCISED**.
+- Owner pasted a visibly interleaved terminal command, but the reported Python output contains all expected markers and both source guards PASS. Treat the diagnostic result as owner-reported; no independent VPS access or log-file readback was performed here.
+- No source/code change, test suite rerun, Runner invocation, database write, service, exchange connection, AI execution, T0/T1/T2 mutation, or real order. No GitHub Actions run or artifact for this manual diagnostic.
+- Status: pure validator reproduction **PASS (owner-reported)**; original ENTRY-path diagnosis **PARTIALLY CONFIRMED**; Core signal/Risk Engine/1% margin/PaperLedger trade path **NOT EXERCISED**; persistent runtime/deployment/live trading **NOT VERIFIED / NOT AUTHORIZED**.
+- Next: if ENTRY-path proof is still required, separately approve a new bounded fixture invocation after fixing snapshot identity in the fixture only. Preserve `AI_EXECUTION_ENABLED=false`; no automatic retry or source modification.
