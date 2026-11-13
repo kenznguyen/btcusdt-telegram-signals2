@@ -390,7 +390,7 @@ def migrate_funding_population_reconciliation(connection, source_sha):
     connection.execute(
         """INSERT INTO paper_schema_migrations
            (version,name,checksum,applied_at_ms,source_sha,status)
-           VALUES (6,'funding_population_reconciliation_v6',?,?,?,'APPLIED')""",
+           VALUES (10,'funding_population_reconciliation_v10',?,?,?,'APPLIED')""",
         (RECONCILIATION_MIGRATION_CHECKSUM, applied_at, source_sha.lower()),
     )
 
