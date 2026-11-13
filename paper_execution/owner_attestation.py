@@ -105,6 +105,7 @@ def validate_manual_owner_attestation(document, manifest):
     return {
         "attestationStatus": "MANUAL_OWNER_ATTESTATION_PRESENT",
         "attestorRole": "OWNER_DECLARATION",
+        "ownerIdentity": "NOT_AUTHENTICATED",
         "sourceAuthenticity": "NOT_VERIFIED",
         "factualTruth": "NOT_VERIFIED",
         "completeness": "NOT_VERIFIED",
