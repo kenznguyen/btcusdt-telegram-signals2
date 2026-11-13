@@ -27,8 +27,11 @@ from paper_execution.funding import (
     MIGRATION_CHECKSUM as FUNDING_MIGRATION_CHECKSUM,
     CUTOVER_MIGRATION_VERSION,
     CUTOVER_MIGRATION_CHECKSUM,
+    RECONCILIATION_MIGRATION_VERSION, RECONCILIATION_MIGRATION_CHECKSUM,
     migrate_funding_provenance, migrate_account_equity_cutover,
+    migrate_funding_population_reconciliation,
     record_funding_event, record_funding_coverage, record_account_equity_cutover,
+    record_funding_reconciliation,
 )
 
 ZERO = Decimal(0)
@@ -383,6 +386,7 @@ def read_account_risk_snapshot(db_path, *, now_ms):
                 (RESERVATION_EXPIRY_MIGRATION_VERSION, RESERVATION_EXPIRY_MIGRATION_CHECKSUM),
                 (FUNDING_MIGRATION_VERSION, FUNDING_MIGRATION_CHECKSUM),
                 (CUTOVER_MIGRATION_VERSION, CUTOVER_MIGRATION_CHECKSUM),
+                (RECONCILIATION_MIGRATION_VERSION, RECONCILIATION_MIGRATION_CHECKSUM),
             )
             for version, checksum in required_migrations:
                 migration = db.execute(
@@ -1316,6 +1320,7 @@ def _dual_ledger_migrations_ready(connection):
         (RESERVATION_EXPIRY_MIGRATION_VERSION, RESERVATION_EXPIRY_MIGRATION_CHECKSUM),
         (FUNDING_MIGRATION_VERSION, FUNDING_MIGRATION_CHECKSUM),
         (CUTOVER_MIGRATION_VERSION, CUTOVER_MIGRATION_CHECKSUM),
+        (RECONCILIATION_MIGRATION_VERSION, RECONCILIATION_MIGRATION_CHECKSUM),
         (ACCOUNT_HISTORY_MIGRATION_VERSION, ACCOUNT_HISTORY_MIGRATION_CHECKSUM),
         (CUTOVER_SNAPSHOT_MIGRATION_VERSION, CUTOVER_SNAPSHOT_MIGRATION_CHECKSUM),
         (FEE_PROVENANCE_MIGRATION_VERSION, FEE_PROVENANCE_MIGRATION_CHECKSUM),
@@ -1673,6 +1678,7 @@ class PaperLedger:
                     migrate_reservation_expiry(connection, self.source_sha)
                     migrate_funding_provenance(connection, self.source_sha)
                     migrate_account_equity_cutover(connection, self.source_sha)
+                    migrate_funding_population_reconciliation(connection, self.source_sha)
                     migrate_account_history(connection, self.source_sha)
                     migrate_cutover_ledger_snapshots(connection, self.source_sha)
                     migrate_fee_currency_provenance(connection, self.source_sha)
