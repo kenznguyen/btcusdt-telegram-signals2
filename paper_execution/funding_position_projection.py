@@ -3,13 +3,11 @@
 import hashlib
 import json
 import re
+from bisect import bisect_right
+from decimal import localcontext
 
 from paper_execution.account_history import (
-    STRATEGIES,
-    _replay_decimal,
-    _replay_text,
-    _stamp,
-    replay_ledger_events,
+    STRATEGIES, _replay_decimal, _replay_text, _stamp,
 )
 
 
@@ -139,6 +137,7 @@ def _normalise_cutovers(rows):
             "snapshot_at_ms": snapshot_at,
             "source_snapshot_id": source_snapshot,
             "payload_hash": payload_hash,
+            "position_decimal": position,
         }
         cutover_ids.add(cutover_id)
         snapshot_times.add(snapshot_at)
@@ -208,6 +207,20 @@ def _normalise_events(rows, now):
         )
         if _digest(expected) != payload_hash:
             raise ValueError("FUNDING_POSITION_EVENT_DIGEST_INVALID")
+        quantity_decimal = _replay_decimal(
+            quantity, "ACCOUNT_HISTORY_FILL_QUANTITY_INVALID", signed=True
+        )
+        price_decimal = _replay_decimal(
+            price, "ACCOUNT_HISTORY_FILL_PRICE_INVALID", positive=True
+        )
+        fee_decimal = _replay_decimal(
+            fee, "ACCOUNT_HISTORY_FEE_PROVENANCE_UNKNOWN", nonnegative=True
+        )
+        if (len(quantity_decimal.as_tuple().digits) > 80
+                or len(price_decimal.as_tuple().digits) > 80
+                or len(fee_decimal.as_tuple().digits) > 80
+                or quantity_decimal == 0):
+            raise ValueError("FUNDING_POSITION_EVENT_INVALID")
         events_by_strategy[strategy].append({
             "event_id": event_id,
             "event_type": event_type,
@@ -220,6 +233,9 @@ def _normalise_events(rows, now):
             "source": source,
             "source_snapshot_id": source_snapshot,
             "payload_hash": payload_hash,
+            "_quantity": quantity_decimal,
+            "_price": price_decimal,
+            "_fee": fee_decimal,
         })
     for events in events_by_strategy.values():
         events.sort(key=lambda item: (item["event_at_ms"], item["event_id"]))
@@ -293,16 +309,24 @@ def _coverage_chain(proofs, snapshot_at, required_end, now):
     return selected, max(item["recorded_at_ms"] for item in selected)
 
 
+def _chain_digest(previous, entry):
+    return _digest({"previous": previous, "entry": entry})
+
+
 def build_paper_position_snapshots(
     *, cutover_snapshots, execution_events, execution_coverage,
     settlement_times, now_ms,
 ):
-    """Project signed PAPER position quantities immediately before settlements.
+    """Project signed PAPER positions immediately before ordered settlements.
 
     The cutover snapshots are the baseline. Only immutable FILL events after
-    that baseline and strictly before each settlement are replayed. Each
-    settlement requires contiguous VERIFIED EXECUTION coverage through
-    settlement+1ms. A fill exactly at settlement is rejected as ambiguous.
+    that baseline and strictly before each settlement are replayed. Every
+    settlement requires contiguous, non-overlapping VERIFIED EXECUTION
+    coverage through settlement+1ms. A fill exactly at settlement is rejected
+    because its ordering relative to the funding event is ambiguous.
+
+    Events and coverage are consumed incrementally across sorted settlements;
+    each event and coverage row is processed at most once per strategy.
     """
     now = _stamp(now_ms, "FUNDING_POSITION_NOW_INVALID")
     if (not isinstance(settlement_times, list) or not settlement_times
@@ -324,62 +348,118 @@ def build_paper_position_snapshots(
     coverage = _normalise_coverage(execution_coverage, now)
 
     output = []
-    for settlement in settlements:
-        if settlement + 1 > now:
-            raise ValueError("FUNDING_POSITION_COVERAGE_INCOMPLETE")
+    with localcontext() as context:
+        context.prec = 240
         for strategy in sorted(STRATEGIES):
-            proofs, watermark = _coverage_chain(
-                coverage[strategy], snapshot_at, settlement + 1, now
-            )
             strategy_events = events[strategy]
-            for event in strategy_events:
-                if event["event_at_ms"] == settlement:
-                    raise ValueError("FUNDING_POSITION_BOUNDARY_AMBIGUOUS")
-                if snapshot_at < event["event_at_ms"] < settlement:
-                    matches = [
-                        proof for proof in proofs
-                        if proof["start_at_ms"] <= event["event_at_ms"] < proof["end_at_ms"]
-                    ]
-                    if len(matches) != 1 or event["recorded_at_ms"] > matches[0]["recorded_at_ms"]:
-                        raise ValueError("FUNDING_POSITION_EVENT_COVERAGE_INVALID")
-
-            replayed = replay_ledger_events(
-                snapshots[strategy]["snapshot"],
-                strategy_events,
-                [],
-                boundary_ms=settlement,
-                coverage_watermark_at_ms=watermark,
-                require_utc_boundary=False,
-            )
-            included_ids = set(replayed["included_event_ids"])
-            included = [
-                {"eventId": event["event_id"], "payloadHash": event["payload_hash"]}
-                for event in strategy_events if event["event_id"] in included_ids
-            ]
-            proof_identity = [
-                {
-                    "coverageId": proof["coverage_id"],
-                    "startAtMs": proof["start_at_ms"],
-                    "endAtMs": proof["end_at_ms"],
-                    "payloadHash": proof["payload_hash"],
-                    "recordedAtMs": proof["recorded_at_ms"],
-                }
-                for proof in proofs
-            ]
-            snapshot_identity = {
+            strategy_coverage = coverage[strategy]
+            event_index = 0
+            coverage_index = 0
+            selected_proofs = []
+            proof_starts = []
+            coverage_cursor = snapshot_at
+            previous_coverage_end = None
+            coverage_watermark = 0
+            coverage_digest = _digest({
                 "projectionVersion": "paper-position-asof-v1",
                 "cutoverId": cutover_id,
                 "strategyId": strategy,
-                "settlementTimeMs": settlement,
-                "cutoverPayloadHash": snapshots[strategy]["payload_hash"],
-                "executionEvents": included,
-                "executionCoverage": proof_identity,
-            }
-            output.append({
-                "snapshotId": _digest(snapshot_identity),
-                "strategyId": strategy,
-                "symbol": "BTCUSDT",
-                "observedAtMs": settlement,
-                "positionBase": replayed["position_base"],
+                "snapshotAtMs": snapshot_at,
             })
+            event_digest = _digest({
+                "projectionVersion": "paper-position-asof-v1-events",
+                "cutoverId": cutover_id,
+                "strategyId": strategy,
+            })
+            event_count = 0
+            position = snapshots[strategy]["position_decimal"]
+
+            for settlement in settlements:
+                required_end = settlement + 1
+                if required_end > now:
+                    raise ValueError("FUNDING_POSITION_COVERAGE_INCOMPLETE")
+
+                while (coverage_index < len(strategy_coverage)
+                       and strategy_coverage[coverage_index]["start_at_ms"] < required_end):
+                    proof = strategy_coverage[coverage_index]
+                    coverage_index += 1
+                    start_at = proof["start_at_ms"]
+                    end_at = proof["end_at_ms"]
+                    recorded_at = proof["recorded_at_ms"]
+                    if end_at <= snapshot_at:
+                        continue
+                    if (recorded_at > now or start_at >= end_at or end_at > recorded_at
+                            or proof["status"] != "VERIFIED"
+                            or (previous_coverage_end is not None
+                                and start_at < previous_coverage_end)
+                            or start_at > coverage_cursor):
+                        raise ValueError("FUNDING_POSITION_COVERAGE_INCOMPLETE")
+                    coverage_cursor = max(coverage_cursor, end_at)
+                    previous_coverage_end = end_at
+                    coverage_watermark = max(coverage_watermark, recorded_at)
+                    selected_proofs.append(proof)
+                    proof_starts.append(start_at)
+                    coverage_digest = _chain_digest(coverage_digest, {
+                        "coverageId": proof["coverage_id"],
+                        "startAtMs": start_at,
+                        "endAtMs": end_at,
+                        "payloadHash": proof["payload_hash"],
+                        "recordedAtMs": recorded_at,
+                    })
+
+                if coverage_cursor < required_end or coverage_watermark < settlement:
+                    raise ValueError("FUNDING_POSITION_COVERAGE_INCOMPLETE")
+
+                while (event_index < len(strategy_events)
+                       and strategy_events[event_index]["event_at_ms"] < settlement):
+                    event = strategy_events[event_index]
+                    event_index += 1
+                    event_at = event["event_at_ms"]
+                    if event_at <= snapshot_at:
+                        if event["recorded_at_ms"] > snapshot_at:
+                            raise ValueError("ACCOUNT_HISTORY_LATE_EVENT")
+                        continue
+
+                    proof_index = bisect_right(proof_starts, event_at) - 1
+                    if proof_index < 0:
+                        raise ValueError("FUNDING_POSITION_EVENT_COVERAGE_INVALID")
+                    proof = selected_proofs[proof_index]
+                    if (not proof["start_at_ms"] <= event_at < proof["end_at_ms"]
+                            or event["recorded_at_ms"] > proof["recorded_at_ms"]):
+                        raise ValueError("FUNDING_POSITION_EVENT_COVERAGE_INVALID")
+                    if event["event_type"] != "FILL":
+                        raise ValueError("ACCOUNT_HISTORY_EVENT_TYPE_UNSUPPORTED")
+                    if event["fee_currency"] != "USDT":
+                        raise ValueError("ACCOUNT_HISTORY_FEE_PROVENANCE_UNKNOWN")
+
+                    position += event["_quantity"]
+                    event_count += 1
+                    event_digest = _chain_digest(event_digest, {
+                        "eventId": event["event_id"],
+                        "payloadHash": event["payload_hash"],
+                    })
+
+                if (event_index < len(strategy_events)
+                        and strategy_events[event_index]["event_at_ms"] == settlement):
+                    raise ValueError("FUNDING_POSITION_BOUNDARY_AMBIGUOUS")
+
+                snapshot_identity = {
+                    "projectionVersion": "paper-position-asof-v1",
+                    "cutoverId": cutover_id,
+                    "strategyId": strategy,
+                    "settlementTimeMs": settlement,
+                    "cutoverPayloadHash": snapshots[strategy]["payload_hash"],
+                    "executionEventsDigest": event_digest,
+                    "executionEventCount": event_count,
+                    "executionCoverageDigest": coverage_digest,
+                    "coverageWatermarkAtMs": coverage_watermark,
+                }
+                output.append({
+                    "snapshotId": _digest(snapshot_identity),
+                    "strategyId": strategy,
+                    "symbol": "BTCUSDT",
+                    "observedAtMs": settlement,
+                    "positionBase": _replay_text(position),
+                })
+    output.sort(key=lambda row: (row["observedAtMs"], row["strategyId"]))
     return output
