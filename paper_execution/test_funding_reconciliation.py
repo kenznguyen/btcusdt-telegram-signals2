@@ -108,6 +108,20 @@ class FundingPopulationReconciliationTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "FUNDING_EVENT_AMOUNT_INVALID"):
             reconcile_funding_population(self.expected, self.observed)
 
+    def test_binary_float_amounts_are_rejected(self):
+        expected = population(
+            "EXPECTED_FUNDING_EVENTS", "independent-statement-v1", "statement-001",
+            [event("f-1", 120, "0.25", "a")],
+        )
+        observed = population(
+            "OBSERVED_FUNDING_EVENTS", "ledger-export-v1", "ledger-export-001",
+            [event("f-1", 120, "0.25", "a")],
+        )
+        expected["events"][0]["amountQuote"] = 0.25
+
+        with self.assertRaisesRegex(ValueError, "FUNDING_EVENT_AMOUNT_INVALID"):
+            reconcile_funding_population(expected, observed)
+
     def test_unknown_fields_are_rejected(self):
         self.expected["untrusted"] = True
         with self.assertRaisesRegex(ValueError, "FUNDING_POPULATION_FIELDS_INVALID"):
