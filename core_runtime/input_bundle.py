@@ -2,9 +2,15 @@
 
 from decimal import Decimal, DecimalException
 import hashlib
+import json
 import re
 
 import rfc8785
+
+from core_runtime.orderbook_contract import (
+    OrderBookContractError,
+    validate_snapshot,
+)
 
 
 _SAFE_INTEGER = 9_007_199_254_740_991
@@ -197,36 +203,82 @@ def _validate_candle_window(window, timeframe, decision_at_ms):
 
 
 def _validate_book(book, decision_at_ms, max_book_age_ms):
-    if not isinstance(book, dict) or set(book) != {
-        "source", "connector", "symbol", "observedAtMs", "bids", "asks"
-    }:
+    required = {
+        "source", "connector", "symbol", "observedAtMs", "bids", "asks",
+        "t1Evidence",
+    }
+    if not isinstance(book, dict) or set(book) != required:
         _fail("ORDER_BOOK_INVALID")
     if (book["source"], book["connector"], book["symbol"]) != (
-            "hummingbot", "binance_perpetual", "BTCUSDT"):
+            "t1", "binance_usdm_perpetual", "BTCUSDT"):
         _fail("ORDER_BOOK_PROVENANCE_INVALID")
+
     observed = _safe_int(book["observedAtMs"], "ORDER_BOOK_TIMESTAMP_INVALID")
     if observed > decision_at_ms:
         _fail("ORDER_BOOK_TIMESTAMP_INVALID")
     if decision_at_ms - observed > max_book_age_ms:
         _fail("ORDER_BOOK_STALE")
-    best = {}
+
+    evidence = book["t1Evidence"]
+    evidence_fields = {
+        "contractVersion", "market", "snapshotLastUpdateId", "firstAppliedU",
+        "lastAppliedU", "sourceTimestampMs", "observedAtMs",
+        "decisionWatermark", "generation", "snapshotId", "continuity",
+        "freshness", "depth", "complete",
+    }
+    if not isinstance(evidence, dict) or set(evidence) != evidence_fields:
+        _fail("ORDER_BOOK_T1_EVIDENCE_INVALID")
+    if evidence["observedAtMs"] != observed:
+        _fail("ORDER_BOOK_T1_EVIDENCE_INVALID")
+
+    projected = {}
     for side in ("bids", "asks"):
         levels = book[side]
         if not isinstance(levels, list) or not 1 <= len(levels) <= 20:
             _fail("ORDER_BOOK_LEVEL_INVALID")
-        parsed = []
+        rows = []
         for level in levels:
             if not isinstance(level, dict) or set(level) != {"price", "quantity"}:
                 _fail("ORDER_BOOK_LEVEL_INVALID")
-            parsed.append(_decimal(level["price"], "ORDER_BOOK_LEVEL_INVALID", positive=True))
+            _decimal(level["price"], "ORDER_BOOK_LEVEL_INVALID", positive=True)
             _decimal(level["quantity"], "ORDER_BOOK_LEVEL_INVALID", positive=True)
-        if len(set(parsed)) != len(parsed):
-            _fail("ORDER_BOOK_LEVEL_INVALID")
-        if parsed != sorted(parsed, reverse=(side == "bids")):
-            _fail("ORDER_BOOK_LEVEL_INVALID")
-        best[side] = parsed[0]
-    if best["bids"] >= best["asks"]:
-        _fail("ORDER_BOOK_SPREAD_INVALID")
+            rows.append([level["price"], level["quantity"]])
+        projected[side] = rows
+
+    snapshot = {
+        "contractVersion": evidence["contractVersion"],
+        "symbol": book["symbol"],
+        "market": evidence["market"],
+        "bids": projected["bids"],
+        "asks": projected["asks"],
+        "snapshotLastUpdateId": evidence["snapshotLastUpdateId"],
+        "firstAppliedU": evidence["firstAppliedU"],
+        "lastAppliedU": evidence["lastAppliedU"],
+        "sourceTimestampMs": evidence["sourceTimestampMs"],
+        "observedAtMs": evidence["observedAtMs"],
+        "decisionWatermark": evidence["decisionWatermark"],
+        "generation": evidence["generation"],
+        "snapshotId": evidence["snapshotId"],
+        "continuity": evidence["continuity"],
+        "freshness": evidence["freshness"],
+        "depth": evidence["depth"],
+        "complete": evidence["complete"],
+    }
+    identity = dict(snapshot)
+    identity.pop("snapshotId")
+    expected_snapshot_id = "sha256:" + hashlib.sha256(
+        json.dumps(identity, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+    if evidence["snapshotId"] != expected_snapshot_id:
+        _fail("ORDER_BOOK_T1_SNAPSHOT_ID_MISMATCH")
+
+    try:
+        accepted = validate_snapshot(snapshot, decision_at_ms=decision_at_ms)
+    except OrderBookContractError as exc:
+        _fail("ORDER_BOOK_T1_" + str(exc))
+
+    if accepted["bids"] != projected["bids"] or accepted["asks"] != projected["asks"]:
+        _fail("ORDER_BOOK_T1_PROJECTION_MISMATCH")
 
 
 def _validate_paper_state(state):
