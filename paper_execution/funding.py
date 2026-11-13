@@ -640,7 +640,7 @@ def record_account_equity_cutover(
                        FROM paper_funding_reconciliations WHERE reconciliation_id=?""",
                     (reconciliation_id,),
                 ).fetchone()
-                        if certificate is None:
+                if certificate is None:
                     raise ValueError("FUNDING_RECONCILIATION_NOT_FOUND")
                 if certificate[3] != "COMPLETE_WITHIN_DECLARED_POPULATION":
                     raise ValueError("FUNDING_RECONCILIATION_NOT_COMPLETE")
