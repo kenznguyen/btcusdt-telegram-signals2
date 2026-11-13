@@ -271,3 +271,21 @@ The run's indicator preconditions do not establish that a valid Bundle reached C
 - Exact root cause: **NOT VERIFIED**. The original full fixture and specific exception were not captured. Other validator families remain possible (JSON float, candle constraints, spread/order, risk digest, bundle digest).
 - Source references at inspection: `one_shot.py` blob `1f96bc63c448a4204e9de92a9e5aae97e9df26ff`; `input_bundle.py` blob `19fb3065da1e7d40c8b4376fe3b51e11c8cc8f87`; `orderbook_contract.py` blob `1620c9f21b1f3df3c2fb65833f2afd80374bf6a5`.
 - Next: request separate approval for a pure, read-only Bundle validator diagnostic that captures the precise exception and does not invoke Runner/Core/Risk/Ledger or any exchange/service. No retry, mutation, or execution is authorized by this static diagnosis.
+
+
+## Addendum — pure Bundle validator diagnostic (2026-11-13)
+
+| Check | Result | Evidence / limitation |
+|---|---|---|
+| Start/end source guard | PASS (owner-reported) | SHA `562362a69d8455a34e08385d26a47fa21d2b50ed`; expected branch; clean tree |
+| Baseline contract fixture | PASS | `BUNDLE_VALID` |
+| Recentered book with old snapshot ID | REJECTED as expected | Exact validator code: `ORDER_BOOK_T1_SNAPSHOT_ID_MISMATCH` |
+| Recomputed T1 snapshot ID + outer Bundle ID | PASS | `BUNDLE_VALID` |
+| Cause reproduction | PASS (owner-reported) | `SNAPSHOT_ID_CAUSE_REPRODUCED=PASS` |
+| Isolation | PASS (owner-reported) | Pure validator only; no Runner/Core/Risk/Ledger, network or exchange; AI execution false |
+| Source mutation | NONE REPORTED | Start/end source guards PASS |
+| GitHub Actions / artifact | NONE | Manual VPS diagnostic only |
+
+The reconstructed fixture confirms that changing Order Book levels without recalculating `t1Evidence.snapshotId` causes `ORDER_BOOK_T1_SNAPSHOT_ID_MISMATCH`; recalculating both snapshot ID and outer `bundleId` restores `BUNDLE_VALID`. This confirms the failure mechanism for the reconstructed fixture, but does not prove the original failed fixture was byte-for-byte identical and does not prove Core Strategy emitted an ENTRY. Shared Risk Engine, 1% margin reservation and PaperLedger remain **NOT EXERCISED**. The user-pasted shell command is visibly interleaved/truncated; although all expected output markers and both source guards are present, command integrity and log-file readback were not independently verified.
+
+Disposition: validator cause reproduction **PASS (owner-reported)**; original ENTRY-path root cause **PARTIALLY CONFIRMED**; Core signal/risk/ledger path **NOT EXERCISED**; persistent runtime/deployment/live trading **NOT VERIFIED / NOT AUTHORIZED**. No automatic retry, source edit, service, exchange connection, T0/T1/T2 mutation, AI execution or real order. No Actions run/artifact. Any new ENTRY-path invocation requires separate bounded approval and a fixture-only correction.
