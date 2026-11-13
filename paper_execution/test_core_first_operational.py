@@ -155,6 +155,21 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
                    risk_ready=1,unavailable_reason=NULL,updated_at_ms=? WHERE account_id=1""",
                 (day, str(self.close), self.now, self.now - 60_000, self.now),
             )
+        funding_reconciliation = ledger_module.record_funding_reconciliation(
+            self.path,
+            expected_population={
+                "schemaVersion": 1,
+                "populationType": "EXPECTED_FUNDING_EVENTS",
+                "populationDefinitionId": "core-first-owner-statement-v1",
+                "snapshotId": "fixture:core-first-funding",
+                "source": "fixture-core-first-funding-statement",
+                "startAtMs": self.now - 86_400_000,
+                "endAtMs": self.now,
+                "currency": "USDT",
+                "events": [],
+            },
+            recorded_at_ms=self.now,
+        )
         ledger_module.record_funding_coverage(
             self.path, coverage_id="core-first-funding-coverage",
             start_at_ms=self.now - 86_400_000, end_at_ms=self.now,
@@ -162,6 +177,7 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
             source_snapshot_id="fixture:core-first-funding",
             payload_hash="sha256:" + "d" * 64,
             config_version="fixture-funding-v1", recorded_at_ms=self.now,
+            reconciliation_id=funding_reconciliation["reconciliationId"],
         )
         ledger_module.record_account_equity_cutover(
             self.path, cutover_id="core-first-cutover",
