@@ -276,7 +276,7 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
         }, clear=False), patch("pipeline.core_strategy.produce", return_value=report), redirect_stdout(output):
             exit_code = runtime_main([
                 "--config", str(config_path), "--run-once", "--bundle", str(bundle_path),
-            ])
+            ], now_ms=self.now)
         result = json.loads(output.getvalue())
         self.assertEqual(exit_code, 0)
 
@@ -296,7 +296,7 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
         }, clear=False), redirect_stdout(replay_output):
             replay_exit_code = runtime_main([
                 "--config", str(config_path), "--run-once", "--bundle", str(bundle_path),
-            ])
+            ], now_ms=self.now)
         replay = json.loads(replay_output.getvalue())
         self.assertEqual(replay_exit_code, 2)
         self.assertEqual(replay["runStatus"], "INPUT_REJECTED", replay)
