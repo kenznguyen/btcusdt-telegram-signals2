@@ -1,4 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor
+import hashlib
 import json
 from pathlib import Path
 import sqlite3
@@ -7,7 +8,7 @@ import sys
 import tempfile
 import unittest
 
-from paper_execution.ledger import PaperLedger
+from paper_execution.ledger import PaperLedger, book_value
 
 
 class PaperLedgerTest(unittest.TestCase):
@@ -264,6 +265,103 @@ class PaperLedgerTest(unittest.TestCase):
         blocked=guarded.submit(self.intent("increase-under-kill","0.08","70"),self.book(time=self.now+4),
                                self.now+4,strategy_id="MANUAL")
         self.assertEqual(blocked["reason"],"MAX_DRAWDOWN_LIMIT")
+
+
+class T1PaperBookCompatibilityTest(unittest.TestCase):
+    now = 1_800_000_000_000
+
+    def snapshot(self):
+        snapshot = {
+            "contractVersion": "T1_T2_ORDERBOOK_V1",
+            "symbol": "BTCUSDT",
+            "market": "BINANCE_USDM_PERPETUAL",
+            "bids": [[str(50_000-index), "0.012500"] for index in range(20)],
+            "asks": [[str(50_001+index), "0.015000"] for index in range(20)],
+            "snapshotLastUpdateId": 100,
+            "firstAppliedU": 101,
+            "lastAppliedU": 101,
+            "sourceTimestampMs": self.now-100,
+            "observedAtMs": self.now-90,
+            "decisionWatermark": 101,
+            "generation": 1,
+            "snapshotId": "",
+            "continuity": "VERIFIED",
+            "freshness": "FRESH",
+            "depth": {"bids": 20, "asks": 20},
+            "complete": True,
+        }
+        identity = dict(snapshot)
+        identity.pop("snapshotId")
+        snapshot["snapshotId"] = "sha256:" + hashlib.sha256(
+            json.dumps(identity, sort_keys=True, separators=(",", ":")).encode()
+        ).hexdigest()
+        return snapshot
+
+    def book(self):
+        snapshot = self.snapshot()
+        evidence = {key: value for key, value in snapshot.items()
+                    if key not in {"symbol", "bids", "asks"}}
+        return {
+            "source": "t1",
+            "connector": "binance_usdm_perpetual",
+            "symbol": "BTCUSDT",
+            "observedAtMs": snapshot["observedAtMs"],
+            "bids": [{"price": price, "quantity": quantity}
+                     for price, quantity in snapshot["bids"]],
+            "asks": [{"price": price, "quantity": quantity}
+                     for price, quantity in snapshot["asks"]],
+            "t1Evidence": evidence,
+        }
+
+    def test_valid_t1_snapshot_is_admitted_only_when_explicitly_enabled(self):
+        book = self.book()
+        bids, asks, spread, book_id = book_value(book, self.now, allow_t1=True)
+        self.assertEqual(len(bids), 20)
+        self.assertEqual(len(asks), 20)
+        self.assertGreater(spread, 0)
+        self.assertTrue(book_id.startswith("book:"))
+        self.assertNotEqual(book_id, book_value({
+            "source": "hummingbot", "connector": "binance_perpetual",
+            "symbol": "BTCUSDT", "observedAtMs": self.now-90,
+            "bids": [{"price": "49999", "quantity": "0.0125"}],
+            "asks": [{"price": "50001", "quantity": "0.015"}],
+        }, self.now)[3])
+
+    def test_t1_provenance_is_not_accepted_by_legacy_book_path(self):
+        with self.assertRaises(ValueError):
+            book_value(self.book(), self.now)
+
+    def test_t1_wrong_source_or_connector_is_rejected(self):
+        for changes in ({"source": "hummingbot"},
+                        {"connector": "binance_perpetual"},
+                        {"symbol": "ETHUSDT"}):
+            with self.subTest(changes=changes), self.assertRaises(ValueError):
+                book_value({**self.book(), **changes}, self.now, allow_t1=True)
+
+    def test_t1_projection_tampering_is_rejected(self):
+        book = self.book()
+        book["bids"][0]["quantity"] = "9"
+        with self.assertRaises(ValueError):
+            book_value(book, self.now, allow_t1=True)
+
+    def test_t1_snapshot_digest_mismatch_is_rejected(self):
+        book = self.book()
+        book["t1Evidence"]["snapshotId"] = "sha256:" + "0" * 64
+        with self.assertRaises(ValueError):
+            book_value(book, self.now, allow_t1=True)
+
+    def test_t1_stale_and_future_timestamps_are_rejected(self):
+        stale = self.book()
+        stale["observedAtMs"] = self.now-2_001
+        stale["t1Evidence"]["observedAtMs"] = self.now-2_001
+        for book in (stale,):
+            with self.subTest(book="stale"), self.assertRaises(ValueError):
+                book_value(book, self.now, allow_t1=True)
+        future = self.book()
+        future["observedAtMs"] = self.now+251
+        future["t1Evidence"]["observedAtMs"] = self.now+251
+        with self.assertRaises(ValueError):
+            book_value(future, self.now, allow_t1=True)
 
 
 if __name__ == "__main__":
