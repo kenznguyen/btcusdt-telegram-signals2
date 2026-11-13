@@ -20,7 +20,7 @@ CUTOVER_MIGRATION_CHECKSUM = hashlib.sha256(
 ).hexdigest()
 RECONCILIATION_MIGRATION_VERSION = 10
 RECONCILIATION_MIGRATION_CHECKSUM = hashlib.sha256(
-    b"dual-ledger-v10:persisted-funding-population-reconciliation-gate+freeze-event-insert"
+    b"dual-ledger-v10:persisted-funding-population-reconciliation-gate+freeze-event-insert+time-index"
 ).hexdigest()
 STRATEGIES = {"STRATEGY_CORE", "AI_FREQAI", "LEGACY_UNATTRIBUTED"}
 
@@ -325,13 +325,20 @@ def migrate_funding_population_reconciliation(connection, source_sha):
         "paper_funding_coverage_verified_requires_reconciliation",
         "paper_funding_events_no_insert_into_verified_coverage",
     }
+    indexes = {
+        row[0] for row in connection.execute(
+            "SELECT name FROM sqlite_master WHERE type='index'"
+        )
+    }
     if applied:
         if applied != (RECONCILIATION_MIGRATION_CHECKSUM, "APPLIED"):
             raise sqlite3.DatabaseError("FUNDING_RECONCILIATION_MIGRATION_CHECKSUM_MISMATCH")
         exists = connection.execute(
             "SELECT 1 FROM sqlite_master WHERE type='table' AND name='paper_funding_reconciliations'"
         ).fetchone()
-        if "reconciliation_id" not in columns or not exists or not required_triggers.issubset(triggers):
+        if ("reconciliation_id" not in columns or not exists
+                or not required_triggers.issubset(triggers)
+                or "paper_funding_events_account_time" not in indexes):
             raise sqlite3.DatabaseError("FUNDING_RECONCILIATION_SCHEMA_INCOMPLETE")
         return
 
@@ -339,6 +346,10 @@ def migrate_funding_population_reconciliation(connection, source_sha):
         connection.execute(
             "ALTER TABLE paper_funding_coverage ADD COLUMN reconciliation_id TEXT"
         )
+    connection.execute(
+        """CREATE INDEX IF NOT EXISTS paper_funding_events_account_time
+           ON paper_funding_events(account_id,event_at_ms,funding_event_id)"""
+    )
     connection.execute("""CREATE TABLE paper_funding_reconciliations (
         reconciliation_id TEXT PRIMARY KEY,
         account_id INTEGER NOT NULL REFERENCES paper_accounts(account_id),
