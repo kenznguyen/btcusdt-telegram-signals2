@@ -305,3 +305,13 @@ Next gate: owner review of this design and a separate explicit approval for impl
 - Current disposition: cadence PASS; durable claims/transitions/intent persistence PASS; orchestration and actual ledger recovery PASS; checkpoint implementation committed / NOT VERIFIED; full C1-C8 GREEN remains pending.
 - Continue RED-first for remaining lifecycle, idempotency, provenance and checkpoint cases. Do not modify Strategy Core, Shared Risk Engine, PaperLedger schema/behavior, T0/T1/T2 or AI Strategy. If a protected interface change is required, stop and seek approval. Keep AI_EXECUTION_ENABLED=false, no VPS activation, no exchange connections and no real orders.
 
+
+## Addendum — checkpoint component GREEN (2026-11-13)
+
+- RED: run 43415426955 at source ddef24fdc68fb55cdba7c59ce3f6399d574d498d failed because ContinuousJournal.get_checkpoint was absent.
+- GREEN: run 43415771895, job 131853156497, exact source SHA 5d3e2987d952de0aaf125bf69d6d2bfc7ea0e52d, SUCCESS. Cadence 5/5, journal 10/10, orchestration 12/12; all existing Core/One-shot/Bundle/adapter/PaperLedger/risk/T1-T2 regression steps SUCCESS.
+- Artifact 14031268827, core-first-code-operational-proof-43415771895, SHA-256 ee56dec1d12da849a8e271000d74c382a0adea04fba09210016c98fad0f00d76, expires 2026-11-20T11:16:45Z.
+- Checkpoint table and get_checkpoint readback were implemented in commit 5d3e2987d952de0aaf125bf69d6d2bfc7ea0e52d. The checkpoint is advanced in the same transaction as a reconciled NO_SIGNAL, PAPER_ACCEPTED or RISK_REJECTED terminal state, and it never regresses for late completion of an older candle. UNKNOWN_REQUIRES_RECONCILIATION, INPUT_REJECTED and FAILED do not advance it.
+- CI status script now expects the actual 14 One-shot tests, and the artifact includes the cadence/journal/orchestration logs. The run above completed SUCCESS with the corrected workflow.
+- Remaining implementation/test work: exclusive process ownership, config digest revalidation, terminal journal-vs-ledger reconciliation, runner Kill Switch integration, claim-before-execution recovery, and corrupted-bundle recovery. Full C1-C8 GREEN is not yet achieved.
+
