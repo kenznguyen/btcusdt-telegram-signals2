@@ -225,3 +225,11 @@ Implementation must begin with failing tests (RED). No runtime/VPS retest, persi
 - Latest CI push run #593: [43343115774](https://github.com/kenznguyen/binance-futures-collector/actions/runs/43343115774), head SHA `1ff34809a951b61236a0b5f6b7770cbc66b3bf34`; jobs were QUEUED when recorded. Earlier intermediate runs failed at `cargo fmt` before compile; their formatting findings were corrected in later same-branch commits. Do not treat those intermediate failures as implementation test failures.
 - Current disposition: implementation = IN PROGRESS; final fmt/Clippy/build/tests = NOT VERIFIED pending run #593; artifacts = NOT GENERATED/NOT VERIFIED. No VPS runtime retest or other non-goal activity performed.
 - Next action: await latest source-head CI; fix only concrete findings, then obtain Rust x86_64 + native ARM64 fmt/Clippy/build/test and artifact evidence before considering this increment PASS.
+
+### Implementation head correction — 2026-11-13
+
+- T1 source branch advanced after the prior progress entry; current source SHA is `40711fd013e734b3cfc30bad68656d5e7b5249ca`.
+- The latest timing adjustment measures receive-to-apply and buffer-residence durations immediately after `apply_live_diff_classified` returns, so the monotonic metric includes the live apply operation rather than stopping before it.
+- Latest CI push run #595: [43343313970](https://github.com/kenznguyen/binance-futures-collector/actions/runs/43343313970), head SHA `40711fd013e734b3cfc30bad68656d5e7b5249ca`; all jobs QUEUED when recorded.
+- Prior source SHA `1ff34809a951b61236a0b5f6b7770cbc66b3bf34` and its run #593 are superseded for final acceptance; do not use the earlier SHA as the tested source head.
+- Current status remains implementation IN PROGRESS / final validation NOT VERIFIED. No artifacts are claimed.
