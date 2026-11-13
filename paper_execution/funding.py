@@ -18,9 +18,9 @@ CUTOVER_MIGRATION_VERSION = 5
 CUTOVER_MIGRATION_CHECKSUM = hashlib.sha256(
     b"dual-ledger-v5:verified-account-equity-cutover"
 ).hexdigest()
-RECONCILIATION_MIGRATION_VERSION = 6
+RECONCILIATION_MIGRATION_VERSION = 10
 RECONCILIATION_MIGRATION_CHECKSUM = hashlib.sha256(
-    b"dual-ledger-v6:persisted-funding-population-reconciliation-gate"
+    b"dual-ledger-v10:persisted-funding-population-reconciliation-gate"
 ).hexdigest()
 STRATEGIES = {"STRATEGY_CORE", "AI_FREQAI", "LEGACY_UNATTRIBUTED"}
 
