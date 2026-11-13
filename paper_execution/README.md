@@ -255,3 +255,33 @@ lineage. A passing result proves only the captured local bytes were read back
 unchanged and the manifest is structurally consistent. It does not authenticate
 the issuer or prove actual pagination completeness, source independence,
 freshness or factual truth; those remain NOT VERIFIED.
+
+
+## D07.3 PAPER funding population model
+
+`paper_execution.funding_model.build_expected_funding_population` builds a
+D07-compatible `EXPECTED_FUNDING_EVENTS` population from explicit PAPER
+position snapshots and public BTCUSDT funding-rate observations. For a linear
+USDT perpetual, the signed simulated funding cost is:
+
+`funding_cost = signed_position_base * mark_price * funding_rate`
+
+Positive amounts are PAPER funding costs; negative amounts are credits. At
+each settlement, the model selects the latest snapshot at or before settlement
+for each of `STRATEGY_CORE`, `AI_FREQAI` and `LEGACY_UNATTRIBUTED`. Missing
+or stale snapshots fail closed (default maximum age 60 seconds). Zero positions
+produce no event. Inputs use bounded exact Decimal strings; event IDs, payload
+hashes and population snapshot IDs are deterministic.
+
+This is a deterministic PAPER accounting model, **not** an assertion that the
+result matches a real Binance account's funding cashflows. It performs no
+network access, credential access, account-data access, order placement or
+ledger writes.
+
+The function accepts caller-supplied snapshots and funding-rate observations.
+A read-only source adapter/replay of historical PAPER positions, public-rate
+acquisition, controlled staging into `paper_funding_events`, and end-to-end
+coverage integration are not implemented by this increment. Until those
+pieces are completed and tested, D07 remains PARTIAL and must not be used to
+claim actual-source independence, global completeness, issuer authenticity,
+freshness or production readiness.
