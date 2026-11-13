@@ -170,6 +170,21 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
             },
             recorded_at_ms=self.now,
         )
+        funding_reconciliation = ledger_module.record_funding_reconciliation(
+            self.path,
+            expected_population={
+                "schemaVersion": 1,
+                "populationType": "EXPECTED_FUNDING_EVENTS",
+                "populationDefinitionId": "core-first-owner-statement-v1",
+                "snapshotId": "fixture:core-first-funding",
+                "source": "fixture-core-first-funding-statement",
+                "startAtMs": self.now - 86_400_000,
+                "endAtMs": self.now,
+                "currency": "USDT",
+                "events": [],
+            },
+            recorded_at_ms=self.now,
+        )
         ledger_module.record_funding_coverage(
             self.path, coverage_id="core-first-funding-coverage",
             start_at_ms=self.now - 86_400_000, end_at_ms=self.now,
