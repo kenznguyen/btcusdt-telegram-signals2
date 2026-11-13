@@ -163,3 +163,45 @@ No source code was changed. No persistent runner, systemd unit, service, or auto
 Next bounded engineering step is a source-level diagnosis of consumer lag and freshness handling: inspect how the live loop scheduling, ring-buffer ingestion/drain, and processing batch size interact with the 2-second freshness limit; determine whether lag is transient or systemic; and improve failure classification in a separately approved change if warranted. Any change must be test-driven and preserve fail-closed behavior.
 
 Do not widen symbols, repeat runtime capture, tune freshness thresholds, modify collector source, connect T0/T2, enable persistent services, or place orders without explicit approval. T1→T2 remains blocked.
+
+
+## 2026-11-13 — Clock offset and deeper Order Book consumer-path audit
+
+### Clock synchronization probe
+
+Owner-provided read-only VPS results:
+- `timedatectl`: `NTP=yes`, `NTPSynchronized=yes`.
+- Five Binance USD-M `/fapi/v1/time` samples:
+  - offset_ms: -20, -6, +3, -4, 0
+  - RTT_ms: 268, 230, 249, 241, 253
+- Median offset: -4 ms; observed range: -20 ms to +3 ms.
+
+Disposition: VPS clock skew is **NOT A PLAUSIBLE PRIMARY EXPLANATION** for a 2,000 ms source-freshness rejection in this capture. This is a five-sample bounded comparison; it is not a continuous clock-discipline guarantee.
+
+### Additional exact-SHA source findings
+
+Inspected at T1 source SHA `9b2af66e68206898e51f638b67497d574a7252c4`:
+- `WebSocketMessage::DepthUpdate` carries a socket-read `received_at: Instant`, but the BTCUSDT depth ring buffer stores only `DepthUpdateWs`; the receive instant is not retained with the buffered update.
+- The BTCUSDT live loop drains the ring buffer every 500 ms and applies each update sequentially.
+- At live application, the caller passes the same `Utc::now()` value as both `observed_at_ms` and `decision_time_ms`. Thus the V1 snapshot records application time as observation time; it cannot measure socket-to-buffer or buffer-residence delay for each event.
+- `ws_latency_ms` is updated in the message handler from the socket-read `Instant`; it measures socket-read-to-handler-processing lag, not time spent waiting in the separate order-book ring buffer.
+- Every `apply_live_diff()` error is currently mapped to gap reason `v1_live_sequence_or_shape_failure`, including freshness errors. The log text preserves the actual error string, but the gap registry category loses that distinction.
+
+### Updated assessment
+
+- Clock-skew hypothesis: **DOWN-RANKED** by the observed median -4 ms offset.
+- Consumer backlog / ring-buffer residence / sequential apply delay: **PLAUSIBLE, NOT PROVEN**.
+- Exact event rejected and precise delay at guard evaluation: **NOT VERIFIED**.
+- Source timestamp anomaly or upstream event delay: **NOT EXCLUDED**.
+- Root cause: **NOT VERIFIED**.
+
+### Next bounded engineering step
+
+Before changing collector behavior, design a source-level, test-first diagnostic increment that preserves fail-closed behavior and distinguishes:
+1. exchange event age at apply time;
+2. socket receive-to-handler delay;
+3. socket receive-to-orderbook-apply delay;
+4. batch size and apply-loop duration;
+5. failure class (freshness vs sequence vs shape).
+
+Do not raise `MAX_BOOK_AGE_MS`, change timestamp semantics, alter ring-buffer capacity, or repeat VPS runtime capture as part of this diagnostic design. Any source change or new runtime capture requires a separately bounded approval. T0 remains untouched; T1→T2 remains BLOCKED.
