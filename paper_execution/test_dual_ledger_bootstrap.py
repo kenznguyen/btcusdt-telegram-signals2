@@ -155,6 +155,9 @@ class DualLedgerBootstrapContractTest(unittest.TestCase):
             "MANUAL_OWNER_ATTESTATION_PRESENT",
         )
         self.assertEqual(
+            result["ownerAttestation"]["ownerIdentity"], "NOT_AUTHENTICATED"
+        )
+        self.assertEqual(
             result["ownerAttestation"]["sourceAuthenticity"], "NOT_VERIFIED"
         )
         self.assertEqual(
