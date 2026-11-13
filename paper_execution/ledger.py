@@ -65,8 +65,77 @@ def intent_value(raw):
     return result
 
 
-def book_value(raw, now_ms):
-    if not isinstance(raw, dict) or (raw.get("source"), raw.get("connector"), raw.get("symbol")) != (
+def book_value(raw, now_ms, *, allow_t1=False):
+    if not isinstance(raw, dict):
+        raise ValueError("Invalid book source")
+    if (raw.get("source"), raw.get("connector"), raw.get("symbol")) == (
+            "t1", "binance_usdm_perpetual", "BTCUSDT"):
+        if not allow_t1:
+            raise ValueError("T1 book admission is not enabled")
+        from core_runtime.orderbook_contract import (
+            OrderBookContractError, validate_snapshot,
+        )
+        evidence = raw.get("t1Evidence")
+        evidence_fields = {
+            "contractVersion", "market", "snapshotLastUpdateId", "firstAppliedU",
+            "lastAppliedU", "sourceTimestampMs", "observedAtMs",
+            "decisionWatermark", "generation", "snapshotId", "continuity",
+            "freshness", "depth", "complete",
+        }
+        if not isinstance(evidence, dict) or set(evidence) != evidence_fields:
+            raise ValueError("Invalid T1 evidence")
+        observed = stamp(raw.get("observedAtMs"))
+        if evidence["observedAtMs"] != observed:
+            raise ValueError("T1 observation mismatch")
+        projected = {}
+        for side in ("bids", "asks"):
+            rows = raw.get(side)
+            if not isinstance(rows, list) or not 1 <= len(rows) <= 20:
+                raise ValueError("Invalid T1 book depth")
+            levels = []
+            for row in rows:
+                if not isinstance(row, dict) or set(row) != {"price", "quantity"}:
+                    raise ValueError("Invalid T1 book level")
+                price, quantity = row["price"], row["quantity"]
+                if not isinstance(price, str) or not isinstance(quantity, str):
+                    raise ValueError("T1 decimal text required")
+                levels.append([price, quantity])
+            projected[side] = levels
+        snapshot = {
+            "contractVersion": evidence["contractVersion"],
+            "symbol": raw["symbol"],
+            "market": evidence["market"],
+            "bids": projected["bids"],
+            "asks": projected["asks"],
+            **{key: evidence[key] for key in (
+                "snapshotLastUpdateId", "firstAppliedU", "lastAppliedU",
+                "sourceTimestampMs", "observedAtMs", "decisionWatermark",
+                "generation", "snapshotId", "continuity", "freshness",
+                "depth", "complete",
+            )},
+        }
+        snapshot_identity = dict(snapshot)
+        supplied_id = snapshot_identity.pop("snapshotId")
+        expected_id = "sha256:" + hashlib.sha256(
+            json.dumps(snapshot_identity, sort_keys=True, separators=(",", ":")).encode()
+        ).hexdigest()
+        if supplied_id != expected_id:
+            raise ValueError("T1 snapshot digest mismatch")
+        try:
+            accepted = validate_snapshot(snapshot, decision_at_ms=now_ms)
+        except OrderBookContractError as exc:
+            raise ValueError("Invalid T1 snapshot") from exc
+        if accepted["bids"] != projected["bids"] or accepted["asks"] != projected["asks"]:
+            raise ValueError("T1 book projection mismatch")
+        bids = [(number(price), number(quantity)) for price, quantity in accepted["bids"]]
+        asks = [(number(price), number(quantity)) for price, quantity in accepted["asks"]]
+        spread = (asks[0][0]-bids[0][0]) / ((asks[0][0]+bids[0][0])/2) * 10_000
+        book_id = identity("book:", {
+            "source": "t1", "connector": "binance_usdm_perpetual",
+            "symbol": "BTCUSDT", "snapshotId": supplied_id,
+        })
+        return bids, asks, spread, book_id
+    if (raw.get("source"), raw.get("connector"), raw.get("symbol")) != (
             "hummingbot", "binance_perpetual", "BTCUSDT"):
         raise ValueError("Invalid book source")
     observed = stamp(raw.get("observedAtMs"))
@@ -1898,7 +1967,9 @@ class PaperLedger:
             book_id = None
             if reason is None and quantity:
                 try:
-                    bids, asks, spread, book_id = book_value(book, now)
+                    bids, asks, spread, book_id = book_value(
+                        book, now, allow_t1=(strategy_id == "STRATEGY_CORE")
+                    )
                 except (ValueError, TypeError):
                     reason = "INVALID_BOOK"
                 else:
