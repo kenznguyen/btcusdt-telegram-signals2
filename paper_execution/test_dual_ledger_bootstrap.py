@@ -150,6 +150,17 @@ class DualLedgerBootstrapContractTest(unittest.TestCase):
         ])
         self.assertEqual(result["coreLeverage"], str(CORE_LEVERAGE))
         self.assertEqual(result["aiLeverage"], "3")
+        self.assertEqual(
+            result["ownerAttestation"]["attestationStatus"],
+            "MANUAL_OWNER_ATTESTATION_PRESENT",
+        )
+        self.assertEqual(
+            result["ownerAttestation"]["sourceAuthenticity"], "NOT_VERIFIED"
+        )
+        self.assertEqual(
+            result["ownerAttestation"]["privilegedActionAuthorization"],
+            "NOT_GRANTED",
+        )
         self.assertTrue(dual_ledger_ready(self.db_path))
 
         with sqlite3.connect(self.db_path) as db:
@@ -201,6 +212,16 @@ class DualLedgerBootstrapContractTest(unittest.TestCase):
             bootstrap_paper_account(self.db_path, bad)
 
         self.assertFalse(self.db_path.exists())
+
+    def test_invalid_owner_attestation_fails_before_database_creation(self):
+        bad = dict(self.manifest)
+        bad["ownerAttestationPayloadHash"] = "sha256:" + "0" * 64
+
+        with self.assertRaisesRegex(ValueError, "OWNER_ATTESTATION_DIGEST_MISMATCH"):
+            bootstrap_paper_account(self.db_path, bad)
+
+        self.assertFalse(self.db_path.exists())
+        self.assertEqual(list(self.db_path.parent.iterdir()), [])
 
     def test_invalid_manifest_shape_fails_without_creating_database(self):
         bad = dict(self.manifest)
