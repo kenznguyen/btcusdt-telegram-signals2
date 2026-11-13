@@ -1,6 +1,7 @@
 """RED-first integration contracts for Continuous Core orchestration."""
 
 import json
+import hashlib
 from pathlib import Path
 import tempfile
 import unittest
@@ -31,6 +32,9 @@ class ContinuousCoreRunnerTest(unittest.TestCase):
             "ai_execution_enabled": False,
             "ledger_path": str(root / "paper-ledger.sqlite3"),
         }), encoding="utf-8")
+        self.config_sha256 = "sha256:" + hashlib.sha256(
+            self.config.read_bytes()
+        ).hexdigest()
         self.bundle = valid_bundle()
         self.bundle_path = root / "input-bundle.json"
         self.write_bundle(self.bundle)
@@ -60,7 +64,7 @@ class ContinuousCoreRunnerTest(unittest.TestCase):
             journal=self.journal,
             bundle_store_dir=self.bundle_dir,
             source_sha="source-sha",
-            config_sha256="config-sha256",
+            config_sha256=self.config_sha256,
             settlement_ms=settlement_ms,
             max_book_age_ms=5_000,
             run_once_fn=run_once_fn or self.fake_run_once,
@@ -244,7 +248,7 @@ class ContinuousCoreRunnerTest(unittest.TestCase):
                 journal=ContinuousJournal(root / "continuous-journal.sqlite3"),
                 bundle_store_dir=root / "immutable-bundles",
                 source_sha="source-sha",
-                config_sha256="config-sha256",
+                config_sha256=self.config_sha256,
                 settlement_ms=0,
                 max_book_age_ms=2_000,
                 run_once_fn=crash_after_commit,
@@ -355,6 +359,162 @@ class ContinuousCoreRunnerTest(unittest.TestCase):
                 runner.process_bundle(self.bundle_path, now_ms=NOW)
         self.assertEqual(self.journal.list_cycles(), [])
         self.assertEqual(self.calls, [])
+
+
+    def test_recovery_resumes_claimed_cycle_before_execution_with_same_bundle(self):
+        raw = self.bundle_path.read_bytes()
+        bundle, cycle_key = self.runner._validated_bundle(raw)
+        stored_path, digest = self.runner._store_immutable_bundle(raw)
+        self.journal.claim_cycle(
+            cycle_key=cycle_key,
+            bundle_id=bundle["bundleId"],
+            bundle_sha256=digest,
+            bundle_path=str(stored_path),
+            source_sha="source-sha",
+            config_sha256=self.config_sha256,
+            claimed_at_ms=NOW,
+        )
+        recovered = self.runner.recover_incomplete(now_ms=NOW + 1)
+        self.assertEqual(recovered[0]["status"], "PAPER_ACCEPTED")
+        self.assertEqual(len(self.calls), 1)
+        self.assertEqual(self.calls[0][0], str(stored_path))
+
+    def test_terminal_no_signal_cycle_is_not_replayed_after_restart(self):
+        calls = []
+
+        def no_signal(config_path, bundle_path, *, now_ms, on_intent_prepared):
+            calls.append(str(bundle_path))
+            return {"runId": "core-run:no-signal", "runStatus": "NO_SIGNAL"}
+
+        runner = self.make_runner(run_once_fn=no_signal)
+        result = runner.process_bundle(self.bundle_path, now_ms=NOW)
+        self.assertEqual(result["status"], "NO_SIGNAL")
+        restarted = self.make_runner(
+            run_once_fn=lambda *_args, **_kwargs: self.fail("terminal cycle replayed")
+        )
+        self.assertEqual(restarted.recover_incomplete(now_ms=NOW + 1), [])
+        self.assertEqual(len(calls), 1)
+        checkpoint = self.journal.get_checkpoint(
+            "binance:USDT_PERPETUAL:BTCUSDT:15m:STRATEGY_CORE"
+        )
+        self.assertEqual(checkpoint["cycleKey"], result["cycleKey"])
+
+    def test_corrupt_persisted_bundle_blocks_recovery_without_execution(self):
+        raw = self.bundle_path.read_bytes()
+        bundle, cycle_key = self.runner._validated_bundle(raw)
+        stored_path, digest = self.runner._store_immutable_bundle(raw)
+        self.journal.claim_cycle(
+            cycle_key=cycle_key, bundle_id=bundle["bundleId"],
+            bundle_sha256=digest, bundle_path=str(stored_path),
+            source_sha="source-sha", config_sha256=self.config_sha256,
+            claimed_at_ms=NOW,
+        )
+        stored_path.write_bytes(b'{"tampered":true}')
+        recovered = self.runner.recover_incomplete(now_ms=NOW + 1)
+        self.assertEqual(recovered[0]["status"], "BLOCKED")
+        self.assertEqual(self.calls, [])
+
+    def test_terminal_ledger_audit_disagreement_blocks_recovery(self):
+        result = self.runner.process_bundle(self.bundle_path, now_ms=NOW)
+        self.runner.audit_reader = lambda *_args, **_kwargs: {
+            "events": [], "nextBeforeId": None
+        }
+        recovered = self.runner.recover_incomplete(now_ms=NOW + 1)
+        self.assertEqual(recovered[0]["status"], "BLOCKED")
+        self.assertEqual(recovered[0]["reason"], "TERMINAL_LEDGER_DISAGREEMENT")
+        self.assertEqual(self.journal.get_cycle(result["cycleKey"])["status"],
+                         "PAPER_ACCEPTED")
+
+    def test_runner_process_lock_is_exclusive_and_released(self):
+        first = self.make_runner()
+        second = self.make_runner()
+        self.assertTrue(first.acquire_process_lock())
+        self.assertFalse(second.acquire_process_lock())
+        first.release_process_lock()
+        self.assertTrue(second.acquire_process_lock())
+        second.release_process_lock()
+
+    def test_config_digest_change_blocks_before_claim(self):
+        runner = self.make_runner()
+        self.config.write_text(json.dumps({
+            "mode": "PAPER", "ai_execution_enabled": False,
+            "ledger_path": str(self.config.parent / "paper-ledger.sqlite3"),
+        }), encoding="utf-8")
+        with self.assertRaises(ContinuousInputError):
+            runner.process_bundle(self.bundle_path, now_ms=NOW)
+        self.assertEqual(self.journal.list_cycles(), [])
+        self.assertEqual(self.calls, [])
+
+    def test_real_kill_switch_rejects_continuous_core_entry(self):
+        import os
+        from unittest.mock import patch
+
+        import paper_execution.test_core_first_operational as operational
+        from core_runtime.input_bundle import compute_bundle_id
+        from core_runtime.test_input_bundle_contract import valid_bundle
+        from paper_execution.ledger import read_account_risk_snapshot, read_snapshot
+        from pipeline.test_core_runtime_one_shot import producer_report
+
+        fixture = operational.CoreFirstOperationalProofTest()
+        fixture.setUp()
+        try:
+            fixture.core.set_killed(True, fixture.now, "CONTINUOUS_KILL_SWITCH_TEST")
+            bundle = valid_bundle()
+            risk = read_account_risk_snapshot(fixture.path, now_ms=fixture.now)
+            bundle["accountRisk"]["snapshot"] = risk
+            bundle["accountRisk"]["snapshotDigest"] = (
+                "sha256:" + hashlib.sha256(
+                    __import__("rfc8785").dumps(risk)
+                ).hexdigest()
+            )
+            paper = read_snapshot(fixture.path, strategy_id="STRATEGY_CORE")
+            bundle["paperState"] = {
+                "positionBase": paper["positionBase"],
+                "averageEntryPrice": paper["averageEntryPrice"],
+                "strategyState": {
+                    "owner": paper["strategyState"]["owner"],
+                    "dcaUsed": paper["strategyState"]["dcaUsed"],
+                    "strategyId": "STRATEGY_CORE",
+                },
+            }
+            bundle["bundleId"] = compute_bundle_id(bundle)
+            root = Path(fixture.temp.name)
+            config_path = root / "kill-switch-config.json"
+            bundle_path = root / "kill-switch-bundle.json"
+            config_path.write_text(json.dumps({
+                "mode": "PAPER", "ai_execution_enabled": False,
+                "ledger_path": str(fixture.path),
+                "risk_limits": {
+                    "maxDrawdownPct": "50",
+                    "maxDailyLossUsdt": "50",
+                    "maxExposureUsdt": "1000",
+                },
+                "max_book_age_ms": 2_000, "max_position_base": "0.01",
+            }), encoding="utf-8")
+            bundle_path.write_text(json.dumps(bundle), encoding="utf-8")
+            runner = ContinuousCoreRunner(
+                config_path=config_path,
+                journal=ContinuousJournal(root / "kill-switch-journal.sqlite3"),
+                bundle_store_dir=root / "kill-switch-bundles",
+                source_sha="source-sha",
+                config_sha256="sha256:" + hashlib.sha256(config_path.read_bytes()).hexdigest(),
+                settlement_ms=0,
+                max_book_age_ms=2_000,
+            )
+            with patch.dict(os.environ, {
+                "AI_EXECUTION_ENABLED": "false", "MARKET_DATA_DB": "",
+                "BINANCE_API_KEY": "", "BINANCE_API_SECRET": "",
+                "OKX_API_KEY": "", "OKX_API_SECRET": "",
+            }, clear=False), patch(
+                "pipeline.core_strategy.produce", return_value=producer_report()
+            ):
+                result = runner.process_bundle(bundle_path, now_ms=fixture.now)
+            self.assertEqual(result["status"], "RISK_REJECTED", result)
+            self.assertEqual(fixture.core.snapshot()["positionBase"], "0")
+            self.assertEqual(fixture.ai.snapshot()["positionBase"], "0")
+            self.assertEqual(len(fixture.ai.snapshot()["orders"]), 0)
+        finally:
+            fixture.doCleanups()
 
     def test_stop_during_cadence_wait_does_not_request_or_claim_bundle(self):
         requested = []
