@@ -97,3 +97,8 @@ Next bounded work: implement a read-only position-history projection from the ex
 - Exact-source workflow [43520760804](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43520760804): SUCCESS at SHA `bf112ec9f31b90e77dbef509acbf632a9dd4a173`.
 - Focused model tests **19/19 PASS**; full PaperLedger regression **502/502 PASS**.
 - Artifact `14083140820`, 13,960 bytes, digest `sha256:1a72fd5ce1f89aad1020d6e1133feba11ca0e50976f9078e10d2c9cef25e62b5`, expires 2026-11-20T22:37:14Z.
+
+
+### Funding amount sign convention
+
+The model's `amountQuote` is **funding cost**, not account income: `positionBase × markPrice × fundingRate`. Positive values are debits/costs; negative values are credits. This matches the PAPER ledger equity equation, which subtracts `funding_quote` from equity. Binance documents that a positive rate means longs pay and shorts receive, and gives funding amount as notional value multiplied by fee rate: [Binance funding fee explanation](https://www.binance.com/en/support/faq/detail/98488a516eb84e3eb34605683dffd554). The model's signed-position representation therefore yields positive cost for a long at positive rate and negative cost (credit) for a short.
