@@ -395,6 +395,33 @@ def migrate_funding_population_reconciliation(connection, source_sha):
     )
 
 
+
+
+def _observed_funding_events(connection, start_at_ms, end_at_ms):
+    rows = connection.execute(
+        """SELECT funding_event_id,event_at_ms,amount_quote,payload_hash,
+                  source,source_snapshot_id
+           FROM paper_funding_events
+           WHERE account_id=1 AND event_at_ms>=? AND event_at_ms<?
+           ORDER BY funding_event_id""",
+        (start_at_ms, end_at_ms),
+    ).fetchall()
+    events = []
+    for row in rows:
+        if (row["source"] == "LEGACY_UNVERIFIED"
+                or not row["source_snapshot_id"] or not row["payload_hash"]):
+            raise ValueError("FUNDING_POPULATION_OBSERVED_PROVENANCE_INCOMPLETE")
+        events.append({
+            "eventId": row["funding_event_id"],
+            "eventAtMs": row["event_at_ms"],
+            "amountQuote": row["amount_quote"],
+            "payloadHash": row["payload_hash"],
+        })
+    payload = json.dumps(
+        events, sort_keys=True, separators=(",", ":"), allow_nan=False
+    ).encode("utf-8")
+    return events, "sha256:" + hashlib.sha256(payload).hexdigest()
+
 def record_funding_reconciliation(
     db_path, *, expected_population, recorded_at_ms,
 ):
@@ -421,29 +448,7 @@ def record_funding_reconciliation(
         end = _stamp(expected_population.get("endAtMs"))
         if start >= end or end > recorded:
             raise ValueError("FUNDING_POPULATION_INTERVAL_INVALID")
-        rows = db.execute(
-            """SELECT funding_event_id,event_at_ms,amount_quote,payload_hash,
-                      source,source_snapshot_id
-               FROM paper_funding_events
-               WHERE account_id=1 AND event_at_ms>=? AND event_at_ms<?
-               ORDER BY funding_event_id""",
-            (start, end),
-        ).fetchall()
-        observed_events = []
-        for row in rows:
-            if (row["source"] == "LEGACY_UNVERIFIED"
-                    or not row["source_snapshot_id"] or not row["payload_hash"]):
-                raise ValueError("FUNDING_POPULATION_OBSERVED_PROVENANCE_INCOMPLETE")
-            observed_events.append({
-                "eventId": row["funding_event_id"],
-                "eventAtMs": row["event_at_ms"],
-                "amountQuote": row["amount_quote"],
-                "payloadHash": row["payload_hash"],
-            })
-        observed_bytes = json.dumps(
-            observed_events, sort_keys=True, separators=(",", ":"), allow_nan=False
-        ).encode("utf-8")
-        observed_digest = "sha256:" + hashlib.sha256(observed_bytes).hexdigest()
+        observed_events, observed_digest = _observed_funding_events(db, start, end)
         observed_population = {
             "schemaVersion": 1,
             "populationType": "OBSERVED_FUNDING_EVENTS",
@@ -886,7 +891,8 @@ def record_funding_coverage(
             raise sqlite3.DatabaseError("FUNDING_RECONCILIATION_MIGRATION_NOT_APPLIED")
         if status == "VERIFIED":
             evidence = db.execute(
-                """SELECT start_at_ms,end_at_ms,currency,expected_snapshot_id,status,recorded_at_ms
+                """SELECT start_at_ms,end_at_ms,currency,expected_snapshot_id,status,
+                          recorded_at_ms,observed_snapshot_id
                    FROM paper_funding_reconciliations WHERE reconciliation_id=?""",
                 (reconciliation_id,),
             ).fetchone()
@@ -898,6 +904,9 @@ def record_funding_coverage(
                 start, end, "USDT", snapshot
             ) or evidence[5] > recorded:
                 raise ValueError("FUNDING_RECONCILIATION_SCOPE_MISMATCH")
+            _, current_observed_digest = _observed_funding_events(db, start, end)
+            if evidence[6] != current_observed_digest:
+                raise ValueError("FUNDING_RECONCILIATION_STALE")
 
         old = db.execute(
             """SELECT start_at_ms,end_at_ms,status,source,source_snapshot_id,
