@@ -101,6 +101,12 @@ class OrderBookHttpConfigTests(unittest.TestCase):
         with self.assertRaises(OrderBookHttpError):
             OrderBookHttpConfig("http://127.0.0.1:8787", "token", max_response_bytes=0)
 
+    def test_secret_is_not_exposed_by_config_repr(self):
+        config = OrderBookHttpConfig(
+            "http://127.0.0.1:8787", "private-test-secret", max_response_bytes=65_536
+        )
+        self.assertNotIn("private-test-secret", repr(config))
+
 
 class OneShotOrderBookHttpTests(unittest.TestCase):
     def test_valid_snapshot_is_returned_after_strict_validation_and_exactly_one_get(self):
@@ -226,8 +232,10 @@ class OneShotOrderBookHttpTests(unittest.TestCase):
         depth = valid_snapshot()
         depth["bids"] = depth["bids"][:-1]
         depth["depth"]["bids"] = 19
+        numeric_price = valid_snapshot()
+        numeric_price["bids"][0][0] = 50_000
 
-        for payload in (stale, future, incomplete, depth):
+        for payload in (stale, future, incomplete, depth, numeric_price):
             with self.subTest(payload=payload):
                 client, session = make_client(response_for(payload))
                 with self.assertRaises(OrderBookHttpError):
