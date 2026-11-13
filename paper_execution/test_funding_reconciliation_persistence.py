@@ -11,7 +11,7 @@ from paper_execution.funding import (
     record_funding_event,
     record_funding_reconciliation,
 )
-from paper_execution.ledger import PaperLedger
+from paper_execution.ledger import PaperLedger, read_account_risk_snapshot
 from risk_policy import CORE_LEVERAGE
 
 
@@ -229,6 +229,46 @@ class FundingReconciliationPersistenceTest(unittest.TestCase):
                         self.expected["snapshotId"], "sha256:" + "a" * 64, self.now,
                     ),
                 )
+
+    def test_read_only_risk_gate_detects_direct_event_insert_after_certificate(self):
+        certificate = record_funding_reconciliation(
+            self.db_path, expected_population=self.expected,
+            recorded_at_ms=self.now,
+        )
+        self.coverage(reconciliation_id=certificate["reconciliationId"])
+        record_account_equity_cutover(
+            self.db_path,
+            cutover_id="cutover-direct-event-bypass",
+            expected_initial_capital_quote="100",
+            expected_realized_pnl_quote="0",
+            expected_fees_quote="0",
+            expected_funding_quote="0",
+            expected_account_equity_quote="100",
+            mark_price="100",
+            mark_candle_close_ms=self.now - 60_000,
+            mark_observed_at_ms=self.now,
+            dataset_version="sha256:" + "1" * 64,
+            funding_coverage_start_at_ms=self.expected["startAtMs"],
+            source="OWNER_RECONCILED_EVIDENCE",
+            source_snapshot_id="equity-snapshot-bypass-test",
+            payload_hash="sha256:" + "2" * 64,
+            config_version="paper-risk-v1",
+            recorded_at_ms=self.now,
+        )
+        with sqlite3.connect(self.db_path) as db:
+            db.execute(
+                """INSERT INTO paper_funding_events
+                   (funding_event_id,account_id,strategy_id,amount_quote,event_at_ms,
+                    source_snapshot_id,payload_hash,source,recorded_at_ms)
+                   VALUES ('direct-bypass-event',1,'STRATEGY_CORE','0.01',?,
+                           'direct-bypass-source','sha256:' || printf('%064d',0),
+                           'untrusted-direct-writer',?)""",
+                (self.now - 1, self.now),
+            )
+
+        snapshot = read_account_risk_snapshot(self.db_path, now_ms=self.now)
+        self.assertFalse(snapshot["riskReady"], snapshot)
+        self.assertEqual(snapshot["unavailableReason"], "FUNDING_PROVENANCE_INCOMPLETE")
 
     def test_certificate_is_append_only(self):
         result = record_funding_reconciliation(
