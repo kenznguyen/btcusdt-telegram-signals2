@@ -19,6 +19,7 @@ from paper_execution.funding import (
     record_funding_coverage,
 )
 from risk_policy import CORE_LEVERAGE
+from paper_execution.owner_attestation import load_manual_owner_attestation
 
 
 MANIFEST_FIELDS = {
@@ -28,7 +29,7 @@ MANIFEST_FIELDS = {
     "fundingCoverageStartAtMs", "fundingCoverageId", "fundingSource",
     "fundingSnapshotId", "fundingEvidencePath", "fundingPayloadHash",
     "cutoverId", "cutoverSource", "cutoverSnapshotId",
-    "cutoverEvidencePath", "cutoverPayloadHash", "configVersion",
+    "cutoverEvidencePath", "cutoverPayloadHash", "ownerAttestationPath",\n    "ownerAttestationPayloadHash", "configVersion",
     "recordedAtMs",
 }
 STRATEGY_SCOPES = (
