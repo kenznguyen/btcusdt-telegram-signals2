@@ -4784,3 +4784,17 @@ These findings make the current stop condition explicit: completing Trusted Admi
 | Live trading / real orders | NOT AUTHORIZED |
 
 Next: preserve this proof and do not rerun automatically. Any additional runtime, AI Strategy implementation, deployment, service activation or broader integration requires a separate scoped approval. Maintain paper-only posture and `AI_EXECUTION_ENABLED=false`.
+
+
+## 2026-11-13 — Continuous Core Runner design and TDD specification
+
+- Owner approved automatic progress through One-shot Runner/interface inspection, Continuous Runner process lifecycle design, cadence/checkpoint/duplicate/recovery design, C1-C8 RED test specification, and GREEN/CI evidence criteria.
+- Active branch preserved: `feature/core-operational-proof-20261112`. Baseline HEAD before this documentation increment: `d2e7f46c2a631a5673e56279fe80d9976891489a`; compare against branch confirmed identical (0 ahead / 0 behind).
+- Inspected One-shot interfaces: `core_runtime.__main__.main`, `core_runtime.one_shot.run_once`, `core_runtime.preflight`, Bundle v1 validator, Core producer, Core adapter, signal validator, PaperLedger submit/idempotency, risk control, and existing CI workflow/tests.
+- One-shot evidence remains bounded: GitHub Actions run `43365609751` on source `8f774d7103f54681497837c7e4fd7c2e1c38c754` SUCCESS (18 workflow steps), artifact `14010098776` / `core-first-code-operational-proof-43365609751`, SHA-256 `008a574ce79cb8ba4637f5b49ade49d95d6087e5e6ad2df408b2a7d3d183026b`. The later inspected source HEAD `d2e7f46c2a631a5673e56279fe80d9976891489a` was reconciled as four documentation-only commits beyond tested source; no code changes in that interval.
+- Manual ARM64 test batch at source `562362a69d8455a34e08385d26a47fa21d2b50ed`: 82/82 PASS. Actual bounded Core one-shot fixture returned NO_SIGNAL (warmup); separate warmed ENTRY fixture passed Core BUY → Risk ACCEPT → PaperLedger FILLED with 1 USDT margin against 100 USDT equity; AI ledger unchanged; fixture database removed; AI execution false. These do not prove continuous behavior.
+- Design report added: `docs/evidence/CONTINUOUS_CORE_RUNNER_DESIGN_TDD_SPEC_2026-11-13.md`. It specifies lifecycle states, closed-M15 cadence, immutable cycle identity, durable journal, ledger idempotency authority, crash recovery, C1-C8 RED tests, GREEN acceptance, and CI evidence.
+- Critical interface gaps recorded: no continuous scheduler/process lifecycle, no bundle provider handoff, no durable runner checkpoint/journal, and no public read-only ledger reconciliation API confirmed for the crash-after-submit window. The journal and ledger must not be assumed to share one atomic transaction.
+- Status: One-shot/interface inspection PASS; Continuous Runner design PASS; C1-C8 tests SPECIFIED / NOT WRITTEN / NOT RUN; implementation NOT AUTHORIZED; continuous CI NOT IMPLEMENTED; runtime/VPS/service/systemd/autostart NOT AUTHORIZED.
+- Next step: owner review and separate approval for implementation. If approved, begin with C1-C8 RED tests. Continue on this branch; no new branch or parallel PR.
+- Explicit limits: no Strategy Core changes, no Risk Engine/Ledger behavior changes unless separately scoped, no T0/T1/T2 changes, no AI strategy/execution, no exchange connection/credentials, no real orders, no VPS deployment, no persistent runtime, no systemd/autostart.
