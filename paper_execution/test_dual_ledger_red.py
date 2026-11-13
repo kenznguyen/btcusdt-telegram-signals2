@@ -798,7 +798,8 @@ class DualLedgerRedTest(unittest.TestCase):
 
 
     def test_funding_event_has_immutable_provenance_and_idempotent_accounting(self):
-        with sqlite3.connect(self.path) as connection:
+        path = self.fresh_account_db("funding-event-provenance.sqlite3", establish_cutover=False)
+        with sqlite3.connect(path) as connection:
             connection.execute(
                 """UPDATE paper_account_risk_state
                    SET risk_ready=1,unavailable_reason=NULL,
@@ -807,7 +808,7 @@ class DualLedgerRedTest(unittest.TestCase):
             )
 
         event = ledger.record_funding_event(
-            self.path,
+            path,
             funding_event_id="okx-funding-core-001",
             strategy_id="STRATEGY_CORE",
             amount_quote="0.25",
@@ -818,7 +819,7 @@ class DualLedgerRedTest(unittest.TestCase):
             recorded_at_ms=self.now,
         )
         replay = ledger.record_funding_event(
-            self.path,
+            path,
             funding_event_id="okx-funding-core-001",
             strategy_id="STRATEGY_CORE",
             amount_quote="0.25",
@@ -831,8 +832,38 @@ class DualLedgerRedTest(unittest.TestCase):
         self.assertEqual(event, replay)
         self.assertEqual(event["strategyId"], "STRATEGY_CORE")
         self.assertEqual(event["amountQuote"], "0.25")
+        record_verified_funding_coverage(
+            path,
+            coverage_id="funding-event-provenance-coverage",
+            start_at_ms=self.now - 86_400_000,
+            end_at_ms=self.now,
+            status="VERIFIED",
+            source="OKX_FUNDING_HISTORY",
+            source_snapshot_id="okx:BTC-USDT-SWAP:funding:1800000000000",
+            payload_hash="sha256:" + "a" * 64,
+            config_version="funding-policy-v1",
+            recorded_at_ms=self.now,
+            expected_events=[{
+                "eventId": "okx-funding-core-001",
+                "eventAtMs": self.now - 1_000,
+                "amountQuote": "0.25",
+                "payloadHash": "sha256:" + "a" * 64,
+            }],
+        )
+        ledger.record_account_equity_cutover(
+            path, cutover_id="funding-event-provenance-cutover",
+            expected_initial_capital_quote="100",
+            expected_realized_pnl_quote="0", expected_fees_quote="0",
+            expected_funding_quote="0.25", expected_account_equity_quote="99.75",
+            mark_price="100", mark_candle_close_ms=self.now - 60_000,
+            mark_observed_at_ms=self.now, dataset_version="sha256:dual-ledger-seed",
+            funding_coverage_start_at_ms=self.now - 86_400_000,
+            source="fixture-equity-cutover", source_snapshot_id="fixture:funding-event-cutover",
+            payload_hash="sha256:" + "b" * 64, config_version="fixture-v1",
+            recorded_at_ms=self.now,
+        )
 
-        with sqlite3.connect(self.path) as connection:
+        with sqlite3.connect(path) as connection:
             count = connection.execute(
                 "SELECT COUNT(*) FROM paper_funding_events"
             ).fetchone()[0]
@@ -848,12 +879,12 @@ class DualLedgerRedTest(unittest.TestCase):
         self.assertEqual(count, 1)
         self.assertEqual(Decimal(funding), Decimal("0.25"))
         self.assertTrue({"source", "recorded_at_ms"}.issubset(columns))
-        snapshot = ledger.read_account_risk_snapshot(self.path, now_ms=self.now + 2)
+        snapshot = ledger.read_account_risk_snapshot(path, now_ms=self.now + 2)
         self.assertEqual(Decimal(snapshot["accountEquityQuote"]), Decimal("99.75"))
 
         with self.assertRaisesRegex(ValueError, "FUNDING_EVENT_ID_CONFLICT"):
             ledger.record_funding_event(
-                self.path,
+                path,
                 funding_event_id="okx-funding-core-001",
                 strategy_id="STRATEGY_CORE",
                 amount_quote="0.5",
@@ -864,7 +895,7 @@ class DualLedgerRedTest(unittest.TestCase):
                 recorded_at_ms=self.now + 2,
             )
 
-        with sqlite3.connect(self.path) as connection:
+        with sqlite3.connect(path) as connection:
             with self.assertRaisesRegex(sqlite3.IntegrityError, "FUNDING_EVENT_IMMUTABLE"):
                 connection.execute(
                     "UPDATE paper_funding_events SET amount_quote='9' WHERE funding_event_id=?",
@@ -877,8 +908,9 @@ class DualLedgerRedTest(unittest.TestCase):
                 )
 
     def test_known_funding_without_strategy_owner_is_account_level_legacy_attribution(self):
+        path = self.fresh_account_db("legacy-funding-attribution.sqlite3", establish_cutover=False)
         event = ledger.record_funding_event(
-            self.path,
+            path,
             funding_event_id="historical-funding-unowned-001",
             strategy_id="LEGACY_UNATTRIBUTED",
             amount_quote="0.4",
@@ -889,7 +921,7 @@ class DualLedgerRedTest(unittest.TestCase):
             recorded_at_ms=self.now,
         )
         self.assertEqual(event["strategyId"], "LEGACY_UNATTRIBUTED")
-        with sqlite3.connect(self.path) as connection:
+        with sqlite3.connect(path) as connection:
             core = connection.execute(
                 "SELECT funding_quote FROM paper_strategy_ledgers WHERE strategy_id='STRATEGY_CORE'"
             ).fetchone()[0]
@@ -997,18 +1029,6 @@ class DualLedgerRedTest(unittest.TestCase):
 
     def test_account_equity_cutover_reconciles_both_ledgers_and_legacy_once(self):
         path = self.fresh_account_db("cutover-verified.sqlite3", establish_cutover=False)
-        record_verified_funding_coverage(
-            path,
-            coverage_id="cutover-funding-verified",
-            start_at_ms=self.now - 86_400_000,
-            end_at_ms=self.now,
-            status="VERIFIED",
-            source="RECONCILED_ACCOUNT_STATEMENT",
-            source_snapshot_id="account-statement:funding-window",
-            payload_hash="sha256:" + "2" * 64,
-            config_version="funding-policy-v1",
-            recorded_at_ms=self.now,
-        )
         ledger.record_funding_event(
             path,
             funding_event_id="cutover-core-funding",
@@ -1030,6 +1050,24 @@ class DualLedgerRedTest(unittest.TestCase):
             source_snapshot_id="account-statement:ai-funding",
             payload_hash="sha256:" + "8" * 64,
             recorded_at_ms=self.now,
+        )
+        record_verified_funding_coverage(
+            path,
+            coverage_id="cutover-funding-verified",
+            start_at_ms=self.now - 86_400_000,
+            end_at_ms=self.now,
+            status="VERIFIED",
+            source="RECONCILED_ACCOUNT_STATEMENT",
+            source_snapshot_id="account-statement:funding-window",
+            payload_hash="sha256:" + "2" * 64,
+            config_version="funding-policy-v1",
+            recorded_at_ms=self.now,
+            expected_events=[
+                {"eventId": "cutover-core-funding", "eventAtMs": self.now - 1_000,
+                 "amountQuote": "0.3", "payloadHash": "sha256:" + "7" * 64},
+                {"eventId": "cutover-ai-funding", "eventAtMs": self.now - 1_000,
+                 "amountQuote": "-0.1", "payloadHash": "sha256:" + "8" * 64},
+            ],
         )
         with sqlite3.connect(path) as connection:
             connection.execute(
@@ -1345,6 +1383,13 @@ class DualLedgerRedTest(unittest.TestCase):
 
     def test_account_equity_cutover_rejects_corrupt_funding_event_provenance(self):
         path = self.fresh_account_db("cutover-corrupt-funding-event.sqlite3", establish_cutover=False)
+        ledger.record_funding_event(
+            path, funding_event_id="corrupt-provenance-event",
+            strategy_id="STRATEGY_CORE", amount_quote="0.25",
+            event_at_ms=self.now - 1_000, source="OKX_FUNDING_HISTORY",
+            source_snapshot_id="okx:funding:corrupt-test",
+            payload_hash="sha256:" + "a" * 64, recorded_at_ms=self.now,
+        )
         record_verified_funding_coverage(
             path, coverage_id="corrupt-event-funding-coverage",
             start_at_ms=self.now - 86_400_000, end_at_ms=self.now,
@@ -1352,13 +1397,12 @@ class DualLedgerRedTest(unittest.TestCase):
             source_snapshot_id="funding-corrupt-event:window",
             payload_hash="sha256:" + "9" * 64,
             config_version="funding-policy-v1", recorded_at_ms=self.now,
-        )
-        ledger.record_funding_event(
-            path, funding_event_id="corrupt-provenance-event",
-            strategy_id="STRATEGY_CORE", amount_quote="0.25",
-            event_at_ms=self.now - 1_000, source="OKX_FUNDING_HISTORY",
-            source_snapshot_id="okx:funding:corrupt-test",
-            payload_hash="sha256:" + "a" * 64, recorded_at_ms=self.now,
+            expected_events=[{
+                "eventId": "corrupt-provenance-event",
+                "eventAtMs": self.now - 1_000,
+                "amountQuote": "0.25",
+                "payloadHash": "sha256:" + "a" * 64,
+            }],
         )
         with sqlite3.connect(path) as connection:
             connection.execute("DROP TRIGGER paper_funding_events_immutable_update")
@@ -1792,18 +1836,6 @@ os._exit(0)
             "funding-refresh-risk-unready.sqlite3",
             establish_cutover=False,
         )
-        record_verified_funding_coverage(
-            path,
-            coverage_id="risk-unready-funding-coverage",
-            start_at_ms=self.now - 86_400_000,
-            end_at_ms=self.now,
-            status="VERIFIED",
-            source="RECONCILED_FUNDING_STATEMENT",
-            source_snapshot_id="risk-unready:coverage",
-            payload_hash="sha256:" + "e" * 64,
-            config_version="funding-policy-v1",
-            recorded_at_ms=self.now,
-        )
         with sqlite3.connect(path) as connection:
             connection.execute(
                 """UPDATE paper_account_risk_state
@@ -1855,7 +1887,7 @@ os._exit(0)
         self.assertEqual(count, 0)
 
     def test_read_only_snapshot_fails_closed_on_corrupt_funding_event_provenance(self):
-        path = self.path
+        path = self.fresh_account_db("snapshot-corrupt-funding.sqlite3", establish_cutover=False)
         ledger.record_funding_event(
             path,
             funding_event_id="snapshot-corrupt-provenance-event",
@@ -1865,6 +1897,32 @@ os._exit(0)
             source="OKX_FUNDING_HISTORY",
             source_snapshot_id="snapshot-corrupt:funding",
             payload_hash="sha256:" + "c" * 64,
+            recorded_at_ms=self.now,
+        )
+        record_verified_funding_coverage(
+            path, coverage_id="snapshot-corrupt-funding-coverage",
+            start_at_ms=self.now - 86_400_000, end_at_ms=self.now,
+            status="VERIFIED", source="OKX_FUNDING_HISTORY",
+            source_snapshot_id="snapshot-corrupt:funding",
+            payload_hash="sha256:" + "c" * 64,
+            config_version="funding-policy-v1", recorded_at_ms=self.now,
+            expected_events=[{
+                "eventId": "snapshot-corrupt-provenance-event",
+                "eventAtMs": self.now - 1_000,
+                "amountQuote": "0",
+                "payloadHash": "sha256:" + "c" * 64,
+            }],
+        )
+        ledger.record_account_equity_cutover(
+            path, cutover_id="snapshot-corrupt-funding-cutover",
+            expected_initial_capital_quote="100",
+            expected_realized_pnl_quote="0", expected_fees_quote="0",
+            expected_funding_quote="0", expected_account_equity_quote="100",
+            mark_price="100", mark_candle_close_ms=self.now - 60_000,
+            mark_observed_at_ms=self.now, dataset_version="sha256:dual-ledger-seed",
+            funding_coverage_start_at_ms=self.now - 86_400_000,
+            source="fixture-equity-cutover", source_snapshot_id="fixture:snapshot-corrupt-cutover",
+            payload_hash="sha256:" + "d" * 64, config_version="fixture-v1",
             recorded_at_ms=self.now,
         )
         with sqlite3.connect(path) as connection:
@@ -1906,7 +1964,7 @@ os._exit(0)
 
 
 
-    def test_funding_event_rejects_missing_coverage_without_ledger_mutation(self):
+    def test_funding_event_without_coverage_stages_and_blocks_readiness(self):
         path = self.fresh_account_db(
             "funding-event-without-coverage.sqlite3",
             establish_cutover=False,
@@ -1917,18 +1975,17 @@ os._exit(0)
                    WHERE account_id=1 AND strategy_id='STRATEGY_CORE'"""
             ).fetchone()[0]
 
-        with self.assertRaisesRegex(ValueError, "FUNDING_PROVENANCE_INCOMPLETE"):
-            ledger.record_funding_event(
-                path,
-                funding_event_id="funding-event-without-coverage",
-                strategy_id="STRATEGY_CORE",
-                amount_quote="0.5",
-                event_at_ms=self.now - 1_000,
-                source="OKX_FUNDING_HISTORY",
-                source_snapshot_id="missing-coverage:funding",
-                payload_hash="sha256:" + "f" * 64,
-                recorded_at_ms=self.now,
-            )
+        event = ledger.record_funding_event(
+            path,
+            funding_event_id="funding-event-without-coverage",
+            strategy_id="STRATEGY_CORE",
+            amount_quote="0.5",
+            event_at_ms=self.now - 1_000,
+            source="OKX_FUNDING_HISTORY",
+            source_snapshot_id="missing-coverage:funding",
+            payload_hash="sha256:" + "f" * 64,
+            recorded_at_ms=self.now,
+        )
 
         with sqlite3.connect(path) as connection:
             after = connection.execute(
@@ -1939,8 +1996,13 @@ os._exit(0)
                 "SELECT COUNT(*) FROM paper_funding_events WHERE funding_event_id=?",
                 ("funding-event-without-coverage",),
             ).fetchone()[0]
-        self.assertEqual(after, before)
-        self.assertEqual(count, 0)
+            risk_ready = connection.execute(
+                "SELECT risk_ready FROM paper_account_risk_state WHERE account_id=1"
+            ).fetchone()[0]
+        self.assertEqual(event["fundingEventId"], "funding-event-without-coverage")
+        self.assertEqual(Decimal(after), Decimal(before) + Decimal("0.5"))
+        self.assertEqual(count, 1)
+        self.assertEqual(risk_ready, 0)
 
 
 
@@ -2332,18 +2394,6 @@ os._exit(0)
             payload_hash="sha256:" + "4" * 64,
             recorded_at_ms=watermark,
         )
-        record_verified_funding_coverage(
-            self.path,
-            coverage_id="replay-funding-coverage",
-            start_at_ms=self.now,
-            end_at_ms=boundary,
-            status="VERIFIED",
-            source="RECONCILED_FUNDING_HISTORY",
-            source_snapshot_id="funding:coverage-snapshot",
-            payload_hash="sha256:" + "5" * 64,
-            config_version="funding-v1",
-            recorded_at_ms=watermark,
-        )
         ledger.record_account_history_event(
             self.path,
             event_id="replay-core-fill",
@@ -2369,6 +2419,24 @@ os._exit(0)
             source_snapshot_id="funding:event-snapshot",
             payload_hash="sha256:" + "7" * 64,
             recorded_at_ms=self.now + 800,
+        )
+        record_verified_funding_coverage(
+            self.path,
+            coverage_id="replay-funding-coverage",
+            start_at_ms=self.now,
+            end_at_ms=boundary,
+            status="VERIFIED",
+            source="RECONCILED_FUNDING_HISTORY",
+            source_snapshot_id="funding:coverage-snapshot",
+            payload_hash="sha256:" + "5" * 64,
+            config_version="funding-v1",
+            recorded_at_ms=watermark,
+            expected_events=[{
+                "eventId": "replay-core-funding",
+                "eventAtMs": self.now + 700,
+                "amountQuote": "0.25",
+                "payloadHash": "sha256:" + "7" * 64,
+            }],
         )
         ledger.record_market_mark_history(
             self.path,
