@@ -95,3 +95,16 @@ The repository's `T1_ARM64_CI_ARTIFACT_VERIFICATION_2026-11-13.md` records a pri
 
 ### Core checkout freshness
 GitHub compare confirms VPS local SHA `4af5bf0536c8b45f59033f0bc38625a031621c3e` is an ancestor of the current branch and is 164 commits behind / 0 ahead at the latest recorded branch state. No tests or Core Runner runtime may be run from this stale checkout.
+
+
+## Addendum — Core First source synchronization (2026-11-13)
+
+- Approved operation: fetch + fast-forward only on existing branch `feature/core-operational-proof-20261112`. Initial SSH transport failed with `Permission denied (publickey)` and did not advance the checkout. Owner reran using the public GitHub HTTPS URL.
+- Owner-reported result: `SYNC_RESULT=PASS`; branch `feature/core-operational-proof-20261112`; VPS HEAD `562362a69d8455a34e08385d26a47fa21d2b50ed`; working tree clean.
+- Independent GitHub branch lookup: HEAD `562362a69d8455a34e08385d26a47fa21d2b50ed` — exact match.
+- GitHub compare: tested Runner SHA `8f774d7103f54681497837c7e4fd7c2e1c38c754` to synchronized HEAD `562362a69d8455a34e08385d26a47fa21d2b50ed` = 4 commits ahead / 0 behind; merge base is the tested Runner SHA. The synced branch contains the CI-tested Runner source and four subsequent commits, including evidence/documentation updates.
+- The shell prompt showed `[ahead 165]` against `origin/feature/core-operational-proof-20261112`. This is not divergence: the HTTPS fetch used an explicit URL and did not refresh the local `origin/*` tracking ref. GitHub confirms branch HEAD already equals VPS HEAD. No push is required or authorized.
+- Status: source parity with GitHub branch PASS; inclusion of exact CI-tested Runner SHA PASS; clean VPS working tree PASS (owner-reported); local Runner file presence NOT VERIFIED; ARM64 build/runtime compatibility NOT VERIFIED; dependency readiness BLOCKED (pip and required packages absent in prior inventory); Runner execution NOT AUTHORIZED / NOT RUN.
+- Core Runner CI evidence: run `43365609751`, tested SHA `8f774d7103f54681497837c7e4fd7c2e1c38c754`, artifact ID `14010098776`, artifact SHA-256 `008a574ce79cb8ba4637f5b49ade49d95d6087e5e6ad2df408b2a7d3d183026b`.
+- No dependency installation, build, test execution, Runner invocation, service start, systemd/autostart, T0/T1/T2 mutation, or live order occurred. T1 runtime remains not activated; paper-only posture and `AI_EXECUTION_ENABLED=false` remain unchanged.
+- Next: bounded read-only VPS checks for `core_runtime` presence and source ancestry. Do not install dependencies or execute Runner without separate explicit approval.

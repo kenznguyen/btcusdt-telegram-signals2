@@ -4606,3 +4606,15 @@ These findings make the current stop condition explicit: completing Trusted Admi
 - Current supplied process/listener inventory shows no T1 process running. Distinguish historical bounded smoke PASS from current process state (not running).
 - Source parity comparison confirms the VPS checkout SHA `4af5bf0536c8b45f59033f0bc38625a031621c3e` is an ancestor of current Core First branch HEAD before this addendum and is **164 commits behind / 0 ahead**. Do not execute Core Runner tests or runtime on the stale checkout.
 - Updated evidence: `docs/evidence/VPS_ARM64_T1_STAGING_INVENTORY_2026-11-13.md` addendum. No VPS operation, binary execution, package installation, T0 access, or service change was performed in this reconciliation.
+
+
+## 2026-11-13 — VPS Core First source synchronization
+
+- Owner approved fetch + fast-forward only on the existing branch. Initial SSH fetch failed with GitHub public-key authentication and made no source change.
+- Owner then ran the approved synchronization using the public GitHub HTTPS URL. Reported result: `SYNC_RESULT=PASS`; branch `feature/core-operational-proof-20261112`; resulting VPS HEAD `562362a69d8455a34e08385d26a47fa21d2b50ed`; working tree reported clean.
+- GitHub independently confirms active branch HEAD is the same SHA. Compare from tested Core Runner source SHA `8f774d7103f54681497837c7e4fd7c2e1c38c754` to synchronized HEAD: 4 commits ahead / 0 behind, with merge base equal to tested SHA. The synchronized checkout includes the exact CI-tested Runner source plus subsequent documentation commits.
+- VPS status showed `[ahead 165]` relative to `origin/feature/core-operational-proof-20261112`. This is a stale remote-tracking ref artifact: fetch used an explicit HTTPS URL, not `origin`, so local `origin/*` was not refreshed. It does not indicate branch divergence. No push is required.
+- Source synchronization gate: PASS (owner-reported output + independent GitHub HEAD/ancestry verification). Runner file presence on disk and ARM64 compatibility remain NOT VERIFIED pending bounded read-only checks.
+- Core Runner code/CI: PASS; run `43365609751`, tested SHA `8f774d7103f54681497837c7e4fd7c2e1c38c754`, artifact ID `14010098776`, SHA-256 `008a574ce79cb8ba4637f5b49ade49d95d6087e5e6ad2df408b2a7d3d183026b`.
+- No package installation, build, test execution, Runner invocation, service activation, T0/T1/T2 mutation, or trading occurred during synchronization. One-shot runtime remains NOT AUTHORIZED / NOT RUN; live trading remains disabled.
+- Next permitted action: bounded read-only verification of Runner files and source ancestry on VPS. Dependency installation, test/build execution, or one-shot invocation requires separate explicit approval.
