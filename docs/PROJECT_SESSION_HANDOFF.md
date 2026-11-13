@@ -4734,3 +4734,53 @@ These findings make the current stop condition explicit: completing Trusted Admi
 - No source/code change, test suite rerun, Runner invocation, database write, service, exchange connection, AI execution, T0/T1/T2 mutation, or real order. No GitHub Actions run or artifact for this manual diagnostic.
 - Status: pure validator reproduction **PASS (owner-reported)**; original ENTRY-path diagnosis **PARTIALLY CONFIRMED**; Core signal/Risk Engine/1% margin/PaperLedger trade path **NOT EXERCISED**; persistent runtime/deployment/live trading **NOT VERIFIED / NOT AUTHORIZED**.
 - Next: if ENTRY-path proof is still required, separately approve a new bounded fixture invocation after fixing snapshot identity in the fixture only. Preserve `AI_EXECUTION_ENABLED=false`; no automatic retry or source modification.
+
+
+## Addendum — bounded Core Runner ENTRY-path proof (2026-11-13)
+
+### Authorization and source guard
+- Owner approved one bounded ENTRY-path fixture invocation only, after correcting the fixture's T1 snapshot identity. No retry or expansion is authorized by this approval.
+- Owner-provided start/end source guards both PASS on branch `feature/core-operational-proof-20261112`, exact source SHA `562362a69d8455a34e08385d26a47fa21d2b50ed`, clean working tree.
+- Manual VPS invocation used the isolated venv `/home/ubuntu/.venvs/btcusdt-core-runtime`, Python 3.12.3/aarch64, with `AI_EXECUTION_ENABLED=false`.
+
+### Owner-provided execution result
+| Check | Result |
+|---|---|
+| Bundle validator | `BUNDLE_VALID` |
+| Natural Core LONG preconditions | PASS — RSI previous 0.0, current 33.738312457588805; M15 ADX 95.86518982682294; H1 +DI 2.438734333674075, -DI 0.0, ADX 100.0 |
+| Core signal | `BUY / RSI_ADX_ENTRY` |
+| Runner exit / status | `0 / PAPER_ACCEPTED` |
+| Shared Risk Engine | `ACCEPT` |
+| PaperLedger | `FILLED` |
+| Core position | `0 → 0.00026000208001638014`; one Core order |
+| AI ledger | Position 0; orders 0 |
+| Equity basis / reserved margin / reserved notional | `100 / 1 / 13 USDT` |
+| Reservation state | `CONSUMED` |
+| Margin cap | PASS — reserved margin 1 USDT = 1% of 100 USDT equity basis |
+| Temporary fixture cleanup | PASS — `FIXTURE_DATABASE_REMOVED=TRUE` |
+| AI execution / exchange isolation | `false` / no exchange connection reported |
+| Source unchanged | PASS — both source guards PASS |
+
+- Run identifiers from the owner-provided output: bundle `sha256:eff0d2126cb895cc2d818d4364cb4595304751c40c472620f4e149a6288fa43c`; run `core-run:d082cfbfccb5472701a366ff270f82bf8cffdc3dcf1eb26517280f333efb9b9f`; paper order `paper:dc5d9608ab8d0671cc00043a8d328a37a26d3397a1134d79530f83ac30ce6aed`; reservation `reservation:a6783c76c64ff8a3a78aa355028a8b39b8cd0da3282966ddf21f12b12c5c250e`.
+- Interpretation: the actual Core strategy produced a BUY; the Shared Risk Engine accepted it; the isolated PaperLedger recorded a fill; reservation margin equaled the 1% cap. The 13 USDT notional is not the margin amount and does not indicate a cap breach.
+
+### Evidence classification and limits
+- ENTRY-path fixture proof: **PASS (owner-reported manual VPS evidence)**.
+- Exact source guard and unchanged source: **PASS (owner-reported)**.
+- Bundle validation, Core signal, Risk Engine acceptance, PaperLedger fill, 1% margin reservation, AI-ledger isolation and fixture cleanup: **PASS (owner-reported output)**.
+- No GitHub Actions workflow run or artifact was generated for this manual invocation. The pasted terminal transcript is the evidence supplied; no independent VPS/log-file readback was performed.
+- This proves one bounded paper fixture cycle only. It does not prove persistent runtime, service/autostart, production readiness, live execution, or Dual-Strategy AI signal generation. AI strategy remains unimplemented/not exercised; AI execution remains disabled.
+- No source change, T0/T1/T2 mutation, exchange connection, credential use, service activation or real order is reported.
+
+### Gate disposition and next boundary
+| Gate | Status |
+|---|---|
+| Core ENTRY → Shared Risk Engine → PaperLedger fill | PASS (bounded fixture) |
+| 1% margin reservation | PASS |
+| AI ledger isolation | PASS |
+| Fixture cleanup | PASS |
+| Persistent runtime / deployment | NOT VERIFIED / NOT AUTHORIZED |
+| Independent AI LONG/SHORT strategy | NOT IMPLEMENTED / NOT EXERCISED |
+| Live trading / real orders | NOT AUTHORIZED |
+
+Next: preserve this proof and do not rerun automatically. Any additional runtime, AI Strategy implementation, deployment, service activation or broader integration requires a separate scoped approval. Maintain paper-only posture and `AI_EXECUTION_ENABLED=false`.
