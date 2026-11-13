@@ -270,6 +270,28 @@ class CandleHttpClient:
             },
         }
 
+    def fetch_one_page(self, start_ms, end_ms, as_of_ms, timeframe="15m"):
+        """Fetch and validate one T0-owned envelope without paging or rewriting it.
+
+        T0 supports at most 2,000 candles per response. Core callers request
+        exactly 100 slots; the original source envelope and datasetVersion
+        are returned unchanged.
+        """
+        if not all(self._timestamp(value) for value in (start_ms, end_ms, as_of_ms)):
+            raise CandleHttpError("RANGE_MISMATCH")
+        if timeframe not in _INTERVAL_MS:
+            raise CandleHttpError("IDENTITY_MISMATCH")
+        interval = _INTERVAL_MS[timeframe]
+        if start_ms % interval or end_ms % interval:
+            raise CandleHttpError("RANGE_MISMATCH")
+        slots = (end_ms - start_ms) // interval
+        if not 1 <= slots <= 2000:
+            raise CandleHttpError("RANGE_MISMATCH")
+
+        payload = self._request(start_ms, end_ms, as_of_ms, timeframe)
+        self._validate(payload, start_ms, end_ms, as_of_ms, slots, timeframe)
+        return payload
+
     def _validate(self, payload, start_ms, end_ms, as_of_ms, slots, timeframe):
         if set(payload) != _ENVELOPE_FIELDS:
             raise CandleHttpError("CONTRACT_UNSUPPORTED")
