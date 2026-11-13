@@ -4666,3 +4666,21 @@ These findings make the current stop condition explicit: completing Trusted Admi
 - Gate status: wheel SHA PASS; minimal dependency installation PASS; package/version/import PASS; isolated package inventory PASS; source unchanged PASS (owner-reported); ARM64 project tests/build/end-to-end runtime NOT VERIFIED; Core Runner invocation NOT AUTHORIZED / NOT RUN.
 - No tests, build, Core Runner invocation, service activation, T0/T1/T2 mutation, or real orders occurred. Paper-only posture and `AI_EXECUTION_ENABLED=false` remain unchanged.
 - Next gate: request separate explicit authorization before any bounded Core Runner tests or invocation. Do not infer authorization from the dependency-install approval.
+
+
+## Addendum — bounded Core Runner ARM64 VPS test batch (2026-11-13)
+
+- Owner explicitly approved the bounded Core Runner test batch only. Tests were run on the synchronized VPS checkout using the dedicated virtualenv `/home/ubuntu/.venvs/btcusdt-core-runtime` (Python 3.12.3, aarch64; isolated packages: pip 24.0 and rfc8785 0.1.4).
+- Exact VPS source SHA before and after: `562362a69d8455a34e08385d26a47fa21d2b50ed`; final owner-provided `git status --short` was empty. Source guard PASS.
+- Owner-provided per-group logs and results:
+  - `/tmp/core-cli-tests.log`: `pipeline.test_core_runtime_contract`, 5 tests, OK.
+  - `/tmp/core-one-shot-tests.log`: `pipeline.test_core_runtime_one_shot`, 11 tests, OK.
+  - `/tmp/core-bundle-tests.log`: `core_runtime.test_input_bundle_contract`, 19 tests, OK.
+  - `/tmp/core-adapter-tests.log`: `pipeline.test_core_runtime_adapter_contract`, 6 tests, OK.
+  - `/tmp/core-operational-tests.log`: `paper_execution.test_core_first_operational` and `paper_execution.test_core_short_lifecycle`, 41 tests, OK.
+  - Total: **82/82 tests PASS**. The operational group output reports 41 tests in 93.335s.
+- Environment guard: `AI_EXECUTION_ENABLED=false`; final marker `CORE_TEST_BATCH=COMPLETED`; `SOURCE_UNCHANGED=PASS`.
+- Gate disposition: bounded ARM64 Core Runner test batch **PASS**; source parity/clean worktree **PASS** (owner-provided); test logs **PASS**. This is test/contract and paper-integration evidence only. It does not establish a standalone Core Runner operational invocation, persistent runtime, service, deployment or live trading readiness.
+- Scope boundary: no standalone `python -m core_runtime ... --run-once` invocation, no service/autostart, no T0/T1/T2 mutation, no exchange execution, and no real orders. `AI_EXECUTION_ENABLED=false` and paper-only posture remain mandatory.
+- No GitHub Actions run or artifact is claimed for this manual VPS test batch. The earlier CI run `43365609751` remains separate evidence for tested source `8f774d7103f54681497837c7e4fd7c2e1c38c754`.
+- Next gate: obtain separate explicit owner approval before any standalone one-shot Core Runner invocation. Until then, runtime invocation remains **NOT AUTHORIZED / NOT RUN**.
