@@ -90,7 +90,7 @@ class ContinuousCoreRunnerTest(unittest.TestCase):
     def test_conflicting_bundle_for_same_cycle_fails_closed(self):
         self.runner.process_bundle(self.bundle_path, now_ms=NOW)
         changed = dict(self.bundle)
-        changed["createdAtMs"] += 1
+        changed["createdAtMs"] -= 1
         changed["bundleId"] = compute_bundle_id(changed)
         other_path = self.bundle_path.with_name("conflicting-bundle.json")
         other_path.write_text(json.dumps(changed), encoding="utf-8")
