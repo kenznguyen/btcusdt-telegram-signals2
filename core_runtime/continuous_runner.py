@@ -177,6 +177,11 @@ class ContinuousCoreRunner:
         eligible_at = candle["closeTimeMs"] + self.settlement_ms
         if now_ms < eligible_at:
             raise CycleNotReady("CONTINUOUS_M15_SETTLEMENT_PENDING")
+        expected_open = latest_eligible_m15_open_ms(
+            now_ms, settlement_ms=self.settlement_ms
+        )
+        if candle["openTimeMs"] != expected_open:
+            raise ContinuousInputError("CONTINUOUS_BUNDLE_NOT_LATEST_ELIGIBLE_M15")
 
         stored_path, bundle_digest = self._store_immutable_bundle(raw)
         try:
@@ -517,9 +522,15 @@ class ContinuousCoreRunner:
                 candle_open = latest_eligible_m15_open_ms(
                     wall_clock_ms(), settlement_ms=self.settlement_ms
                 )
-                bundle_path = bundle_provider(candle_open)
+                try:
+                    bundle_path = bundle_provider(candle_open)
+                except Exception:
+                    return "BLOCKED"
                 if bundle_path is not None:
-                    self.process_bundle(bundle_path, now_ms=wall_clock_ms())
+                    try:
+                        self.process_bundle(bundle_path, now_ms=wall_clock_ms())
+                    except (ContinuousInputError, CycleNotReady):
+                        return "BLOCKED"
             return "STOPPED"
         finally:
             self.release_process_lock()
