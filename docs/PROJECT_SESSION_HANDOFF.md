@@ -4697,3 +4697,15 @@ These findings make the current stop condition explicit: completing Trusted Admi
 - No source changes, persistent process, service/autostart, exchange connection, API credentials, T0/T1/T2 mutation, or real orders are reported. No GitHub Actions run or artifact is claimed for this manual VPS invocation.
 - Gate status: bounded one-shot CLI invocation **PASS (NO_SIGNAL)**; warmup behavior **OBSERVED**; trade/risk/ledger execution **NOT EXERCISED**; disposable fixture cleanup **NOT VERIFIED**; persistent runtime/deployment/live trading **NOT VERIFIED / NOT AUTHORIZED**.
 - Next step: do not repeat or widen execution automatically. If operational ENTRY validation is required, separately approve a fixture with sufficient indicator warmup and a deterministic, explicitly bounded paper-only scenario. Keep `AI_EXECUTION_ENABLED=false`.
+
+
+## Addendum — bounded Core Runner ENTRY-path fixture attempt (2026-11-13)
+
+- Owner-approved scope: one warmed fixture invocation using actual Core Strategy, Shared Risk Engine and temporary PaperLedger, with no retries or code changes authorized.
+- VPS source guard at start: branch `feature/core-operational-proof-20261112`, expected/actual source SHA `562362a69d8455a34e08385d26a47fa21d2b50ed`, clean worktree — PASS as reported in the owner-provided output.
+- Actual indicator preconditions printed by the run: M15 RSI previous `0.0`, current `33.738312457588805`; M15 ADX `95.86518982682294`; H1 +DI `2.438698081448821`, -DI `0.0`, ADX `100.0`. Script marker `NATURAL_CORE_ENTRY_CONDITIONS=PASS`.
+- Runner returned exit code `2`, status `INPUT_REJECTED`; signal `null`; risk decision `None`; ledger reference `None`. Core position remained `0 → 0`; AI position `0 → 0`; AI orders `0`.
+- Disposition: **ENTRY-path attempt BLOCKED at input validation**. No evidence that the Core Strategy emitted an intent or that Shared Risk Engine / 1% margin reservation / PaperLedger ENTRY was reached. Do not interpret this as a Strategy signal failure; the rejection cause is not established by the supplied output.
+- The pasted terminal output ends at an `AssertionError: UNEXPECTED_RUN_STATUS: INPUT_REJECTED`. The shell's final source guard and temporary-fixture cleanup verification are not present; classify both as **NOT VERIFIED**. No GitHub Actions run or artifact is associated with this manual attempt.
+- No retry, fixture alteration, code change, service activation, exchange connection, T0/T1/T2 mutation, AI execution, or real order is authorized by this result. Preserve `AI_EXECUTION_ENABLED=false` and paper-only posture.
+- Next step: diagnose the precise Input Bundle rejection using read-only inspection of the existing run output and validator contract; any rerun, fixture change, or source change requires a separate bounded approval. No automatic retry.
