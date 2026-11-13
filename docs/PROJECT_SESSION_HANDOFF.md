@@ -4487,3 +4487,17 @@ These findings make the current stop condition explicit: completing Trusted Admi
 - Current branch remains feature/core-operational-proof-20261112; latest source commit is 9c88985bd99cb2aa2d47d79ac44cce8d90dc4175. No branch rewrite, merge, rebase, new branch, PR, T0/VPS/runtime, Strategy Core, Risk Engine, Ledger, AI execution or live-order changes.
 - Status: design direction IN PROGRESS; T1 test cases AUTHORED / RED NOT VERIFIED; validator change NOT STARTED; Bundle v1 T1 compatibility BLOCKED pending executable RED evidence; One-shot Runner NOT IMPLEMENTED.
 - Next: execute python -m unittest core_runtime.test_input_bundle_contract in the repository's supported CI environment (or obtain the corresponding exact-SHA workflow result), confirm expected RED due to the current validator's rejection of the T1 extension, then implement the minimal adapter/validator change and run focused plus full Core-first regression CI.
+
+
+## 2026-11-13 — Bundle v1 / T1 compatibility implementation checkpoint
+
+- Owner-approved scope remains: finish the T1-to-Bundle-v1 mapping and validator/tests using TDD; retain Bundle contract version/schema version 1.0.0; do not implement the One-shot Runner in this increment.
+- T1 tests were expanded to 19 total. Explicit cases cover preserved T1 provenance/watermark, rejection of unverified continuity, projection binding to snapshot identity, and rejection of Hummingbot provenance for Core.
+- Test commits: `9f3a6b5179d7b500d9b4f2fb9c9502ea34da9bfe` (explicit T1 cases), `546d2a4e74531d58101c481e9cac00516d9a8572` (snapshot identity fixture), and `41f8a8605cad169d01bea0cf2c1a5c6da5572117` (spread regression isolation).
+- Validator implementation commit: `de19eb31aba77d4d7e2ca6a72c29eca621da9768`. It maps T1 metadata plus projected decimal-string levels into the frozen `T1_T2_ORDERBOOK_V1` snapshot contract, verifies the `snapshotId` digest against the reconstructed snapshot, and rejects legacy Hummingbot provenance.
+- Earlier exact-SHA CI run #115 (`43360914407`) on validator SHA `de19eb31aba77d4d7e2ca6a72c29eca621da9768` found one test-fixture issue: spread mutation had not recomputed the snapshot identity. This was corrected in commit `41f8a8605cad169d01bea0cf2c1a5c6da5572117`.
+- Current exact-SHA Core-First run #116: `43360986398`, head SHA `41f8a8605cad169d01bea0cf2c1a5c6da5572117`, status IN_PROGRESS at checkpoint. Final result and artifact are NOT VERIFIED yet.
+- T1→T2 contract workflow run #22 (`43360914387`) passed on validator SHA `de19eb31aba77d4d7e2ca6a72c29eca621da9768`; this is adjacent regression evidence, not a substitute for Bundle v1 tests.
+- Current Bundle v1/T1 compatibility status: NOT VERIFIED pending exact-SHA run #116. Do not claim GREEN until run #116 completes and its 19-test result is inspected.
+- No Runner implementation, runtime activation, VPS operation, T0 mutation, Risk Engine/Ledger behavior change, AI execution, or live orders are included or authorized by this increment.
+- Next: inspect run #116 logs and artifact; fix any remaining test or validator issue using TDD; then update this handoff with final exact SHA, workflow result, test counts, artifact ID/digest, and PASS/BLOCKED status.
