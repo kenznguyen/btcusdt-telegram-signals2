@@ -4387,3 +4387,16 @@ These findings make the current stop condition explicit: completing Trusted Admi
 - Status: same-generation watermark regression guard **PASS**. Broader C2 contract audit (T2-facing field semantics, exact decimal preservation, completeness/continuity/freshness/re-anchor behavior) remains **NOT VERIFIED / NEXT**. T0→T1→T2 runtime delivery, Core consumer integration and One-shot Runner remain **NOT VERIFIED / NOT IMPLEMENTED**.
 - No T0 code/data/API, VPS, T1 runtime activation, persistent service/autostart, strategy, ledger, Shared Risk Engine, AI execution, or real orders were changed. Paper-only posture remains.
 - Next: perform read-only contract audit against T2 consumer requirements; implement only concrete missing isolated guards/tests under the approved C2 boundary. Do not activate runtime or deploy artifacts without separate approval.
+
+
+## 2026-11-13 — C2 T1→T2 wire-schema alignment follow-up
+
+- Read-only audit against the frozen T2 validator identified two exact producer mismatches in T1: contract version literal and per-side depth field shape.
+- T1 TDD RED commit `3aa0b08b1398b7008bfdea4ca13ba3fd0b021a1f`; push run #609 `43347745935`: x86_64 and ARM64 each reproduced the new serialization assertion failure (98 passed, 1 failed), with format/Clippy PASS.
+- T1 GREEN commit `96cd94f3eb4d2bb5e449537672c145ee055b8076`; source blob `src/orderbook_v1.rs` `a1711d2949fb6c9e807b385a4c9c9b811781141c`. Contract version now exactly `T1_T2_ORDERBOOK_V1`; depth serializes as `depth: {bids, asks}`, with old `bidDepth` / `askDepth` fields absent.
+- Exact-SHA push run #611 `43347993751`: x86_64 job `131631890817` and ARM64 job `131631890664` format/Clippy/build/tests PASS. Each target reports 99 + 3 + 12 + 27 tests all passed; schema serialization test passed on both. Backend `131631890818`, frontend `131631890876`, security `131631890947` PASS.
+- Artifacts: x86_64 ID `14001414817`, SHA-256 `c38fde66b29d75144db162fcf50f7c937973bcba2fda79f0789f8ecf749a3125`; ARM64 ID `14001894565`, SHA-256 `c93878920b56c1ae81783032ffbddb72607740d7052f2b2639c0688c3c923623`. CI-only; not authorized for deployment.
+- Docker job `131631890815` was still IN PROGRESS at checkpoint; do not claim overall run SUCCESS until verified.
+- T1 evidence record: `docs/evidence/C2_T1_ORDERBOOK_V1_WATERMARK_FENCING_2026-11-13.md`; latest evidence commit `71f22e37f85c6b4c6357f22240aa9cea4f2ee378`; blob `d53cd0d6400c2bc36cee1ac4c7b27382034ccdcf`.
+- Status: watermark guard and wire-schema compatibility tests **PASS**; overall run #611 **PARTIAL pending Docker**. Runtime reconnect/re-anchor, transport atomicity, T2 live reader and end-to-end delivery remain **NOT VERIFIED / NOT IMPLEMENTED**.
+- No T0, VPS, T1 runtime, deployment, strategy, ledger, Shared Risk Engine, AI execution or live-order changes. Next: confirm run #611 Docker and overall conclusion; then continue C2 contract gaps without activating runtime.
