@@ -4618,3 +4618,13 @@ These findings make the current stop condition explicit: completing Trusted Admi
 - Core Runner code/CI: PASS; run `43365609751`, tested SHA `8f774d7103f54681497837c7e4fd7c2e1c38c754`, artifact ID `14010098776`, SHA-256 `008a574ce79cb8ba4637f5b49ade49d95d6087e5e6ad2df408b2a7d3d183026b`.
 - No package installation, build, test execution, Runner invocation, service activation, T0/T1/T2 mutation, or trading occurred during synchronization. One-shot runtime remains NOT AUTHORIZED / NOT RUN; live trading remains disabled.
 - Next permitted action: bounded read-only verification of Runner files and source ancestry on VPS. Dependency installation, test/build execution, or one-shot invocation requires separate explicit approval.
+
+
+## 2026-11-13 — VPS Core Runner read-only preflight
+
+- Owner-provided bounded read-only output: branch `feature/core-operational-proof-20261112`; VPS HEAD `562362a69d8455a34e08385d26a47fa21d2b50ed`; source ancestry check against tested Runner SHA `8f774d7103f54681497837c7e4fd7c2e1c38c754` returned `TESTED_SOURCE_ANCESTRY=PASS`.
+- Required Runner paths `core_runtime/__init__.py`, `core_runtime/__main__.py`, `core_runtime/one_shot.py`, and `core_runtime/preflight.py` passed file-presence checks (`RUNNER_FILES=PRESENT`).
+- Execution boundary explicitly confirmed: no dependency installation, build, tests, or Runner execution.
+- G4-preflight disposition: synchronized source SHA PASS; tested-source ancestry PASS; required Runner file presence PASS; ARM64 dependency/build/runtime compatibility NOT VERIFIED; runtime NOT AUTHORIZED / NOT RUN.
+- Shell status `[ahead 165]` against local `origin/*` remains stale remote-tracking metadata because the successful fetch used an explicit HTTPS URL. No push is required.
+- Next: prepare a separately bounded ARM64 dependency/build compatibility plan for owner review. No installation, build/test execution, Runner invocation, service activation, T0/T1/T2 mutation, or live trading is authorized.
