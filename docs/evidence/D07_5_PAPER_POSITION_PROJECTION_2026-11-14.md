@@ -43,8 +43,15 @@ The change to `account_history.replay_ledger_events` is backward-compatible: UTC
 ## Limitations and next gates
 
 - The pure projector currently accepts caller-supplied cutover/event/coverage rows; a read-only SQLite adapter that loads these exact rows from the PAPER ledger has not been implemented.
-- The function replays event history for each settlement independently. Before using large populations, refactor to incremental multi-settlement replay to avoid repeated work.
+- Multi-settlement replay is now incremental: each execution event and coverage row is consumed at most once per strategy across sorted settlements; coverage lookup uses binary search. The UTC-day-only `replay_ledger_events` API remains unchanged.
 - `VERIFIED` coverage and payload hashes are validated as declared ledger evidence; this does not independently prove that every execution event was captured.
 - No end-to-end workflow yet joins D07.2 byte readback, public page parser, SQLite position projection, expected funding population, independently generated observed ledger events, persisted reconciliation and VERIFIED funding coverage.
 
 D07.5 pure projection and CI: **PASS**. D07 overall: **PARTIAL**.
+
+
+### Incremental replay hardening — 2026-11-14
+- Refactored projection to maintain per-strategy position, event cursor, coverage cursor and chained evidence digests across sorted settlement times. Each event/coverage row is processed at most once; event-to-coverage lookup uses binary search. This avoids repeated O(settlements × events) replays.
+- Exact-source workflow [43523109116](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43523109116): SUCCESS at SHA `904b1cc7cd159f4bdf170fb5149414efef576d2c`.
+- Focused projection tests **19/19 PASS**; full PaperLedger regression **540/540 PASS** in 145.984s.
+- Artifact `14084346648`, 16,015 bytes, digest `sha256:707d90e49b65e5ccd736f645b398ee367c60ca23868e04ecc790dc57afd95463`, expires 2026-11-20T22:54:59Z.
