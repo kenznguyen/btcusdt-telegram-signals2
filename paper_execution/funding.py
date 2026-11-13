@@ -322,6 +322,7 @@ def migrate_funding_population_reconciliation(connection, source_sha):
     required_triggers = {
         "paper_funding_reconciliations_immutable_update",
         "paper_funding_reconciliations_immutable_delete",
+        "paper_funding_coverage_verified_requires_reconciliation",
     }
     if applied:
         if applied != (RECONCILIATION_MIGRATION_CHECKSUM, "APPLIED"):
@@ -362,6 +363,18 @@ def migrate_funding_population_reconciliation(connection, source_sha):
     connection.execute("""CREATE TRIGGER paper_funding_reconciliations_immutable_delete
         BEFORE DELETE ON paper_funding_reconciliations
         BEGIN SELECT RAISE(ABORT,'FUNDING_RECONCILIATION_IMMUTABLE'); END""")
+    connection.execute("""CREATE TRIGGER paper_funding_coverage_verified_requires_reconciliation
+        BEFORE INSERT ON paper_funding_coverage
+        WHEN NEW.status='VERIFIED' AND NOT EXISTS (
+            SELECT 1 FROM paper_funding_reconciliations r
+            WHERE r.reconciliation_id=NEW.reconciliation_id
+              AND r.account_id=NEW.account_id
+              AND r.start_at_ms=NEW.start_at_ms AND r.end_at_ms=NEW.end_at_ms
+              AND r.currency='USDT' AND r.expected_snapshot_id=NEW.source_snapshot_id
+              AND r.status='COMPLETE_WITHIN_DECLARED_POPULATION'
+              AND r.recorded_at_ms<=NEW.recorded_at_ms
+        )
+        BEGIN SELECT RAISE(ABORT,'FUNDING_RECONCILIATION_REQUIRED'); END""")
     connection.execute(
         """UPDATE paper_account_risk_state
            SET risk_ready=0,unavailable_reason='FUNDING_RECONCILIATION_REQUIRED',
@@ -538,6 +551,14 @@ def record_account_equity_cutover(
         ).fetchone()
         if migration is None or tuple(migration) != (CUTOVER_MIGRATION_CHECKSUM, "APPLIED"):
             raise sqlite3.DatabaseError("ACCOUNT_EQUITY_CUTOVER_MIGRATION_NOT_APPLIED")
+        reconciliation_migration = db.execute(
+            "SELECT checksum,status FROM paper_schema_migrations WHERE version=?",
+            (RECONCILIATION_MIGRATION_VERSION,),
+        ).fetchone()
+        if reconciliation_migration != (
+            RECONCILIATION_MIGRATION_CHECKSUM, "APPLIED"
+        ):
+            raise sqlite3.DatabaseError("FUNDING_RECONCILIATION_MIGRATION_NOT_APPLIED")
         prior = db.execute(
             "SELECT * FROM paper_account_equity_cutovers WHERE cutover_id=?",
             (cutover_id,),
