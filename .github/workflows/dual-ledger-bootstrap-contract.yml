@@ -24,6 +24,7 @@ on:
       - "paper_execution/test_binance_public_funding.py"
       - "paper_execution/funding_position_projection.py"
       - "paper_execution/test_funding_position_projection.py"
+      - "paper_execution/test_funding_position_projection_db.py"
       - "paper_execution/test_funding_provenance.py"
       - "paper_execution/test_dual_ledger_bootstrap.py"
       - ".github/workflows/dual-ledger-bootstrap-contract.yml"
@@ -84,7 +85,7 @@ jobs:
       - name: Compile bootstrap implementation and tests
         run: |
           set -euo pipefail
-          python -m py_compile paper_execution/bootstrap.py paper_execution/__main__.py paper_execution/ledger.py paper_execution/funding.py paper_execution/test_dual_ledger_bootstrap.py paper_execution/funding_reconciliation.py paper_execution/test_funding_reconciliation.py paper_execution/test_funding_reconciliation_persistence.py paper_execution/funding_provenance.py paper_execution/test_funding_provenance.py paper_execution/funding_model.py paper_execution/test_funding_model.py paper_execution/binance_public_funding.py paper_execution/test_binance_public_funding.py paper_execution/funding_position_projection.py paper_execution/test_funding_position_projection.py paper_execution/test_dual_ledger_red.py paper_execution/test_core_first_operational.py paper_execution/test_daily_baseline_persistence.py paper_execution/test_dual_ledger_migration_red.py
+          python -m py_compile paper_execution/bootstrap.py paper_execution/__main__.py paper_execution/ledger.py paper_execution/funding.py paper_execution/test_dual_ledger_bootstrap.py paper_execution/funding_reconciliation.py paper_execution/test_funding_reconciliation.py paper_execution/test_funding_reconciliation_persistence.py paper_execution/funding_provenance.py paper_execution/test_funding_provenance.py paper_execution/funding_model.py paper_execution/test_funding_model.py paper_execution/binance_public_funding.py paper_execution/test_binance_public_funding.py paper_execution/funding_position_projection.py paper_execution/test_funding_position_projection.py paper_execution/test_funding_position_projection_db.py paper_execution/test_dual_ledger_red.py paper_execution/test_core_first_operational.py paper_execution/test_daily_baseline_persistence.py paper_execution/test_dual_ledger_migration_red.py
           echo "BOOTSTRAP_COMPILE=PASS" | tee bootstrap-compile.txt
 
       - name: Run focused bootstrap tests
@@ -123,6 +124,12 @@ jobs:
           set -o pipefail
           python -m unittest paper_execution.test_funding_position_projection -v 2>&1 | tee d07-position-projection-tests.log
 
+      - name: Run focused D07 read-only position database adapter tests
+        shell: bash
+        run: |
+          set -o pipefail
+          python -m unittest paper_execution.test_funding_position_projection_db -v 2>&1 | tee d07-position-db-tests.log
+
       - name: Run focused D07 persistence and coverage gate tests
         shell: bash
         run: |
@@ -153,4 +160,5 @@ jobs:
             d07-funding-model-tests.log
             d07-binance-public-funding-tests.log
             d07-position-projection-tests.log
+            d07-position-db-tests.log
             paper-execution-regression.log
