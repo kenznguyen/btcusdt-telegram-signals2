@@ -105,6 +105,11 @@ jobs:
           python -m unittest pipeline.test_core_runtime_one_shot -v 2>&1 | tee core-runtime-one-shot-tests.log
           echo "CORE_RUNTIME_ONE_SHOT_TESTS=11_PASS" | tee core-runtime-one-shot-status.txt
 
+      - name: Run Continuous Core durable journal RED-first tests
+        run: |
+          set -euo pipefail
+          python -m unittest core_runtime.test_continuous_journal -v 2>&1 | tee continuous-core-journal-tests.log
+
       - name: Run Core decision input bundle v1 validator contract tests
         run: |
           set -euo pipefail
