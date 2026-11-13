@@ -127,18 +127,6 @@ class FundingReconciliationPersistenceTest(unittest.TestCase):
             self.coverage(reconciliation_id=result["reconciliationId"])
 
     def test_observed_population_is_enumerated_from_persisted_funding_events(self):
-        record_funding_coverage(
-            self.db_path,
-            coverage_id="paper-test-coverage",
-            start_at_ms=self.expected["startAtMs"],
-            end_at_ms=self.expected["endAtMs"],
-            status="DISABLED",
-            source="PAPER_TEST_CONFIGURATION",
-            source_snapshot_id="paper-test-config",
-            payload_hash="sha256:" + "6" * 64,
-            config_version="paper-risk-v1",
-            recorded_at_ms=self.now,
-        )
         event = {
             "eventId": "funding-evt-001",
             "eventAtMs": self.now - 1,
@@ -168,6 +156,36 @@ class FundingReconciliationPersistenceTest(unittest.TestCase):
             result["reconciliationStatus"], "COMPLETE_WITHIN_DECLARED_POPULATION"
         )
         self.assertEqual(result["counts"]["matched"], 1)
+
+    def test_certificate_becomes_stale_if_new_funding_event_is_added_before_coverage(self):
+        certificate = record_funding_reconciliation(
+            self.db_path, expected_population=self.expected,
+            recorded_at_ms=self.now,
+        )
+        record_funding_event(
+            self.db_path,
+            funding_event_id="funding-evt-late",
+            strategy_id="STRATEGY_CORE",
+            amount_quote="0.01",
+            event_at_ms=self.now - 1,
+            source="paper-test-funding",
+            source_snapshot_id="paper-test-event-snapshot",
+            payload_hash="sha256:" + "8" * 64,
+            recorded_at_ms=self.now,
+        )
+
+        with self.assertRaisesRegex(ValueError, "FUNDING_RECONCILIATION_STALE"):
+            self.coverage(reconciliation_id=certificate["reconciliationId"])
+
+        with sqlite3.connect(self.db_path) as db:
+            self.assertEqual(
+                db.execute("SELECT COUNT(*) FROM paper_funding_coverage").fetchone()[0],
+                0,
+            )
+            self.assertEqual(
+                db.execute("SELECT risk_ready FROM paper_account_risk_state").fetchone()[0],
+                0,
+            )
 
     def test_certificate_is_append_only(self):
         result = record_funding_reconciliation(
