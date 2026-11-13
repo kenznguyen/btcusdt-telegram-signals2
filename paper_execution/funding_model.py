@@ -6,6 +6,7 @@ exchange, account data, credentials, or the network, and it does not claim to
 reproduce an actual account's funding cashflows.
 """
 
+from bisect import bisect_right
 from decimal import Decimal, DecimalException, localcontext
 import hashlib
 import json
@@ -179,6 +180,13 @@ def build_expected_funding_population(
 
     positions = _normalise_positions(position_snapshots)
     rates = _normalise_rates(funding_rate_events, start, end)
+    positions_by_strategy = {strategy: [] for strategy in STRATEGIES}
+    for item in positions:
+        positions_by_strategy[item["strategyId"]].append(item)
+    position_times_by_strategy = {
+        strategy: [item["observedAtMs"] for item in rows]
+        for strategy, rows in positions_by_strategy.items()
+    }
 
     with localcontext() as context:
         context.prec = 240
@@ -186,14 +194,13 @@ def build_expected_funding_population(
         for market_event in rates:
             settlement = market_event["fundingTimeMs"]
             for strategy in sorted(STRATEGIES):
-                eligible = [
-                    item for item in positions
-                    if item["strategyId"] == strategy
-                    and item["observedAtMs"] <= settlement
-                ]
-                if not eligible:
+                strategy_rows = positions_by_strategy[strategy]
+                position_index = bisect_right(
+                    position_times_by_strategy[strategy], settlement
+                ) - 1
+                if position_index < 0:
                     raise ValueError("FUNDING_POSITION_SNAPSHOT_MISSING")
-                position_row = eligible[-1]
+                position_row = strategy_rows[position_index]
                 age = settlement - position_row["observedAtMs"]
                 if age > max_age:
                     raise ValueError("FUNDING_POSITION_SNAPSHOT_STALE")
@@ -217,6 +224,8 @@ def build_expected_funding_population(
                     "currency": CURRENCY,
                 }
                 payload_hash = _digest(event_payload)
+                if len(expected_events) >= _MAX_ROWS:
+                    raise ValueError("FUNDING_POPULATION_EVENTS_INVALID")
                 expected_events.append({
                     "eventId": "paper-funding:" + payload_hash[7:],
                     "eventAtMs": settlement,
