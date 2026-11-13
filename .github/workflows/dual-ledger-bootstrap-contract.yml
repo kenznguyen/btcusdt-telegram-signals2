@@ -10,6 +10,7 @@ on:
       - "paper_execution/test_dual_ledger_bootstrap.py"
       - "paper_execution/funding_reconciliation.py"
       - "paper_execution/test_funding_reconciliation.py"
+      - "paper_execution/test_funding_reconciliation_persistence.py"
       - ".github/workflows/dual-ledger-bootstrap-contract.yml"
   workflow_dispatch:
 
@@ -68,7 +69,7 @@ jobs:
       - name: Compile bootstrap implementation and tests
         run: |
           set -euo pipefail
-          python -m py_compile paper_execution/bootstrap.py paper_execution/__main__.py paper_execution/test_dual_ledger_bootstrap.py paper_execution/funding_reconciliation.py paper_execution/test_funding_reconciliation.py
+          python -m py_compile paper_execution/bootstrap.py paper_execution/__main__.py paper_execution/test_dual_ledger_bootstrap.py paper_execution/funding_reconciliation.py paper_execution/test_funding_reconciliation.py paper_execution/test_funding_reconciliation_persistence.py
           echo "BOOTSTRAP_COMPILE=PASS" | tee bootstrap-compile.txt
 
       - name: Run focused bootstrap tests
@@ -82,6 +83,12 @@ jobs:
         run: |
           set -o pipefail
           python -m unittest paper_execution.test_funding_reconciliation -v 2>&1 | tee d07-funding-reconciliation-tests.log
+
+      - name: Run focused D07 persistence and coverage gate tests
+        shell: bash
+        run: |
+          set -o pipefail
+          python -m unittest paper_execution.test_funding_reconciliation_persistence -v 2>&1 | tee d07-funding-persistence-tests.log
 
       - name: Run full PaperLedger regression
         if: success()
@@ -102,4 +109,5 @@ jobs:
             bootstrap-compile.txt
             bootstrap-tests.log
             d07-funding-reconciliation-tests.log
+            d07-funding-persistence-tests.log
             paper-execution-regression.log
