@@ -4501,3 +4501,20 @@ These findings make the current stop condition explicit: completing Trusted Admi
 - Current Bundle v1/T1 compatibility status: NOT VERIFIED pending exact-SHA run #116. Do not claim GREEN until run #116 completes and its 19-test result is inspected.
 - No Runner implementation, runtime activation, VPS operation, T0 mutation, Risk Engine/Ledger behavior change, AI execution, or live orders are included or authorized by this increment.
 - Next: inspect run #116 logs and artifact; fix any remaining test or validator issue using TDD; then update this handoff with final exact SHA, workflow result, test counts, artifact ID/digest, and PASS/BLOCKED status.
+
+
+## 2026-11-13 — Bundle v1 / T1 compatibility GREEN
+
+- Status: PASS / GREEN for the approved Bundle v1 ↔ T1 compatibility increment only.
+- Exact source SHA tested: `41f8a8605cad169d01bea0cf2c1a5c6da5572117`.
+- Core-First operational proof workflow #116, run ID `43360986398`: SUCCESS; job `131674178261`: SUCCESS.
+- Bundle v1 validator focused suite: 19/19 PASS (`python -m unittest core_runtime.test_input_bundle_contract -v`); includes all four T1-specific cases and all preserved baseline regression cases.
+- T1/T2 order-book contract + loopback integration: 49/49 PASS; `T1_T2_ORDERBOOK_V1=PASS`, `T1_T2_ORDERBOOK_HTTP_INTEGRATION=PASS`, `T1_T2_ORDERBOOK_V1_SIDE_EFFECT_GATE=PASS`.
+- Additional workflow suites: preflight 4/4, HTTP/context 12/12, exporter 5/5, runtime adapter 6/6, core paper-flow suite 39/39, position lifecycle 3/3, DCA/margin suite 28/28; all reported OK. These are CI fixture/test results, not live runtime verification.
+- Artifact ID `14007394413`; artifact SHA256 `7f79ee43deca634e7d2053349cfbef17e4ae16bf280e55fe5a9b1c3bfd7a5067`; size 8,367 bytes.
+- Artifact link: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43360986398/artifacts/14007394413
+- T1/T2 contract workflow #23, run ID `43360986422`: SUCCESS on the same source SHA.
+- The earlier failures were test-fixture digest synchronization issues; the final run confirms all 19 Bundle v1 tests pass after correcting the spread mutation fixture. No validator bypass or weakening of assertions was used.
+- Bundle schema/version remains 1.0.0. T1 provenance, continuity/freshness/watermark metadata and snapshot identity are validated; the projected bid/ask levels are bound to the T1 snapshot digest. Hummingbot provenance is rejected for the Core path.
+- This GREEN does not authorize or claim One-shot Runner implementation, runtime/VPS deployment or activation, systemd/autostart, T0 changes, Strategy Core/Risk Engine/Ledger changes, AI execution, or live orders. No such operation was performed.
+- Next permitted planning step: prepare a separately scoped One-shot Core Runner implementation proposal and test plan for review; implementation requires explicit approval.
