@@ -5077,3 +5077,9 @@ Next: preserve this proof and do not rerun automatically. Any additional runtime
 - Workflow [43520315661](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43520315661) SUCCESS at source SHA `29ff1274ba191f37660ecaa334ae5038d3247a36`; focused model tests 19/19 PASS; full PaperLedger regression 502/502 PASS.
 - Artifact `14081429446`, 13,960 bytes, digest `sha256:d7f7ce308024ab9426be728381a48797ede00c27838b052e8de8adff8e9410a3`.
 - Code-review follow-up: optimize repeated position-history scans to indexed as-of lookup before expanding the 100,000-row input bound. Funding formula/semantics remain unchanged.
+
+
+### D07.3 indexed as-of lookup hardening — 2026-11-14
+- Replaced repeated O(P×R) scans with per-strategy sorted position indexes and binary-search as-of selection; added early output event cap enforcement.
+- Workflow [43520760804](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43520760804) SUCCESS at source SHA `bf112ec9f31b90e77dbef509acbf632a9dd4a173`; focused model tests 19/19 PASS; full PaperLedger regression 502/502 PASS.
+- Artifact `14083140820`, 13,960 bytes, digest `sha256:1a72fd5ce1f89aad1020d6e1133feba11ca0e50976f9078e10d2c9cef25e62b5`.
