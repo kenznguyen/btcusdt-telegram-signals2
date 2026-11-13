@@ -562,7 +562,7 @@ def record_account_equity_cutover(
             "SELECT checksum,status FROM paper_schema_migrations WHERE version=?",
             (RECONCILIATION_MIGRATION_VERSION,),
         ).fetchone()
-        if reconciliation_migration != (
+        if reconciliation_migration is None or tuple(reconciliation_migration) != (
             RECONCILIATION_MIGRATION_CHECKSUM, "APPLIED"
         ):
             raise sqlite3.DatabaseError("FUNDING_RECONCILIATION_MIGRATION_NOT_APPLIED")
