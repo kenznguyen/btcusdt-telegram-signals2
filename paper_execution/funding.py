@@ -323,6 +323,7 @@ def migrate_funding_population_reconciliation(connection, source_sha):
         "paper_funding_reconciliations_immutable_update",
         "paper_funding_reconciliations_immutable_delete",
         "paper_funding_coverage_verified_requires_reconciliation",
+        "paper_funding_events_no_insert_into_verified_coverage",
     }
     if applied:
         if applied != (RECONCILIATION_MIGRATION_CHECKSUM, "APPLIED"):
@@ -373,6 +374,14 @@ def migrate_funding_population_reconciliation(connection, source_sha):
               AND r.currency='USDT' AND r.expected_snapshot_id=NEW.source_snapshot_id
               AND r.status='COMPLETE_WITHIN_DECLARED_POPULATION'
               AND r.recorded_at_ms<=NEW.recorded_at_ms
+        )
+        BEGIN SELECT RAISE(ABORT,'FUNDING_RECONCILIATION_REQUIRED'); END""")
+    connection.execute("""CREATE TRIGGER paper_funding_events_no_insert_into_verified_coverage
+        BEFORE INSERT ON paper_funding_events
+        WHEN EXISTS (
+            SELECT 1 FROM paper_funding_coverage c
+            WHERE c.account_id=NEW.account_id AND c.status='VERIFIED'
+              AND NEW.event_at_ms>=c.start_at_ms AND NEW.event_at_ms<c.end_at_ms
         )
         BEGIN SELECT RAISE(ABORT,'FUNDING_RECONCILIATION_REQUIRED'); END""")
     connection.execute(
