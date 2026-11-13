@@ -230,7 +230,16 @@ def _validate_manifest(manifest, target):
         manifest["cutoverEvidencePath"], cutover_digest, cutover_snapshot,
         cutover_evidence,
     )
-    for evidence_path in (manifest["fundingEvidencePath"], manifest["cutoverEvidencePath"]):
+    owner_attestation = load_manual_owner_attestation(
+        manifest["ownerAttestationPath"],
+        manifest["ownerAttestationPayloadHash"],
+        manifest,
+    )
+    for evidence_path in (
+        manifest["fundingEvidencePath"],
+        manifest["cutoverEvidencePath"],
+        manifest["ownerAttestationPath"],
+    ):
         resolved = Path(evidence_path).expanduser().resolve(strict=True)
         if resolved == target:
             raise ValueError("BOOTSTRAP_EVIDENCE_PATH_CONFLICT")
@@ -256,6 +265,7 @@ def _validate_manifest(manifest, target):
         "cutover_snapshot": cutover_snapshot,
         "cutover_digest": cutover_digest,
         "config_version": config_version,
+        "owner_attestation": owner_attestation,
     }
 
 
@@ -340,6 +350,7 @@ def bootstrap_paper_account(db_path, manifest):
             "databaseCreated": True,
             "evidenceIntegrity": "SHA256_AND_CONTENT_MATCHED",
             "sourceAuthenticity": "NOT_VERIFIED",
+            "ownerAttestation": values["owner_attestation"],
         }
     finally:
         for suffix in ("-wal", "-shm"):
