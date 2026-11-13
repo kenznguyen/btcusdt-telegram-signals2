@@ -4962,3 +4962,22 @@ Next: preserve this proof and do not rerun automatically. Any additional runtime
 - CI run `43439172915` checks out exact source `816c931a67e3ba3725cfc70d95a9a3f980791b2a`; compile and focused bootstrap tests (11 tests) PASS. Full `paper_execution` regression was IN_PROGRESS at this handoff update; no final result or artifact is claimed yet.
 - The source-SHA check currently binds the manifest to Git HEAD but does not yet reject a dirty working tree. This remains a production-hardening item; production/VPS use stays blocked regardless.
 - No VPS, production DB, T0, Runner, One-shot or trading activity occurred.
+
+### Dual Ledger bootstrap CLI — clean-tree gate and final CI evidence (2026-11-13)
+
+- Added a clean-source-tree gate to the bootstrap CLI. `_current_source_sha()` now obtains `git rev-parse HEAD` and requires `git status --porcelain --untracked-files=all` to be empty before bootstrap. A dirty or untracked source checkout fails closed with `BOOTSTRAP_SOURCE_TREE_DIRTY`.
+- TDD: run `43441071741` on source `f7ad37fc801ca71354d08370b59cb676d95aeac2` exposed two failures: the guard was missing, and a mismatch test expected the SHA mismatch before dirty-tree rejection. The tests were corrected to model a clean checkout for SHA-match/mismatch cases; a separate test asserts dirty-tree rejection.
+- Final workflow: [run `43441078457`](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43441078457), exact checked-out source `e269dcbf380e142500f7b4082a76ba39cc81209e`, job SUCCESS. Compile PASS; focused bootstrap/CLI tests **12/12 PASS**; full `paper_execution` regression **428/428 PASS** in 139.128s.
+- Artifact `14045414380`, name `dual-ledger-bootstrap-proof-e269dcbf380e142500f7b4082a76ba39cc81209e`, 9,826 bytes, GitHub-reported digest `sha256:c99de69e70180e8bae2c2c3425b5f8ac112b6fbd00be0d7fd3371a7d36453df2`, expires 2026-11-20T14:15:55Z. Artifact digest is platform-reported; payload digest has not been independently recomputed.
+- Branch HEAD at verification: `e269dcbf380e142500f7b4082a76ba39cc81209e`. No new branch/PR. Source and tests are committed on the existing branch.
+- Provenance review of existing owner decisions:
+  - D01 is conditional: SHA-256 over exact bytes is the default integrity control; DSSE/Ed25519 is not automatic and requires a named issuer-authenticity claim and separately approved exact profile.
+  - D04 custody is deferred; no real key generation/import/custody/signing/rotation/revocation/KMS/HSM operation is authorized.
+  - D06 initial phase selects manual Owner attestation only; autonomous issuer authenticity is deferred.
+  - D07 requires independent expected-population enumeration and reconciliation for any completeness claim; an attestation or producer manifest alone is insufficient.
+  - D08 permits integrity-only or named-snapshot claims; no global freshness/latestness claim without a separately approved trusted comparison anchor.
+  - D09 permits recording an authenticated Owner-controlled GitHub action/commit as `PLATFORM_ATTRIBUTED_OWNER_ACTION`, not as a cryptographically signed Owner attestation. It separates review attestation from privileged-action authorization and trust administration. These decisions do not authorize a verifier implementation or key operations.
+- Consequently, the current bootstrap's SHA-256 + exact JSON content comparison proves **integrity/content consistency only**. It does not authenticate the origin of the funding/equity facts, prove factual truth or completeness, or independently establish Owner authorization. Do not add Ed25519/DSSE or a new trust-key workflow without a separate exact-scope owner decision.
+- Status: **BOOTSTRAP CLI IMPLEMENTATION + DISPOSABLE CI PASS** (12/12 focused; 428/428 full regression). **Production bootstrap remains BLOCKED / NOT APPROVED** pending a bounded provenance/attestation contract for the exact funding/equity evidence and separate production authorization.
+- VPS, production DB, T0, Runner, One-shot and trading: **NOT TOUCHED / NOT RUN**.
+- Next: prepare a narrow owner decision package for the initial-phase manual attestation of the exact bootstrap funding/equity evidence, explicitly distinguishing review attestation from privileged-action authorization and stating non-claims. No signature/key implementation, production DB creation or VPS execution is authorized by this handoff update.
