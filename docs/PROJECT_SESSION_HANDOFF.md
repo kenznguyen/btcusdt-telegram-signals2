@@ -5685,3 +5685,15 @@ Next: preserve this proof and do not rerun automatically. Any additional runtime
 - Status: isolated origin/seed persistence primitive **PASS WITHIN TEST SCOPE**; atomic account+origin+seed+daily baseline+HWM initialization **NOT IMPLEMENTED**; PaperLedger runtime integration **NOT IMPLEMENTED**; contract-bound 1% order-margin enforcement **NOT IMPLEMENTED**; funded-account Bootstrap compatibility **NOT VERIFIED**; PAPER Ledger readiness **BLOCKED / NOT VERIFIED**.
 - Tests used in-memory SQLite only. No existing DB/schema migration, Bootstrap, Runner, VPS/T0, exchange, AI execution, live trading or real order was touched. Helper is not wired into runtime.
 - Next authorized increment: test-first integration using disposable PaperLedger fixtures. Prove one atomic `BEGIN IMMEDIATE` initialization of account+origin+seed+UTC baseline+HWM, rollback/restart/mismatch behavior and funded-account Bootstrap/cutover preservation before any runtime admission wiring. No existing operational DB access.
+
+
+
+## 2026-11-14 — SIMULATED_CAPITAL_V1 atomic initialization compatibility audit
+
+- Reopened the active branch and read this handoff before continuing. Source HEAD at start: `f51dc3f72687ebfa8267edc9fa07627360c85759`; branch: `feature/core-operational-proof-20261112`.
+- Read-only audit of PaperLedger construction/migrations, simulated-origin persistence, funded-account cutover, funding reconciliation, account history and daily baseline persistence.
+- Key finding: current APIs are not transactionally composable. `PaperLedger.__init__` commits account creation/migrations when its connection context exits; `initialize_simulated_origin` can join a caller-owned transaction but requires an existing account; `record_account_equity_cutover` and `persist_daily_equity_baseline` each open and commit their own transactions. The cutover path requires funding coverage/reconciliation and must not be populated with synthetic seed data.
+- Evidence report: `docs/evidence/SIMULATED_CAPITAL_V1_ATOMIC_INITIALIZATION_COMPATIBILITY_AUDIT_2026-11-14.md`, commit `4f5349a5b2b3d24751a87d5dee4a3fb7c1059f1a`.
+- Disposition: origin/seed primitive remains **PASS WITHIN ISOLATED TEST SCOPE** (prior run `43602607051`, source `d7be89a09c660a4a43b3de0a739d67558b65152a`, 12/12). Full atomic account+origin+seed+UTC baseline+HWM initialization is **BLOCKED** by the existing transaction boundaries. Funded-account Bootstrap/cutover integration is **NOT VERIFIED**; PAPER Ledger readiness remains **BLOCKED / NOT VERIFIED**.
+- No code, schema, workflow, test, database, Bootstrap, Runner, VPS/T0, exchange or runtime was changed in this audit. No CI run/artifact.
+- Next decision required: approve or reject a narrowly additive SIMULATED-only equity-origin/cutover and readiness path that establishes 100 USDT starting equity, HWM and UTC baseline without inventing funding events/coverage, atomically with account+origin+seed. Existing funded-account Bootstrap/funding/cutover behavior must remain unchanged. Until that boundary is approved, do not change schema/risk semantics or start integration implementation. Existing operational/runtime prohibitions remain unchanged.
