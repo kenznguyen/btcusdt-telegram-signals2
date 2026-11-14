@@ -5571,3 +5571,17 @@ Next: preserve this proof and do not rerun automatically. Any additional runtime
 - Evidence report: `docs/evidence/D07_9_V2_IMPLEMENTATION_2026-11-14.md`, commit `7806b208402713ec0d48c70372fa91fb47ca5a08`.
 - Status: D07.9 V2 synthetic contract + V1 compatibility **PASS WITHIN SCOPE**; actual provenance **NOT VERIFIED**; D07.11 real resolution **NOT RUN**; D07.2 **BLOCKED_SHARED_LINEAGE**; D07 **PARTIAL**; Paper Ledger bootstrap **BLOCKED / NOT APPROVED**.
 - No real package was validated in CI; no network acquisition, VPS/T0, ledger, Runner/One-shot, credentials, trading or deletion. Next bounded step is a V2 draft for existing D07.8 v4 package, followed by schema/package-byte validation only. Do not run D07.11 without a real evidence reference index and separately established trust boundary.
+
+
+## D07.9 V2 BTCUSDT draft validation — 2026-11-14
+
+- Created additive V2 draft: `d07_9_lineage/drafts/btcusdt_20261101_chatgpt_retrieval.v2.draft.json`; record ID `d07-9-btcusdt-20261101-v2-draft`; package ID `d07-8-tardis-btcusdt-20261101-pilot-v4`; blob SHA `2c5b76e70992b88d94bb7050c6a9d17923331c18`; creation commit `d3ffa58d21631c07e285e58fab197cd9ab070f3e`.
+- Draft uses only recorded D07.8 package/source-origin facts. Immediate ChatGPT retrieval channel and owner statement remain OWNER_REPORTED. Original upstream origin, provider identity, dataset/feed authentication, collector identity/execution/host/times, transport/egress, custody, Binance issuer authenticity and completeness remain UNKNOWN/UNAVAILABLE. No custody events or timestamps were fabricated.
+- Added real-draft test in `d07_9_lineage/test_validator_v2.py`; blob SHA `bd975c350aa14d15f9db7fbcf0af8f27edaef548`; commit `04795b014db3eb5545ef17d40b979bbb206b6d24`.
+- Test compares exact package ID, raw path, byte length 1,431,960 and SHA-256 `71963e8235106ae36fe386ef0fbd52b078df48ea854d09d814469eddeed58a8c` against the D07.8 manifest values recorded in the evidence report. Result is only `byteIntegrity=PASS_WITHIN_PACKAGE_BOUNDARY`; provenance remains NOT_VERIFIED. CI did not freshly read the local raw package bytes.
+- GitHub Actions run [43599557079](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43599557079), exact tested SHA `04795b014db3eb5545ef17d40b979bbb206b6d24`, job `132461179811` SUCCESS; schema validation + py_compile PASS; V1/V2 tests **53/53 PASS** (37 V1 + 16 V2).
+- Artifact ID `14115871830`, name `d07-9-v2-explicit-unknown-test-evidence`, digest `sha256:75b5304466d2b7236baa7392650bfd03d7a60f5f5005c82167de2334a4f654d5`, size 1,654 bytes, expires 2026-11-21T13:23:54Z.
+- V2 workflow path filter now includes the draft; workflow blob SHA `f64f216917f82c8b6545dc5271b55d2b1c293a27`, commit `f536e8cbaf45e4223f610208484e4a98bf06265a`. This workflow-only commit followed the tested SHA.
+- Evidence report: `docs/evidence/D07_9_V2_BTCUSDT_DRAFT_VALIDATION_2026-11-14.md`, commit `b02b2e6fe83f8754fd71025291cf409fd0c01cff`.
+- Status: V2 draft STRUCTURE_VALID; package metadata binding PASS within package boundary; upstream/provider/collector/custody/issuer provenance NOT VERIFIED; D07.11 real resolution NOT RUN; D07.2 BLOCKED_SHARED_LINEAGE; D07 PARTIAL; Paper Ledger bootstrap BLOCKED / NOT APPROVED.
+- Next bounded gate: establish an independently controlled evidence-reference index and obtain real source/custody evidence before any D07.11 real resolution. Do not promote this draft or change paper-only execution boundaries.
