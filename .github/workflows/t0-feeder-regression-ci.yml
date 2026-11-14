@@ -1,0 +1,99 @@
+name: T0 Feeder Regression CI
+
+on:
+  push:
+    branches:
+      - feature/core-operational-proof-20261112
+    paths:
+      - "market_data/feeder.py"
+      - "market_data/feeder_service.py"
+      - "market_data/test_feeder_runtime_regressions.py"
+      - "market_data/test_feeder_lifecycle.py"
+      - "market_data/test_feeder_scheduler.py"
+      - ".github/workflows/t0-feeder-regression-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: t0-feeder-regression-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  isolated-feeder-regressions:
+    name: Isolated Feeder regression, lifecycle and scheduler tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      AI_EXECUTION_ENABLED: "false"
+      MARKET_DATA_DB: ""
+      T0_FEEDER_LEASE_DB: ""
+      PAPER_DB: ""
+      PAPER_TRADING_DB: ""
+      MARKET_DATA_POSTGRES_DSN: ""
+      BINANCE_API_KEY: ""
+      BINANCE_API_SECRET: ""
+      OKX_API_KEY: ""
+      OKX_API_SECRET: ""
+    steps:
+      - name: Checkout exact source commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Enforce isolated paper-only environment and record provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${AI_EXECUTION_ENABLED}" = "false"
+          for key in MARKET_DATA_DB T0_FEEDER_LEASE_DB PAPER_DB PAPER_TRADING_DB MARKET_DATA_POSTGRES_DSN BINANCE_API_KEY BINANCE_API_SECRET OKX_API_KEY OKX_API_SECRET; do
+            if [[ -n "${!key:-}" ]]; then
+              echo "Unexpected persistent DB or exchange credential: ${key}"
+              exit 1
+            fi
+          done
+          git rev-parse HEAD | tee t0-feeder-source-sha.txt
+          echo "T0_FEEDER_CI_SCOPE=ISOLATED_TEMPORARY_TEST_FIXTURES_ONLY" | tee t0-feeder-ci-scope.txt
+          echo "AI_EXECUTION_ENABLED=false" | tee t0-feeder-safety.txt
+          echo "PERSISTENT_T0_DB_TOUCHED=false" | tee -a t0-feeder-safety.txt
+          echo "PAPER_LEDGER_TOUCHED=false" | tee -a t0-feeder-safety.txt
+          echo "EXCHANGE_CREDENTIALS_USED=false" | tee -a t0-feeder-safety.txt
+          echo "REAL_ORDERS_SENT=false" | tee -a t0-feeder-safety.txt
+
+      - name: Compile Feeder source and tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile market_data/feeder.py market_data/feeder_service.py market_data/test_feeder_runtime_regressions.py market_data/test_feeder_lifecycle.py market_data/test_feeder_scheduler.py
+          echo "PY_COMPILE=PASS" | tee t0-feeder-compile-verdict.txt
+
+      - name: Run focused Feeder regression, lifecycle and scheduler suites
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest market_data.test_feeder_runtime_regressions market_data.test_feeder_lifecycle market_data.test_feeder_scheduler -v 2>&1 | tee t0-feeder-tests.log
+          grep -Eq '^Ran [0-9]+ tests? in ' t0-feeder-tests.log
+          grep -q '^OK$' t0-feeder-tests.log
+          echo "T0_FEEDER_REGRESSION_LIFECYCLE_SCHEDULER=PASS" | tee t0-feeder-verdict.txt
+
+      - name: Upload exact-SHA test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: t0-feeder-regression-${{ github.sha }}
+          retention-days: 14
+          if-no-files-found: warn
+          path: |
+            t0-feeder-source-sha.txt
+            t0-feeder-ci-scope.txt
+            t0-feeder-safety.txt
+            t0-feeder-compile-verdict.txt
+            t0-feeder-tests.log
+            t0-feeder-verdict.txt
