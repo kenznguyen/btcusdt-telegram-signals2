@@ -10,6 +10,7 @@ on:
       - "paper_execution/simulated_equity.py"
       - "paper_execution/simulated_daily_baseline.py"
       - "paper_execution/test_simulated_equity.py"
+      - "paper_execution/test_simulated_order_admission.py"
       - "paper_execution/test_ledger.py"
       - "paper_execution/test_dual_ledger_red.py"
       - ".github/workflows/paper-ledger-t1-compatibility.yml"
@@ -45,4 +46,4 @@ jobs:
       - name: Install test dependencies
         run: python -m pip install -r requirements.txt
       - name: Run PaperLedger contract tests
-        run: python -m unittest paper_execution.test_ledger paper_execution.test_dual_ledger_red paper_execution.test_simulated_equity paper_execution.test_dual_ledger_bootstrap paper_execution.test_risk_limits paper_execution.test_risk_control -v
+        run: python -m unittest paper_execution.test_ledger paper_execution.test_dual_ledger_red paper_execution.test_simulated_equity paper_execution.test_simulated_order_admission paper_execution.test_dual_ledger_bootstrap paper_execution.test_risk_limits paper_execution.test_risk_control -v
