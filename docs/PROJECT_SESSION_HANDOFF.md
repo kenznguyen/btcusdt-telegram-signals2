@@ -6056,3 +6056,13 @@ Current application:
 - Initial automatic push run: workflow run ID `43653926985`, exact SHA `d259c73e419b757dd3166158efc6247e41120ff2`, URL https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43653926985. At handoff update time the run was **IN_PROGRESS**; final conclusion and artifact availability remain pending.
 - VPS/T0 deployment remains **NOT AUTHORIZED / NOT PERFORMED**. No T0 DB or PAPER Ledger access/mutation, service restart, Feeder activation, autostart/systemd change, or real order is part of this workflow.
 - Next: collect final run conclusion, job logs and artifact metadata; record PASS/FAIL against the exact run SHA. Deployment remains a separate explicit approval gate.
+
+
+### Final CI result — T0 Feeder regression workflow
+
+- Workflow run `43653926985`: **SUCCESS**, job `132628186583`, exact checkout SHA `d259c73e419b757dd3166158efc6247e41120ff2`.
+- Job log confirms Python 3.11.18, `PY_COMPILE=PASS`, `Ran 56 tests in 1.146s — OK`, and `T0_FEEDER_REGRESSION_LIFECYCLE_SCHEDULER=PASS`.
+- All 56 named tests passed: 2 regression tests, 34 lifecycle tests and 20 scheduler tests.
+- Artifact `t0-feeder-regression-d259c73e419b757dd3166158efc6247e41120ff2`, ID `14137655936`, uploaded successfully. SHA-256: `10bd4cca19022b35308ac1c1f69819196ed54388522bdb3c3564a0a8fb032102`. Run URL: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43653926985
+- Initial artifact retention request of 14 days exceeded the repository maximum; GitHub applied 7 days. Workflow was corrected in commit `1679e709cdda8ce108dada5253754513e5bee253` to request 7 days. This metadata-only correction does not change test source or test commands; the successful artifact remains available until its reported expiry.
+- Final status: source fix + focused tests **PASS**; dedicated CI workflow **PASS**; artifact **UPLOADED**; VPS/T0 deployment **NOT AUTHORIZED / NOT PERFORMED**. The successful run tested the exact Feeder source SHA stated above, not the later documentation or retention-only commits.
