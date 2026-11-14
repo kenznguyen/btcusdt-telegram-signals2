@@ -60,6 +60,11 @@ def fixture():
                 "at": "2026-11-14T09:05:00Z", "actorRef": refs("owner"),
                 "fromStorageRef": None, "toStorageRef": refs("storage"),
                 "evidenceRef": refs("receipt"),
+            }, {
+                "eventId": "event-002", "eventType": "READ_BACK",
+                "at": "2026-11-14T09:06:00Z", "actorRef": refs("owner"),
+                "fromStorageRef": refs("storage-copy"), "toStorageRef": refs("readback-target"),
+                "evidenceRef": refs("readback-log"),
             }],
         },
         "transformation": {
@@ -264,6 +269,38 @@ class D079LineageValidatorTests(unittest.TestCase):
 
     def test_32_caller_cannot_supply_aggregate_pass_or_extra_dimensions(self):
         value = fixture(); value["aggregateStatus"] = "PASS"; self.check_blocked(value)
+
+    def test_33_unknown_dependency_requires_explicit_reason(self):
+        value = fixture()
+        value["dependencies"][1]["materialToCollectorSeparation"] = "UNKNOWN"
+        result = validate_lineage_record(value, package())
+        self.assertEqual(result["status"], "BLOCKED")
+
+    def test_34_normalized_outputs_cannot_overwrite_raw_namespace(self):
+        value = fixture()
+        value["transformation"] = {
+            "performed": True, "parserSourceSha": "b" * 40,
+            "configurationFingerprint": "config-sha256",
+            "executedAt": "2026-11-14T09:07:00Z",
+            "fieldMappingRef": "mapping-evidence",
+            "normalizedOutputFiles": [{
+                "path": "raw/normalized.csv", "byteLength": 12,
+                "sha256": "c" * 64, "mediaType": "text/csv",
+            }],
+        }
+        self.check_blocked(value)
+
+    def test_35_readback_must_begin_after_custody_receipt(self):
+        value = fixture()
+        value["custody"]["readbackStartedAt"] = "2026-11-14T09:04:30Z"
+        self.check_blocked(value)
+
+    def test_36_json_schema_is_valid_draft_2020_12(self):
+        from jsonschema import Draft202012Validator
+        from pathlib import Path
+        import json
+        schema = json.loads((Path(__file__).parent / "schema.v1.json").read_text())
+        Draft202012Validator.check_schema(schema)
 
 
 if __name__ == "__main__":

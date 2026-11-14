@@ -8,6 +8,7 @@ from jsonschema import Draft202012Validator, FormatChecker
 
 _SCHEMA = json.loads(Path(__file__).with_name("schema.v1.json").read_text(encoding="utf-8"))
 _VALIDATOR = Draft202012Validator(_SCHEMA, format_checker=FormatChecker())
+Draft202012Validator.check_schema(_SCHEMA)
 _REQUIRED_DEPENDENCIES = {"ISSUER", "COLLECTOR", "STORAGE", "CONTROL_PLANE", "NETWORK", "TRANSFORMATION", "TIME_AUTHORITY"}
 _SECRET_PATTERNS = (
     re.compile(r"(?i)\b(api[_-]?key|api[_-]?secret|password|access[_-]?token)\s*[:=]\s*[^\s,;]+"),
@@ -82,7 +83,7 @@ def validate_lineage_record(record, d07_8_package, *, seen_record_ids=None):
         return _result("BLOCKED", ["D07_9_TIMESTAMP_INVALID"])
     if started > completed or created < completed or receipt < completed:
         errors.append("D07_9_ACQUISITION_EVENT_ORDER_INVALID")
-    if readback_started < completed or readback_done < readback_started:
+    if readback_started < completed or readback_started < receipt or readback_done < readback_started or readback_done > created:
         errors.append("D07_9_READBACK_EVENT_ORDER_INVALID")
     if custody["readbackRunRef"] == acquisition["executionRef"]:
         errors.append("D07_9_READBACK_REUSES_ACQUISITION_EXECUTION")
@@ -105,6 +106,8 @@ def validate_lineage_record(record, d07_8_package, *, seen_record_ids=None):
         if ref_value is not None and reason is not None:
             errors.append(f"D07_9_{ref_key.upper()}_REASON_CONFLICT")
 
+    if assessment["reviewDisposition"] != "NOT_REVIEWED" and _time(assessment["reviewedAt"]) < created:
+        errors.append("D07_9_REVIEW_PRECEDES_RECORD_CREATION")
     if assessment["reviewDisposition"] == "NOT_REVIEWED":
         if any(assessment[k] is not None for k in ("reviewerRef", "reviewedAt", "rationaleRef")):
             errors.append("D07_9_UNREVIEWED_METADATA_MUST_BE_NULL")
@@ -113,6 +116,9 @@ def validate_lineage_record(record, d07_8_package, *, seen_record_ids=None):
     if (record["supersedesRecordId"] is None) != (record["supersessionReason"] is None):
         errors.append("D07_9_SUPERSESSION_PAIR_INVALID")
 
+    for output in transformation["normalizedOutputFiles"]:
+        if not _safe_path(output["path"]) or output["path"].startswith("raw/"):
+            errors.append("D07_9_NORMALIZED_OUTPUT_PATH_INVALID")
     if transformation["performed"] is False:
         if any(transformation[k] is not None for k in (
             "parserSourceSha", "configurationFingerprint", "executedAt", "fieldMappingRef"
@@ -155,6 +161,8 @@ def validate_lineage_record(record, d07_8_package, *, seen_record_ids=None):
     event_ids = [x["eventId"] for x in events]
     if len(event_ids) != len(set(event_ids)):
         errors.append("D07_9_CUSTODY_EVENT_ID_DUPLICATE")
+    if not any(event["eventType"] == "READ_BACK" for event in events):
+        errors.append("D07_9_CUSTODY_READBACK_EVENT_MISSING")
     previous = None
     for event in events:
         try:
@@ -164,6 +172,8 @@ def validate_lineage_record(record, d07_8_package, *, seen_record_ids=None):
             continue
         if previous is not None and event_time < previous:
             errors.append("D07_9_CUSTODY_EVENT_ORDER_INVALID")
+        if event_time < completed or event_time > readback_done:
+            errors.append("D07_9_CUSTODY_EVENT_OUTSIDE_ACQUISITION_READBACK")
         previous = event_time
         if event["eventType"] in {"COPIED", "TRANSFERRED"} and (
             not event["fromStorageRef"] or not event["toStorageRef"]
@@ -179,6 +189,12 @@ def validate_lineage_record(record, d07_8_package, *, seen_record_ids=None):
         return _result("BLOCKED", ["D07_9_DEPENDENCY_ID_DUPLICATE"])
     if not dependencies or categories != _REQUIRED_DEPENDENCIES:
         return _result("NOT_VERIFIED", ["D07_9_DEPENDENCY_INVENTORY_INCOMPLETE"])
+    for dependency in dependencies:
+        has_unknown = dependency["sharedWithBinanceRestCapture"] == "UNKNOWN" or dependency["materialToCollectorSeparation"] == "UNKNOWN"
+        if has_unknown and not dependency["unknownReason"]:
+            return _result("BLOCKED", ["D07_9_UNKNOWN_DEPENDENCY_REASON_REQUIRED"])
+        if not has_unknown and dependency["unknownReason"] is not None:
+            return _result("BLOCKED", ["D07_9_UNKNOWN_DEPENDENCY_REASON_CONFLICT"])
     if any(x["sharedWithBinanceRestCapture"] == "YES" and x["materialToCollectorSeparation"] == "YES" for x in dependencies):
         return _result("BLOCKED", ["D07_9_SHARED_MATERIAL_DEPENDENCY"])
     unresolved = [

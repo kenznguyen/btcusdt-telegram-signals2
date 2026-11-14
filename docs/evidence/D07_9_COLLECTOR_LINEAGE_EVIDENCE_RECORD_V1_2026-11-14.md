@@ -26,7 +26,8 @@ The record is UTF-8 JSON. The schema version is the literal `TARDIS_COLLECTOR_LI
   "custodian": {
     "actorRef": "non-secret-owner-or-service-reference",
     "role": "OWNER|OPERATOR|SERVICE",
-    "organizationRef": "non-secret-organization-reference"
+    "organizationRef": "non-secret-organization-reference",
+    "organizationUnavailableReason": null
   },
   "provider": {
     "name": "TARDIS",
@@ -39,6 +40,7 @@ The record is UTF-8 JSON. The schema version is the literal `TARDIS_COLLECTOR_LI
     "method": "PROVIDER_EXPORT|PROVIDER_API|OWNER_SUPPLIED_FILE",
     "actorRef": "non-secret-actor-reference",
     "process": "process-name-and-version",
+    "executionRef": "unique-acquisition-execution-reference",
     "hostEnvironmentRef": "non-secret-host-environment-reference",
     "startedAt": "2026-11-14T09:00:00Z",
     "completedAt": "2026-11-14T09:05:00Z",
@@ -277,3 +279,15 @@ Each dependency includes `materialToCollectorSeparation=YES|NO|UNKNOWN` in addit
 Future validation must additionally reject/fail closed for: omitted D07.8 raw file; a `derived/` file listed as raw; mismatch between receipt/readback path sets; null request/network references without reasons; populated reference plus populated unavailable reason; readback reusing the acquisition process/run or in-memory buffer; positive disposition with unknown materiality; and inconsistent nullability/supersession pairs.
 
 These are documentation-level clarifications only. They do not implement a validator, alter D07.8, or authorize Tardis acquisition or parser work.
+
+
+## 9. Validator V1 implementation clarifications
+
+The machine-readable schema and validator make two implicit execution-identity requirements explicit so independent readback can be checked deterministically:
+
+- `custodian.organizationUnavailableReason` is required as a nullable field. It must be non-empty only when an individual `OWNER` has no organization reference; otherwise it must be null.
+- `acquisition.executionRef` is a required, non-secret identifier for the acquisition execution. `custody.readbackRunRef` must be distinct from it, and `readbackProcess` must differ from the acquisition process identifier.
+
+The validator also requires a recorded `READ_BACK` custody event; the readback must begin after receipt and acquisition completion and finish no later than record creation. Dependency tri-state UNKNOWN values require an explicit reason. Normalized outputs cannot be written under the canonical `raw/` namespace.
+
+These are machine-checkable clarifications of V1 semantics, not claims that referenced evidence exists. The validator does not open evidence references or recompute file hashes. Byte integrity, actual custody, collector independence, issuer authenticity, observation corroboration, freshness, enumeration/global completeness and factual truth remain NOT VERIFIED unless separately evidenced and reviewed.
