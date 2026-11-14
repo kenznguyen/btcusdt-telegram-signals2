@@ -303,6 +303,8 @@ class ContinuousCoreRunnerTest(unittest.TestCase):
                 run_once_fn=crash_after_commit,
                 preflight_fn=lambda *_args, **_kwargs: {"status": "PREFLIGHT_PASS"},
             )
+            paper_safe_report = producer_report()
+            paper_safe_report["intent"]["targetPositionBase"] = "0.000019"
             with patch.dict(os.environ, {
                 "AI_EXECUTION_ENABLED": "false",
                 "MARKET_DATA_DB": "",
@@ -311,7 +313,7 @@ class ContinuousCoreRunnerTest(unittest.TestCase):
                 "OKX_API_KEY": "",
                 "OKX_API_SECRET": "",
             }, clear=False), patch(
-                "pipeline.core_strategy.produce", return_value=producer_report()
+                "pipeline.core_strategy.produce", return_value=paper_safe_report
             ):
                 interrupted = runner.process_bundle(bundle_path, now_ms=fixture.now)
                 self.assertEqual(interrupted["status"], "UNKNOWN_REQUIRES_RECONCILIATION")
@@ -320,7 +322,7 @@ class ContinuousCoreRunnerTest(unittest.TestCase):
             self.assertEqual(recovered[0]["status"], "PAPER_ACCEPTED")
             self.assertEqual(len(calls), 1)
             self.assertEqual(len(fixture.core.snapshot()["orders"]), 1)
-            self.assertEqual(fixture.core.snapshot()["positionBase"], "0.0001")
+            self.assertEqual(fixture.core.snapshot()["positionBase"], "0.000019")
             self.assertEqual(fixture.ai.snapshot()["positionBase"], "0")
             self.assertEqual(len(fixture.ai.snapshot()["orders"]), 0)
         finally:
