@@ -1676,13 +1676,13 @@ class PaperLedger:
                     raise sqlite3.OperationalError("PAPER_LEDGER_PATH_REPLACED")
             self._expected_file_identity = initial_identity
         with closing(self.connect()) as connection, connection:
-            connection.execute("BEGIN IMMEDIATE")
             if read_only_existing:
                 connection.execute("PRAGMA query_only=ON")
                 if not _dual_ledger_migrations_ready(connection):
                     raise sqlite3.DatabaseError("DUAL_LEDGER_MIGRATION_NOT_READY")
                 return
             connection.execute("PRAGMA journal_mode=WAL")
+            connection.execute("BEGIN IMMEDIATE")
             initialized = connection.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='paper_state'").fetchone()
             connection.execute("""CREATE TABLE IF NOT EXISTS paper_state (
                 id INTEGER PRIMARY KEY CHECK(id=1), position TEXT NOT NULL, average TEXT NOT NULL,
