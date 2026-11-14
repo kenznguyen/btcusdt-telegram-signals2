@@ -1,4 +1,6 @@
+import json
 import unittest
+from pathlib import Path
 
 from paper_execution.simulated_capital import (
     DEFAULT_SIMULATED_CAPITAL_CONTRACT,
@@ -7,6 +9,12 @@ from paper_execution.simulated_capital import (
 
 
 class SimulatedCapitalContractTest(unittest.TestCase):
+    def test_machine_contract_matches_validator_defaults(self):
+        path = Path(__file__).parent / "contracts" / "simulated_capital_v1.json"
+        contract = json.loads(path.read_text(encoding="utf-8"))
+        self.assertEqual(contract, DEFAULT_SIMULATED_CAPITAL_CONTRACT)
+        validate_simulated_capital_contract(contract)
+
     def test_approved_contract_is_valid(self):
         result = validate_simulated_capital_contract(DEFAULT_SIMULATED_CAPITAL_CONTRACT)
         self.assertEqual(result["initialCapitalQuote"], "100")
