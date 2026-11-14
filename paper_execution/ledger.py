@@ -1960,12 +1960,20 @@ class PaperLedger:
                           cutover_id,mark_observed_at_ms
                    FROM paper_account_equity_cutovers WHERE account_id=1 LIMIT 1"""
             ).fetchone()
-            funding_gap = not (
-                risk_row is not None and cutover_row is not None
-                and _funding_provenance_ready(
-                    connection, cutover_row[0], cutover_row[1], risk_row[5], now
+            simulated = verify_simulated_equity_origin(connection)
+            if simulated:
+                if risk_row is not None:
+                    verify_simulated_daily_baseline_provenance(
+                        connection, risk_day=risk_row[1], risk_baseline=risk_row[2]
+                    )
+                funding_gap = False
+            else:
+                funding_gap = not (
+                    risk_row is not None and cutover_row is not None
+                    and _funding_provenance_ready(
+                        connection, cutover_row[0], cutover_row[1], risk_row[5], now
+                    )
                 )
-            )
             account = connection.execute(
                 "SELECT initial_capital FROM paper_accounts WHERE account_id=1"
             ).fetchone()
@@ -1974,7 +1982,8 @@ class PaperLedger:
             ).fetchall()
             mark = mark_observed = mark_candle = None
             equity = None
-            if increase_quantity > 0 and reason is None and risk_row and cutover_row:
+            if (increase_quantity > 0 and reason is None and risk_row
+                    and cutover_row and not simulated):
                 baseline_day = risk_row[1]
                 cutover_day = cutover_row[3] // 86_400_000 * 86_400_000
                 if type(baseline_day) is not int or baseline_day > cutover_day:
@@ -2010,7 +2019,7 @@ class PaperLedger:
                     reason = "RISK_LIMITS_UNCONFIGURED"
                 if reason is None and (
                     risk_row is None or account is None or not risk_row[8]
-                    or not cutover_row or funding_gap
+                    or (not simulated and (not cutover_row or funding_gap))
                 ):
                     reason = "RISK_INPUTS_UNAVAILABLE"
                 elif reason is None:
