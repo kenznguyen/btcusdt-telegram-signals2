@@ -78,7 +78,7 @@ jobs:
       - name: Compile changed operational and Core modules
         run: |
           set -euo pipefail
-          python -m py_compile ops/live_market_data_probe.py ops/test_live_market_data_probe.py pipeline/api.py pipeline/core_strategy.py pipeline/core_signal.py pipeline/test_core_runtime_contract.py pipeline/test_core_runtime_adapter_contract.py pipeline/test_core_runtime_one_shot.py core_runtime/__init__.py core_runtime/preflight.py core_runtime/one_shot.py core_runtime/adapter.py core_runtime/input_bundle.py core_runtime/orderbook_contract.py core_runtime/orderbook_http.py core_runtime/continuous_journal.py core_runtime/continuous_cadence.py core_runtime/continuous_runner.py core_runtime/paper_ledger_preflight.py core_runtime/test_paper_ledger_preflight.py core_runtime/test_continuous_journal.py core_runtime/test_continuous_cadence.py core_runtime/test_continuous_runner.py core_runtime/test_input_bundle_contract.py core_runtime/test_orderbook_contract.py core_runtime/test_orderbook_http.py core_runtime/test_orderbook_http_integration.py paper_execution/test_core_first_operational.py paper_execution/test_account_risk_snapshot_read_only.py paper_execution/test_core_short_lifecycle.py paper_execution/test_dual_ledger_red.py paper_execution/risk_control.py paper_execution/ledger.py paper_execution/account_equity.py
+          python -m py_compile ops/live_market_data_probe.py ops/test_live_market_data_probe.py pipeline/api.py pipeline/core_strategy.py pipeline/core_signal.py pipeline/test_core_runtime_contract.py pipeline/test_core_runtime_adapter_contract.py pipeline/test_core_runtime_one_shot.py core_runtime/__init__.py core_runtime/preflight.py core_runtime/one_shot.py core_runtime/adapter.py core_runtime/input_bundle.py core_runtime/orderbook_contract.py core_runtime/orderbook_http.py core_runtime/continuous_journal.py core_runtime/continuous_cadence.py core_runtime/continuous_runner.py core_runtime/paper_ledger_preflight.py core_runtime/test_paper_ledger_preflight.py core_runtime/test_continuous_journal.py core_runtime/test_continuous_cadence.py core_runtime/test_continuous_runner.py core_runtime/test_runner_hardening.py core_runtime/test_input_bundle_contract.py core_runtime/test_orderbook_contract.py core_runtime/test_orderbook_http.py core_runtime/test_orderbook_http_integration.py paper_execution/test_core_first_operational.py paper_execution/test_account_risk_snapshot_read_only.py paper_execution/test_core_short_lifecycle.py paper_execution/test_dual_ledger_red.py paper_execution/risk_control.py paper_execution/ledger.py paper_execution/account_equity.py
           echo "PY_COMPILE=PASS" | tee core-operational-compile.txt
 
       - name: Run live-data probe contract tests
@@ -105,7 +105,7 @@ jobs:
           python -m unittest pipeline.test_core_runtime_one_shot -v 2>&1 | tee core-runtime-one-shot-tests.log
           echo "CORE_RUNTIME_ONE_SHOT_TESTS=14_PASS" | tee core-runtime-one-shot-status.txt
 
-      - name: Run Continuous Core cadence RED-first tests
+      - name: Run Core Runner hardening RED-first contracts\n        run: |\n          set -euo pipefail\n          python -m unittest core_runtime.test_runner_hardening -v 2>&1 | tee core-runner-hardening-tests.log\n\n      - name: Run Continuous Core cadence RED-first tests
         run: |
           set -euo pipefail
           python -m unittest core_runtime.test_continuous_cadence -v 2>&1 | tee continuous-core-cadence-tests.log
