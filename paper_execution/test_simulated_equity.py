@@ -142,7 +142,7 @@ class SimulatedEquityInitializationTest(unittest.TestCase):
         self.db.rollback()
 
     def test_any_initialization_failure_rolls_back_account_origin_and_seed(self):
-        self.db.execute("CREATE TRIGGER fail_equity_origin BEFORE INSERT ON paper_simulated_equity_origin "
+        self.db.execute("CREATE TRIGGER fail_equity_origin BEFORE UPDATE ON paper_account_risk_state "
                         "BEGIN SELECT RAISE(ABORT,'INJECTED_FAILURE'); END")
         self.db.execute("BEGIN IMMEDIATE")
         with self.assertRaisesRegex(sqlite3.IntegrityError, "INJECTED_FAILURE"):
