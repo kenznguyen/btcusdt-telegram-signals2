@@ -813,7 +813,12 @@ class DualLedgerRedTest(unittest.TestCase):
             payload_hash="sha256:" + "a" * 64,
             recorded_at_ms=self.now + 1,
         )
-        self.assertEqual(event, replay)
+        self.assertFalse(event["idempotent"])
+        self.assertTrue(replay["idempotent"])
+        self.assertEqual(
+            {key: value for key, value in event.items() if key != "idempotent"},
+            {key: value for key, value in replay.items() if key != "idempotent"},
+        )
         self.assertEqual(event["strategyId"], "STRATEGY_CORE")
         self.assertEqual(event["amountQuote"], "0.25")
         record_verified_funding_coverage(
