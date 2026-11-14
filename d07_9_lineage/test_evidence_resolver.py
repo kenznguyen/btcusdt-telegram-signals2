@@ -148,7 +148,7 @@ class D0711EvidenceResolverTests(unittest.TestCase):
         self.package["files"][0].pop("sha256")
         result = self.resolve()
         self.assertEqual(result["status"], "NOT_VERIFIED")
-        self.assertEqual(result["byteIntegrity"], "BLOCKED")
+        self.assertEqual(result["byteIntegrity"], "NOT_VERIFIED")
 
     def test_11_reference_length_mismatch_blocks(self):
         index = dict(self.index)
