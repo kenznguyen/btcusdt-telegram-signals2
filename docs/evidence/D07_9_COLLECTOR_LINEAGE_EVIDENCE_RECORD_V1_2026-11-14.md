@@ -51,7 +51,9 @@ The record is UTF-8 JSON. The schema version is the literal `TARDIS_COLLECTOR_LI
       "timezone": "UTC"
     },
     "requestReference": "non-secret-request-or-job-reference",
-    "networkEgressRef": "non-secret-egress-policy-reference"
+    "requestReferenceUnavailableReason": null,
+    "networkEgressRef": "non-secret-egress-policy-reference",
+    "networkEgressUnavailableReason": null
   },
   "rawFiles": [
     {
@@ -68,7 +70,13 @@ The record is UTF-8 JSON. The schema version is the literal `TARDIS_COLLECTOR_LI
     "storageRef": "non-secret-storage-location-reference",
     "accessControlRef": "non-secret-access-policy-reference",
     "readbackAt": "2026-11-14T09:06:00Z",
+    "readbackStartedAt": "2026-11-14T09:05:30Z",
     "readbackActorRef": "non-secret-actor-reference",
+    "readbackProcess": "independent-readback-process-and-version",
+    "readbackRunRef": "unique-readback-execution-reference",
+    "readbackEnvironmentRef": "non-secret-readback-environment-reference",
+    "readbackStorageRef": "preserved-copy-storage-reference",
+    "readbackEvidenceRef": "immutable-readback-log-or-attestation-reference",
     "readbackFiles": [
       {
         "d07_8Path": "exact-relative-path-from-D07.8-files",
@@ -104,7 +112,9 @@ The record is UTF-8 JSON. The schema version is the literal `TARDIS_COLLECTOR_LI
       "systemRef": "non-secret-system-reference",
       "relationship": "description-of-dependency",
       "sharedWithBinanceRestCapture": "YES|NO|UNKNOWN",
-      "evidenceRef": "evidence-reference-or-explicit-unknown"
+      "materialToCollectorSeparation": "YES|NO|UNKNOWN",
+      "evidenceRef": "evidence-reference-or-explicit-unknown",
+      "unknownReason": null
     }
   ],
   "assessment": {
