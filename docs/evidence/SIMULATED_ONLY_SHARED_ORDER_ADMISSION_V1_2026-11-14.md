@@ -46,6 +46,36 @@ Test blob:
 - AI Trusted Admission Context / admitted leverage: NOT IMPLEMENTED / BLOCKED. AI must remain fail-closed until calibrated, provenance-bound leverage in the approved 1x–3x range is supplied.
 - Runtime readiness / PAPER Ledger activation: BLOCKED / NOT VERIFIED.
 
+## Broader regression and operational-proof reconciliation — 2026-11-14
+
+### Exact-source workflow results
+
+All runs below were triggered from branch `feature/core-operational-proof-20261112`.
+
+- Core-First code-level operational proof: [run 43608805282](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43608805282), workflow `415832171`, job `132489067486`, event `push`, exact checkout SHA `a65025f517affbba46756d020150b4f6ddff31bb`, SUCCESS. All 25 workflow steps completed successfully, including disposable SQLite Core Runner integration, account-wide read-only/fail-closed risk snapshot, shared risk/PaperLedger regressions, and T1/T2 order-book HTTP integration.
+- Core operational artifact: ID `14118523822`, name `core-first-code-operational-proof-43608805282`, 11,295 bytes, SHA-256 `bb8c022bd20b3bef4c7a19c3f66ceeb55bfaaf5dc0beee3aab4b49b12b0b84b9`, expires `2026-11-21T15:11:10Z`. Artifact payload has not been independently downloaded and hashed.
+- Important sub-verdict limits from the successful Core workflow log: `CORE_RUNTIME_DECISION_CYCLE=NOT_VERIFIED` and `CORE_RUNTIME_ONE_SHOT=NOT_VERIFIED`. Therefore the workflow step/job success does not establish the complete Core decision-cycle/one-shot runtime contract. The workflow explicitly records `AI_EXECUTION_ENABLED=false`, no canonical T0 touch, no exchange credentials, no real orders, and no VPS/persistent runtime.
+- Dual Ledger Bootstrap Contract: [run 43608805153](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43608805153), workflow `417325034`, job `132489066645`, exact checkout SHA `a65025f517affbba46756d020150b4f6ddff31bb`, FAILURE at full PaperLedger regression: 641 tests, 8 failures. Focused Bootstrap and D07 test steps before the full suite succeeded.
+- The eight failures were stale test expectations, not a production-code regression: five daily-baseline persistence assertions expected 100 USDT although their shared fixture explicitly initializes the account and cutover at 1,400 USDT; three migration assertions expected only versions 1–10 although schema migration 11 (`simulated-utc-daily-baseline-rollover`) is applied by current source.
+- Failed-run artifact preserved: ID `14119159143`, name `dual-ledger-bootstrap-proof-a65025f517affbba46756d020150b4f6ddff31bb`, 21,010 bytes, SHA-256 `e707e8d8a6102bed1a9306e4c7c6e0a568962d2ad8000a4e07ef08e98bb64e4c`, expires `2026-11-21T15:11:10Z`. Payload has not been independently downloaded and hashed.
+
+### Test-only reconciliation
+
+- Corrected daily-baseline assertions to match the actual 1,400 USDT fixture, preserving deliberate 100 USDT tamper/negative-test values.
+- Updated migration-history expectations to include version 11 and its exact migration name.
+- Test commits on the same branch: `43cb75b1814b01cde8c722023ebca288970477ef` (daily baseline assertions) and `b79f27aa9ea85b52370c6601d68ba1c8e6bd04ba` (migration v11 expectations).
+- Final test blobs: `paper_execution/test_daily_baseline_persistence.py` = `fcbfaac46ad5cb4edbb90446ebf86cba60be0c0b`; `paper_execution/test_dual_ledger_migration_red.py` = `86b4c172d16feeb98fc60dd07656d19a37cb15e3`.
+- Final exact-source Bootstrap rerun [43609479824](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43609479824), run number 138, event `push`, source SHA `b79f27aa9ea85b52370c6601d68ba1c8e6bd04ba`: PENDING at evidence update time. No PASS is claimed until terminal job/test results are inspected.
+
+## Disposition
+
+- SIMULATED Core ENTRY/DCA shared admission, 1% margin rejection, Kill Switch rejection: PASS within focused CI scope.
+- Funded PaperLedger compatibility: PASS within the earlier 144-test suite on `a65025f517affbba46756d020150b4f6ddff31bb`; the broader 641-test suite exposed 8 stale test expectations, now corrected and pending exact-source rerun.
+- Core-First operational-proof workflow: PASS at job level, with decision-cycle and one-shot sub-verdicts still NOT VERIFIED.
+- Bootstrap full regression on corrected source: PENDING / NOT VERIFIED.
+- AI Trusted Admission Context / admitted leverage: NOT IMPLEMENTED / BLOCKED; do not start AI implementation in this Core-First increment.
+- Overall PAPER Ledger readiness: BLOCKED / NOT VERIFIED. Bootstrap and Runner activation remain NOT AUTHORIZED.
+
 ## Next step
 
-Wait for the same-source Bootstrap compatibility and operational-proof workflows to finish. Reconcile their exact checkout SHA and test results, then update this report and the session handoff. Do not activate Bootstrap or Runner.
+Wait for run `43609479824` to reach a terminal state and inspect its job log and artifact metadata. If it passes, record the exact result and continue Core-First gap closure for the decision-cycle/one-shot sub-verdicts. Do not activate Bootstrap or Runner, use an operational database/VPS/T0, enable AI execution, or place live orders.
