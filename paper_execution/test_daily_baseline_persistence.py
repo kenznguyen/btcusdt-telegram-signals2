@@ -141,7 +141,7 @@ class DailyBaselinePersistenceContractTest(unittest.TestCase):
     def test_persists_one_immutable_baseline_audit_and_daily_risk_state_atomically(self):
         result = self.persist()
         self.assertFalse(result["idempotent"])
-        self.assertEqual(result["baseline_equity_quote"], "100")
+        self.assertEqual(result["baseline_equity_quote"], "1400")
         with self._connection() as db:
             baseline = db.execute(
                 """SELECT utc_day_ms,baseline_equity_quote,mark_id,
@@ -159,11 +159,11 @@ class DailyBaselinePersistenceContractTest(unittest.TestCase):
                    FROM paper_account_risk_state WHERE account_id=1"""
             ).fetchone()
         self.assertEqual(baseline[:4], (
-            self.boundary, "100", "fixture-boundary-mark", "fixture-account-cutover"
+            self.boundary, "1400", "fixture-boundary-mark", "fixture-account-cutover"
         ))
         self.assertEqual(baseline[4], result["replay_digest"])
         self.assertEqual(audit, (result["baseline_id"], result["replay_digest"], "DAILY_BASELINE_CREATED"))
-        self.assertEqual(risk, (self.boundary, "100", 1, "100", "100", self.recorded, self.boundary, "sha256:dual-ledger-seed"))
+        self.assertEqual(risk, (self.boundary, "1400", 1, "1400", "100", self.recorded, self.boundary, "sha256:dual-ledger-seed"))
 
 
     def _intent_at(self, intent_id, target, limit, snapshot_id, now_ms):
@@ -230,7 +230,7 @@ class DailyBaselinePersistenceContractTest(unittest.TestCase):
         second = self.persist_at(next_boundary, next_recorded)
         self.assertFalse(first["idempotent"])
         self.assertFalse(second["idempotent"])
-        self.assertEqual(second["baseline_equity_quote"], "100")
+        self.assertEqual(second["baseline_equity_quote"], "1400")
         self.assertTrue(self.persist_at(self.boundary, next_recorded)["idempotent"])
         with self._connection() as db:
             self.assertEqual(db.execute(
@@ -243,7 +243,7 @@ class DailyBaselinePersistenceContractTest(unittest.TestCase):
                 "SELECT daily_baseline_utc_day_ms,daily_baseline_equity_quote "
                 "FROM paper_account_risk_state WHERE account_id=1"
             ).fetchone()
-        self.assertEqual(state, (next_boundary, "100"))
+        self.assertEqual(state, (next_boundary, "1400"))
 
     def test_writer_rejects_skipping_an_unverified_utc_day(self):
         next_boundary = self.boundary + account_history.DAY_MS
@@ -369,7 +369,7 @@ persist_daily_equity_baseline(
         self.assertEqual((baseline_count, audit_count), (0, 0))
         self.assertEqual(
             risk,
-            (self.now // account_history.DAY_MS * account_history.DAY_MS, "100", 1),
+            (self.now // account_history.DAY_MS * account_history.DAY_MS, "1400", 1),
         )
 
     def test_os_process_kill_after_commit_keeps_complete_state_and_retry_is_idempotent(self):
@@ -406,9 +406,9 @@ os._exit(74)
                 """SELECT daily_baseline_utc_day_ms,daily_baseline_equity_quote,risk_ready
                    FROM paper_account_risk_state WHERE account_id=1"""
             ).fetchone()
-        self.assertEqual(baseline[1], "100")
+        self.assertEqual(baseline[1], "1400")
         self.assertEqual(audit, (baseline[0], baseline[2]))
-        self.assertEqual(risk, (self.boundary, "100", 1))
+        self.assertEqual(risk, (self.boundary, "1400", 1))
         snapshot = read_account_risk_snapshot(self.path, now_ms=self.recorded)
         self.assertTrue(snapshot["riskReady"])
         retry = self.persist()
@@ -685,7 +685,7 @@ os._exit(74)
         self.assertTrue(snapshot['available'])
         self.assertTrue(snapshot['riskReady'])
         self.assertEqual(snapshot['dailyBaselineUtcDayMs'], self.boundary)
-        self.assertEqual(snapshot['accountEquityQuote'], '100')
+        self.assertEqual(snapshot['accountEquityQuote'], '1400')
         self.assertEqual(snapshot['markObservedAtMs'], self.recorded)
 
     def test_identical_retry_is_idempotent_and_does_not_duplicate_audit(self):
@@ -826,7 +826,7 @@ os._exit(74)
                 sqlite3.DatabaseError, "DAILY_BASELINE_PREVIOUS_BASELINE_UNVERIFIED"
             ):
                 _validate_persisted_baseline(
-                    db, utc_day_ms=self.boundary, expected_equity="100",
+                    db, utc_day_ms=self.boundary, expected_equity="1400",
                     cutover_id="fixture-account-cutover", now_ms=self.recorded,
                 )
 
