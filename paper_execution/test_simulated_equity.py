@@ -112,6 +112,33 @@ class SimulatedEquityInitializationTest(unittest.TestCase):
             "SELECT COUNT(*) FROM paper_simulated_capital_seed_events"
         ).fetchone()[0], 1)
 
+    def test_restart_does_not_reset_risk_state_after_initialization(self):
+        self.db.execute("BEGIN IMMEDIATE")
+        self.initialize()
+        self.db.commit()
+        self.db.execute(
+            """UPDATE paper_account_risk_state
+               SET high_water_mark_quote='125',daily_baseline_equity_quote='98',
+                   daily_baseline_utc_day_ms=?,risk_ready=0,
+                   unavailable_reason='SIMULATED_INITIAL_MARK_REQUIRED'
+               WHERE account_id=1""",
+            (self.now // 86_400_000 * 86_400_000,),
+        )
+        before = self.db.execute(
+            """SELECT high_water_mark_quote,daily_baseline_equity_quote,
+                      daily_baseline_utc_day_ms,version
+               FROM paper_account_risk_state WHERE account_id=1"""
+        ).fetchone()
+        self.db.execute("BEGIN IMMEDIATE")
+        self.initialize()
+        self.db.commit()
+        after = self.db.execute(
+            """SELECT high_water_mark_quote,daily_baseline_equity_quote,
+                      daily_baseline_utc_day_ms,version
+               FROM paper_account_risk_state WHERE account_id=1"""
+        ).fetchone()
+        self.assertEqual(after, before)
+
     def test_funded_or_nonempty_account_is_rejected_without_mixing(self):
         self.db.execute("INSERT INTO paper_funding_events VALUES ('funded')")
         self.db.execute("BEGIN IMMEDIATE")
