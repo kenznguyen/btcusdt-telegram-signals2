@@ -5585,3 +5585,15 @@ Next: preserve this proof and do not rerun automatically. Any additional runtime
 - Evidence report: `docs/evidence/D07_9_V2_BTCUSDT_DRAFT_VALIDATION_2026-11-14.md`, commit `b02b2e6fe83f8754fd71025291cf409fd0c01cff`.
 - Status: V2 draft STRUCTURE_VALID; package metadata binding PASS within package boundary; upstream/provider/collector/custody/issuer provenance NOT VERIFIED; D07.11 real resolution NOT RUN; D07.2 BLOCKED_SHARED_LINEAGE; D07 PARTIAL; Paper Ledger bootstrap BLOCKED / NOT APPROVED.
 - Next bounded gate: establish an independently controlled evidence-reference index and obtain real source/custody evidence before any D07.11 real resolution. Do not promote this draft or change paper-only execution boundaries.
+
+
+## D07.11 evidence reference index trust-boundary design — 2026-11-14
+
+- Read current handoff, D07.9 V2 schema/validator/README and prior V2 contract proposal before proceeding.
+- Added docs-only design: `docs/evidence/D07_11_EVIDENCE_REFERENCE_INDEX_TRUST_BOUNDARY_DESIGN_2026-11-14.md`; commit `f3a9312ff9685220c1c6ab288f1c039b564153d3`.
+- Design separates evidence producer, custodian, index issuer, signing authority, verifier and claim assessor. It defines the minimum versioned index envelope, independent trust-root/key lifecycle, signed canonical payload, publication proof, custody boundary, claim-support mapping and a staged implementation plan.
+- Explicitly records that a Git commit, CI artifact, checksum file, or signing key stored in the same repository/runner boundary is insufficient by itself to establish independent authority/custody.
+- No index, key pair, signature, trust root, evidence object, provider receipt or custody event was created. No schema, validator, resolver, package bytes or tests changed. No CI run was triggered for this docs-only design.
+- Status: design ONLY / NOT IMPLEMENTED / AWAITING OWNER REVIEW; index authenticity and independent custody NOT_VERIFIED; D07.11 real resolution NOT RUN; D07.2 BLOCKED_SHARED_LINEAGE; D07 PARTIAL; Paper Ledger bootstrap BLOCKED / NOT APPROVED.
+- Next gate: owner review and separate approval before implementing an index contract or verifier. Real D07.11 remains prohibited until genuine source/custody evidence and an independently authenticated trust root/publication boundary are supplied.
+- No network acquisition, VPS/T0, ledger write, Runner/One-shot, credential use, live trading or data deletion occurred.
