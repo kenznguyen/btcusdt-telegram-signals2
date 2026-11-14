@@ -5517,3 +5517,19 @@ Next: preserve this proof and do not rerun automatically. Any additional runtime
 - Detailed inventory and disposition: docs/evidence/D07_REPOSITORY_WIDE_INVENTORY_2026-11-14.md.
 - Status: tracked-repository inventory PASS (bounded and complete); actual D07.8/D07.9/index NOT FOUND IN TRACKED REPOSITORY; formal D07.11 real custody NOT VERIFIED; D07.2 BLOCKED_SHARED_LINEAGE; D07 PARTIAL; PAPER ledger bootstrap BLOCKED / NOT APPROVED.
 - No tests run, code/runtime/evidence/ledger/T0/VPS/Runner/live execution changed, and no data created/moved/deleted.
+
+
+## 2026-11-14 — D07.8 offline Package Builder and owner-supplied BTCUSDT export
+
+- Owner explicitly approved an offline D07.8 Package Builder using the previously supplied \`BTCUSDT.csv\`, preserving original bytes and not fabricating lineage.
+- Recovered the exact file from the user's ChatGPT Library (not VPS): 1,431,960 bytes, GZIP-compressed UTF-8 CSV, SHA-256 \`71963e8235106ae36fe386ef0fbd52b078df48ea854d09d814469eddeed58a8c\`. Original bytes unchanged.
+- Source readback: decompressed 12,337,426 bytes; 98,211 structurally parsed rows; all \`exchange=binance-futures\`, all \`symbol=BTCUSDT\`; all \`funding_rate=0.0001\`.
+- Source timestamps \`timestamp\`, \`local_timestamp\`, \`funding_timestamp\` are microseconds. \`funding_timestamp\` normalized to milliseconds only by exact integer division by 1,000. Four unique observed funding keys: 2026-11-01 00:00, 08:00, 16:00 UTC and 2026-11-02 00:00 UTC. This is an observed set only; no expected schedule was supplied.
+- Package ID \`d07-8-tardis-btcusdt-20261101-pilot-v4\`, assembled \`2026-11-14T13:00:00Z\`, builder revision \`a13d736bed35a928b00a1e8660171e53cfaed886\`. Package files: \`raw/BTCUSDT.csv.gz\` (1,431,960 bytes; source SHA above), \`transforms/field-mapping.json\` (1,655 bytes; SHA-256 \`f7fe5c5aec02ebc209d0523f2de49cc5ac7ce71249740e2b0f5c19f7beb57e0c\`), \`manifest.json\` (1,496 bytes; SHA-256 \`f8c598471044c47a49fecd09de18371bb83961eb97e258c3a0dcafdce5226301\`), and \`checksums/SHA256SUMS\` (261 bytes; SHA-256 \`fe758018fc022d19056bbabbe188ccea95e345ae973cd8fe4221d4bba70e4cdb\`). Local package readback confirmed raw bytes identical to source, file sizes/hashes match manifest, and 98,211 CSV rows/four funding keys re-read.
+- Manifest validator: \`STRUCTURE_VALID\`, 2 files, 98,211 total records, \`coverageComparison=NOT_AVAILABLE_NO_EXPECTED_SET\`; no missing/unexpected schedule differences are claimed. Completeness, issuer authenticity, collector independence and factual truth remain NOT_VERIFIED.
+- Code commits: builder \`c541d2d205038cb66b5dcabff7915b108cfeea44\`; no-expected-schedule semantics/test \`a13d736bed35a928b00a1e8660171e53cfaed886\`.
+- TDD: new builder tests 8; combined D07.8 tests 19/19 PASS locally. GitHub Actions run \`43597428777\`, exact SHA \`a13d736bed35a928b00a1e8660171e53cfaed886\`, SUCCESS; job \`132454841040\`; artifact \`14115062712\`, digest \`sha256:26b27eb55c1156dfa09a9e15cffa9584b167690565d199c27ba1aa3a8918ad77\`.
+- Detailed evidence: \`docs/evidence/D07_8_OFFLINE_PACKAGE_BUILDER_2026-11-14.md\`.
+- The package and raw source were not committed to GitHub; no VPS/T0/network/ledger/Runner/credential/live execution was used.
+- Status: D07.8 offline package construction + local byte readback **PASS WITHIN SCOPE**; real source authenticity/completeness **NOT VERIFIED**; D07.9 sidecar/reference index **NOT PROVIDED / NOT GENERATED**; D07.11 **NOT VERIFIED**; D07.2 **BLOCKED_SHARED_LINEAGE**; D07 **PARTIAL**; Paper Ledger bootstrap **BLOCKED / NOT APPROVED**.
+- Next: owner may retrieve the generated package. Then separately review the source-to-lineage custody gap; do not fabricate a D07.9 sidecar or reference index, do not run D07.11 until actual independently sourced lineage/index evidence is supplied, and do not import to Paper Ledger.
