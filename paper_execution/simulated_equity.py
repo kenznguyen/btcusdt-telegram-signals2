@@ -30,9 +30,10 @@ def _digest(document):
 
 
 def _objects(connection):
-    return set(connection.execute(
-        "SELECT type,name FROM sqlite_master"
-    ).fetchall())
+    return {
+        (row[0], row[1])
+        for row in connection.execute("SELECT type,name FROM sqlite_master")
+    }
 
 
 def _ensure_schema(connection):
