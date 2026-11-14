@@ -248,7 +248,7 @@ class ProtectedLedgerPathParityTest(unittest.TestCase):
                     _preflight(self.config)
 
     def test_one_shot_preflight_rejects_t0_parent_child_path_overlap(self):
-        for protected in (self.ledger.parent, self.ledger.parent / "nested"):
+        for protected in (self.ledger.parent, self.ledger / "nested.sqlite3"):
             with self.subTest(protected=protected), patch.dict(os.environ, {
                 **self.clean_env, "T0_FEEDER_LEASE_DB": str(protected),
             }, clear=False):
