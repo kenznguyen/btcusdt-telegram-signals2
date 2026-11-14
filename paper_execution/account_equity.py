@@ -116,6 +116,10 @@ def record_account_mark(
         read_account_risk_snapshot, stored_state, text,
     )
     from paper_execution.simulated_equity import verify_simulated_equity_origin
+    from paper_execution.simulated_daily_baseline import (
+        append_simulated_daily_baseline_event,
+        verify_simulated_daily_baseline_provenance,
+    )
     if ledger.strategy_id != "MANUAL":
         raise ValueError("ACCOUNT_MARK_REQUIRES_ACCOUNT_SCOPE")
     mark = number(str(mark_price))
@@ -139,7 +143,7 @@ def record_account_mark(
         risk = connection.execute(
             """SELECT high_water_mark_quote,daily_baseline_utc_day_ms,
                       daily_baseline_equity_quote,last_mark_price,mark_observed_at_ms,
-                      risk_ready,unavailable_reason
+                      risk_ready,unavailable_reason,last_equity_quote,dataset_version
                FROM paper_account_risk_state WHERE account_id=1"""
         ).fetchone()
         account = connection.execute(
@@ -163,10 +167,23 @@ def record_account_mark(
         if type(risk[5]) is not int or risk[5] not in (0, 1):
             raise sqlite3.DatabaseError("ACCOUNT_RISK_STATE_MISSING_OR_CORRUPT")
         utc_day = observed_at // 86_400_000 * 86_400_000
+        if simulated:
+            verify_simulated_daily_baseline_provenance(
+                connection, risk_day=risk[1], risk_baseline=risk[2]
+            )
+        rollover = False
         if risk[1] is not None and (
             type(risk[1]) is not int or risk[1] != utc_day
         ):
-            raise ValueError("ACCOUNT_RISK_DAILY_BASELINE_UNAVAILABLE")
+            rollover = bool(
+                simulated and risk[1] + 86_400_000 == utc_day
+                and previous_mark_at is not None
+                and previous_mark_at // 86_400_000 * 86_400_000 == risk[1]
+                and isinstance(risk[7], str) and risk[7].strip()
+                and isinstance(risk[8], str) and risk[8].strip()
+            )
+            if not rollover:
+                raise ValueError("ACCOUNT_RISK_DAILY_BASELINE_UNAVAILABLE")
         if cutover and risk[1] is None:
             raise sqlite3.DatabaseError("ACCOUNT_RISK_DAILY_BASELINE_UNAVAILABLE")
 
@@ -208,18 +225,39 @@ def record_account_mark(
         elif not risk_ready and not unavailable:
             unavailable = "ACCOUNT_RISK_NOT_READY"
 
+        next_baseline = _ledger_decimal(risk[7]) if rollover else (
+            _ledger_decimal(risk[2]) if risk[2] is not None else None
+        )
+        if rollover:
+            append_simulated_daily_baseline_event(
+                connection, utc_day_ms=utc_day,
+                baseline_equity_quote=next_baseline,
+                previous_utc_day_ms=risk[1],
+                previous_equity_quote=risk[7],
+                previous_mark_observed_at_ms=previous_mark_at,
+                previous_dataset_version=risk[8],
+                recorded_at_ms=observed_at,
+            )
         connection.execute(
             """UPDATE paper_account_risk_state
-               SET last_equity_quote=?,high_water_mark_quote=?,last_mark_price=?,
-                   mark_observed_at_ms=?,mark_candle_close_ms=?,dataset_version=?,
-                   risk_ready=?,unavailable_reason=?,updated_at_ms=?,version=version+1
+               SET last_equity_quote=?,high_water_mark_quote=?,
+                   daily_baseline_utc_day_ms=?,daily_baseline_equity_quote=?,
+                   last_mark_price=?,mark_observed_at_ms=?,mark_candle_close_ms=?,
+                   dataset_version=?,risk_ready=?,unavailable_reason=?,
+                   updated_at_ms=?,version=version+1
                WHERE account_id=1""",
-            (text(equity), text(max(hwm, equity)), text(mark), observed_at,
-             candle_at, dataset_version, int(risk_ready), unavailable, observed_at),
+            (text(equity), text(max(hwm, equity)),
+             utc_day if rollover else risk[1],
+             text(next_baseline) if rollover else risk[2],
+             text(mark), observed_at, candle_at, dataset_version,
+             int(risk_ready), unavailable, observed_at),
         )
         ledger.audit(connection, observed_at, "ACCOUNT_MARK", {
             "markPrice": text(mark), "candleCloseMs": candle_at,
             "datasetVersion": dataset_version, "accountEquityQuote": text(equity),
+            "dailyBaselineUtcDayMs": utc_day if rollover else risk[1],
+            "dailyBaselineEquityQuote": text(next_baseline) if rollover else risk[2],
+            "dailyBaselineRollover": rollover,
             "reservedNotionalQuote": text(reserved_notional),
             "reservedMarginQuote": text(reserved_margin), "riskReady": risk_ready,
         })
