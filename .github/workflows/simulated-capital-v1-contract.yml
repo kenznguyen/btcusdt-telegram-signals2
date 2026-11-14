@@ -14,6 +14,7 @@ on:
       - "paper_execution/ledger.py"
       - "paper_execution/account_equity.py"
       - "paper_execution/test_simulated_equity.py"
+      - "paper_execution/test_simulated_order_admission.py"
       - "paper_execution/contracts/simulated_capital_v1.json"
       - ".github/workflows/simulated-capital-v1-contract.yml"
   pull_request:
