@@ -233,13 +233,18 @@ class CandleHttpClient:
             page_end = min(end_ms, cursor + _MAX_BARS * interval)
             page_slots = (page_end - cursor) // interval
             payload = self._request(cursor, page_end, as_of_ms, timeframe)
-            self._validate(payload, cursor, page_end, as_of_ms, page_slots, timeframe)
+            self._validate(payload, cursor, page_end, as_of_ms, page_slots, timeframe, enforce_ingestion_freshness=False)
             pages.append(payload)
             cursor = page_end
 
         candles = [candle for page in pages for candle in page["candles"]]
         generated = max(page["generatedAtMs"] for page in pages)
         latest = candles[-1]
+        latest_ingestion_lag = latest["availableAtMs"] - latest["closeTimeMs"]
+        if latest_ingestion_lag < 0:
+            raise CandleHttpError("FRESHNESS_UNAVAILABLE")
+        if latest_ingestion_lag > self.config.max_lag_ms:
+            raise CandleHttpError("FRESHNESS_EXCEEDED")
         identity = {
             "exchange": "binance", "marketType": "USDT_PERPETUAL", "symbol": "BTCUSDT",
             "timeframe": timeframe, "startMs": start_ms, "endMs": end_ms,
@@ -292,7 +297,10 @@ class CandleHttpClient:
         self._validate(payload, start_ms, end_ms, as_of_ms, slots, timeframe)
         return payload
 
-    def _validate(self, payload, start_ms, end_ms, as_of_ms, slots, timeframe):
+    def _validate(
+        self, payload, start_ms, end_ms, as_of_ms, slots, timeframe,
+        *, enforce_ingestion_freshness=True,
+    ):
         if set(payload) != _ENVELOPE_FIELDS:
             raise CandleHttpError("CONTRACT_UNSUPPORTED")
         if payload["contractVersion"] != "1.0.0" or type(payload["schemaVersion"]) is not int or payload["schemaVersion"] != 1:
@@ -383,5 +391,5 @@ class CandleHttpClient:
         ingestion_lag = latest["availableAtMs"] - latest["closeTimeMs"]
         if ingestion_lag < 0:
             raise CandleHttpError("FRESHNESS_UNAVAILABLE")
-        if ingestion_lag > self.config.max_lag_ms:
+        if enforce_ingestion_freshness and ingestion_lag > self.config.max_lag_ms:
             raise CandleHttpError("FRESHNESS_EXCEEDED")
