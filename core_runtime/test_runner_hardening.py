@@ -214,5 +214,69 @@ class RunnerRiskUnreadyDecisionTest(unittest.TestCase):
         self.assertEqual(submitted[0][0]["targetPositionBase"], "0.0001")
 
 
+class ProtectedLedgerPathParityTest(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        root = Path(self.temp.name)
+        self.ledger = root / "paper.sqlite3"
+        self.ledger.touch()
+        self.config = root / "paper.json"
+        self.config.write_text(json.dumps({
+            "mode": "PAPER",
+            "ai_execution_enabled": False,
+            "ledger_path": str(self.ledger),
+        }), encoding="utf-8")
+        self.clean_env = {
+            "AI_EXECUTION_ENABLED": "false",
+            "MARKET_DATA_DB": "",
+            "T0_FEEDER_LEASE_DB": "",
+            "PAPER_DB": "",
+            "PAPER_TRADING_DB": "",
+            "BINANCE_API_KEY": "",
+            "BINANCE_API_SECRET": "",
+            "OKX_API_KEY": "",
+            "OKX_API_SECRET": "",
+        }
+
+    def test_one_shot_preflight_rejects_every_t0_database_alias(self):
+        for key in ("MARKET_DATA_DB", "T0_FEEDER_LEASE_DB"):
+            with self.subTest(key=key), patch.dict(os.environ, {
+                **self.clean_env, key: str(self.ledger),
+            }, clear=False):
+                with self.assertRaisesRegex(PreflightError, "T0_LEDGER_PATH_FORBIDDEN"):
+                    _preflight(self.config)
+
+    def test_one_shot_preflight_rejects_t0_parent_child_path_overlap(self):
+        for protected in (self.ledger.parent, self.ledger.parent / "nested"):
+            with self.subTest(protected=protected), patch.dict(os.environ, {
+                **self.clean_env, "T0_FEEDER_LEASE_DB": str(protected),
+            }, clear=False):
+                with self.assertRaisesRegex(PreflightError, "T0_LEDGER_PATH_FORBIDDEN"):
+                    _preflight(self.config)
+
+    def test_one_shot_preflight_requires_paper_database_aliases_to_match(self):
+        for key in ("PAPER_DB", "PAPER_TRADING_DB"):
+            with self.subTest(key=key), patch.dict(os.environ, {
+                **self.clean_env, key: str(self.ledger.parent / "other.sqlite3"),
+            }, clear=False):
+                with self.assertRaisesRegex(PreflightError, "LEDGER_PATH_ENV_MISMATCH"):
+                    _preflight(self.config)
+
+    def test_one_shot_preflight_accepts_exact_paper_database_aliases(self):
+        from unittest.mock import patch as mock_patch
+        risk = {"mode": "PAPER", "liveTradingSupported": False, "riskReady": True}
+        with (
+            patch.dict(os.environ, {
+                **self.clean_env,
+                "PAPER_DB": str(self.ledger),
+                "PAPER_TRADING_DB": str(self.ledger),
+            }, clear=False),
+            mock_patch("core_runtime.preflight.read_account_risk_snapshot", return_value=risk),
+        ):
+            result = _preflight(self.config)
+        self.assertTrue(result["riskReady"])
+
+
 if __name__ == "__main__":
     unittest.main()
