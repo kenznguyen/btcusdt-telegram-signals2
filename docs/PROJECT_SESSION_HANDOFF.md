@@ -5296,3 +5296,15 @@ Next: preserve this proof and do not rerun automatically. Any additional runtime
 - Status: all three approved source fixes **PASS (source + exact-SHA CI)**. VPS source parity remains **BLOCKED**; actual PAPER config/ledger remains **NOT VERIFIED**; VPS runtime and Runner remain **NOT RUN / NOT AUTHORIZED**.
 - No VPS synchronization, bootstrap, migration, T0 access/mutation, Runner/One-shot/continuous invocation, service/autostart, exchange access, AI execution, live trading or real orders occurred. `AI_EXECUTION_ENABLED=false`.
 - Next: pause code changes. Any VPS source synchronization or bounded read-only parity inspection requires a separate explicit approval; it does not imply permission to bootstrap a ledger or run the Runner.
+
+
+## 2026-11-14 — D07.9 Tardis collector independence assessment (owner approved; design only)
+
+- Owner approved a bounded D07.9 design/documentation increment only. Continue on `feature/core-operational-proof-20261112`; no branch or PR created.
+- Added `docs/evidence/D07_9_TARDIS_COLLECTOR_INDEPENDENCE_ASSESSMENT_2026-11-14.md` in commit `1c53f5e189bf9800b6822d97add355a59ce0bb30`.
+- The design separates issuer identity, collector-path separation, byte custody/integrity, observation corroboration, population completeness and freshness. It explicitly treats Binance REST and Tardis-collected Binance observations as the same Binance issuer; Tardis is a candidate separate collector, not a second issuer.
+- The design defines required lineage evidence for acquisition actor/process, feed/transport, upstream issuer, storage/custody, transformation, control plane, timestamps and coverage authority; immutable raw-byte package/readback; exact D07.7 settlement-key comparison; expected-population provenance; fail-closed negative cases; and separate future approval gates.
+- No code, workflow, D07.2 verifier, provider connector, parser, funding row, ledger/database, T0 or VPS state was changed. No Tardis data was downloaded and no API/credential was used.
+- D07.2 `BLOCKED_SHARED_LINEAGE` remains unchanged. Real Tardis byte custody, collector independence, overlap, expected-population authority, issuer authenticity, freshness, enumeration/global completeness and factual truth remain **NOT VERIFIED**. D07 remains **PARTIAL**; PAPER ledger bootstrap remains **BLOCKED / NOT APPROVED**.
+- D07.9 design document: **DOCUMENTED — DESIGN ONLY**. No CI run or artifact was produced because this increment changes documentation only.
+- Next gate: owner review of the D07.9 contract. Any Tardis acquisition, real-file parsing, source-specific verifier change, funding-row import, ledger/database write, T0 access or VPS operation requires a separate exact-scope approval.
