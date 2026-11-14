@@ -5909,3 +5909,19 @@ Current application:
 - The old runbook's `MARKET_DATA_DB` / T0 market-data path is not evidence of the current independent Core PaperLedger and must not be reused as its target.
 - Status: persistent Core PAPER config/path **NOT FOUND**; persistent Ledger **NOT FOUND / NOT VERIFIED**; `--ledger-preflight` **NOT RUN**. No new VPS search, config/DB creation, Bootstrap, Runner, or runtime action was performed in this increment.
 - Next: keep preflight blocked until a separately authorized and evidenced independent PAPER config plus already-existing Ledger are available. Any creation/bootstrap or VPS runtime step requires its own exact-scope approval. Continue paper-only with `AI_EXECUTION_ENABLED=false`; no live orders.
+
+
+## 2026-11-14 — Owner-approved independent PAPER Ledger and config creation
+
+- Owner approval: create a new independent PAPER config and Ledger on the replacement VPS. Owner confirmed 100 USDT is simulated virtual capital only, not an exchange balance or real trade.
+- Owner-reported VPS source SHA: `b92bb75b00b6f91c39c1b78fafab5cd1c77d8fde`; branch: `feature/core-operational-proof-20261112`.
+- Contract: `paper_execution/contracts/simulated_capital_v1.json`; SHA-256 `101120eb159248201a45a71b4485ce1de5f9aa0e05ab85cd2713266572ce16c2`.
+- Pre-create owner-pasted checks: `PAPER_DB` and `PAPER_TRADING_DB` unset; T0 reference path did not exist at inspection time. Earlier same-checkout output showed exchange credential variables unset and both target files absent.
+- Creation output: **PASS**. Ledger `/home/ubuntu/btcusdt-telegram-signals2/.data/paper-ledger.sqlite3`; config `/home/ubuntu/btcusdt-telegram-signals2/core_runtime/config.paper.json`; SQLite integrity `ok`; simulated PAPER account `100 USDT`.
+- Ledger strategy scopes: `STRATEGY_CORE`, `AI_FREQAI`, `LEGACY_UNATTRIBUTED`. The AI_FREQAI row is schema scope only; AI strategy is NOT IMPLEMENTED and AI execution remains false.
+- Initial risk state: `riskReady=false`, reason `SIMULATED_INITIAL_MARK_REQUIRED`. No market mark was fabricated or recorded.
+- Decision Cycle, One-shot, Bootstrap and Continuous Runner: NOT RUN. No GitHub Actions workflow/artifact. Evidence is owner-pasted terminal output; no independent SSH observation or artifact readback is claimed.
+- Evidence report: `docs/evidence/VPS_PAPER_LEDGER_CONFIG_CREATION_2026-11-14.md`, commit `63f4cacf81fe351b259fda1fdf2a604515cfd2c5`.
+- Status: Ledger/config creation and SQLite/origin checks **PASS within owner-reported command scope**; risk readiness **BLOCKED / NOT READY by design**; persistent PAPER runtime and overall VPS operational readiness **NOT VERIFIED / BLOCKED**.
+- Next: bounded read-only review of the generated config and Ledger risk snapshot, then define the valid market-mark source/freshness contract. Do not record a mark or enable risk readiness without separate bounded approval.
+- Restrictions remain: no T0 access/mutation, Bootstrap, preflight, Decision Cycle, One-shot, Runner, service/autostart, exchange access, AI execution, live trading or real orders. Preserve the existing untracked VPS file and all existing data.
