@@ -5490,3 +5490,19 @@ Next: preserve this proof and do not rerun automatically. Any additional runtime
 - No resolver, parser, network request, evidence mutation, ledger/database operation, T0, Runner/One-shot or live execution was performed in this step. Owner-provided terminal output is the evidence; assistant did not access the VPS directly.
 - D07 status remains unchanged: D07.7 exact-key comparison **PASS_WITHIN_OVERLAP — 1/3, LIMITED SAMPLE**; nearest-event numeric rate agreement **PASS — LIMITED**; D07.2 **BLOCKED_SHARED_LINEAGE**; D07 **PARTIAL**; formal D07.11 resolution **NOT VERIFIED**; PAPER ledger bootstrap **BLOCKED / NOT APPROVED**.
 - Next step: if further metadata inspection is needed, inspect the complete envelope's top-level keys and reference-like fields read-only; do not infer absence from this filtered output. No evidence construction or ledger operation is authorized.
+
+
+## 2026-11-14 — D07.6 full envelope structure inspection
+
+- Owner supplied the complete output of a read-only `python3` inspection of `/tmp/d07-6-binance-20261114T051131Z/provenance-envelope.json`.
+- Top-level keys are exactly: `evidenceSnapshotId`, `lineage`, `pages`, `schemaVersion`, `scope`, `snapshot`, `source`.
+- Reference-like fields printed by the inspection:
+  - `$.evidenceSnapshotId = d07-6-binance-btcusdt-20261114T051131Z`
+  - `$.lineage` declares expected/observed Binance USD-M public funding-rate source and `sharedUpstreamSystems=[Binance]`
+  - `$.pages[0].relativePath = response_body.bin`
+  - `$.scope.accountRef = PUBLIC_MARKET_DATA:BTCUSDT`
+- No D07.8 manifest, D07.9 sidecar or evidence reference-index reference appears in the complete top-level structure or in the reference-like fields selected by the inspection. This is a conclusion about this envelope only, not proof of absence elsewhere on the VPS.
+- D07.6 envelope therefore describes its own Binance capture and raw response; it does not establish a custody link to the Tardis D07.8/D07.9 evidence package.
+- Evidence source is owner-pasted terminal output; assistant did not access VPS directly. No files changed on VPS; no resolver, acquisition, network call, parser, ledger/database, T0, Runner/One-shot or live execution performed.
+- D07.8 actual package manifest, D07.9 actual sidecar and evidence reference index remain **NOT VERIFIED**. D07.11 formal resolution remains **NOT VERIFIED**. D07.7 exact-key sample status remains **PASS_WITHIN_OVERLAP — 1/3, LIMITED SAMPLE**; nearest-event numeric rate agreement is **PASS — LIMITED**. D07.2 remains **BLOCKED_SHARED_LINEAGE**; D07 overall **PARTIAL**; PAPER ledger bootstrap **BLOCKED / NOT APPROVED**.
+- Next step: conduct only a bounded read-only search for the actual D07.8/D07.9/index artifacts outside the already searched `docs/evidence` and known D07.6 capture directory, if approved. Do not construct replacement evidence or initiate ledger operations.
