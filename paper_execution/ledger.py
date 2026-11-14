@@ -9,7 +9,9 @@ import sqlite3
 
 from pipeline.values import identity, number, stamp
 from paper_execution import risk_control, equity as equity_history
-from paper_execution.simulated_equity import initialize_simulated_equity
+from paper_execution.simulated_equity import (
+    initialize_simulated_equity, prepare_simulated_account_config,
+)
 from risk_policy import CORE_LEVERAGE, ORDER_MARGIN_BUDGET_PCT
 from paper_execution.account_history import (
     MIGRATION_VERSION as ACCOUNT_HISTORY_MIGRATION_VERSION,
@@ -1741,6 +1743,9 @@ class PaperLedger:
                             ).fetchone() if origin_exists else None
                             if origin_row is None:
                                 raise ValueError("SIMULATED_ACCOUNT_ALREADY_EXISTS")
+                        prepare_simulated_account_config(
+                            connection, contract_bytes=simulated_contract_bytes,
+                        )
                     migrate_dual_ledger(connection, self.source_sha)
                     migrate_legacy_book_depth(connection, self.source_sha)
                     migrate_reservation_expiry(connection, self.source_sha)
