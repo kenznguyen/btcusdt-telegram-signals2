@@ -176,7 +176,8 @@ def record_account_mark(
             type(risk[1]) is not int or risk[1] != utc_day
         ):
             rollover = bool(
-                simulated and risk[1] + 86_400_000 == utc_day
+                simulated and type(risk[1]) is int
+                and risk[1] + 86_400_000 == utc_day
                 and previous_mark_at is not None
                 and previous_mark_at // 86_400_000 * 86_400_000 == risk[1]
                 and isinstance(risk[7], str) and risk[7].strip()
