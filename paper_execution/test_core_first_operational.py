@@ -1988,5 +1988,38 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
             self.assertEqual(reservations, 1)
 
 
+class CoreLedgerNoCreateAndLeveragePolicyTest(unittest.TestCase):
+    def setUp(self):
+        self.fixture = CoreFirstOperationalProofTest()
+        self.fixture.setUp()
+        self.addCleanup(self.fixture.doCleanups)
+
+    def test_core_ledger_uses_one_x_baseline_and_rejects_legacy_thirteen_x(self):
+        self.assertEqual(self.fixture.core.leverage, Decimal("1"))
+        with self.assertRaisesRegex(ValueError, "CORE_LEVERAGE_POLICY_MISMATCH"):
+            PaperLedger(
+                self.fixture.path, strategy_id="STRATEGY_CORE",
+                leverage="13", apply_migrations=False,
+            )
+
+    def test_read_only_core_ledger_constructor_never_creates_missing_database(self):
+        missing = Path(self.fixture.temp.name) / "missing-core-ledger.sqlite3"
+        with self.assertRaises(FileNotFoundError):
+            PaperLedger(
+                missing, strategy_id="STRATEGY_CORE",
+                leverage="1", apply_migrations=False,
+            )
+        self.assertFalse(missing.exists())
+
+    def test_read_only_core_ledger_constructor_never_creates_missing_parent(self):
+        missing = Path(self.fixture.temp.name) / "absent" / "nested" / "paper.sqlite3"
+        with self.assertRaises(FileNotFoundError):
+            PaperLedger(
+                missing, strategy_id="STRATEGY_CORE",
+                leverage="1", apply_migrations=False,
+            )
+        self.assertFalse(missing.parent.parent.exists())
+
+
 if __name__ == "__main__":
     unittest.main()
