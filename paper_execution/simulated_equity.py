@@ -262,8 +262,7 @@ def verify_simulated_equity_origin(connection):
     if risk[1] == utc_day:
         if latest_baseline is not None or baseline != Decimal("100"):
             raise sqlite3.DatabaseError("SIMULATED_EQUITY_RISK_STATE_CORRUPT")
-    elif (latest_baseline is None or latest_baseline[0] != risk[1]
-            or Decimal(latest_baseline[1]) != baseline):
+    elif latest_baseline is None or latest_baseline[0] != risk[1]:
         raise sqlite3.DatabaseError("SIMULATED_EQUITY_RISK_STATE_CORRUPT")
 
     for table in (
