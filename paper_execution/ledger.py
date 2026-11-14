@@ -11,6 +11,7 @@ from pipeline.values import identity, number, stamp
 from paper_execution import risk_control, equity as equity_history
 from paper_execution.simulated_equity import (
     initialize_simulated_equity, prepare_simulated_account_config,
+    verify_simulated_equity_origin,
 )
 from risk_policy import CORE_LEVERAGE, ORDER_MARGIN_BUDGET_PCT
 from paper_execution.account_history import (
@@ -418,6 +419,7 @@ def read_account_risk_snapshot(db_path, *, now_ms):
                 if migration is None or migration["checksum"] != checksum:
                     raise sqlite3.DatabaseError("DUAL_LEDGER_MIGRATION_NOT_APPLIED")
 
+            simulated = verify_simulated_equity_origin(db)
             account = db.execute(
                 "SELECT initial_capital FROM paper_accounts WHERE account_id=1"
             ).fetchone()
@@ -550,9 +552,10 @@ def read_account_risk_snapshot(db_path, *, now_ms):
             drawdown = max(Decimal(0), hwm - equity)
             return {
                 "mode": "PAPER", "liveTradingSupported": False, "available": True,
-                "riskReady": bool(risk["risk_ready"]) and bool(cutover) and not funding_gap,
+                "riskReady": bool(risk["risk_ready"]) and (bool(cutover) or simulated) and not funding_gap,
                 "unavailableReason": (
-                    "ACCOUNT_EQUITY_CUTOVER_NOT_ESTABLISHED" if not cutover else
+                    "ACCOUNT_EQUITY_CUTOVER_NOT_ESTABLISHED"
+                    if not cutover and not simulated else
                     "FUNDING_PROVENANCE_INCOMPLETE" if funding_gap else
                     risk["unavailable_reason"]
                 ),
