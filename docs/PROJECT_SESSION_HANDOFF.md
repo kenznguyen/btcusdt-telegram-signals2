@@ -5135,3 +5135,13 @@ Next: preserve this proof and do not rerun automatically. Any additional runtime
 - Scope remains synthetic/temporary SQLite only. No live public API request, private account endpoint, real funding, credentials, VPS, production DB, T0, Runner/One-shot, live execution or orders.
 - D07 offline PAPER pipeline: **PASS within declared fixture population**. Real source identity/authenticity, external enumeration completeness, independent lineage, freshness, global completeness and factual truth: **NOT VERIFIED**. D07 overall **PARTIAL**; production bootstrap **BLOCKED / NOT APPROVED**.
 - Next bounded decision: whether to authorize a separate one-time public BTCUSDT funding-response capture (no credentials, no private endpoints) to validate real response bytes and timestamp/mark semantics. Do not add a persistent network client or scheduler without separate approval.
+
+
+## 2026-11-14 — D07.6 one-time public Binance capture attempt
+
+- Owner explicitly approved one-time public BTCUSDT USDⓈ-M funding-rate retrieval; scope excluded credentials, private account endpoints, VPS, T0, Runner/One-shot, live execution and orders.
+- Attempted live fetch of `https://fapi.binance.com/fapi/v1/fundingRate?symbol=BTCUSDT&limit=1000` through the available public retrieval path with cache disabled. Binance returned HTTP **451 Unavailable For Legal Reasons** and the body stated service was unavailable from the retrieval location under Binance eligibility terms.
+- No funding records were received. No attempt was made to bypass the regional restriction with proxies, alternate routes or other circumvention. No source bytes were accepted, hashed, parsed or staged; no parser/ledger state was changed.
+- D07.6 disposition: **BLOCKED — public source access restricted at retrieval location**. No CI run or artifact exists for this attempt. The HTTP status/body observation is evidence of the blocked attempt only, not funding data or a source-byte fixture.
+- D07.4 offline parser remains PASS; D07 offline PAPER fixture pipeline remains PASS within its declared synthetic population. D07 overall remains **PARTIAL**. Live-source schema validation, source-byte integrity, issuer authenticity, freshness and global enumeration completeness remain **NOT VERIFIED**.
+- Next: do not retry or route around the restriction. If the owner later provides an authorized eligible retrieval environment or an independently obtained official response capture, validate the exact bytes using the existing D07.2 provenance verifier and D07.4 parser. Any such acquisition must be separately scoped and must preserve the same paper-only/no-credentials constraints.
