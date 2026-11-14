@@ -296,3 +296,10 @@ These are machine-checkable clarifications of V1 semantics, not claims that refe
 ## 10. Evidence-reference resolution boundary
 
 The D07.10 structural validator checks that evidence-reference fields are present, non-empty and not literal `UNKNOWN`; it does not dereference them, authenticate their targets or establish that the referenced records are retained and reviewable. Therefore even a sidecar whose declared reviewer disposition is `SUPPORTED_WITHIN_BOUNDARY` receives a validator result of `NOT_VERIFIED` for collector independence until a separate evidence-resolution/review gate is implemented and approved. The declared disposition is returned separately and is never treated as a validator-issued PASS.
+
+
+## 11. D07.10 implementation disposition
+
+The D07.9 V1 schema, offline structural validator and synthetic CI contract suite are implemented. The final verified source is `0c19227c75a8b29a17da24fb59e4843b52d56632`; GitHub Actions run `43580873129` passed all 37 synthetic tests. The validator is intentionally not an evidence resolver: non-empty references are declarations, not proof that targets exist. A declared `SUPPORTED_WITHIN_BOUNDARY` disposition therefore remains `NOT_VERIFIED` in the validator result until a separately approved evidence-resolution/review step exists.
+
+D07.8 and D07.2 remain unchanged. No real Tardis data, endpoint, credentials, ledger, database, T0 or VPS was accessed. D07 remains PARTIAL; PAPER ledger bootstrap remains BLOCKED / NOT APPROVED.

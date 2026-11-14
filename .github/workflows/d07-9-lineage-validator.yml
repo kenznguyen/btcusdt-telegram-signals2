@@ -7,8 +7,6 @@ on:
     paths:
       - "d07_9_lineage/**"
       - ".github/workflows/d07-9-lineage-validator.yml"
-      - "docs/evidence/D07_9_COLLECTOR_LINEAGE_EVIDENCE_RECORD_V1_2026-11-14.md"
-      - "docs/PROJECT_SESSION_HANDOFF.md"
   workflow_dispatch:
 
 permissions:
