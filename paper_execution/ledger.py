@@ -1729,7 +1729,6 @@ class PaperLedger:
                     or (before.st_dev, before.st_ino) != (after.st_dev, after.st_ino)
                 ):
                     raise sqlite3.OperationalError("PAPER_LEDGER_PATH_REPLACED")
-                connection.execute("PRAGMA query_only=ON")
             except Exception:
                 connection.close()
                 raise
