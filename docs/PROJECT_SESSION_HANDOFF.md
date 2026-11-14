@@ -1,6 +1,6 @@
 # Five-Layer System — Session Handoff
 
-Updated: 2026-11-13 (Asia/Ho_Chi_Minh)
+Updated: 2026-11-14 (Asia/Ho_Chi_Minh)
 
 > Start here in every new session. GitHub is the source of truth. Read this short file first; consult the [archived handoff history](archive/PROJECT_SESSION_HANDOFF_HISTORY_2026-11-10.md) only when an older decision or evidence record is needed.
 
@@ -5417,3 +5417,21 @@ Next: preserve this proof and do not rerun automatically. Any additional runtime
 - Report updated: `docs/evidence/D07_13_PILOT_ACQUISITION_BLOCKED_2026-11-14.md`. No raw attachment committed, no code changed, no CI run/artifact. No ledger/database, T0/VPS or runtime touched.
 - Status: attachment byte integrity/GZIP **PASS**; independent worker readback **PASS — LIMITED**; formal D07.11 resolver **NOT VERIFIED**; D07.7 real overlap **NOT PERFORMED**; comparator no-counterpart diagnostic **NOT_VERIFIED_NO_OVERLAP**. D07.2 `BLOCKED_SHARED_LINEAGE` unchanged; D07 **PARTIAL**; PAPER ledger bootstrap **BLOCKED / NOT APPROVED**.
 - Next gate: owner supplies the exact original Binance D07.6 response bytes (or verified immutable copy and parser output) and the actual D07.8 manifest, D07.9 sidecar and evidence reference index. Then repeat only bounded offline D07.7 overlap and formal D07.11 resolution. No VPS/T0 or ledger import implied.
+
+## 2026-11-14 — D07.6 owner-provided VPS capture verification and D07.7 three-event value comparison
+
+- The owner ran bounded read-only commands on `ubuntu@scw-optimistic-jang` and pasted the terminal output. Assistant did not SSH to or independently inspect the VPS. Treat these results as owner-provided terminal evidence.
+- Exact capture directory: `/tmp/d07-6-binance-20261114T051131Z`.
+- Owner-pasted inventory: `response_body.bin` 63,043 bytes; `http_status.txt`; `response_headers.txt`; `retrieved_at_utc.txt`; `provenance-envelope.json` 1,629 bytes.
+- Owner-pasted checks: HTTP 200; retrievedAt `2026-11-14T05:11:31Z`; content-length 63,043; raw body 63,043 bytes; SHA-256 `71eece4bd1d885eb090516c63bf261023f207a53747c6c1d9aa55eae1743b526`, matching the previously recorded D07.6 capture.
+- Owner-pasted raw JSON inspection: 500 records, first fundingTime `1780243200004`, last `1794614400004`; 500 unique fundingTime values; nondecreasing; no duplicate fundingTime; 500 `Regular` rateType values. Most common interval 28,800,000 ms (8 hours), with small millisecond variations.
+- Envelope declares one terminal page with 500 records and matching byte length/SHA-256, but `sourceTotal=null`, `nextCursor=null`; this does not establish complete endpoint enumeration. It explicitly records expected/observed source as Binance USD-M, shared upstream Binance, no independent issuer attestation, and issuer authenticity not independently verified.
+- An earlier assistant diagnostic supplied incorrect target epochs (9,600,000 ms early). Those target values/results are superseded. Corrected target epochs and owner-pasted raw response lookups:
+  - 2026-11-01 08:00 UTC: target `1793520000000`, Binance `fundingTime=1793520000003`, delta +3 ms, rate `0.00010000`.
+  - 2026-11-01 16:00 UTC: target `1793548800000`, Binance `fundingTime=1793548800000`, delta 0 ms, rate `0.00010000`.
+  - 2026-11-02 00:00 UTC: target `1793577600000`, Binance `fundingTime=1793577600005`, delta +5 ms, rate `0.00010000`.
+- These three Binance rates numerically agree with the three Tardis candidate rates (`0.0001`): **D07.7 three-event value agreement PASS — LIMITED**. This is not a formal comparator PASS; no timestamp tolerance policy was approved. Tardis 08:00 still has two tied latest pre-event observations with different local receive timestamps; the initial 00:00 event still has no earlier observation in the supplied daily file.
+- Evidence report updated: `docs/evidence/D07_13_PILOT_ACQUISITION_BLOCKED_2026-11-14.md`, commit `a497d14e1b3207d75c6f0baa9fab9cf9f08c3741`, report blob `0428083a40c80d8c6ad27380f699e4dab7a7bad4`.
+- No raw VPS capture was uploaded/committed. No code, comparator, manifest/validator, funding row, ledger/database, T0, VPS runtime, Runner/One-shot, credentials or execution state changed. Documentation-only; no CI run/artifact.
+- Current disposition: D07.6 byte integrity **PASS** (owner-provided output); envelope/raw consistency **PASS — owner-provided evidence**; Binance page structure **PASS — bounded 500-record page**; enumeration/global completeness **NOT VERIFIED**; D07.7 three-event funding-rate agreement **PASS — LIMITED**; formal comparator/timestamp policy **NOT VERIFIED**; formal D07.11 manifest/sidecar/reference-index resolution **NOT VERIFIED**; D07.2 **BLOCKED_SHARED_LINEAGE**; D07 **PARTIAL**; PAPER ledger bootstrap **BLOCKED / NOT APPROVED**.
+- Next permitted work: assess whether the Binance 500-record limit can be enumerated completely using already captured evidence/documentation, without another network request. Any additional endpoint request, VPS command outside the exact read-only capture inspection, raw-file transfer, T0/ledger operation or runtime action requires separate explicit approval.
