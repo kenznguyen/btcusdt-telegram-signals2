@@ -5250,7 +5250,7 @@ Next: preserve this proof and do not rerun automatically. Any additional runtime
 ## 2026-11-14 — D07.8 corrected CI acceptance (final)
 
 - Corrected acceptance run: [GitHub Actions run 43565975412](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43565975412), job `132359796501`: **SUCCESS**.
-- Exact branch HEAD and source SHA tested: `4c9d6d7608754a6099589904a91e08a4c148d8ef` on `feature/core-operational-proof-20261112`. This is the current branch HEAD at verification; no later commit was observed.
+- Exact branch HEAD and source SHA tested: `4c9d6d7608754a6099589904a91e08a4c148d8ef` on `feature/core-operational-proof-20261112`. This was the branch HEAD when the workflow ran and was verified. The subsequent handoff-only documentation commit is `bce25b8e9986141406351e271718eff982cade07`; no code or workflow files changed after the tested source SHA.
 - The corrected workflow explicitly executed `python -m unittest paper_execution.test_funding_evidence_package -v`; focused D07.8 contract tests: **10/10 PASS**. The focused log `d07-funding-evidence-package-tests.log` was included in the artifact.
 - All workflow steps completed successfully, including compile, focused bootstrap/D07 tests, and full PaperLedger regression: **567/567 PASS** (136.545s).
 - Artifact: ID `14101984605`; name `dual-ledger-bootstrap-proof-4c9d6d7608754a6099589904a91e08a4c148d8ef`; size 18,388 bytes; digest `sha256:25d0fc958177e4ff649e79d79907e7ed01c2d5a302506f13191a5002af50cf0a`; expires `2026-11-21T06:21:55Z`.
