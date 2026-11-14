@@ -615,7 +615,7 @@ class T2HttpConsumerTest(unittest.TestCase):
 
         _, _, Error = self._adapter()
         with self.assertRaisesRegex(Error, "FRESHNESS_EXCEEDED"):
-            client.fetch(start_ms=START, end_ms=end, as_of_ms=generated)
+            client.fetch(start_ms=start, end_ms=end, as_of_ms=generated)
 
 
 if __name__ == "__main__":
