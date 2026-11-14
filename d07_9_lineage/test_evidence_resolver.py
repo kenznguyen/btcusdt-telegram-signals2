@@ -69,7 +69,7 @@ class D0711EvidenceResolverTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.root = Path(self.temp.name)
-        self.record, self.package, self.index, self.manifest, self.raw, self.evidence = make_case(self.root)
+        self.record, self.package, self.index, self.raw, self.evidence = make_case(self.root)
 
     def tearDown(self):
         self.temp.cleanup()
@@ -144,7 +144,7 @@ class D0711EvidenceResolverTests(unittest.TestCase):
         self.assertEqual(result["status"], "BLOCKED")
 
     def test_10_manifest_raw_file_missing_is_not_verified(self):
-        result = self.resolve(manifest_file_metadata={})
+        self.package["files"][0].pop("sha256")\n        result = self.resolve()
         self.assertEqual(result["status"], "NOT_VERIFIED")
 
     def test_11_reference_length_mismatch_blocks(self):
