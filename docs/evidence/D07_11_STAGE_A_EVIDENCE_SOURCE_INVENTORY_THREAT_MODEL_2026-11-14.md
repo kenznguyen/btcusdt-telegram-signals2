@@ -93,3 +93,22 @@ If original upstream or custody records never existed or cannot be recovered, re
 Stage A does not establish a real evidence source or independent trust domain. Before Stage B (index contract) is implemented, owner should decide whether genuine provider/collector/custody evidence can be recovered from an authoritative source. If not, the correct outcome may be to retain the D07.9 V2 draft as permanently NOT_VERIFIED and close this evidence path without promoting it.
 
 No new source acquisition, network request, VPS/T0 access, filesystem search, key generation, signature, index, schema/validator/resolver change, ledger write, Runner/One-shot, credential use, live trading or data deletion occurred.
+
+## 8. Owner decision — provenance workstream closed as NOT_VERIFIED
+
+Owner decision recorded on 2026-11-14: accept closure of this provenance workstream at **NOT_VERIFIED**. This closes the current D07.9/D07.11 provenance investigation and implementation path for this BTCUSDT pilot. It is a disposition of insufficient evidence, not a successful provenance verification and not a finding that the data is false.
+
+Final bounded disposition:
+
+- D07.8 package: STRUCTURE_VALID; byte identity/readback PASS only within the recorded package boundary.
+- D07.9 V2 draft: retained as an explicit-unknown historical draft; provenance NOT_VERIFIED; do not promote to an attested sidecar.
+- D07.11 Stage A inventory/threat model: COMPLETE within the reviewed repository/session evidence.
+- D07.11 real index, trust root, signature verification and real resolver: NOT CREATED / NOT RUN.
+- Upstream provider origin, collector identity/execution, pre-ChatGPT custody, independent issuer/custodian, issuer authenticity, global completeness and factual truth: NOT_VERIFIED.
+- D07.2: BLOCKED_SHARED_LINEAGE.
+- D07 overall: CLOSED — NOT_VERIFIED for this provenance path; no PASS or partial provenance acceptance is implied.
+- Paper Ledger bootstrap/import: remains BLOCKED / NOT APPROVED.
+
+No further source recovery/acquisition, network request, VPS/filesystem search, Stage B index contract, key generation, signature, index creation, verifier/resolver execution or implementation is authorized by this closure decision. Reopening requires a new, explicit owner decision based on newly available genuine evidence. Historical code, reports, package and artifacts are retained; no files, data or Git branches are deleted.
+
+No T0/T1/T2 runtime, Runner/One-shot, credentials, live trading, real orders or data deletion occurred as part of this closure.
