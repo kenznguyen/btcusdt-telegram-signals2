@@ -158,6 +158,7 @@ class FeederBackgroundFailureRegressionTest(unittest.TestCase):
             stop_event = FailureDrivenStopEvent()
             notifications = []
             state_at_stopping = []
+            lease_valid_at_stopping = []
 
             def notify(message):
                 notifications.append(message)
@@ -165,6 +166,13 @@ class FeederBackgroundFailureRegressionTest(unittest.TestCase):
                     allow_failure.set()
                 elif message == "STOPPING=1":
                     state_at_stopping.append(runtime.state)
+                    lease_valid_at_stopping.append(
+                        leases.is_current(
+                            "background-failure-worker",
+                            runtime.lease_generation,
+                            now_ms=NOW + 1,
+                        )
+                    )
 
             result = run_service(runtime, stop_event=stop_event, notify=notify)
 
@@ -173,6 +181,7 @@ class FeederBackgroundFailureRegressionTest(unittest.TestCase):
             self.assertEqual(result, 3)
             self.assertEqual(notifications, ["READY=1", "STOPPING=1"])
             self.assertEqual(state_at_stopping, ["FAILED"])
+            self.assertEqual(lease_valid_at_stopping, [True])
             health.mark_not_ready.assert_called_once()
             self.assertEqual(runtime.state, "STOPPED")
             self.assertFalse(
