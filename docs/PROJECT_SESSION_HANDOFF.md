@@ -5939,3 +5939,16 @@ Current application:
 - Status: read-only inspection **PASS** within scope; risk readiness **BLOCKED / NOT READY**; Kill Switch **NOT ARMED**; persistent PAPER runtime and overall VPS operational readiness **NOT VERIFIED / BLOCKED**.
 - Next: design and seek separate approval for the read-only market-data source and first simulated mark ingestion contract (timeframe, freshness, dataset provenance, exact write operation). No mark write, Kill Switch mutation, preflight, Bootstrap, Decision Cycle, One-shot or Runner until separately approved.
 - Restrictions remain: no T0 mutation, no AI execution, no live trading or real orders; preserve existing VPS files and data.
+
+
+## 2026-11-14 — T0 canonical database loopback API read-only test
+
+- Active branch: `feature/core-operational-proof-20261112`; branch HEAD before this handoff update: `1687af6434112628a0d3cd5f376281c5e6aae269`.
+- Owner-reported VPS checkout/source SHA: `b92bb75b00b6f91c39c1b78fafab5cd1c77d8fde`; tested source was the synchronized `market_data` package at this SHA.
+- Owner-approved bounded test ran `python -m market_data.api` as a short-lived local process bound to `127.0.0.1:8788`, with SQLite backend and canonical database `/home/ubuntu/t0/data/market-data.sqlite3`. A temporary in-memory Bearer token was used; no token/config was persisted.
+- Owner-pasted results: API `/health` PASS; authenticated `GET /v1/candles` against the canonical database PASS; empty M15 window returned contract `1.0.0`, 0/1 candles and no data; invalid token rejected with HTTP 401; POST rejected with HTTP 405; `/v1/orders` returned HTTP 404; API process stopped successfully.
+- Owner-pasted integrity evidence: canonical T0 database SHA-256 unchanged across the test; independent PAPER Ledger SHA-256 unchanged across the test. No T0/PAPER database writes were observed in the returned checks.
+- Evidence provenance: owner-pasted terminal output; no independent SSH observation, GitHub Actions workflow, workflow run or artifact. No CI run was requested or produced.
+- Status: **PASS** for the bounded loopback API/read-only access behavior and the supplied unchanged-database hash checks. API empty-window behavior does not prove market-data availability. T0 canonical DB currently has zero candles; Feeder and Binance ingestion remain NOT STARTED; live M15/H1 data readiness remains **NOT VERIFIED**. PAPER Ledger remains unchanged and `risk_ready=0`; persistent PAPER runtime readiness remains **BLOCKED / NOT VERIFIED**.
+- No Feeder, ingestion, exchange API, systemd/autostart, Runner/One-shot, AI execution, live order or real trading action occurred. Paper-only posture and `AI_EXECUTION_ENABLED=false` remain unchanged.
+- Next: perform the separately bounded read-only Feeder configuration/startup-path inspection. Do not start Feeder or ingest/write market data until a separate explicit approval.
