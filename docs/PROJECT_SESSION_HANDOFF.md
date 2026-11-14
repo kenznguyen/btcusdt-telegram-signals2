@@ -5448,3 +5448,17 @@ Next: preserve this proof and do not rerun automatically. Any additional runtime
 - Evidence report updated: `docs/evidence/D07_13_PILOT_ACQUISITION_BLOCKED_2026-11-14.md`, commit `0f640ee428c2f3401cbc204ebc458e4fb4cd3cef`, blob `6c12f6128619ac188f495b99a0061e7e34944f2c`.
 - Status unchanged: D07.6 byte integrity **PASS — owner-provided evidence**; actual request limit **NOT VERIFIED**; endpoint enumeration/global completeness **NOT VERIFIED**; D07.7 three-event rate agreement **PASS — LIMITED**; formal comparator **NOT VERIFIED**; D07.2 **BLOCKED_SHARED_LINEAGE**; D07 **PARTIAL**; PAPER ledger bootstrap **BLOCKED / NOT APPROVED**.
 - Next: do not make another request until separately approved. If approval is granted, perform a bounded, read-only pagination acquisition with explicit parameters and page-level custody; do not import data into any ledger/database.
+
+
+## 2026-11-14 — D07.7 exact-key three-row reconciliation
+
+- Re-read the D07.6 parser and provenance records already present in this handoff. The strict D07.4 parser result was previously owner-provided: source HEAD `9aac55b60bec0180cf639086139fc95bf4dabd32`, parser blob `018d86732af1bcfd5e8dc8825188aa24895d82be`, 500 events, all `rateType=Regular`, PASS within the exact captured page. This result was not missing from the history; do not ask the owner to repeat it.
+- Re-read D07.7 implementation `paper_execution/funding_lineage.py`, blob `d677c7d101fd3c659e7c73785d9735dd2ff692d4`. Its settlement key is exact integer `funding_time_ms`; no timestamp tolerance or nearest-event matching is implemented.
+- Reproduced the exact-key comparison rule in a bounded isolated Python check using the three already owner-provided Binance/Tardis candidate pairs. This is not a full source-module run over the complete raw files.
+- Result for the three-row sample: `PASS_WITHIN_OVERLAP`, matched 1, mismatches 0, unmatched Binance 2, unmatched Tardis 2. Only 2026-11-01 16:00 UTC has an exact timestamp key. 08:00 is Binance +3 ms; 2026-11-02 00:00 is Binance +5 ms. All three nearest-event pairs have numerically equal funding rates (0.0001), but the two offset pairs are not exact-key corroboration.
+- Therefore the prior 3/3 rate agreement is retained only as a **nearest-event numeric comparison**, not 3/3 D07.7 exact-key corroboration. No timestamp tolerance was added or assumed.
+- The repository tree at starting HEAD `478c2a9a394df987986c8c1dfc17f3b471f7ebfc` contains D07.8/D07.9 design documents, schema, validator, resolver and synthetic tests, but no actual D07.13 evidence-package manifest, lineage sidecar or evidence reference index. The raw Binance capture remains on the owner-reported VPS path and was not transferred; the Tardis attachment was not committed.
+- Evidence report addendum: `docs/evidence/D07_13_PILOT_ACQUISITION_BLOCKED_2026-11-14.md`.
+- No code/tests changed, no CI run/artifact, no network request, VPS/T0 access, raw transfer, ledger/database write, Runner/One-shot or live execution.
+- Status: D07.7 exact-key comparison **PASS_WITHIN_OVERLAP — 1/3, LIMITED SAMPLE**; D07.2 **BLOCKED_SHARED_LINEAGE**; D07 **PARTIAL**; PAPER ledger bootstrap **BLOCKED / NOT APPROVED**.
+- Next gate: obtain an owner-approved evidence bundle containing the preserved original Binance response bytes and the actual D07.8 manifest, D07.9 sidecar and reference index, plus the preserved Tardis raw attachment. Then perform the full bounded offline D07.11 resolution and D07.7 comparison. No timestamp tolerance, new acquisition, VPS operation or ledger import is implied.

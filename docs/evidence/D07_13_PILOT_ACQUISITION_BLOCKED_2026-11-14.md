@@ -297,3 +297,45 @@ No pagination request was made in this review. No retry, alternate route, VPS co
 - D07.6 raw byte integrity remains **PASS — owner-provided evidence**.
 - D07.7 three-event funding-rate agreement remains **PASS — LIMITED**; no formal comparator PASS.
 - D07.2 remains **BLOCKED_SHARED_LINEAGE**; D07 remains **PARTIAL**; PAPER ledger bootstrap remains **BLOCKED / NOT APPROVED**.
+
+
+## 11. Exact-key D07.7 comparator reconciliation (2026-11-14)
+
+This addendum resolves the distinction between the earlier three-event numeric-rate comparison and the D07.7 comparator's exact settlement-key contract.
+
+### Comparator contract checked
+
+- Reviewed `paper_execution/funding_lineage.py`, exact Git blob `d677c7d101fd3c659e7c73785d9735dd2ff692d4`.
+- D07.7 uses the exact integer `funding_time_ms` as the settlement key; it does not apply timestamp tolerance or nearest-event matching.
+- Rates are compared as Decimal values. Only the exact timestamp intersection contributes to `matchedCount`; unmatched counts remain explicit.
+- The source module was reviewed, and its exact-key comparison logic was reproduced in a bounded isolated Python check using only the three Binance/Tardis candidate pairs already recorded above. This was not a full execution against the 500-row Binance raw file and the complete Tardis CSV.
+
+### Three-row exact-key result
+
+| Event | Binance funding_time_ms | Tardis funding_time_ms | Difference | Exact key |
+|---|---:|---:|---:|---|
+| 2026-11-01 08:00 UTC | 1793520000003 | 1793520000000 | +3 ms | Unmatched |
+| 2026-11-01 16:00 UTC | 1793548800000 | 1793548800000 | 0 ms | Matched |
+| 2026-11-02 00:00 UTC | 1793577600005 | 1793577600000 | +5 ms | Unmatched |
+
+Both inputs use the same normalized identity: venue BINANCE, instrument BTCUSDT, market_type USD_M_FUTURES, contract_type PERPETUAL, margin_asset USDT, settlement_asset USDT. All three rates on each side are numerically equal to 0.0001.
+
+Bounded reproduction result:
+- `observationCorroboration=PASS_WITHIN_OVERLAP`
+- `matchedCount=1`
+- `mismatchCount=0`
+- `unmatchedBinanceCount=2`
+- `unmatchedTardisCount=2`
+- `issuerIndependence=NOT_VERIFIED_SAME_ISSUER`
+- `collectorIndependence=NOT_VERIFIED`
+- enumeration/global completeness, issuer authenticity, freshness and factual truth: `NOT_VERIFIED`
+
+### Interpretation and limits
+
+- The earlier 3/3 statement remains true only as a nearest-event numerical-rate comparison. It is **not** 3/3 exact-key corroboration under D07.7.
+- Under the current contract, only the 16:00 UTC observation is an exact-key overlap. The +3 ms and +5 ms pairs are unmatched; no tolerance was invented or applied.
+- This is a three-row diagnostic, not a full-day or full-population comparison. The initial 00:00 Tardis event still has no strictly earlier observation in the supplied daily file.
+- No timestamp-tolerance policy is proposed or adopted in this increment. Any future tolerance would require a separately reviewed source-specific semantic contract and owner approval; it must not be silently added to D07.7.
+- D07.2 remains `BLOCKED_SHARED_LINEAGE`; D07 remains **PARTIAL**; PAPER ledger bootstrap remains **BLOCKED / NOT APPROVED**.
+
+No source code, parser, comparator, manifest, validator or test was changed. No raw data was transferred or committed. No API request, VPS/T0 command, ledger/database write, Runner/One-shot or live execution occurred. Documentation/evidence-only; no CI run or artifact.
