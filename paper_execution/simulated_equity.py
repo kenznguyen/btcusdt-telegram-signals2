@@ -238,13 +238,32 @@ def verify_simulated_equity_origin(connection):
     risk = tuple(risk) if risk is not None else None
     if (account != ("PAPER", "100", "USDT") or configured != ("100",)
             or risk is None or type(risk[3]) is not int or risk[3] not in (0, 1)
-            or risk[1] != utc_day or risk[2] != "100"):
+            or type(risk[1]) is not int or risk[1] < utc_day
+            or risk[1] % 86_400_000):
         raise sqlite3.DatabaseError("SIMULATED_EQUITY_RISK_STATE_CORRUPT")
     try:
         hwm = Decimal(risk[0])
+        baseline = Decimal(risk[2])
     except (DecimalException, TypeError, ValueError):
         raise sqlite3.DatabaseError("SIMULATED_EQUITY_RISK_STATE_CORRUPT") from None
-    if not hwm.is_finite() or hwm < Decimal("100"):
+    if (not hwm.is_finite() or hwm < Decimal("100")
+            or not baseline.is_finite() or baseline <= 0):
+        raise sqlite3.DatabaseError("SIMULATED_EQUITY_RISK_STATE_CORRUPT")
+
+    baseline_table = connection.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='table' "
+        "AND name='paper_simulated_daily_baseline_events'"
+    ).fetchone()
+    latest_baseline = connection.execute(
+        """SELECT utc_day_ms,baseline_equity_quote
+           FROM paper_simulated_daily_baseline_events
+           WHERE account_id=1 ORDER BY utc_day_ms DESC LIMIT 1"""
+    ).fetchone() if baseline_table else None
+    if risk[1] == utc_day:
+        if latest_baseline is not None or baseline != Decimal("100"):
+            raise sqlite3.DatabaseError("SIMULATED_EQUITY_RISK_STATE_CORRUPT")
+    elif (latest_baseline is None or latest_baseline[0] != risk[1]
+            or Decimal(latest_baseline[1]) != baseline):
         raise sqlite3.DatabaseError("SIMULATED_EQUITY_RISK_STATE_CORRUPT")
 
     for table in (
