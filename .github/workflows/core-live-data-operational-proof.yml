@@ -16,6 +16,7 @@ on:
       - "paper_execution/test_dual_ledger_red.py"
       - "pipeline/core_signal.py"
       - "pipeline/test_core_runtime_contract.py"
+      - "pipeline/test_core_runtime_one_shot.py"
       - "pipeline/test_core_runtime_adapter_contract.py"
       - "core_runtime/**"
       - "paper_execution/risk_control.py"
