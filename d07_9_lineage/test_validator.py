@@ -295,7 +295,12 @@ class D079LineageValidatorTests(unittest.TestCase):
         value["custody"]["readbackStartedAt"] = "2026-11-14T09:04:30Z"
         self.check_blocked(value)
 
-    def test_36_json_schema_is_valid_draft_2020_12(self):
+    def test_36_unknown_reference_literal_is_rejected(self):
+        value = fixture()
+        value["provider"]["sourceReference"] = "UNKNOWN"
+        self.check_blocked(value)
+
+    def test_37_json_schema_is_valid_draft_2020_12(self):
         from jsonschema import Draft202012Validator
         from pathlib import Path
         import json

@@ -68,7 +68,7 @@ def validate_lineage_record(record, d07_8_package, *, seen_record_ids=None):
     for path, text in _strings(record):
         if any(pattern.search(text) for pattern in _SECRET_PATTERNS):
             errors.append(f"SECRET_MATERIAL_DETECTED:{path}")
-        if path.endswith("Ref") and text.strip().upper() == "UNKNOWN":
+        if re.search(r"(?:Ref|Reference)$", path) and text.strip().upper() == "UNKNOWN":
             errors.append(f"UNRESOLVED_REFERENCE_LITERAL:{path}")
     if errors:
         return _result("BLOCKED", errors)
@@ -106,13 +106,13 @@ def validate_lineage_record(record, d07_8_package, *, seen_record_ids=None):
         if ref_value is not None and reason is not None:
             errors.append(f"D07_9_{ref_key.upper()}_REASON_CONFLICT")
 
-    if assessment["reviewDisposition"] != "NOT_REVIEWED" and _time(assessment["reviewedAt"]) < created:
-        errors.append("D07_9_REVIEW_PRECEDES_RECORD_CREATION")
     if assessment["reviewDisposition"] == "NOT_REVIEWED":
         if any(assessment[k] is not None for k in ("reviewerRef", "reviewedAt", "rationaleRef")):
             errors.append("D07_9_UNREVIEWED_METADATA_MUST_BE_NULL")
     elif any(assessment[k] is None for k in ("reviewerRef", "reviewedAt", "rationaleRef")):
         errors.append("D07_9_REVIEW_EVIDENCE_REQUIRED")
+    elif _time(assessment["reviewedAt"]) < created:
+        errors.append("D07_9_REVIEW_PRECEDES_RECORD_CREATION")
     if (record["supersedesRecordId"] is None) != (record["supersessionReason"] is None):
         errors.append("D07_9_SUPERSESSION_PAIR_INVALID")
 
@@ -131,6 +131,8 @@ def validate_lineage_record(record, d07_8_package, *, seen_record_ids=None):
             errors.append("D07_9_TRANSFORMATION_PROVENANCE_INCOMPLETE")
         if transformation["parserSourceSha"] and not re.fullmatch(r"[0-9a-f]{40,64}", transformation["parserSourceSha"]):
             errors.append("D07_9_PARSER_SOURCE_SHA_INVALID")
+        if transformation["executedAt"] and _time(transformation["executedAt"]) < completed:
+            errors.append("D07_9_TRANSFORMATION_PRECEDES_ACQUISITION_COMPLETION")
 
     files = d07_8_package.get("files")
     if not isinstance(files, list) or not all(isinstance(x, dict) and isinstance(x.get("path"), str) for x in files):
