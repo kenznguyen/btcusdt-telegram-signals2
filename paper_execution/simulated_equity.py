@@ -7,6 +7,7 @@ funded-account funding reconciliation and daily-baseline replay.
 import hashlib
 import json
 import sqlite3
+from decimal import Decimal, DecimalException
 
 from paper_execution.simulated_origin import initialize_simulated_origin
 
@@ -67,7 +68,13 @@ def _require_pristine_simulated_account(connection):
     account = connection.execute(
         "SELECT mode,initial_capital,currency FROM paper_accounts WHERE account_id=1"
     ).fetchone()
-    if account != ("PAPER", "100", "USDT"):
+    if not account or account[0] != "PAPER" or account[2] != "USDT":
+        raise ValueError("SIMULATED_ACCOUNT_IDENTITY_MISMATCH")
+    try:
+        capital = Decimal(account[1])
+    except (DecimalException, TypeError, ValueError):
+        raise ValueError("SIMULATED_ACCOUNT_IDENTITY_MISMATCH") from None
+    if not capital.is_finite() or capital != Decimal("100"):
         raise ValueError("SIMULATED_ACCOUNT_IDENTITY_MISMATCH")
 
     required_tables = {
