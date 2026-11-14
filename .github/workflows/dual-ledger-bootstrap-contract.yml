@@ -108,6 +108,12 @@ jobs:
           set -o pipefail
           python -m unittest paper_execution.test_funding_provenance -v 2>&1 | tee d07-provenance-tests.log
 
+      - name: Run focused D07.7 offline funding lineage tests
+        shell: bash
+        run: |
+          set -o pipefail
+          python -m unittest paper_execution.test_funding_lineage -v 2>&1 | tee d07-funding-lineage-tests.log
+
       - name: Run focused D07 PAPER funding model tests
         shell: bash
         run: |
@@ -165,6 +171,7 @@ jobs:
             d07-funding-reconciliation-tests.log
             d07-funding-persistence-tests.log
             d07-provenance-tests.log
+            d07-funding-lineage-tests.log
             d07-funding-model-tests.log
             d07-binance-public-funding-tests.log
             d07-position-projection-tests.log
