@@ -27,40 +27,37 @@ class CoreRunnerLedgerIntegrationTest(unittest.TestCase):
         book["observedAtMs"] = self.fixture.now + 1
         return intent, book
 
-    def test_open_partially_filled_and_filled_are_distinct_paper_outcomes(self):
-        # OPEN: a valid but non-crossing ask leaves the full quantity unfilled.
-        open_intent, open_book = self.entry_fixture("open")
-        limit = Decimal(open_intent["limitPrice"])
-        open_book["asks"] = [{
+    def test_open_order_is_persisted_without_fill_when_book_does_not_cross(self):
+        intent, book = self.entry_fixture("open")
+        limit = Decimal(intent["limitPrice"])
+        book["asks"] = [{
             "price": str(limit * Decimal("1.001")),
             "quantity": "1",
         }]
         opened = self.fixture.core.submit(
-            open_intent, open_book, self.fixture.now + 1, strategy_event="ENTRY",
+            intent, book, self.fixture.now + 1, strategy_event="ENTRY",
         )
         self.assertEqual(opened["status"], "OPEN", opened)
         self.assertEqual(opened["filledBase"], "0")
 
-        # PARTIALLY_FILLED: visible depth is positive but smaller than target.
-        partial_intent, partial_book = self.entry_fixture("partial")
-        quantity = Decimal(partial_intent["targetPositionBase"])
-        partial_book["asks"] = [{
-            "price": partial_intent["limitPrice"],
+    def test_partially_filled_order_tracks_filled_and_remaining_quantity(self):
+        intent, book = self.entry_fixture("partial")
+        quantity = Decimal(intent["targetPositionBase"])
+        book["asks"] = [{
+            "price": intent["limitPrice"],
             "quantity": str(quantity / 2),
         }]
         partial = self.fixture.core.submit(
-            partial_intent, partial_book, self.fixture.now + 1,
-            strategy_event="ENTRY",
+            intent, book, self.fixture.now + 1, strategy_event="ENTRY",
         )
         self.assertEqual(partial["status"], "PARTIALLY_FILLED", partial)
         self.assertGreater(Decimal(partial["filledBase"]), 0)
         self.assertGreater(Decimal(partial["remainingBase"]), 0)
 
-        # FILLED: the default disposable book has sufficient visible depth.
-        filled_intent, filled_book = self.entry_fixture("filled")
+    def test_filled_order_consumes_full_target_quantity(self):
+        intent, book = self.entry_fixture("filled")
         filled = self.fixture.core.submit(
-            filled_intent, filled_book, self.fixture.now + 1,
-            strategy_event="ENTRY",
+            intent, book, self.fixture.now + 1, strategy_event="ENTRY",
         )
         self.assertEqual(filled["status"], "FILLED", filled)
         self.assertEqual(filled["remainingBase"], "0")
