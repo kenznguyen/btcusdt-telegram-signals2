@@ -54,6 +54,7 @@ class SimulatedEquityInitializationTest(unittest.TestCase):
             DEFAULT_SIMULATED_CAPITAL_CONTRACT, separators=(",", ":")
         ).encode("utf-8")
         self.now = 1_800_000_000_000
+        self.db.commit()  # Finish fixture setup before explicit BEGIN IMMEDIATE tests.
 
     def tearDown(self):
         self.db.close()
