@@ -1,0 +1,140 @@
+{
+  "schemaVersion": "TARDIS_COLLECTOR_LINEAGE_V1",
+  "recordId": "d07-9-btcusdt-20261101-provisional-draft",
+  "packageId": "d07-8-tardis-btcusdt-20261101-pilot-v4",
+  "createdAt": "2026-11-14T13:13:42Z",
+  "custodian": {
+    "actorRef": "OWNER",
+    "role": "OWNER",
+    "organizationRef": null,
+    "organizationUnavailableReason": "No organization/custody organization was identified in the supplied evidence."
+  },
+  "provider": {
+    "name": "TARDIS",
+    "dataset": "binance-futures",
+    "feed": "derivative_ticker",
+    "venue": "BINANCE",
+    "sourceReference": "UNVERIFIED_USER_SUPPLIED_PILOT_CONTEXT"
+  },
+  "acquisition": {
+    "method": "OWNER_SUPPLIED_FILE",
+    "actorRef": "OWNER",
+    "process": "Owner reports retrieving BTCUSDT.csv from ChatGPT. Original upstream acquisition and source before ChatGPT are unknown.",
+    "executionRef": null,
+    "hostEnvironmentRef": null,
+    "startedAt": null,
+    "completedAt": null,
+    "transport": null,
+    "channel": "CHATGPT_RETRIEVAL_REPORTED_BY_OWNER",
+    "providerPeriod": {
+      "start": "2026-11-01T00:00:00Z",
+      "end": "2026-11-02T00:00:00Z",
+      "semantics": "Intended D07.8 pilot date window; not independently established as provider export coverage.",
+      "timezone": "UTC"
+    },
+    "requestReference": null,
+    "requestReferenceUnavailableReason": "No Tardis export receipt, request ID, job ID, or provider metadata was supplied.",
+    "networkEgressRef": null,
+    "networkEgressUnavailableReason": "No acquisition network/egress evidence is available."
+  },
+  "rawFiles": [
+    {
+      "d07_8Path": "raw/BTCUSDT.csv.gz",
+      "mediaType": "application/gzip",
+      "byteLengthAtReceipt": 1431960,
+      "sha256AtReceipt": "71963e8235106ae36fe386ef0fbd52b078df48ea854d09d814469eddeed58a8c",
+      "preservedOriginal": true
+    }
+  ],
+  "custody": {
+    "receiptAt": null,
+    "receiptActorRef": "OWNER_RETRIEVED_FROM_CHATGPT; EXACT_RECEIPT_TIME_UNKNOWN",
+    "storageRef": "D07_8_V4_LOCAL_PACKAGE; ORIGINAL_PRE_CHATGPT_STORAGE_UNKNOWN",
+    "accessControlRef": null,
+    "readbackStartedAt": null,
+    "readbackAt": null,
+    "readbackActorRef": "D07_8_PACKAGE_BUILDER_READBACK_RECORDED; EXACT_ACTOR_AND_TIME_NOT_IN_EVIDENCE",
+    "readbackProcess": "D07.8 package byte-preservation/readback was recorded in the package evidence report; detailed execution trace is not attached to this draft.",
+    "readbackRunRef": "GITHUB_ACTIONS_RUN_43597428777_TESTS_ONLY; NOT_A_REAL_DATA_ACQUISITION_OR_READBACK_RUN",
+    "readbackEnvironmentRef": null,
+    "readbackStorageRef": "LOCAL_GENERATED_PACKAGE_PATH_RECORDED_IN_PRIOR_SESSION; CURRENT_STORAGE_CUSTODY_NOT_RECONFIRMED",
+    "readbackEvidenceRef": "docs/evidence/D07_8_OFFLINE_PACKAGE_BUILDER_2026-11-14.md",
+    "readbackFiles": [
+      {
+        "d07_8Path": "raw/BTCUSDT.csv.gz",
+        "byteLength": 1431960,
+        "sha256": "71963e8235106ae36fe386ef0fbd52b078df48ea854d09d814469eddeed58a8c",
+        "method": "INDEPENDENT_READBACK"
+      }
+    ],
+    "custodyEvents": []
+  },
+  "transformation": {
+    "performed": false,
+    "parserSourceSha": null,
+    "configurationFingerprint": null,
+    "executedAt": null,
+    "fieldMappingRef": "transforms/field-mapping.json",
+    "normalizedOutputFiles": []
+  },
+  "dependencies": [
+    {
+      "dependencyId": "binance-issuer",
+      "category": "ISSUER",
+      "systemRef": "BINANCE_USDM; AUTHENTICITY_NOT_VERIFIED",
+      "relationship": "The CSV declares exchange=binance-futures; issuer identity has not been authenticated.",
+      "sharedWithBinanceRestCapture": "YES",
+      "materialToCollectorSeparation": "UNKNOWN",
+      "evidenceRef": "D07_8_OFFLINE_PACKAGE_BUILDER_2026-11-14.md; D07.2 BLOCKED_SHARED_LINEAGE",
+      "unknownReason": "No independently authenticated issuer or collector evidence."
+    },
+    {
+      "dependencyId": "upstream-collector",
+      "category": "COLLECTOR",
+      "systemRef": "UNKNOWN",
+      "relationship": "Original collector and acquisition process before ChatGPT are unknown.",
+      "sharedWithBinanceRestCapture": "UNKNOWN",
+      "materialToCollectorSeparation": "UNKNOWN",
+      "evidenceRef": "D07_8_SOURCE_ORIGIN_CLARIFICATION_2026-11-14.md",
+      "unknownReason": "Owner reports retrieval from ChatGPT and no other source; no upstream collector identity or execution record supplied."
+    },
+    {
+      "dependencyId": "chatgpt-retrieval-channel",
+      "category": "STORAGE",
+      "systemRef": "CHATGPT",
+      "relationship": "Immediate retrieval channel reported by owner; not established as original source or immutable custody store.",
+      "sharedWithBinanceRestCapture": "UNKNOWN",
+      "materialToCollectorSeparation": "UNKNOWN",
+      "evidenceRef": "D07_8_SOURCE_ORIGIN_CLARIFICATION_2026-11-14.md",
+      "unknownReason": "No ChatGPT file-origin metadata or pre-ChatGPT custody chain available."
+    }
+  ],
+  "assessment": {
+    "declaredBoundary": "Provisional record of currently known owner-reported retrieval channel and D07.8 byte identity only. This is not an authenticated Tardis collector lineage record.",
+    "unknowns": [
+      "Original upstream source and creator before ChatGPT",
+      "Whether the file was ever directly exported from Tardis",
+      "Tardis export receipt, request/job ID, and provider metadata",
+      "Collector identity, software, execution ID, host, and acquisition timestamps",
+      "Transport and network egress evidence",
+      "Custody events and storage/access-control history before ChatGPT",
+      "Independent evidence reference index origin, authority, and immutability",
+      "Binance issuer authenticity",
+      "Authoritative expected funding schedule and source completeness"
+    ],
+    "reviewDisposition": "BLOCKED",
+    "reviewerRef": null,
+    "reviewedAt": null,
+    "rationaleRef": "docs/evidence/D07_8_SOURCE_ORIGIN_CLARIFICATION_2026-11-14.md"
+  },
+  "supersedesRecordId": null,
+  "supersessionReason": null,
+  "_draftStatus": "DRAFT_NOT_SCHEMA_VALIDATED",
+  "_schemaIssues": [
+    "Draft-only fields _draftStatus and _schemaIssues are not permitted by the strict schema additionalProperties=false.",
+    "Required date-time fields are null because their actual event times are unknown; schema currently requires date-time strings.",
+    "Required custody event list is empty because no custody events are evidenced; schema currently requires at least one event.",
+    "Several required references/timestamps are unknown and cannot truthfully be populated as validated values.",
+    "The declared provider TARDIS and feed metadata represent the intended pilot context, not authenticated provider provenance."
+  ]
+}
