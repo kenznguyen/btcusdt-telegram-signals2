@@ -16,6 +16,21 @@ from core_runtime.paper_ledger_preflight import (
 )
 
 
+def _exit_code_for_run_result(result):
+    """Map one-shot PAPER outcomes to stable process exit classes."""
+    status = result.get("runStatus") if isinstance(result, dict) else None
+    return {
+        "NO_SIGNAL": 0,
+        "PAPER_ACCEPTED": 0,
+        "INPUT_REJECTED": 2,
+        "RISK_UNAVAILABLE": 3,
+        "INVALID_SIGNAL": 4,
+        "RISK_REJECTED": 5,
+        "PAPER_COMMIT_FAILED": 6,
+        "RUN_FAILED": 6,
+    }.get(status, 6)
+
+
 def main(argv=None, *, now_ms=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", required=True, help="Explicit paper-only JSON config")
@@ -78,11 +93,11 @@ def main(argv=None, *, now_ms=None):
             from core_runtime.one_shot import run_once
             result = run_once(args.config, args.bundle, now_ms=now_ms)
             print(json.dumps(result, sort_keys=True, separators=(",", ":"), allow_nan=False))
-            return 0 if result["runStatus"] in ("NO_SIGNAL", "PAPER_ACCEPTED") else 2
+            return _exit_code_for_run_result(result)
         result = _preflight(args.config)
     except (PreflightError, ContinuousDryRunError, PaperLedgerPreflightError) as exc:
         print(str(exc), file=sys.stderr)
-        return 2
+        return 3 if isinstance(exc, PreflightError) and str(exc) == "RISK_STATE_BLOCKED" else 2
     except Exception:
         print("PREFLIGHT_FAILED", file=sys.stderr)
         return 2

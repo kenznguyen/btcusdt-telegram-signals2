@@ -2,6 +2,7 @@
 
 from decimal import Decimal, DecimalException
 import json
+import os
 from pathlib import Path
 import time
 
@@ -32,20 +33,29 @@ def _strict_json(path):
 
 
 def _runner_policy(config):
-    limits = config.get("risk_limits")
-    if not isinstance(limits, dict) or set(limits) != {
-        "maxDrawdownPct", "maxDailyLossUsdt", "maxExposureUsdt",
-    }:
+    config_limits = config.get("risk_limits")
+    if config_limits is None:
+        config_limits = {}
+    if not isinstance(config_limits, dict):
         raise PreflightError("RUNNER_RISK_LIMITS_REQUIRED")
-    for key, value in limits.items():
+    env_keys = {
+        "maxDrawdownPct": "PAPER_MAX_DRAWDOWN_PCT",
+        "maxDailyLossUsdt": "PAPER_MAX_DAILY_LOSS_USDT",
+        "maxExposureUsdt": "PAPER_MAX_EXPOSURE_USDT",
+    }
+    limits = {}
+    for key, env_key in env_keys.items():
+        env_value = os.environ.get(env_key)
+        value = env_value.strip() if isinstance(env_value, str) and env_value.strip() else config_limits.get(key)
         if not isinstance(value, str) or not value:
-            raise PreflightError("RUNNER_RISK_LIMIT_INVALID")
+            raise PreflightError("RUNNER_RISK_LIMITS_REQUIRED")
         try:
             parsed = Decimal(value)
         except (DecimalException, TypeError, ValueError):
             raise PreflightError("RUNNER_RISK_LIMIT_INVALID") from None
         if not parsed.is_finite() or parsed <= 0:
             raise PreflightError("RUNNER_RISK_LIMIT_INVALID")
+        limits[key] = value
     max_age = config.get("max_book_age_ms")
     if type(max_age) is not int or not 0 < max_age <= 5_000:
         raise PreflightError("RUNNER_BOOK_AGE_POLICY_INVALID")
@@ -115,7 +125,9 @@ def run_once(config_path, bundle_path, *, now_ms=None, on_intent_prepared=None):
     try:
         config, ledger_path = _load_config(config_path)
         limits, max_book_age_ms, max_position_base = _runner_policy(config)
-        _preflight(config_path, now_ms=now)
+        preflight = _preflight(
+            config_path, now_ms=now, allow_risk_unready=True,
+        )
         bundle = _strict_json(bundle_path)
         validation = validate_bundle(bundle, max_book_age_ms=max_book_age_ms)
         if validation["strategyId"] != "STRATEGY_CORE":
@@ -170,7 +182,7 @@ def run_once(config_path, bundle_path, *, now_ms=None, on_intent_prepared=None):
             )
         signal = validate_signal(adapted, now)
         if signal.get("action") == "WAIT" or not isinstance(signal.get("intent"), dict):
-            return _result(bundle, "RUN_FAILED", signal={
+            return _result(bundle, "INVALID_SIGNAL", signal={
                 "action": signal.get("action", "WAIT"),
                 "reason": signal.get("reason"),
             }, reason="CORE_SIGNAL_VALIDATION_FAILED")
@@ -187,6 +199,12 @@ def run_once(config_path, bundle_path, *, now_ms=None, on_intent_prepared=None):
             return _result(bundle, "NO_SIGNAL", signal={
                 "action": signal["action"], "reason": "CORE_TARGET_UNCHANGED",
             }, reason="CORE_TARGET_UNCHANGED")
+        if preflight.get("riskReady") is not True and strategy_event != "EXIT":
+            return _result(
+                bundle, "RISK_UNAVAILABLE",
+                signal={"action": signal["action"], "reason": "RISK_STATE_BLOCKED"},
+                reason="RISK_STATE_BLOCKED",
+            )
     except Exception:
         return _result(bundle, "RUN_FAILED", reason="CORE_PRODUCER_FAILED")
 

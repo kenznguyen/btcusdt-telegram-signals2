@@ -46,7 +46,7 @@ def _load_config(config_path):
     return config, ledger_path.resolve()
 
 
-def _preflight(config_path, *, now_ms=None):
+def _preflight(config_path, *, now_ms=None, allow_risk_unready=False):
     config, ledger_path = _load_config(config_path)
     if any(os.environ.get(key) for key in _CREDENTIAL_ENV_KEYS):
         raise PreflightError("EXCHANGE_CREDENTIALS_FORBIDDEN")
@@ -65,10 +65,12 @@ def _preflight(config_path, *, now_ms=None):
     risk = read_account_risk_snapshot(ledger_path, now_ms=observed_now)
     if risk.get("mode") != "PAPER" or risk.get("liveTradingSupported") is not False:
         raise PreflightError("PAPER_LEDGER_REQUIRED")
-    if risk.get("riskReady") is not True:
+    risk_ready = risk.get("riskReady") is True
+    if not risk_ready and allow_risk_unready is not True:
         raise PreflightError("RISK_STATE_BLOCKED")
     return {
-        "status": "PREFLIGHT_PASS", "mode": "PAPER",
-        "decisionCycle": "NOT_RUN", "ledgerPath": str(ledger_path),
-        "riskReady": True, "aiExecutionEnabled": False,
+        "status": "PREFLIGHT_PASS" if risk_ready else "PREFLIGHT_RISK_UNREADY",
+        "mode": "PAPER", "decisionCycle": "NOT_RUN",
+        "ledgerPath": str(ledger_path), "riskReady": risk_ready,
+        "aiExecutionEnabled": False,
     }
