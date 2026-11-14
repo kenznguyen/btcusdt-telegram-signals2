@@ -5308,3 +5308,16 @@ Next: preserve this proof and do not rerun automatically. Any additional runtime
 - D07.2 `BLOCKED_SHARED_LINEAGE` remains unchanged. Real Tardis byte custody, collector independence, overlap, expected-population authority, issuer authenticity, freshness, enumeration/global completeness and factual truth remain **NOT VERIFIED**. D07 remains **PARTIAL**; PAPER ledger bootstrap remains **BLOCKED / NOT APPROVED**.
 - D07.9 design document: **DOCUMENTED — DESIGN ONLY**. No CI run or artifact was produced because this increment changes documentation only.
 - Next gate: owner review of the D07.9 contract. Any Tardis acquisition, real-file parsing, source-specific verifier change, funding-row import, ledger/database write, T0 access or VPS operation requires a separate exact-scope approval.
+
+
+
+## 2026-11-14 — D07.9 lineage sidecar contract (owner approved; documentation only)
+
+- Owner approved the bounded documentation increment after D07.9 design review. Continue on existing branch `feature/core-operational-proof-20261112`; no branch or PR created.
+- Review finding resolved: D07.8's manifest/validator remains unchanged. D07.9 lineage evidence is a separate immutable sidecar, linked to the exact D07.8 `packageId`, rather than adding fields to the D07.8 schema.
+- Added `docs/evidence/D07_9_COLLECTOR_LINEAGE_EVIDENCE_RECORD_V1_2026-11-14.md`, commit `93bad7257ea047566dfce4be381e19bb6ccd6d9b`. It defines the V1 envelope, exact package/file binding, acquisition actor/process/host/transport, provider-native period, receipt/readback byte evidence, append-only custody events, transformation provenance, tri-state shared-dependency inventory, reviewer dispositions, immutable supersession/versioning and 20 adversarial cases plus positive controls.
+- Updated `docs/evidence/D07_9_TARDIS_COLLECTOR_INDEPENDENCE_ASSESSMENT_2026-11-14.md`, commit `4299041b50420f43f95d4190305bbca16b1b620c`, to reference the sidecar and explicitly preserve D07.8 compatibility.
+- Design rules: structural validity is not byte-integrity PASS; a declared digest is not readback; UNKNOWN dependencies fail closed; distinct collector path can only be claimed within a reviewed boundary; Binance remains the common issuer; no D07.7 overlap result promotes completeness, freshness, issuer authenticity or factual truth.
+- This was documentation/schema design only. No validator/parser/test implementation, workflow change, Tardis acquisition/API, credentials, real file custody/readback, funding row, ledger/database write, D07.2 verifier change, T0/VPS access, Runner/One-shot or live execution occurred. No CI run/artifact was produced.
+- Status: D07.9 sidecar contract **DOCUMENTED — NOT IMPLEMENTED**; D07.8 validator **UNCHANGED**; real collector independence and all real Tardis evidence dimensions remain **NOT VERIFIED**; D07.2 `BLOCKED_SHARED_LINEAGE` unchanged; D07 **PARTIAL**; PAPER ledger bootstrap **BLOCKED / NOT APPROVED**.
+- Next gate: review the sidecar schema for completeness and consistency before separately seeking approval for implementation or any real Tardis evidence intake. Neither is authorized by this documentation approval.
