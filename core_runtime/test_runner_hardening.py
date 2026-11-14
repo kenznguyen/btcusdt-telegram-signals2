@@ -277,6 +277,25 @@ class ProtectedLedgerPathParityTest(unittest.TestCase):
             result = _preflight(self.config)
         self.assertTrue(result["riskReady"])
 
+    def test_one_shot_preflight_rejects_ledger_replacement_during_snapshot(self):
+        risk = {"mode": "PAPER", "liveTradingSupported": False, "riskReady": True}
+
+        def replace_before_return(*_args, **_kwargs):
+            replacement = self.ledger.parent / "replacement-during-snapshot.sqlite3"
+            replacement.touch()
+            replacement.replace(self.ledger)
+            return risk
+
+        with (
+            patch.dict(os.environ, self.clean_env, clear=False),
+            patch(
+                "core_runtime.preflight.read_account_risk_snapshot",
+                side_effect=replace_before_return,
+            ),
+        ):
+            with self.assertRaisesRegex(PreflightError, "LEDGER_PATH_REPLACED"):
+                _preflight(self.config)
+
 
 if __name__ == "__main__":
     unittest.main()
