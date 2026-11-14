@@ -1676,6 +1676,7 @@ class PaperLedger:
                     raise sqlite3.OperationalError("PAPER_LEDGER_PATH_REPLACED")
             self._expected_file_identity = initial_identity
         with closing(self.connect()) as connection, connection:
+            connection.execute("BEGIN IMMEDIATE")
             if read_only_existing:
                 connection.execute("PRAGMA query_only=ON")
                 if not _dual_ledger_migrations_ready(connection):
