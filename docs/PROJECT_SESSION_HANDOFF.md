@@ -5366,3 +5366,17 @@ Next: preserve this proof and do not rerun automatically. Any additional runtime
 - D07.2 remains `BLOCKED_SHARED_LINEAGE`; D07 overall remains **PARTIAL**; PAPER ledger bootstrap remains **BLOCKED / NOT APPROVED**.
 - Evidence report updated in commit `9e8049d908eeb735d86a8ef3ad9e2b130e8d67aa`: `docs/evidence/D07_9_COLLECTOR_LINEAGE_EVIDENCE_RECORD_V1_2026-11-14.md`. The detailed run/artifact identifiers, limitations and interim failures are preserved there.
 - Next step: stop at the synthetic D07.11 gate. Any real evidence inventory/readback, Tardis acquisition, D07.2 verifier changes or PAPER ledger bootstrap requires a separate explicit approval and scope.
+
+
+## 2026-11-14 — D07.12 real evidence acquisition readiness assessment
+
+- Owner approved a bounded readiness-only increment. The scope was public Tardis documentation review and repository documentation; it did not authorize any real request/download, account login, credential use, subscription purchase, VPS/T0 access, parser against real data, D07.2/D07.8 changes, ledger import/bootstrap, Runner/One-shot or live execution.
+- Starting branch HEAD: `52ee5a8f44893ef251257fa8b655d74d60c16cca`. Continued on existing branch `feature/core-operational-proof-20261112`; no new branch or PR.
+- Public provider documentation confirms Binance USDT Futures historical coverage from 2019-11-17 and lists BTCUSDT `derivative_ticker` CSV. It also documents collection issues before 2020-05-14 (missing data/latency spikes during volatility).
+- The normalized derivative ticker schema contains `timestamp`, `local_timestamp`, `funding_timestamp` and `funding_rate`; `funding_timestamp` is the next funding event and `funding_rate` is the rate for that event. The final value before the funding timestamp is documented as the applied rate. This is a changing ticker-observation stream, not a documented one-row-per-settlement record. Exact event-key mapping, final-observation availability, reconnect/gap behavior and settlement-level suitability remain NOT VERIFIED.
+- Tardis documents daily gzip CSV datasets, with the first day of each month available without an API key; raw HTTP replay is minute-sliced and exchange-native, also with first-of-month unauthenticated historical access. Entitlement for other dates was not checked. No account or pricing action was taken.
+- Tardis states that historical feed data is sourced from captured exchange WebSocket feeds, making a separate collector path plausible relative to the prior Binance REST capture. Binance remains the common issuer; issuer independence is NOT AVAILABLE.
+- Readiness report: `docs/evidence/D07_12_REAL_EVIDENCE_ACQUISITION_READINESS_2026-11-14.md`, added in commit `081608b4cee9ef0c61ea9e84045bb9742f4fbd5c`.
+- Disposition: D07.12 public-documentation readiness review **PASS — DOCUMENTATION ONLY**; provider capability **DOCUMENTED**; distinct collector path **PLAUSIBLE / NOT VERIFIED**; settlement-level suitability **NOT VERIFIED — SEMANTIC GAP**; full-period entitlement **NOT VERIFIED**. No CI run/artifact because this was documentation-only.
+- D07.2 `BLOCKED_SHARED_LINEAGE` unchanged; D07 remains **PARTIAL**; PAPER ledger bootstrap remains **BLOCKED / NOT APPROVED**.
+- Next gate: owner must separately specify exact UTC date/range, product/feed, account entitlement if required, environment/storage, request/file/byte limits and stop conditions before any real acquisition. A real-file parser/readback and any D07.2/D07.8 changes remain separate approval gates.
