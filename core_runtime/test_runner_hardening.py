@@ -8,7 +8,9 @@ import unittest
 from unittest.mock import patch
 
 from core_runtime.preflight import PreflightError, _preflight
-from core_runtime.one_shot import _runner_policy
+from core_runtime.one_shot import _runner_policy, run_once
+from core_runtime.test_input_bundle_contract import valid_bundle
+from pipeline.test_core_runtime_one_shot import NOW, producer_report
 import core_runtime.__main__ as cli
 
 
@@ -101,6 +103,101 @@ class RunnerHardeningPolicyTest(unittest.TestCase):
         for result, expected in cases:
             with self.subTest(result=result):
                 self.assertEqual(cli._exit_code_for_run_result(result), expected)
+
+
+
+class RunnerRiskUnreadyDecisionTest(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        root = Path(self.temp.name)
+        self.ledger_path = root / "paper.sqlite3"
+        self.ledger_path.touch()
+        self.config_path = root / "paper.json"
+        self.bundle_path = root / "bundle.json"
+        self.config_path.write_text(json.dumps({
+            "mode": "PAPER",
+            "ai_execution_enabled": False,
+            "ledger_path": str(self.ledger_path),
+            "risk_limits": dict(LIMITS),
+            "max_book_age_ms": 2000,
+            "max_position_base": "0.01",
+        }), encoding="utf-8")
+        self.bundle = valid_bundle()
+        self.bundle["accountRisk"]["snapshot"]["riskReady"] = False
+        self.bundle_path.write_text(json.dumps(self.bundle), encoding="utf-8")
+
+    def test_entry_is_blocked_before_ledger_construction_when_risk_is_unready(self):
+        class NeverConstructLedger:
+            def __init__(self, *args, **kwargs):
+                raise AssertionError("ENTRY must be rejected before ledger construction")
+
+        paper_state = self.bundle["paperState"]
+        with (
+            patch("core_runtime.one_shot._preflight", return_value={"riskReady": False}),
+            patch("core_runtime.one_shot.validate_bundle", return_value={"strategyId": "STRATEGY_CORE"}),
+            patch("paper_execution.ledger.read_account_risk_snapshot",
+                  return_value=self.bundle["accountRisk"]["snapshot"]),
+            patch("paper_execution.ledger.read_snapshot", return_value=paper_state),
+            patch("pipeline.core_strategy.produce", return_value=producer_report("BUY")),
+            patch("paper_execution.ledger.PaperLedger", NeverConstructLedger),
+            patch.dict(os.environ, {
+                "PAPER_MAX_DRAWDOWN_PCT": "",
+                "PAPER_MAX_DAILY_LOSS_USDT": "",
+                "PAPER_MAX_EXPOSURE_USDT": "",
+            }, clear=False),
+        ):
+            result = run_once(self.config_path, self.bundle_path, now_ms=NOW)
+        self.assertEqual(result["runStatus"], "RISK_UNAVAILABLE")
+        self.assertEqual(result["reasonCode"], "RISK_STATE_BLOCKED")
+
+    def test_valid_position_reducing_exit_can_reach_shared_paper_ledger(self):
+        paper_state = {
+            "positionBase": "0.0002",
+            "averageEntryPrice": "50000",
+            "strategyState": {
+                "owner": "STRATEGY_CORE",
+                "dcaUsed": False,
+                "strategyId": "STRATEGY_CORE",
+            },
+        }
+        self.bundle["paperState"] = paper_state
+        self.bundle_path.write_text(json.dumps(self.bundle), encoding="utf-8")
+        report = producer_report("BUY")
+        report["intent"]["targetPositionBase"] = "0.0001"
+        submitted = []
+
+        class RecordingLedger:
+            def __init__(self, *args, **kwargs):
+                pass
+
+            def submit(self, intent, book, now, *, strategy_event=None):
+                submitted.append((intent, strategy_event))
+                return {
+                    "orderId": "paper-exit-fixture",
+                    "reservationId": "paper-exit-reservation",
+                    "status": "FILLED",
+                }
+
+        with (
+            patch("core_runtime.one_shot._preflight", return_value={"riskReady": False}),
+            patch("core_runtime.one_shot.validate_bundle", return_value={"strategyId": "STRATEGY_CORE"}),
+            patch("paper_execution.ledger.read_account_risk_snapshot",
+                  return_value=self.bundle["accountRisk"]["snapshot"]),
+            patch("paper_execution.ledger.read_snapshot", return_value=paper_state),
+            patch("pipeline.core_strategy.produce", return_value=report),
+            patch("paper_execution.ledger.PaperLedger", RecordingLedger),
+            patch.dict(os.environ, {
+                "PAPER_MAX_DRAWDOWN_PCT": "",
+                "PAPER_MAX_DAILY_LOSS_USDT": "",
+                "PAPER_MAX_EXPOSURE_USDT": "",
+            }, clear=False),
+        ):
+            result = run_once(self.config_path, self.bundle_path, now_ms=NOW)
+        self.assertEqual(result["runStatus"], "PAPER_ACCEPTED", result)
+        self.assertEqual(len(submitted), 1)
+        self.assertEqual(submitted[0][1], "EXIT")
+        self.assertEqual(submitted[0][0]["targetPositionBase"], "0.0001")
 
 
 if __name__ == "__main__":
