@@ -5597,3 +5597,17 @@ Next: preserve this proof and do not rerun automatically. Any additional runtime
 - Status: design ONLY / NOT IMPLEMENTED / AWAITING OWNER REVIEW; index authenticity and independent custody NOT_VERIFIED; D07.11 real resolution NOT RUN; D07.2 BLOCKED_SHARED_LINEAGE; D07 PARTIAL; Paper Ledger bootstrap BLOCKED / NOT APPROVED.
 - Next gate: owner review and separate approval before implementing an index contract or verifier. Real D07.11 remains prohibited until genuine source/custody evidence and an independently authenticated trust root/publication boundary are supplied.
 - No network acquisition, VPS/T0, ledger write, Runner/One-shot, credential use, live trading or data deletion occurred.
+
+
+## D07.11 Stage A — evidence source inventory and threat model — 2026-11-14
+
+- Read current `docs/PROJECT_SESSION_HANDOFF.md` and the committed D07.11 trust-boundary design before work.
+- Added documentation-only inventory: `docs/evidence/D07_11_STAGE_A_EVIDENCE_SOURCE_INVENTORY_THREAT_MODEL_2026-11-14.md`; commit `de5d1e395a2e04bfce099c243dca3b45106550a9`.
+- Inventory covers the ChatGPT-retrieved BTCUSDT CSV, D07.8 v4 package/manifest, offline builder and CI, D07.9 V2 draft, synthetic D07.11 resolver evidence, D07.6 Binance REST capture, Tardis public docs/metadata, GitHub commits/artifacts and prior bounded VPS search results.
+- Explicitly distinguishes established byte identity / owner-reported immediate retrieval from unverified upstream origin, provider receipt, original collector execution, pre-ChatGPT custody, index issuer, signing authority, trust root, independent storage and claim support.
+- Trust-role matrix records evidence producer, custodian, builder, index issuer, signing authority, verifier, claim assessor and Binance/Tardis issuer boundaries. Critical ownership/control-plane facts remain UNKNOWN; no independence is inferred from GitHub or CI.
+- Threat model includes source substitution, self-asserted index, shared repository/CI control plane, key compromise, mutable storage, path/canonicalization attacks, fabricated custody, shared issuer, incomplete API pagination, hash-vs-truth confusion and evidence expiry.
+- Minimum evidence requirements and decision gate are documented. If original source/custody records cannot be recovered, retain V2 as NOT_VERIFIED rather than reconstructing evidence.
+- Status: Stage A inventory COMPLETE within reviewed repository/session evidence; trust-role mapping INCOMPLETE; independent trust root/custody NOT DEMONSTRATED; D07.11 real index NOT PRESENT / resolver NOT RUN; D07.2 BLOCKED_SHARED_LINEAGE; D07 PARTIAL; Paper Ledger bootstrap BLOCKED / NOT APPROVED.
+- No new source acquisition, network request, expanded VPS/filesystem search, key generation, signature, index, code/schema/validator/resolver change, CI run, ledger write, Runner/One-shot, credential use, live trading or data deletion occurred.
+- Next gate: owner decision whether genuine provider/collector/custody evidence can be recovered. Stage B index contract implementation requires separate approval and should not proceed by fabricating trust material.
