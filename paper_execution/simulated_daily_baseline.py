@@ -171,8 +171,8 @@ def verify_simulated_daily_baseline_provenance(connection, *, risk_day, risk_bas
             or ("trigger", f"{TABLE}_immutable_update") not in objects
             or ("trigger", f"{TABLE}_immutable_delete") not in objects):
         raise sqlite3.DatabaseError("SIMULATED_DAILY_BASELINE_PROVENANCE_INVALID")
-    previous_day = origin["utcDayMs"]
-    previous_hash = origin["recordSha256"]
+    previous_day = origin[0]
+    previous_hash = origin[1]
     rows = connection.execute(
         f"""SELECT utc_day_ms,baseline_equity_quote,previous_utc_day_ms,
                    previous_equity_quote,previous_mark_observed_at_ms,
@@ -210,6 +210,6 @@ def verify_simulated_daily_baseline_provenance(connection, *, risk_day, risk_bas
     if rows and _positive_decimal(str(risk_baseline),
                                   "SIMULATED_DAILY_BASELINE_PROVENANCE_INVALID") != rows[-1][1]:
         raise sqlite3.DatabaseError("SIMULATED_DAILY_BASELINE_PROVENANCE_INVALID")
-    if not rows and (risk_day != origin["utcDayMs"] or str(risk_baseline) != "100"):
+    if not rows and (risk_day != origin[0] or str(risk_baseline) != "100"):
         raise sqlite3.DatabaseError("SIMULATED_DAILY_BASELINE_PROVENANCE_INVALID")
     return True
