@@ -129,3 +129,14 @@ The owner explicitly approved all four freeze decisions in this proposal:
 This approval freezes the design and authorizes the next bounded implementation increment: isolated TDD implementation of the simulated-origin persistence/initialization and atomic risk admission on the current branch. It does **not** authorize database migration or mutation of any existing operational database, Bootstrap, Runner, VPS/T0 access, exchange access, AI execution, live trading or real orders.
 
 Implementation must begin test-first, use disposable test databases/fixtures only, preserve funded-account Bootstrap/cutover behavior, and stop if the existing schema or risk semantics require an unapproved change.
+
+
+## 8. Implementation progress — 2026-11-14
+
+The owner-approved design remains frozen. The first isolated implementation increment is complete:
+- Immutable origin and distinct seed-event persistence primitive implemented.
+- Exact contract byte hash, duplicate/restart verification, record digests and UPDATE/DELETE triggers implemented.
+- 12/12 focused CI tests PASS on source SHA `d7be89a09c660a4a43b3de0a739d67558b65152a`, workflow run `43602607051`.
+- Evidence: `docs/evidence/SIMULATED_CAPITAL_V1_ORIGIN_PERSISTENCE_2026-11-14.md`.
+
+This is **not** full simulated-account initialization: account creation, origin, seed, UTC daily baseline and HWM are not yet composed in one atomic transaction. No PaperLedger runtime integration, 1% contract-bound order-margin enforcement, migration, Bootstrap or Runner is implemented or authorized. PAPER Ledger readiness remains **BLOCKED / NOT VERIFIED**.
