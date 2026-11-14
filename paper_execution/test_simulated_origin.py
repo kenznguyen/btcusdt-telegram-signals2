@@ -53,9 +53,15 @@ class SimulatedOriginTest(unittest.TestCase):
 
     def test_duplicate_initialization_is_idempotent_without_second_seed(self):
         first = self.initialize()
-        second = self.initialize()
+        second = initialize_simulated_origin(
+            self.connection,
+            contract_bytes=self.contract_bytes,
+            initialized_at_ms=1_800_000_100_000,
+            account_id=1,
+        )
 
         self.assertEqual(first, second)
+        self.assertEqual(second["initializedAtMs"], 1_800_000_000_000)
         self.assertEqual(
             self.connection.execute("SELECT COUNT(*) FROM paper_simulated_capital_seed_events").fetchone()[0],
             1,
