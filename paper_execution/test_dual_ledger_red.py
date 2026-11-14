@@ -447,10 +447,10 @@ class DualLedgerRedTest(unittest.TestCase):
             )
             connection.execute(
                 """UPDATE paper_account_risk_state
-                   SET high_water_mark_quote='110',
+                   SET high_water_mark_quote='1410',
                        daily_baseline_utc_day_ms=?,
-                       daily_baseline_equity_quote='108',
-                       last_equity_quote='106.75',
+                       daily_baseline_equity_quote='1408',
+                       last_equity_quote='1406.75',
                        last_mark_price='100',mark_observed_at_ms=?,
                        mark_candle_close_ms=?,dataset_version='sha256:snapshot-fixture',
                        risk_ready=1,unavailable_reason=NULL,updated_at_ms=?
@@ -539,7 +539,7 @@ class DualLedgerRedTest(unittest.TestCase):
             )
             connection.execute(
                 """UPDATE paper_account_risk_state
-                   SET last_equity_quote='100.5',high_water_mark_quote='100.5'
+                   SET last_equity_quote='1400.5',high_water_mark_quote='1400.5'
                    WHERE account_id=1"""
             )
         self.core.set_killed(True, self.now + 1, "LEGACY_REDUCTION_KILL_SWITCH")
@@ -1094,7 +1094,7 @@ class DualLedgerRedTest(unittest.TestCase):
             "expected_realized_pnl_quote": "1.5",
             "expected_fees_quote": "0.4",
             "expected_funding_quote": "0.2",
-            "expected_account_equity_quote": "102.4",
+            "expected_account_equity_quote": "1402.4",
             "mark_price": "100",
             "mark_candle_close_ms": self.now - 60_000,
             "mark_observed_at_ms": self.now,
@@ -1109,13 +1109,13 @@ class DualLedgerRedTest(unittest.TestCase):
         first = ledger.record_account_equity_cutover(path, **kwargs)
         replay = ledger.record_account_equity_cutover(path, **kwargs)
         self.assertEqual(first, replay)
-        self.assertEqual(Decimal(first["accountEquityQuote"]), Decimal("102.4"))
-        self.assertEqual(first["highWaterMarkQuote"], "102.4")
-        self.assertEqual(first["dailyBaselineEquityQuote"], "102.4")
+        self.assertEqual(Decimal(first["accountEquityQuote"]), Decimal("1402.4"))
+        self.assertEqual(first["highWaterMarkQuote"], "1402.4")
+        self.assertEqual(first["dailyBaselineEquityQuote"], "1402.4")
         self.assertEqual(first["dailyBaselineUtcDayMs"], self.now // 86_400_000 * 86_400_000)
 
         snapshot = ledger.read_account_risk_snapshot(path, now_ms=self.now)
-        self.assertEqual(Decimal(snapshot["accountEquityQuote"]), Decimal("102.4"))
+        self.assertEqual(Decimal(snapshot["accountEquityQuote"]), Decimal("1402.4"))
         self.assertTrue(snapshot["riskReady"])
 
         with sqlite3.connect(path) as connection:
