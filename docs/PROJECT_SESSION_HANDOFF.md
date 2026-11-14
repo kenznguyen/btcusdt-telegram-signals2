@@ -5831,3 +5831,16 @@ Current application:
 - Status: full Bootstrap regression BLOCKED / NOT VERIFIED pending run 43610139453. Core operational proof job remains PASS only at job level; Decision Cycle and One-shot sub-verdicts remain NOT VERIFIED. Overall PAPER Ledger readiness BLOCKED.
 - No runtime, DB, VPS, T0, Bootstrap activation, Runner, AI execution or live order action.
 - Next: inspect run 43610139453 terminal result. If it passes, work on Core Decision Cycle / One-shot verification using minimal TDD evidence. Bootstrap/Runner activation remains NOT AUTHORIZED.
+
+
+## 2026-11-14 — Core one-shot verdict-count mismatch correction
+
+- Read-only inspection of run [43608805282](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43608805282), exact source SHA `a65025f517affbba46756d020150b4f6ddff31bb`, showed `pipeline.test_core_runtime_one_shot` ran 15 tests and all 15 passed. The workflow evidence publisher incorrectly checked for `Ran 14 tests` and labeled the suite `14_PASS`; this produced false NOT_VERIFIED sub-verdicts despite the passing suite.
+- Changed only `.github/workflows/core-live-data-operational-proof.yml`: expected test count and status label now 15. No runner or trading logic change.
+- Commit/source SHA: `65973afea7dfb87035494298ea42c6d88ca84b8c`; workflow blob `77118f2e0537f80a5c0c5ba16cdb9af3cf5ae043`.
+- Corrected exact-source Core operational proof [run 43610239885](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43610239885), source SHA `65973afea7dfb87035494298ea42c6d88ca84b8c`, was QUEUED at update time.
+- Bootstrap rerun [43610139453](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43610139453), source SHA `b5822f148c451fbf786bcf24981f672fe9ca49b6`, remained IN_PROGRESS at last poll. Two previous migration-idempotency assertion failures were corrected in this source; final result pending.
+- Evidence report update commit `8dcd9e491ce8229140bca986287dd6abdf19b587`, blob `e043b931ce3f15af4fde8ee151fc24845f4c4f69`.
+- Status: one-shot test suite 15/15 PASS on the prior Core run; workflow evidence mismatch corrected but exact-source proof pending. Bootstrap full regression pending. Overall PAPER Ledger readiness BLOCKED / NOT VERIFIED. AI remains out of scope.
+- No operational DB/VPS/T0, Bootstrap activation, Runner activation, AI execution or live order.
+- Next: reconcile runs 43610139453 and 43610239885 at terminal state; preserve exact SHA and only then advance the Core gate.
