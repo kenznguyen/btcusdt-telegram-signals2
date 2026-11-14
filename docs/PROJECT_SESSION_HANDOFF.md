@@ -5663,3 +5663,12 @@ Next: preserve this proof and do not rerun automatically. Any additional runtime
 - Proposed DCA freeze: preserve one DCA per Core position lifecycle; same per-order 1% margin check and shared 10 USDT exposure/Kill Switch; AI does not inherit Core DCA. The 1% contract term is per order; no extra aggregate margin cap is invented. A multi-leg DCA design requires a new versioned contract.
 - **Owner freeze required:** origin schema, one-DCA semantics, per-order (not aggregate) margin interpretation, and AI DCA exclusion remain proposals until explicitly approved. No code/tests/schema/workflow/runtime changed; no CI run. No DB, migration, Bootstrap, Runner, T0/VPS, exchange or live-order action.
 - Next step: obtain owner decision on the four freeze items. After approval, implement the isolated origin/atomic admission path with TDD on this branch; keep Bootstrap and Runner unauthorized.
+
+
+## 2026-11-14 — SIMULATED_CAPITAL_V1 origin and Smart DCA design approved
+
+- Owner explicitly approved all four items in `docs/evidence/SIMULATED_CAPITAL_V1_ORIGIN_AND_SMART_DCA_FREEZE_PROPOSAL_2026-11-14.md`: (1) immutable simulated-origin record plus append-only seed event bound to exact contract SHA-256; synthetic seed is not a funding event; (2) preserve one Core DCA addition per position lifecycle and existing triggers/exit priority; (3) 1% equity margin ceiling is per order, including DCA, with no additional aggregate margin cap in this increment; (4) AI does not inherit Core Smart DCA.
+- Approval recorded in proposal update commit `519c0ef59d844400ca3e398759b2e14c7b255904`; proposal blob `2ebd0778a5fdc992100585045c931fbd2b2c4136`.
+- Design status: **OWNER APPROVED / FROZEN**. Implementation status: **NOT STARTED**.
+- Next authorized increment: test-first implementation of simulated-origin persistence/one-time initialization and atomic shared-risk admission using disposable test databases/fixtures only, on this branch. Preserve existing funded-account Bootstrap/cutover behavior.
+- Explicit limits remain: no existing operational DB mutation/migration, Bootstrap activation, Runner, VPS/T0 access, exchange access, AI execution, live trading or real orders. Stop if implementation requires an unapproved schema/risk-policy change.
