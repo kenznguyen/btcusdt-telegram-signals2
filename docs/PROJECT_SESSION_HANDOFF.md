@@ -5697,3 +5697,20 @@ Next: preserve this proof and do not rerun automatically. Any additional runtime
 - Disposition: origin/seed primitive remains **PASS WITHIN ISOLATED TEST SCOPE** (prior run `43602607051`, source `d7be89a09c660a4a43b3de0a739d67558b65152a`, 12/12). Full atomic account+origin+seed+UTC baseline+HWM initialization is **BLOCKED** by the existing transaction boundaries. Funded-account Bootstrap/cutover integration is **NOT VERIFIED**; PAPER Ledger readiness remains **BLOCKED / NOT VERIFIED**.
 - No code, schema, workflow, test, database, Bootstrap, Runner, VPS/T0, exchange or runtime was changed in this audit. No CI run/artifact.
 - Next decision required: approve or reject a narrowly additive SIMULATED-only equity-origin/cutover and readiness path that establishes 100 USDT starting equity, HWM and UTC baseline without inventing funding events/coverage, atomically with account+origin+seed. Existing funded-account Bootstrap/funding/cutover behavior must remain unchanged. Until that boundary is approved, do not change schema/risk semantics or start integration implementation. Existing operational/runtime prohibitions remain unchanged.
+
+
+## Current workstream — SIMULATED_CAPITAL_V1 Atomic Equity Initialization (2026-11-14)
+
+- Owner explicitly approved SIMULATED-only equity initialization: initial equity/HWM/UTC baseline 100 USDT; immutable origin and separate seed; atomic account + origin + seed + equity-origin + risk-state initialization; no funded-account path changes; disposable SQLite tests only.
+- Evidence report: `docs/evidence/SIMULATED_CAPITAL_V1_ATOMIC_EQUITY_INITIALIZATION_2026-11-14.md`, added in commit `f7585eb0ad0ecd8f456f8c00180dcad58286e69a`.
+- Active branch remains `feature/core-operational-proof-20261112`; no new branch/PR.
+- New module `paper_execution/simulated_equity.py` blob `4c3128875b900a0a632dfa83dfb1ad6b61443830`.
+- New tests `paper_execution/test_simulated_equity.py` blob `11003b6053482237af9a06578f1456d8b62b09b1`.
+- Ledger integration `paper_execution/ledger.py` blob `81695a592e35559e3a542fc11aa5a1d43558d88d`; origin helper remains blob `6c5dd0452021b42a01189ecb09b0a2f8043dd7ef`.
+- Workflow `.github/workflows/simulated-capital-v1-contract.yml` blob `40cd3d3e3b0d0c5ee7e4137eabd31a970f956f6a`; workflow compiles/tests the new source and includes push/PR path filters.
+- Test specification preceded implementation (test commit `4cf4ba11f01ee1c98c9635ccd1cbfe755e626707`; module commit `67c419ee6dfb0bb9c880a9b8250c466d57d3d100`). RED was not captured. No local test execution was available; the available GitHub workflow-run lookup returned no matching PR run for push commits, and combined status was empty. Compile/tests/CI are **NOT VERIFIED**.
+- Latest source/test commit before this handoff update: `15a3e8b61f388a54b094f8bf3cb35c03b0f5d694`. Evidence-doc commit: `f7585eb0ad0ecd8f456f8c00180dcad58286e69a`.
+- The implementation deliberately leaves `risk_ready=0` with `SIMULATED_INITIAL_MARK_REQUIRED`; HWM/baseline are initialized, but no order admission/readiness is granted before a valid market mark and existing risk checks.
+- Existing funded-account Bootstrap/cutover code was not modified or called. Funded-account regression remains **NOT VERIFIED**.
+- Status: design **OWNER APPROVED**; source/test specification **COMMITTED**; atomic behavior **NOT TEST VERIFIED**; CI **NOT VERIFIED**; PAPER Ledger readiness **BLOCKED**; runtime/VPS/DB **NOT AUTHORIZED**.
+- Next: obtain a verifiable Actions run for the exact branch SHA, fix any failures test-first, then add funded-account regression coverage. No operational DB, VPS, Runner, exchange or trading action.
