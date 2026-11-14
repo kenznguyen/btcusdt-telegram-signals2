@@ -5765,3 +5765,18 @@ Next: preserve this proof and do not rerun automatically. Any additional runtime
 - AI candidates remain fail-closed with AI_ADMISSION_NOT_ESTABLISHED until a trusted admission-context/admitted-leverage provider is wired. AI leverage must remain explicitly admitted within 1x–3x. Do not bypass this gate.
 - Status: read-only audit COMPLETE; SIMULATED-only writer admission NOT IMPLEMENTED / NOT VERIFIED; AI Trusted Admission Context NOT IMPLEMENTED / BLOCKED; funded-path existing behavior remains protected by its current test coverage.
 - Next permitted increment: write and commit isolated disposable-SQLite tests for SIMULATED-only Core ENTRY/DCA admission, 1% margin boundary, failure/rollback cases, Kill Switch and risk-limit rejection, plus funded-path regression; run RED before implementation. Then implement only the additive simulated admission path. No operational DB, VPS, T0, Bootstrap runtime, Runner, AI execution, live orders or real trading.
+
+
+## 2026-11-14 — SIMULATED-only Shared Order Admission V1 implementation and focused CI
+
+- Test specification expanded in commit `ff573a71e6a2c6d9d79694b4edcba8fc4c452c1f`; tests use disposable SQLite and approved risk limits (10% drawdown, 2 USDT daily loss, 10 USDT shared exposure).
+- RED run [43608778212](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43608778212), exact test-source SHA `ff573a71e6a2c6d9d79694b4edcba8fc4c452c1f`: 4 expected failures (Core ENTRY, DCA and Kill Switch cases) because writer admission required funded cutover.
+- Additive implementation commit/source SHA: `a65025f517affbba46756d020150b4f6ddff31bb`; `paper_execution/ledger.py` blob `4eca46c42a54d48afe067c3acd14fe305fc188c1`; test blob `c20e63f095ffb0460ddbcbd4a03fadcbd452b95a`.
+- `PaperLedger._submit_scoped` now recognizes only a verified SIMULATED origin and validates its UTC daily-baseline provenance chain. Such an account can pass without funded cutover/funding proof; funded-account admission retains its existing cutover and funding-provenance requirements.
+- Shared checks remain: risk_ready, fresh mark, equity, drawdown, daily loss, shared exposure/reservations, 1% per-order margin, and Kill Switch. Core ENTRY and DCA both use this shared path; existing one-DCA-per-position behavior is unchanged.
+- Simulated Capital V1 CI run [43608805148](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43608805148), job `132489066899`, exact source SHA `a65025f517affbba46756d020150b4f6ddff31bb`, SUCCESS: py_compile + JSON parse + 32/32 tests PASS.
+- PaperLedger compatibility CI run [43608805101](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43608805101), job `132489120079`, same source SHA, SUCCESS: 144/144 tests PASS, including funded dual-ledger and risk-control regressions.
+- Evidence report: `docs/evidence/SIMULATED_ONLY_SHARED_ORDER_ADMISSION_V1_2026-11-14.md`, created in commit `82a67d367db1de65b1169d8e87c11619a51c10c7`.
+- No artifact uploaded by these two CI runs. Bootstrap compatibility and broader operational-proof workflows are still pending terminal reconciliation at this handoff update.
+- Status: SIMULATED Core ENTRY/DCA shared admission, 1% margin rejection, Kill Switch rejection: PASS WITHIN CI TEST SCOPE. Funded PaperLedger compatibility: PASS within 144-test suite. AI Trusted Admission Context/admitted leverage: NOT IMPLEMENTED / BLOCKED. Runtime PAPER Ledger readiness: BLOCKED / NOT VERIFIED. Bootstrap and Runner activation remain NOT AUTHORIZED.
+- Next: reconcile pending same-source Bootstrap compatibility and operational-proof workflows; then separately design AI Trusted Admission Context. Do not activate Bootstrap/Runner, touch operational DB/VPS/T0, enable AI execution, or place live orders.
