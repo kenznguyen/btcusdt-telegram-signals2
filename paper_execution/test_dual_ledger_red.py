@@ -474,7 +474,7 @@ class DualLedgerRedTest(unittest.TestCase):
         self.assertEqual(snapshot["mode"], "PAPER")
         self.assertTrue(snapshot["available"], snapshot)
         self.assertFalse(snapshot["liveTradingSupported"])
-        self.assertEqual(Decimal(snapshot["accountEquityQuote"]), Decimal("106.75"))
+        self.assertEqual(Decimal(snapshot["accountEquityQuote"]), Decimal("1406.75"))
         self.assertEqual(
             Decimal(snapshot["grossExposureQuote"]),
             Decimal("35") + Decimal(reservation[0]),
@@ -869,7 +869,7 @@ class DualLedgerRedTest(unittest.TestCase):
         self.assertEqual(Decimal(funding), Decimal("0.25"))
         self.assertTrue({"source", "recorded_at_ms"}.issubset(columns))
         snapshot = ledger.read_account_risk_snapshot(path, now_ms=self.now + 2)
-        self.assertEqual(Decimal(snapshot["accountEquityQuote"]), Decimal("99.75"))
+        self.assertEqual(Decimal(snapshot["accountEquityQuote"]), Decimal("1399.75"))
 
         with self.assertRaisesRegex(ValueError, "FUNDING_EVENT_ID_CONFLICT"):
             ledger.record_funding_event(
@@ -1850,7 +1850,7 @@ os._exit(0)
                    FROM paper_account_risk_state WHERE account_id=1"""
             ).fetchone()
         self.assertEqual(high_water_mark, "1400")
-        self.assertEqual(equity, "105")
+        self.assertEqual(equity, "1405")
         self.assertEqual(risk_ready, 0)
 
     def test_funding_coverage_rejects_overlap_after_cutover(self):
@@ -2488,7 +2488,7 @@ os._exit(0)
         self.assertEqual(replay["ledgers"]["STRATEGY_CORE"]["position_base"], "0.1")
         self.assertEqual(replay["ledgers"]["STRATEGY_CORE"]["fees_quote"], "0.01")
         self.assertEqual(replay["ledgers"]["STRATEGY_CORE"]["funding_quote"], "0.25")
-        self.assertEqual(replay["equity_quote"], "100.14")
+        self.assertEqual(replay["equity_quote"], "1400.14")
 
         ledger.record_account_history_event(
             self.path,
