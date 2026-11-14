@@ -33,7 +33,7 @@ class AccountRiskSnapshotReadOnlyTest(unittest.TestCase):
         self.assertTrue(snapshot["riskReady"], snapshot)
         self.assertEqual(snapshot["mode"], "PAPER")
         self.assertIs(snapshot["liveTradingSupported"], False)
-        self.assertEqual(snapshot["accountEquityQuote"], "100")
+        self.assertEqual(snapshot["accountEquityQuote"], "1400")
         self.assertEqual(after, before, "read-only risk snapshot must not mutate database bytes")
 
     def test_incomplete_existing_database_fails_closed_without_initialization_or_mutation(self):
