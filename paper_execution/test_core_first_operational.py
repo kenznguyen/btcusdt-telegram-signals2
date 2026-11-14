@@ -122,8 +122,8 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
         self.path = Path(self.temp.name) / "core-first-paper.sqlite3"
         bootstrap = PaperLedger(self.path, max_position_base="1", fee_rate="0.001")
         bootstrap.record_equity(
-            "100", self.now - 60_000, self.now,
-            "sha256:core-first-seed", "100",
+            "1400", self.now - 60_000, self.now,
+            "sha256:core-first-seed", "1400",
         )
         self.core = PaperLedger(
             self.path, max_position_base="1", fee_rate="0.001",
@@ -148,9 +148,9 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
         day = self.now // 86_400_000 * 86_400_000
         with sqlite3.connect(self.path) as connection:
             connection.execute(
-                """UPDATE paper_account_risk_state SET high_water_mark_quote='100',
-                   daily_baseline_utc_day_ms=?,daily_baseline_equity_quote='100',
-                   last_equity_quote='100',last_mark_price=?,mark_observed_at_ms=?,
+                """UPDATE paper_account_risk_state SET high_water_mark_quote='1400',
+                   daily_baseline_utc_day_ms=?,daily_baseline_equity_quote='1400',
+                   last_equity_quote='1400',last_mark_price=?,mark_observed_at_ms=?,
                    mark_candle_close_ms=?,dataset_version='sha256:core-first-seed',
                    risk_ready=1,unavailable_reason=NULL,updated_at_ms=? WHERE account_id=1""",
                 (day, str(self.close), self.now, self.now - 60_000, self.now),
@@ -196,9 +196,9 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
         )
         ledger_module.record_account_equity_cutover(
             self.path, cutover_id="core-first-cutover",
-            expected_initial_capital_quote="100",
+            expected_initial_capital_quote="1400",
             expected_realized_pnl_quote="0", expected_fees_quote="0",
-            expected_funding_quote="0", expected_account_equity_quote="100",
+            expected_funding_quote="0", expected_account_equity_quote="1400",
             mark_price=str(self.close), mark_candle_close_ms=self.now - 60_000,
             mark_observed_at_ms=self.now,
             dataset_version="sha256:core-first-seed",
@@ -364,7 +364,7 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
         basis, margin, notional, status = reservation
         self.assertLessEqual(Decimal(margin), Decimal(basis) * Decimal("0.01"))
         self.assertGreater(Decimal(margin), Decimal(basis) * Decimal("0.0099"))
-        self.assertEqual(Decimal(notional), Decimal(margin) * Decimal("13"))
+        self.assertEqual(Decimal(notional), Decimal(margin) * Decimal("1"))
         self.assertEqual(status, "CONSUMED")
         self.assertEqual(ai_orders, 0)
 
@@ -449,7 +449,7 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
                 context.prec = 80
                 self.assertLessEqual(Decimal(margin), Decimal(basis) * Decimal("0.01"))
                 self.assertGreater(Decimal(margin), Decimal(basis) * Decimal("0.0099"))
-                self.assertEqual(Decimal(notional), Decimal(margin) * Decimal("13"))
+                self.assertEqual(Decimal(notional), Decimal(margin) * Decimal("1"))
             self.assertEqual(status, "CONSUMED")
 
 
@@ -527,7 +527,7 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
         })
         account_ledger.record_account_mark(
             str(mark_price), self.now - 60_000, mark_at,
-            "sha256:" + "9" * 64, "100",
+            "sha256:" + "9" * 64, "1400",
         )
         risk_before_exit = read_account_risk_snapshot(self.path, now_ms=mark_at)
         self.assertTrue(risk_before_exit["riskReady"], risk_before_exit)
@@ -608,7 +608,7 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
         self.assertEqual(funding, Decimal("0"))
         with localcontext() as context:
             context.prec = 80
-            expected_equity = Decimal("100") + realized - fees - funding
+            expected_equity = Decimal("1400") + realized - fees - funding
             self.assertEqual(Decimal(risk_after_exit["accountEquityQuote"]), expected_equity)
 
         # Latch the shared Kill Switch only after the position is flat; it must
