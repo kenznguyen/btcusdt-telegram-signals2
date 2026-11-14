@@ -89,7 +89,7 @@ D07.7 adds a separate future-facing analysis dimension; it does not overwrite th
 
 - Lineage dimension design: **DOCUMENTED**.
 - Pure offline normalized observation comparator: **IMPLEMENTED**.
-- Synthetic unit tests: **ADDED; CI verification pending until exact workflow result is recorded**.
+- Synthetic unit tests: **11 ADDED; CI PASS** (workflow `43564125815`, tested source SHA `0fe30e16018203d6aada91497eb6013a58b71607`).
 - Tardis raw-file parser/acquisition: **NOT IMPLEMENTED / NOT AUTHORIZED**.
 - Independent issuer authority: **NOT VERIFIED**.
 - Independent collector lineage: **NOT VERIFIED**.
