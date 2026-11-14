@@ -181,3 +181,6 @@ The separate sidecar contract was reviewed against D07.1 expected-population pro
 The review is **PASS WITH DOCUMENTATION CLARIFICATIONS** for the sidecar contract's design boundary. This is not an implementation or runtime PASS. No validator, parser, workflow, D07.8 manifest/validator or D07.2 verifier was changed. No Tardis acquisition/API, credentials, real bytes, funding row, ledger/database, T0/VPS, Runner/One-shot or live execution was used.
 
 Disposition remains: sidecar V1 **DOCUMENTED — NOT IMPLEMENTED**; D07.8 unchanged; real custody/collector independence/overlap/completeness/authenticity/freshness/truth **NOT VERIFIED**; D07.2 `BLOCKED_SHARED_LINEAGE` unchanged; D07 **PARTIAL**; PAPER ledger bootstrap **BLOCKED / NOT APPROVED**.
+
+
+V1 example alignment: after the normative review clarifications, the illustrative JSON envelope was also updated to include the required acquisition nullability reason fields, readback execution provenance and dependency materiality fields (commit `34c7541586b8747709b8c372158c286948ba9e18`). This is a documentation-only consistency correction; no implementation or runtime evidence is implied.
