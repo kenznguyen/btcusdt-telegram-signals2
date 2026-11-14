@@ -297,5 +297,34 @@ class SimulatedEquityInitializationTest(unittest.TestCase):
                     "SELECT risk_ready FROM paper_account_risk_state WHERE account_id=1"
                 ).fetchone(), (1,))
 
+    def test_simulated_mark_fails_closed_after_utc_day_without_new_baseline(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "simulated.sqlite3"
+            PaperLedger(
+                path,
+                strategy_id="STRATEGY_CORE",
+                source_sha="a" * 40,
+                simulated_contract_bytes=self.contract,
+                simulated_initialized_at_ms=self.now,
+            )
+            account_scope = PaperLedger(path)
+            record_account_mark(
+                account_scope, "100", self.now - 60_000, self.now,
+                "sha256:" + "c" * 64,
+            )
+            with self.assertRaisesRegex(ValueError, "ACCOUNT_RISK_DAILY_BASELINE_UNAVAILABLE"):
+                record_account_mark(
+                    account_scope, "101", self.now + 86_400_000 - 60_000,
+                    self.now + 86_400_000, "sha256:" + "d" * 64,
+                )
+            with sqlite3.connect(path) as db:
+                self.assertEqual(db.execute(
+                    """SELECT daily_baseline_utc_day_ms,last_mark_price,mark_observed_at_ms
+                       FROM paper_account_risk_state WHERE account_id=1"""
+                ).fetchone(), (
+                    self.now // 86_400_000 * 86_400_000,
+                    "100", self.now,
+                ))
+
 if __name__ == "__main__":
     unittest.main()
