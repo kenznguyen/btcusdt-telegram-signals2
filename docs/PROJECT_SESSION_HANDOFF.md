@@ -5393,3 +5393,15 @@ Next: preserve this proof and do not rerun automatically. Any additional runtime
 - D07.2 `BLOCKED_SHARED_LINEAGE` unchanged; D07 **PARTIAL**; PAPER ledger bootstrap **BLOCKED / NOT APPROVED**.
 - Next step requires an approved acquisition environment/storage destination able to retrieve the exact public gzip URL without credentials, or the owner supplying the original downloaded file as an attachment. VPS/T0, credentials, paid entitlement, alternate network route, wider range or raw replay API still require separate approval.
 - No code, verifier, funding row, ledger/database, T0/VPS or runtime changed. Documentation-only; no CI run.
+
+
+## 2026-11-14 — D07.13 owner-supplied candidate file inspection
+
+- Owner supplied `BTCUSDT.csv` as a conversation attachment after the one-day D07.13 pilot acquisition attempt. The object is GZIP despite its `.csv` filename; the raw attachment was not committed to the repository.
+- Exact uploaded compressed object: 1,431,960 bytes; SHA-256 `71963e8235106ae36fe386ef0fbd52b078df48ea854d09d814469eddeed58a8c`. GZIP decompression PASS; decompressed payload 12,337,426 bytes. A separate Python process reopened the uploaded path and independently reproduced the byte length, SHA-256 and successful decompression.
+- CSV: 98,211 data rows; 11 columns; all rows declare `exchange=binance-futures`, `symbol=BTCUSDT`; timestamp/local_timestamp values are nondecreasing and within 2026-11-01 UTC. Exact timestamp bounds, duplicate observations, four funding_timestamp values, constant funding_rate, and sparse missing optional fields are documented in `docs/evidence/D07_13_PILOT_ACQUISITION_BLOCKED_2026-11-14.md`.
+- Disposition: candidate attachment content and basic structure **PASS**; compressed-byte SHA-256/GZIP integrity **PASS**; separate-process attachment readback **PASS — LIMITED**. Exact Tardis URL/provider-origin provenance **NOT VERIFIED** because no endpoint HTTP response/headers, download receipt/log or authenticated origin evidence accompanied the attachment. Formal D07.11 sidecar/reference-index custody gate **NOT RUN**.
+- D07.7 settlement overlap, settlement equivalence, enumeration/global completeness, feed-gap completeness, freshness, issuer authenticity, collector-path independence and factual truth remain **NOT VERIFIED / NOT PERFORMED**. The in-file funding observations alone do not establish settlement-level equivalence.
+- Evidence report updated in the same branch; see `docs/evidence/D07_13_PILOT_ACQUISITION_BLOCKED_2026-11-14.md`. No raw attachment committed, no code/verifier or D07.2/D07.8 change, no funding row or ledger/database write, no T0/VPS, Runner/One-shot, credentials or live execution. Documentation/evidence only; no CI run/artifact.
+- D07.2 `BLOCKED_SHARED_LINEAGE` unchanged; D07 remains **PARTIAL**; PAPER ledger bootstrap remains **BLOCKED / NOT APPROVED**.
+- Next permitted gate: separately approve a bounded D07.11 real-file custody/sidecar resolution and D07.7 settlement-overlap comparison using this exact attachment, without importing rows or mutating any ledger/database. Do not infer approval for broader acquisition or runtime actions.
