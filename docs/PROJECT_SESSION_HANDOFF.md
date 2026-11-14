@@ -5545,3 +5545,14 @@ Next: preserve this proof and do not rerun automatically. Any additional runtime
 - No schema, validator, resolver, package bytes, reference index, VPS/T0, network, ledger, Runner/One-shot, credentials or execution state changed. No tests or CI workflow run. This is an evidence-drafting increment only.
 - Status: D07.8 remains `STRUCTURE_VALID`; provisional D07.9 draft **CREATED — NOT SCHEMA VALIDATED / BLOCKED**; D07.11 **NOT RUN**; D07.2 `BLOCKED_SHARED_LINEAGE`; D07 `PARTIAL`; Paper Ledger bootstrap `BLOCKED / NOT APPROVED`.
 - Next gate: either obtain real upstream/provider and custody evidence, or separately approve a schema/validator change that explicitly supports unknown acquisition and custody fields. Do not invent timestamps, references, or custody events to force validation.
+
+
+## 2026-11-14 — D07.9 V2 explicit-unknown schema contract proposal
+
+- Read current handoff, D07.9 V1 schema, validator, tests and README before proceeding. Read the API/interface-design and TDD skills.
+- Added design proposal `docs/evidence/D07_9_V2_EXPLICIT_UNKNOWN_SCHEMA_PROPOSAL_2026-11-14.md`, commit `9d5f08f6b380352c490a81cb32d11c8b5bbe0581`.
+- Proposal preserves V1 unchanged and defines a separately versioned V2 assertion model with explicit `KNOWN / UNKNOWN / UNAVAILABLE / NOT_APPLICABLE`, evidence basis, limitations, and independent structural vs provenance dispositions. Empty custody event lists are allowed structurally but force custody coverage to NOT_VERIFIED. Owner-reported assertions cannot be promoted to provider/independent attestation by schema validation.
+- Mapped current BTCUSDT facts: ChatGPT immediate retrieval channel and byte identity are owner-reported / cryptographically bounded; upstream source, direct Tardis export, collector, pre-ChatGPT custody, issuer authenticity and authoritative completeness remain UNKNOWN/UNAVAILABLE.
+- This is design-only and awaits owner approval. No V2 schema, validator, code, tests, workflow or current provisional draft was changed. No test or CI run. V1 schema/validator behavior remains untouched.
+- Status: D07.8 `STRUCTURE_VALID`; provisional V1-shaped D07.9 draft remains NOT V1-schema-valid; V2 contract proposal CREATED / NOT IMPLEMENTED / AWAITING APPROVAL; D07.11 NOT RUN; D07.2 `BLOCKED_SHARED_LINEAGE`; D07 `PARTIAL`; Paper Ledger bootstrap `BLOCKED / NOT APPROVED`.
+- Next gate: owner review/approval of the V2 field contract and status semantics. Only then implement `schema.v2.json`, a separate V2 validator and TDD tests/workflow. No acquisition, VPS/T0, real D07.11, ledger, Runner/One-shot or execution is authorized.
