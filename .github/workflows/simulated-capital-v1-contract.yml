@@ -1,0 +1,39 @@
+name: Simulated Capital V1 Contract
+
+on:
+  push:
+    branches:
+      - feature/core-operational-proof-20261112
+    paths:
+      - "paper_execution/simulated_capital.py"
+      - "paper_execution/test_simulated_capital_contract.py"
+      - "paper_execution/contracts/simulated_capital_v1.json"
+      - ".github/workflows/simulated-capital-v1-contract.yml"
+  pull_request:
+    paths:
+      - "paper_execution/simulated_capital.py"
+      - "paper_execution/test_simulated_capital_contract.py"
+      - "paper_execution/contracts/simulated_capital_v1.json"
+      - ".github/workflows/simulated-capital-v1-contract.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: simulated-capital-v1-contract-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  simulated-capital-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate machine-readable contract and run tests
+        run: |
+          python -m json.tool paper_execution/contracts/simulated_capital_v1.json >/dev/null
+          python -m unittest paper_execution.test_simulated_capital_contract -v
