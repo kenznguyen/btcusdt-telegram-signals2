@@ -91,6 +91,13 @@ class FundingLineageComparisonTest(unittest.TestCase):
                 [observation(venue="BINANCE")],
             )
 
+    def test_non_string_decimal_is_rejected(self):
+        with self.assertRaisesRegex(ValueError, "FUNDING_RATE_INVALID"):
+            compare_funding_observations(
+                [observation(venue="BINANCE", funding_rate=0.001)],
+                [observation(venue="BINANCE")],
+            )
+
     def test_shared_collector_lineage_is_explicitly_blocked(self):
         result = compare_funding_observations(
             [observation(venue="BINANCE")],
