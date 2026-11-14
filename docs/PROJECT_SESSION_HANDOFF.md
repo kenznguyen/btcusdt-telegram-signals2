@@ -5611,3 +5611,18 @@ Next: preserve this proof and do not rerun automatically. Any additional runtime
 - Status: Stage A inventory COMPLETE within reviewed repository/session evidence; trust-role mapping INCOMPLETE; independent trust root/custody NOT DEMONSTRATED; D07.11 real index NOT PRESENT / resolver NOT RUN; D07.2 BLOCKED_SHARED_LINEAGE; D07 PARTIAL; Paper Ledger bootstrap BLOCKED / NOT APPROVED.
 - No new source acquisition, network request, expanded VPS/filesystem search, key generation, signature, index, code/schema/validator/resolver change, CI run, ledger write, Runner/One-shot, credential use, live trading or data deletion occurred.
 - Next gate: owner decision whether genuine provider/collector/custody evidence can be recovered. Stage B index contract implementation requires separate approval and should not proceed by fabricating trust material.
+
+
+## 2026-11-14 — D07 provenance workstream closed as NOT_VERIFIED
+
+- Owner explicitly accepted closure of the BTCUSDT pilot provenance path at **NOT_VERIFIED** on 2026-11-14.
+- Closure is an evidence disposition, not successful provenance verification and not a finding that the source data is false.
+- D07.8 v4 remains **STRUCTURE_VALID**; byte identity/readback is bounded to the recorded package boundary only.
+- D07.9 V2 BTCUSDT draft is retained as a historical explicit-unknown draft; do not promote it to an attested sidecar.
+- D07.11 Stage A inventory/threat model is complete within reviewed repository/session evidence. No real index, trust root, signature, independent custody boundary or real resolver run exists.
+- Upstream provider origin, collector identity/execution, pre-ChatGPT custody, independent issuer/custodian, issuer authenticity, global completeness and factual truth remain **NOT_VERIFIED**.
+- D07.2 remains **BLOCKED_SHARED_LINEAGE**. D07 provenance path is **CLOSED — NOT_VERIFIED**. Paper Ledger bootstrap/import remains **BLOCKED / NOT APPROVED**.
+- No further source recovery/acquisition, network request, VPS/filesystem search, Stage B index contract, key generation, signature, index creation, verifier/resolver execution or implementation is authorized by this closure. Reopening requires a new explicit owner decision based on newly available genuine evidence.
+- Historical source code, reports, package and CI artifacts are retained. No Git branch, file, data object or artifact was deleted.
+- No tests/CI were run for this documentation-only disposition. No runtime, T0/T1/T2, Runner/One-shot, credentials, live trading, real orders or data deletion occurred.
+- Closure report: `docs/evidence/D07_11_STAGE_A_EVIDENCE_SOURCE_INVENTORY_THREAT_MODEL_2026-11-14.md`, updated with owner decision.
