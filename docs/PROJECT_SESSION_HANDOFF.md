@@ -5281,3 +5281,18 @@ Next: preserve this proof and do not rerun automatically. Any additional runtime
 - Continuous Core Runner remains CI-verified, not activated. VPS execution/deployment, persistent services/autostart, exchange access/credentials, AI execution, live trading and real orders remain **NOT APPROVED / NOT RUN**. `AI_EXECUTION_ENABLED=false`; T0 remains independent and unmodified.
 - Detailed record: `docs/evidence/CORE_RUNNER_HARDENING_G2_G6_2026-11-14.md`.
 - Next gate: no further code hardening is required within G2–G6. Any actual VPS runtime validation or activation must be separately scoped and explicitly approved.
+
+
+## 2026-11-14 — Core Runner R0–R3 source remediation closed in CI
+
+- Owner-approved source scope is complete at exact tested SHA `482477b4b694af5c812170d11012e9aba29e089f` on the existing branch `feature/core-operational-proof-20261112`; no branch or PR was created.
+- Unified protected-path validation in `core_runtime/ledger_path_guard.py` is now used by both Core preflight paths. It rejects T0 path equality/same-file/parent-child overlap and requires configured PAPER aliases to match the canonical ledger. Negative/positive tests passed.
+- Core/AI read-only dual-ledger construction with `apply_migrations=False` now requires an existing non-symlink file, does not create parent directories, opens SQLite with `mode=rw`, and checks file identity across preflight/open. Missing DB/parent, symlink and replacement tests passed.
+- Core execution leverage is reconciled to **1x**; shared per-order margin remains **1% of account equity**. Legacy 13 is retained only as `CORE_ROE_SIGNAL_MULTIPLIER` for signal-threshold scaling; explicit Core 13x ledger construction is rejected. This newer approved policy supersedes the historical DS-03 fixed-13x decision above.
+- Exact CI: [run 43576881822](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43576881822), job `132392942884`, **SUCCESS**, 25/25 workflow steps, checkout SHA `482477b4b694af5c812170d11012e9aba29e089f`.
+- Test log: Core Runner hardening 13/13; One-shot 15/15; Core operational PaperLedger 48/48; disposable SQLite Core Runner integration 26/26; T1–T2 Order Book 49/49. Account-wide risk snapshot and remaining workflow checks also passed.
+- Artifact `14106379805`, `core-first-code-operational-proof-43576881822`, 11,297 bytes, GitHub-reported digest `sha256:fe185dde8d551587992b8e08760aa3f12bbebf2f9c8f09c70c13ee1e8f491d70`, expires 2026-11-21T08:39:52Z. Payload was not independently downloaded/re-hashed.
+- Evidence addendum: `docs/evidence/CORE_PAPER_RUNTIME_R0_R3_SOURCE_AUDIT_2026-11-14.md`. It preserves the original audit and records the source remediation/CI closure.
+- Status: all three approved source fixes **PASS (source + exact-SHA CI)**. VPS source parity remains **BLOCKED**; actual PAPER config/ledger remains **NOT VERIFIED**; VPS runtime and Runner remain **NOT RUN / NOT AUTHORIZED**.
+- No VPS synchronization, bootstrap, migration, T0 access/mutation, Runner/One-shot/continuous invocation, service/autostart, exchange access, AI execution, live trading or real orders occurred. `AI_EXECUTION_ENABLED=false`.
+- Next: pause code changes. Any VPS source synchronization or bounded read-only parity inspection requires a separate explicit approval; it does not imply permission to bootstrap a ledger or run the Runner.
