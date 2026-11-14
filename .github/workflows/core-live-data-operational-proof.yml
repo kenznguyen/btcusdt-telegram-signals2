@@ -9,7 +9,7 @@ on:
       - "ops/test_live_market_data_probe.py"
       - "pipeline/core_strategy.py"
       - "pipeline/api.py"
-      - "paper_execution/test_core_first_operational.py paper_execution/test_core_runner_ledger_integration.py"
+      - "paper_execution/test_core_first_operational.py"
       - "paper_execution/test_core_runner_ledger_integration.py"
       - "paper_execution/test_account_risk_snapshot_read_only.py"
       - "paper_execution/test_core_short_lifecycle.py"
