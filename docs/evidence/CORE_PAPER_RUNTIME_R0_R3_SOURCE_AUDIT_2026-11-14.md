@@ -89,3 +89,41 @@ Required findings:
 ## Explicit non-actions
 
 No branch change, PR, source code modification, VPS/SSH action, package installation, config creation, database creation/open/write, migration, checkpoint, T0 access/mutation, T1/T2 activation, exchange request, AI execution, live trading or real order.
+
+
+## Follow-up implementation and exact-SHA CI closure — 2026-11-14
+
+The owner-approved source remediation scope was implemented on the same active branch and verified at exact source SHA `482477b4b694af5c812170d11012e9aba29e089f`. This addendum supersedes the unresolved R3 findings above for the current GitHub source only; it does not alter the historical audit baseline or establish VPS parity.
+
+### Implemented source changes
+
+1. **Canonical protected-path validation:** added `core_runtime/ledger_path_guard.py`. Both normal Core preflight and dedicated PaperLedger preflight use the same validator. It rejects equality, same-file aliases and parent/child overlap with `MARKET_DATA_DB` and `T0_FEEDER_LEASE_DB`; configured `PAPER_DB` and `PAPER_TRADING_DB` must resolve to the exact configured ledger. Regression tests cover both T0 aliases, T0 parent/child overlap, PAPER alias mismatch and exact matching aliases.
+2. **No-create read-only ledger open:** Core/AI dual-ledger construction with `apply_migrations=False` now requires an existing non-symlink regular file and does not create parent directories. Read-only connections use SQLite `mode=rw` rather than create-capable default mode; device/inode identity is checked before/after open and against the preflight identity. Tests cover missing database, missing parent, symlink, file replacement after construction and replacement between preflight and construction.
+3. **Core leverage reconciliation:** `CORE_LEVERAGE` is now 1x and the 1%-of-equity order margin budget remains enforced. The legacy value 13 is retained only as `CORE_ROE_SIGNAL_MULTIPLIER` for the existing signal-threshold scale; it is not order leverage or margin sizing. Core PaperLedger rejects explicit legacy 13x. This owner-approved policy reconciliation supersedes the historical DS-03 fixed-13x decision recorded earlier in the handoff; do not restore 13x as Core execution leverage.
+
+### Exact CI evidence
+
+- Workflow: [43576881822](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43576881822)
+- Job: `132392942884` (`operational-proof`), **SUCCESS**; all 25 workflow steps completed successfully.
+- Exact checkout/source SHA: `482477b4b694af5c812170d11012e9aba29e089f`.
+- Test log confirms: Core Runner hardening 13/13; One-shot regression 15/15; Core operational PaperLedger suite 48/48; disposable SQLite Core Runner integration 26/26; T1–T2 Order Book suite 49/49. Account-wide risk snapshot, compile and remaining workflow checks also completed successfully.
+- Artifact ID `14106379805`, name `core-first-code-operational-proof-43576881822`, size 11,297 bytes, GitHub-reported digest `sha256:fe185dde8d551587992b8e08760aa3f12bbebf2f9c8f09c70c13ee1e8f491d70`, expires 2026-11-21T08:39:52Z. Artifact payload was not independently downloaded/re-hashed; payload digest remains **NOT VERIFIED**.
+- Branch comparison confirms the active branch is identical to the tested SHA (0 ahead / 0 behind at verification).
+
+### Updated disposition
+
+| Gate | Current status | Basis |
+|---|---|---|
+| Shared protected-path validator | **PASS (source + CI)** | Same canonical guard used by both preflight paths; alias/overlap regression tests passed |
+| Read-only ledger no-create and replacement protection | **PASS (source + CI)** | Existing-file-only, mode=rw and identity checks; missing/replacement regressions passed |
+| Core leverage policy | **PASS (source + CI)** | Core 1x, 1% margin budget; legacy 13x rejected as order leverage |
+| Core Runner code-level regression | **PASS** | Exact-SHA workflow 43576881822 SUCCESS |
+| VPS source parity | **BLOCKED** | VPS-reported SHA `9aac55b60bec0180cf639086139fc95bf4dabd32` predates this source and is not synchronized |
+| Actual Core PAPER config / ledger on VPS | **NOT VERIFIED** | No deployment config or evidence-backed Core ledger identified |
+| Runner runtime / continuous service | **NOT RUN / NOT AUTHORIZED** | CI fixtures only; no VPS, bootstrap, One-shot or continuous execution |
+
+No VPS synchronization, ledger bootstrap, migration, T0 access/mutation, Runner invocation, service/autostart, exchange access, AI execution, live trading or real orders occurred. `AI_EXECUTION_ENABLED=false` and paper-only posture remain unchanged.
+
+### Next gate
+
+The three approved source fixes are closed for GitHub source/CI scope. Do not start another code change automatically. The next possible work is a separate owner-approved decision on whether to request source synchronization and bounded read-only VPS parity checks. This does not authorize ledger bootstrap or Runner execution.
