@@ -5672,3 +5672,16 @@ Next: preserve this proof and do not rerun automatically. Any additional runtime
 - Design status: **OWNER APPROVED / FROZEN**. Implementation status: **NOT STARTED**.
 - Next authorized increment: test-first implementation of simulated-origin persistence/one-time initialization and atomic shared-risk admission using disposable test databases/fixtures only, on this branch. Preserve existing funded-account Bootstrap/cutover behavior.
 - Explicit limits remain: no existing operational DB mutation/migration, Bootstrap activation, Runner, VPS/T0 access, exchange access, AI execution, live trading or real orders. Stop if implementation requires an unapproved schema/risk-policy change.
+
+
+## 2026-11-14 — SIMULATED_CAPITAL_V1 immutable origin persistence increment
+
+- Implemented `paper_execution/simulated_origin.py` with disposable-DB persistence for the owner-approved `SIMULATED_CAPITAL_V1` origin and distinct initial seed event. It binds exact contract bytes by SHA-256, fixed SIMULATED/PAPER/100 USDT identity, deterministic seed event ID, original initialization timestamp, source and record digests.
+- Origin and seed rows reject UPDATE/DELETE. Duplicate initialization is idempotent and verifies persisted timestamp; contract/schema/row mismatches fail closed. Seed is not inserted into `paper_funding_events`.
+- Test-first evidence: test specification commit `917f69b06961b5255431c0e9d0423cb3411aadce`; RED run `43602447934` (missing module); behavioral RED run `43602539809` (restart timestamp mismatch and validator error-code wrapping); GREEN source commit `d7be89a09c660a4a43b3de0a739d67558b65152a`.
+- Current source blobs: `paper_execution/simulated_origin.py` `6c5dd0452021b42a01189ecb09b0a2f8043dd7ef`; `paper_execution/test_simulated_origin.py` `ea53ed0540ba9f84ec1c1f5e69b40014e79a62f2`; workflow `.github/workflows/simulated-capital-v1-contract.yml` `be9b90d2cd3b24b4e2babb88b6de159523c79ee2`.
+- CI run `43602607051` SUCCESS, job `132470399215`; CI source SHA `d7be89a09c660a4a43b3de0a739d67558b65152a`; py_compile PASS, contract tests 6/6 PASS, origin tests 6/6 PASS (12/12); no artifact.
+- Evidence report: `docs/evidence/SIMULATED_CAPITAL_V1_ORIGIN_PERSISTENCE_2026-11-14.md`, commit `a7564090ebd9b144294c79d7e453c34d161656f8`.
+- Status: isolated origin/seed persistence primitive **PASS WITHIN TEST SCOPE**; atomic account+origin+seed+daily baseline+HWM initialization **NOT IMPLEMENTED**; PaperLedger runtime integration **NOT IMPLEMENTED**; contract-bound 1% order-margin enforcement **NOT IMPLEMENTED**; funded-account Bootstrap compatibility **NOT VERIFIED**; PAPER Ledger readiness **BLOCKED / NOT VERIFIED**.
+- Tests used in-memory SQLite only. No existing DB/schema migration, Bootstrap, Runner, VPS/T0, exchange, AI execution, live trading or real order was touched. Helper is not wired into runtime.
+- Next authorized increment: test-first integration using disposable PaperLedger fixtures. Prove one atomic `BEGIN IMMEDIATE` initialization of account+origin+seed+UTC baseline+HWM, rollback/restart/mismatch behavior and funded-account Bootstrap/cutover preservation before any runtime admission wiring. No existing operational DB access.
