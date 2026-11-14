@@ -38,10 +38,12 @@ def _safe_path(path):
         return False
     return all(part not in {"", ".", ".."} for part in path.split("/"))
 
-def _result(status, errors=(), collector="NOT_VERIFIED"):
+def _result(status, errors=(), declared_disposition=None):
     return {
         "status": status, "errors": list(errors),
-        "byteIntegrity": "NOT_VERIFIED", "collectorIndependence": collector,
+        "declaredReviewDisposition": declared_disposition,
+        "evidenceReferenceResolution": "NOT_VERIFIED",
+        "byteIntegrity": "NOT_VERIFIED", "collectorIndependence": "NOT_VERIFIED",
         "issuerIndependence": "NOT_AVAILABLE_SAME_ISSUER",
         "observationCorroboration": "NOT_VERIFIED",
         "enumerationCompleteness": "NOT_VERIFIED", "freshness": "NOT_VERIFIED",
@@ -208,7 +210,8 @@ def validate_lineage_record(record, d07_8_package, *, seen_record_ids=None):
     if unresolved or assessment["unknowns"]:
         return _result("NOT_VERIFIED", ["D07_9_DEPENDENCY_OR_REVIEW_UNKNOWN"])
     if assessment["reviewDisposition"] == "BLOCKED":
-        return _result("BLOCKED", ["D07_9_REVIEW_DISPOSITION_BLOCKED"])
+        return _result("BLOCKED", ["D07_9_REVIEW_DISPOSITION_BLOCKED"], assessment["reviewDisposition"])
     if assessment["reviewDisposition"] != "SUPPORTED_WITHIN_BOUNDARY":
-        return _result("NOT_VERIFIED", ["D07_9_REVIEW_NOT_ACCEPTED"])
-    return _result("SUPPORTED_WITHIN_BOUNDARY", collector="SUPPORTED_WITHIN_BOUNDARY")
+        return _result("NOT_VERIFIED", ["D07_9_REVIEW_NOT_ACCEPTED"], assessment["reviewDisposition"])
+    # References are declarations only here; without an evidence resolver, never promote independence.
+    return _result("NOT_VERIFIED", ["D07_9_REFERENCED_EVIDENCE_NOT_RESOLVED"], assessment["reviewDisposition"])

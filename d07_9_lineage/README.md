@@ -29,13 +29,16 @@ caller maintaining a record registry to reject duplicate record IDs.
   known shared material dependency, or explicit blocked review.
 - `NOT_VERIFIED`: incomplete dependency inventory, unresolved dependencies,
   or no accepted review disposition.
-- `SUPPORTED_WITHIN_BOUNDARY`: only the narrow reviewed collector-path
-  boundary represented by the record. It does not establish independent issuer
-  truth or global completeness.
+- A sidecar may declare `SUPPORTED_WITHIN_BOUNDARY`, but this validator only
+  records that declaration in `declaredReviewDisposition`. Because it does not
+  resolve evidence references, the returned `status` and
+  `collectorIndependence` remain `NOT_VERIFIED`. A separate evidence-review
+  gate is required before any collector-path claim can be promoted.
 
 The validator never opens `*Ref` values, accesses a provider, reads preserved
 raw bytes, recomputes hashes, or writes to a ledger/database. Consequently
-`byteIntegrity`, `issuerAuthenticity`, `observationCorroboration`,
+`evidenceReferenceResolution`, `byteIntegrity`, `collectorIndependence`,
+`issuerAuthenticity`, `observationCorroboration`,
 `enumerationCompleteness`, `freshness`, `globalCompleteness` and
 `factualTruth` remain `NOT_VERIFIED` in every result. Binance remains the
 common issuer, so `issuerIndependence` is always

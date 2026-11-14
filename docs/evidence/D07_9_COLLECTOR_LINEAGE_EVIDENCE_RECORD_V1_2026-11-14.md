@@ -291,3 +291,8 @@ The machine-readable schema and validator make two implicit execution-identity r
 The validator also requires a recorded `READ_BACK` custody event; the readback must begin after receipt and acquisition completion and finish no later than record creation. Dependency tri-state UNKNOWN values require an explicit reason. Normalized outputs cannot be written under the canonical `raw/` namespace.
 
 These are machine-checkable clarifications of V1 semantics, not claims that referenced evidence exists. The validator does not open evidence references or recompute file hashes. Byte integrity, actual custody, collector independence, issuer authenticity, observation corroboration, freshness, enumeration/global completeness and factual truth remain NOT VERIFIED unless separately evidenced and reviewed.
+
+
+## 10. Evidence-reference resolution boundary
+
+The D07.10 structural validator checks that evidence-reference fields are present, non-empty and not literal `UNKNOWN`; it does not dereference them, authenticate their targets or establish that the referenced records are retained and reviewable. Therefore even a sidecar whose declared reviewer disposition is `SUPPORTED_WITHIN_BOUNDARY` receives a validator result of `NOT_VERIFIED` for collector independence until a separate evidence-resolution/review gate is implemented and approved. The declared disposition is returned separately and is never treated as a validator-issued PASS.

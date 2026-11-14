@@ -156,7 +156,10 @@ class D079LineageValidatorTests(unittest.TestCase):
             "rationaleRef": "review-rationale-evidence",
         })
         result = validate_lineage_record(value, package())
-        self.assertEqual(result["status"], "SUPPORTED_WITHIN_BOUNDARY")
+        self.assertEqual(result["status"], "NOT_VERIFIED")
+        self.assertEqual(result["declaredReviewDisposition"], "SUPPORTED_WITHIN_BOUNDARY")
+        self.assertEqual(result["evidenceReferenceResolution"], "NOT_VERIFIED")
+        self.assertEqual(result["collectorIndependence"], "NOT_VERIFIED")
         self.assertEqual(result["issuerIndependence"], "NOT_AVAILABLE_SAME_ISSUER")
         self.assertEqual(result["byteIntegrity"], "NOT_VERIFIED")
 
