@@ -8,6 +8,7 @@ on:
       - d07_9_lineage/schema.v2.json
       - d07_9_lineage/validator_v2.py
       - d07_9_lineage/test_validator_v2.py
+      - d07_9_lineage/drafts/btcusdt_20261101_chatgpt_retrieval.v2.draft.json
       - d07_9_lineage/schema.v1.json
       - d07_9_lineage/validator.py
       - d07_9_lineage/test_validator.py
