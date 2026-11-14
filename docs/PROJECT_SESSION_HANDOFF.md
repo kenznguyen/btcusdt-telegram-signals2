@@ -5533,3 +5533,15 @@ Next: preserve this proof and do not rerun automatically. Any additional runtime
 - The package and raw source were not committed to GitHub; no VPS/T0/network/ledger/Runner/credential/live execution was used.
 - Status: D07.8 offline package construction + local byte readback **PASS WITHIN SCOPE**; real source authenticity/completeness **NOT VERIFIED**; D07.9 sidecar/reference index **NOT PROVIDED / NOT GENERATED**; D07.11 **NOT VERIFIED**; D07.2 **BLOCKED_SHARED_LINEAGE**; D07 **PARTIAL**; Paper Ledger bootstrap **BLOCKED / NOT APPROVED**.
 - Next: owner may retrieve the generated package. Then separately review the source-to-lineage custody gap; do not fabricate a D07.9 sidecar or reference index, do not run D07.11 until actual independently sourced lineage/index evidence is supplied, and do not import to Paper Ledger.
+
+
+## 2026-11-14 — D07.9 provisional sidecar draft from currently available evidence
+
+- Owner explicitly requested a D07.9 sidecar draft from the currently available data after clarifying that the file was retrieved from ChatGPT and not downloaded from another source.
+- Added `d07_9_lineage/drafts/btcusdt_20261101_chatgpt_retrieval.provisional.json` in commit `5cbb487ba5668ad9f468c0bc1b53866169901f6c`.
+- The draft records only the owner-reported immediate ChatGPT retrieval channel and the previously verified D07.8 v4 raw-byte identity: 1,431,960 bytes; SHA-256 `71963e8235106ae36fe386ef0fbd52b078df48ea854d09d814469eddeed58a8c`.
+- Original upstream source, direct Tardis export, provider receipt/request/job, collector, acquisition execution/timestamps, transport/egress, pre-ChatGPT custody, storage/access controls and custody events remain UNKNOWN / NOT VERIFIED. TARDIS/BINANCE pilot labels are retained only as intended context, not authenticated provenance.
+- This is deliberately a **provisional draft, not a schema-valid or accepted D07.9 sidecar**. The strict schema `TARDIS_COLLECTOR_LINEAGE_V1` requires date-time values and at least one custody event where no evidence exists, and disallows draft-status metadata. Those constraints cannot truthfully be satisfied from current facts. The draft includes null/empty unknown fields and explicit schema issues; it must not be passed to D07.11 or treated as a valid lineage record.
+- No schema, validator, resolver, package bytes, reference index, VPS/T0, network, ledger, Runner/One-shot, credentials or execution state changed. No tests or CI workflow run. This is an evidence-drafting increment only.
+- Status: D07.8 remains `STRUCTURE_VALID`; provisional D07.9 draft **CREATED — NOT SCHEMA VALIDATED / BLOCKED**; D07.11 **NOT RUN**; D07.2 `BLOCKED_SHARED_LINEAGE`; D07 `PARTIAL`; Paper Ledger bootstrap `BLOCKED / NOT APPROVED`.
+- Next gate: either obtain real upstream/provider and custody evidence, or separately approve a schema/validator change that explicitly supports unknown acquisition and custody fields. Do not invent timestamps, references, or custody events to force validation.
