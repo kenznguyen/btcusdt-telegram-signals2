@@ -224,6 +224,7 @@ class D079LineageValidatorTests(unittest.TestCase):
 
     def test_21_unknown_materiality_fails_closed_as_not_verified(self):
         value = fixture(); value["dependencies"][1]["materialToCollectorSeparation"] = "UNKNOWN"
+        value["dependencies"][1]["unknownReason"] = "Materiality cannot yet be independently assessed"
         result = validate_lineage_record(value, package())
         self.assertEqual(result["status"], "NOT_VERIFIED")
 
