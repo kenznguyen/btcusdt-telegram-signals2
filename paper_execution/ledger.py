@@ -1655,9 +1655,10 @@ class PaperLedger:
         if self.maximum <= 0 or self.fee_rate > 1 or not 0 < self.spread <= 10_000:
             raise ValueError("Invalid paper risk configuration")
         read_only_existing = self.strategy_id in DUAL_STRATEGIES and not apply_migrations
-        if not read_only_existing:
+        self._allow_create = not read_only_existing
+        if self._allow_create:
             self.path.parent.mkdir(parents=True, exist_ok=True)
-        with closing(self.connect(create=not read_only_existing)) as connection, connection:
+        with closing(self.connect()) as connection, connection:
             if read_only_existing:
                 connection.execute("PRAGMA query_only=ON")
                 if not _dual_ledger_migrations_ready(connection):
@@ -1709,7 +1710,9 @@ class PaperLedger:
                 elif not _dual_ledger_migrations_ready(connection):
                     raise sqlite3.DatabaseError("DUAL_LEDGER_MIGRATION_NOT_READY")
 
-    def connect(self, *, create=True):
+    def connect(self, *, create=None):
+        if create is None:
+            create = self._allow_create
         if create:
             connection = sqlite3.connect(self.path, timeout=10)
         else:
