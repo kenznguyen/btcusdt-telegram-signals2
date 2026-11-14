@@ -133,3 +133,67 @@ The earlier endpoint-transfer blocker remains an accurate record of that attempt
 D07.13 is now **PARTIAL PASS — ATTACHMENT RECEIVED, BYTE INTEGRITY AND BASIC STRUCTURE VERIFIED; PROVIDER PROVENANCE AND SETTLEMENT OVERLAP NOT VERIFIED**. D07.2 `BLOCKED_SHARED_LINEAGE` remains unchanged; D07 remains **PARTIAL**; PAPER ledger bootstrap remains **BLOCKED / NOT APPROVED**.
 
 No raw attachment was committed to GitHub. No parser/verifier code, D07.2/D07.8 logic, funding row, ledger/database, T0/VPS, Runner/One-shot, exchange credentials, live execution or order state was changed. This was an evidence/documentation-only increment; no CI run or artifact was produced.
+
+
+## 8. Owner-approved read-only D07.11 / D07.7 follow-up (2026-11-14)
+
+Scope approved by the owner: inspect only this exact supplied attachment; perform bounded independent readback and offline comparison preparation; no acquisition, credentials, T0/VPS, ledger/database writes, funding imports, Runner/One-shot or live execution.
+
+### 8.1 D07.11 readback worker result
+
+The existing D07.11 `readback_worker.py` behavior was executed as a separate Python process against the supplied attachment path, using the repository worker implementation (file blob `80de53fae978dd8a706544a0fc762ac66103886f`).
+
+Result:
+- `ok=true`
+- `byteLength=1431960`
+- `sha256=71963e8235106ae36fe386ef0fbd52b078df48ea854d09d814469eddeed58a8c`
+
+This independently reopens the exact attachment using the worker's no-follow file access and recomputes the digest. It corroborates the earlier separate-process check.
+
+**Formal D07.11 resolver disposition: NOT RUN / NOT VERIFIED.** The supplied attachment is not accompanied by an authoritative D07.8 evidence-package `manifest.json`, a D07.9 lineage sidecar, or the complete offline evidence reference index. Creating those declarations from the attachment's own observed hash would be circular and would not establish the acquisition/custody facts. Therefore no formal D07.11 reference-resolution or package-bound raw-file PASS is claimed.
+
+### 8.2 D07.7 settlement-key preparation
+
+The existing D07.7 comparator contract was applied offline. Source comparator file blob: `d677c7d101fd3c659e7c73785d9735dd2ff692d4`; implementation/test evidence remains the prior CI-tested source SHA `0fe30e16018203d6aada91497eb6013a58b71607`.
+
+The D07.7 key is exact venue settlement timestamp in integer milliseconds, under identity:
+- venue `BINANCE`;
+- instrument `BTCUSDT`;
+- market type `USD_M_FUTURES`;
+- contract type `PERPETUAL`;
+- margin and settlement assets `USDT`.
+
+For each distinct `funding_timestamp`, candidate normalization selected the latest `timestamp` strictly earlier than that funding event, retaining `local_timestamp` as a separate arrival-time field and not using it as the settlement key.
+
+| Funding event UTC | Latest earlier exchange timestamp UTC | Rows tied at latest timestamp | Rate value(s) |
+|---|---|---:|---|
+| 2026-11-01 00:00:00 | No earlier row in this file | — | Not derivable from this file |
+| 2026-11-01 08:00:00 | 2026-11-01 07:59:59.504 | 2 | `0.0001` |
+| 2026-11-01 16:00:00 | 2026-11-01 15:59:59.000 | 1 | `0.0001` |
+| 2026-11-02 00:00:00 | 2026-11-01 23:59:57.002 | 1 | `0.0001` |
+
+At the 08:00 event, two rows share the latest exchange timestamp; both carry the same rate but have different local receive timestamps. This tie is preserved as an ambiguity/diagnostic and is not silently collapsed into a claim of unique final message. The 00:00 event at the start of the file has no strictly earlier observation in the supplied day.
+
+Three candidate Tardis-normalized observations were passed to the D07.7 comparator with an empty Binance input because the original Binance D07.6 response bytes/parsed observations are not present among the currently supplied files. Result:
+- `observationCorroboration=NOT_VERIFIED_NO_OVERLAP`
+- `matchedCount=0`
+- `mismatchCount=0`
+- `unmatchedBinanceCount=0`
+- `unmatchedTardisCount=3`
+- `issuerIndependence=NOT_VERIFIED_SAME_ISSUER`
+- `collectorIndependence=NOT_VERIFIED`
+- completeness, authenticity, freshness and factual truth remain `NOT_VERIFIED`.
+
+This is a fail-closed no-counterpart diagnostic, **not** a real Binance-vs-Tardis overlap comparison and not observation corroboration. No timestamp tolerance, assumed schedule, or other venue substitution was used.
+
+### 8.3 Disposition and next gate
+
+- Attachment compressed-byte integrity and GZIP: **PASS**.
+- D07.11 independent worker readback: **PASS — LIMITED TO THE ATTACHMENT PATH**.
+- Formal D07.11 sidecar/reference-index/package-bound resolver: **NOT RUN / NOT VERIFIED** (required package/sidecar/index inputs absent).
+- Tardis candidate settlement normalization: **PARTIAL — 3 candidate events; one event has no prior row; one event has a tied latest exchange timestamp**.
+- D07.7 actual two-source overlap: **NOT PERFORMED — Binance source bytes/normalized observations unavailable in this approved evidence set**.
+- D07.7 comparator diagnostic with empty Binance side: **NOT_VERIFIED_NO_OVERLAP**; not a corroboration PASS.
+- D07.2 `BLOCKED_SHARED_LINEAGE`: unchanged. D07 overall: **PARTIAL**. PAPER ledger bootstrap: **BLOCKED / NOT APPROVED**.
+
+Next gate requires the exact original Binance D07.6 response bytes (or a previously verified, immutable copy and its parser output) to be supplied into this bounded offline evidence review, plus the actual D07.8 manifest, D07.9 sidecar and evidence reference index for formal D07.11 resolution. No VPS/T0 access or database/ledger import is implied. No files were committed from the attachment. No code was changed; no CI run/artifact was produced.
