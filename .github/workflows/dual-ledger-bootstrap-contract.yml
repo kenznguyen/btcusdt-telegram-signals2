@@ -83,6 +83,7 @@ jobs:
           echo "BOOTSTRAP_SCOPE=DISPOSABLE_SQLITE_CI_ONLY" | tee bootstrap-safety.txt
           echo "BOOTSTRAP_EXTERNAL_SERVICES=NONE" | tee -a bootstrap-safety.txt
           echo "BOOTSTRAP_LIVE_ORDERS=FORBIDDEN" | tee -a bootstrap-safety.txt
+          echo "D07_7_SCOPE=OFFLINE_NORMALIZED_FIXTURES_ONLY" | tee -a bootstrap-safety.txt
 
       - name: Compile bootstrap implementation and tests
         run: |
