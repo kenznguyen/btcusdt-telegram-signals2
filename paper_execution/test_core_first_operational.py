@@ -2037,7 +2037,7 @@ class CoreLedgerNoCreateAndLeveragePolicyTest(unittest.TestCase):
     def test_read_only_core_ledger_does_not_recreate_file_after_constructor(self):
         self.fixture.core.path.unlink()
         with self.assertRaises(FileNotFoundError):
-            self.fixture.core.snapshot()
+            self.fixture.core.set_paused(False, self.fixture.now + 1)
         self.assertFalse(self.fixture.core.path.exists())
 
 
