@@ -2,7 +2,7 @@
 
 Date: 2026-11-14  
 Branch: `feature/core-operational-proof-20261112`  
-Implementation HEAD: `3b29a9a3cf48d0d422b4030230a25dd282718267`  
+Implementation HEAD: `9365d3669a0a2a7c52295b58b1a472fe1972d8d0`  
 Base handoff HEAD: `8032ff1303e9e7ae6825149fb020b5cbdd43f208`
 
 ## Owner-approved contract
@@ -37,6 +37,7 @@ Exact final source blob SHAs:
 - `paper_execution/account_equity.py`: `701bcc25e8c5850fdb9052fd7481996debb2e019`
 - `paper_execution/ledger.py`: `a9839b979f863b06ba056c4c7aa3cca2d86a9cc2`
 - `paper_execution/test_simulated_equity.py`: `e2aacddc899102a89f8aee19337ecaf35465513a`
+- `.github/workflows/paper-ledger-t1-compatibility.yml`: `aa071bd626c289befff8a484a4efc99ef5db5672`
 
 ## Verification status
 
