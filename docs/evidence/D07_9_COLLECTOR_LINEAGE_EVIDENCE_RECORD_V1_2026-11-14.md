@@ -228,3 +228,42 @@ Positive controls must also prove that two distinct collector paths can be recor
 - No Tardis acquisition, API access, parser, source-specific verifier, ledger import/write, T0/VPS operation or live execution is authorized by this document.
 - Real byte custody, collector independence, overlap, issuer authenticity, freshness, enumeration/global completeness and factual truth remain **NOT VERIFIED**.
 - D07.2 `BLOCKED_SHARED_LINEAGE` remains unchanged; D07 remains **PARTIAL**; PAPER ledger bootstrap remains **BLOCKED / NOT APPROVED**.
+
+
+## 8. V1 schema review clarifications (normative; supersedes any broader wording above)
+
+The following clarifications close the schema-review findings without changing the D07.8 manifest or validator.
+
+### 8.1 Exact raw-file set binding
+
+- `rawFiles[].d07_8Path` must map to the complete set of D07.8 manifest `files[].path` entries under the package's canonical `raw/` directory. The sidecar must not omit any raw entry and must not add any path absent from that set.
+- `custody.readbackFiles` must contain exactly the same path set as `rawFiles`, with no duplicates. Each readback length and recomputed digest must equal the corresponding receipt length and digest.
+- D07.8 entries under `derived/`, `transforms/` and `checksums/` are not raw source inputs and must not be listed in `rawFiles`. Derived outputs remain described under `transformation.normalizedOutputFiles`. A different D07.8 raw-directory convention requires a separately versioned/reviewed rule.
+
+### 8.2 Nullable acquisition references
+
+- `requestReference` and `networkEgressRef` may be null only when their paired `requestReferenceUnavailableReason` or `networkEgressUnavailableReason` is non-empty. If the reference is present, its unavailable-reason field must be null.
+- This supports owner-supplied/offline files without fabricating a request ID or network egress. The acquisition actor, process and host/environment remain required.
+- Every non-null `*Ref` resolves to retained, access-controlled, reviewable evidence. The literal `UNKNOWN` is not a valid evidence reference. Unknown states use the explicit tri-state fields and a non-empty reason.
+- `custodian.organizationRef` may be null only for an individual custodian with `role=OWNER` and an explicit reason. `assessment.reviewerRef`, `reviewedAt` and `rationaleRef` may be null only while `reviewDisposition=NOT_REVIEWED`. `supersedesRecordId` and `supersessionReason` must either both be null (original record) or both be non-empty (correction).
+
+### 8.3 Independent readback
+
+- Readback means a second file-open/read/hash operation against the preserved storage copy after acquisition has completed. It must run in a distinct process execution with a unique `readbackRunRef`, not reuse the acquisition process's in-memory byte buffer.
+- Record `readbackStartedAt`, `readbackAt` (completion), `readbackActorRef`, `readbackProcess`, `readbackEnvironmentRef`, `readbackStorageRef` and `readbackEvidenceRef`. The readback run reference must differ from the acquisition execution reference.
+- A same-host readback is permitted only when the separate process/run and reopening of the preserved copy are evidenced. This proves byte equality/readability of the preserved copy only; it does not authenticate Tardis or prove collector independence/completeness.
+
+### 8.4 Dependency materiality and deterministic review status
+
+Each dependency includes `materialToCollectorSeparation=YES|NO|UNKNOWN` in addition to `sharedWithBinanceRestCapture=YES|NO|UNKNOWN`:
+- `YES/YES` (shared and material) => `BLOCKED` for a separate collector-path claim.
+- `UNKNOWN` materiality, or shared state UNKNOWN while materiality is YES/UNKNOWN => `NOT_VERIFIED`; no positive disposition.
+- `NO` materiality may be accepted only with reviewer rationale and evidence explaining why the dependency cannot create a common-mode failure within the declared boundary.
+- The common Binance issuer is recorded as shared, but is non-material to the narrow collector-path separation claim; it remains disqualifying for any independent-issuer claim.
+- Deterministic precedence: schema/type/path violation => `BLOCKED`; known shared material dependency => `BLOCKED`; missing evidence or unresolved material dependency => `NOT_VERIFIED`; `SUPPORTED_WITHIN_BOUNDARY` only when every required evidence area is reviewable and no material shared/unknown dependency remains.
+
+### 8.5 Additional required negative cases
+
+Future validation must additionally reject/fail closed for: omitted D07.8 raw file; a `derived/` file listed as raw; mismatch between receipt/readback path sets; null request/network references without reasons; populated reference plus populated unavailable reason; readback reusing the acquisition process/run or in-memory buffer; positive disposition with unknown materiality; and inconsistent nullability/supersession pairs.
+
+These are documentation-level clarifications only. They do not implement a validator, alter D07.8, or authorize Tardis acquisition or parser work.
