@@ -74,6 +74,7 @@ class RunnerHardeningPolicyTest(unittest.TestCase):
                 "ledger_path": str(ledger),
                 "risk_limits": dict(LIMITS),
                 "max_book_age_ms": 2000,
+                "max_position_base": "0.01",
             }), encoding="utf-8")
             risk = {
                 "mode": "PAPER",
