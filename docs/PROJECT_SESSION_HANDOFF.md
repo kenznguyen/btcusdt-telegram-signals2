@@ -5331,3 +5331,6 @@ Next: preserve this proof and do not rerun automatically. Any additional runtime
 - Review disposition: sidecar V1 design PASS WITH DOCUMENTATION CLARIFICATIONS / DOCUMENTED — NOT IMPLEMENTED. D07.8 manifest/validator UNCHANGED; D07.2 BLOCKED_SHARED_LINEAGE unchanged; real Tardis custody, collector independence, overlap, completeness, issuer authenticity, freshness and factual truth NOT VERIFIED; D07 PARTIAL; PAPER ledger bootstrap BLOCKED / NOT APPROVED.
 - No validator/parser/test implementation, workflow, Tardis API/download, credentials, real files, funding rows, ledger/database, D07.2 verifier, T0/VPS, Runner/One-shot or live execution. No CI run/artifact; this was documentation-only.
 - Next gate: request separate owner approval before implementing a machine-readable schema/validator and synthetic tests. Real Tardis intake remains a separate approval gate and is not implied by schema review.
+
+
+- Follow-up consistency correction: updated the illustrative V1 JSON envelope to include the reviewed nullability reason fields, readback execution provenance and dependency materiality fields; commit `34c7541586b8747709b8c372158c286948ba9e18`. Assessment note updated in commit `5ab18bcea472e778ede0ba0415832cf4e4911557`. These remain documentation-only changes; no CI or artifact was generated.
