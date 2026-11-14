@@ -160,16 +160,19 @@ def verify_simulated_equity_origin(connection):
                   seed_event_id,initialized_at_ms,source,record_sha256
            FROM paper_simulated_capital_origin WHERE account_id=1"""
     ).fetchone()
+    origin = tuple(origin) if origin is not None else None
     seed = connection.execute(
         """SELECT event_id,event_type,amount_quote,quote_currency,
                   contract_sha256,recorded_at_ms,source,record_sha256
            FROM paper_simulated_capital_seed_events WHERE account_id=1"""
     ).fetchone()
+    seed = tuple(seed) if seed is not None else None
     equity = connection.execute(
         f"""SELECT contract_sha256,initial_equity_quote,high_water_mark_quote,
                    utc_day_ms,daily_baseline_equity_quote,initialized_at_ms,
                    source,record_sha256 FROM {_TABLE} WHERE account_id=1"""
     ).fetchone()
+    equity = tuple(equity) if equity is not None else None
     if origin is None or seed is None or equity is None:
         raise sqlite3.DatabaseError("SIMULATED_EQUITY_ORIGIN_MISSING")
 
@@ -222,14 +225,17 @@ def verify_simulated_equity_origin(connection):
     account = connection.execute(
         "SELECT mode,initial_capital,currency FROM paper_accounts WHERE account_id=1"
     ).fetchone()
+    account = tuple(account) if account is not None else None
     configured = connection.execute(
         "SELECT initial_capital FROM paper_account_config WHERE id=1"
     ).fetchone()
+    configured = tuple(configured) if configured is not None else None
     risk = connection.execute(
         """SELECT high_water_mark_quote,daily_baseline_utc_day_ms,
                   daily_baseline_equity_quote,risk_ready
            FROM paper_account_risk_state WHERE account_id=1"""
     ).fetchone()
+    risk = tuple(risk) if risk is not None else None
     if (account != ("PAPER", "100", "USDT") or configured != ("100",)
             or risk is None or type(risk[3]) is not int or risk[3] not in (0, 1)
             or risk[1] != utc_day or risk[2] != "100"):
