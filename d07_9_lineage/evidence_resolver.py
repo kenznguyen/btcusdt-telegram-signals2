@@ -99,7 +99,7 @@ def _valid_descriptor(value):
 
 
 def _disposition(reference_errors, raw_errors):
-    hard_tokens = ("UNSAFE", "MISMATCH", "INVALID", "SYMLINK", "PATH_ESCAPES")
+    hard_tokens = ("UNSAFE", "MISMATCH", "INVALID", "SYMLINK", "PATH_ESCAPES", "NOT_REGULAR_FILE")
     reference_status = (
         "BLOCKED" if any(any(token in item for token in hard_tokens) for item in reference_errors)
         else ("NOT_VERIFIED" if reference_errors else "PASS")
@@ -211,10 +211,14 @@ def resolve_lineage_record(
             if readback.get("method") != "INDEPENDENT_READBACK" or raw.get("preservedOriginal") is not True:
                 raw_errors.append("RAW_CUSTODY_DECLARATION_INVALID:" + path)
                 continue
+            receipt_length = raw.get("byteLengthAtReceipt")
+            readback_length = readback.get("byteLength")
             if (
-                raw.get("byteLengthAtReceipt") != manifest["byteLength"]
+                not isinstance(receipt_length, int) or isinstance(receipt_length, bool)
+                or not isinstance(readback_length, int) or isinstance(readback_length, bool)
+                or receipt_length != manifest["byteLength"]
                 or raw.get("sha256AtReceipt") != manifest["sha256"]
-                or readback.get("byteLength") != manifest["byteLength"]
+                or readback_length != manifest["byteLength"]
                 or readback.get("sha256") != manifest["sha256"]
             ):
                 raw_errors.append("RAW_DECLARATION_MANIFEST_MISMATCH:" + path)
