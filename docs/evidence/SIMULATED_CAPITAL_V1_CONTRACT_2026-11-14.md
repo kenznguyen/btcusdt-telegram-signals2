@@ -44,8 +44,19 @@ Before runtime use, a separate implementation increment must reconcile the exist
 ## Status
 
 - Owner decision: **APPROVED**.
-- Contract schema + validator: **IMPLEMENTED**.
-- Synthetic contract tests: **CI pending**.
+- Contract schema + validator: **IMPLEMENTED**; test-first sequence recorded (test commit `6e1a230202847816ada66791baf1318245595dc3`, validator commit `4ca9bf827f266b46c253cb3c47b431508715935c`).
+- Synthetic contract tests: **6/6 PASS**; `py_compile` PASS; JSON parse + JSON/default parity PASS. GitHub Actions run `43601696202`, job `132467617166`, exact checked-out/source SHA `66cdc68e3beadce31c4f57175ef4b8b80de59e5d`, event `push`, conclusion `success`; no artifact uploaded.
 - Existing Bootstrap compatibility: **BLOCKED / NOT IMPLEMENTED**.
 - PAPER Ledger readiness: **BLOCKED / NOT VERIFIED**.
 - Bootstrap and Runner: **NOT AUTHORIZED**.
+
+
+## Verification evidence
+
+- Test-first commit: `6e1a230202847816ada66791baf1318245595dc3`.
+- Validator implementation commit: `4ca9bf827f266b46c253cb3c47b431508715935c`.
+- Machine-readable contract commit: `c26023a6b2586a888fa945a13f507da248e84c22`.
+- Contract CI workflow: `66cdc68e3beadce31c4f57175ef4b8b80de59e5d`.
+- Latest branch HEAD at verification: `66cdc68e3beadce31c4f57175ef4b8b80de59e5d`.
+- GitHub Actions: [run 43601696202](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43601696202), job `132467617166`, 6/6 tests PASS, `py_compile` PASS, JSON parse PASS.
+- No artifact was uploaded by this workflow.
