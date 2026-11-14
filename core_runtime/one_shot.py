@@ -132,6 +132,7 @@ def run_once(config_path, bundle_path, *, now_ms=None, on_intent_prepared=None):
         limits, max_book_age_ms, max_position_base = _runner_policy(config)
         preflight = _preflight(
             config_path, now_ms=now, allow_risk_unready=True,
+            include_file_identity=True,
         )
         bundle = _strict_json(bundle_path)
         validation = validate_bundle(bundle, max_book_age_ms=max_book_age_ms)
@@ -233,6 +234,7 @@ def run_once(config_path, bundle_path, *, now_ms=None, on_intent_prepared=None):
             risk_limits=limits,
             require_risk_limits=True,
             apply_migrations=False,
+            expected_file_identity=preflight["_ledgerFileIdentity"],
         )
         order = ledger.submit(
             signal["intent"], bundle["orderBook"], now,
