@@ -5732,16 +5732,25 @@ Next: preserve this proof and do not rerun automatically. Any additional runtime
 
 
 
-## 2026-11-14 — SIMULATED-only UTC Daily Baseline Rollover V1 implementation (verification pending)
+## 2026-11-14 — SIMULATED-only UTC Daily Baseline Rollover V1 implementation and CI verification
 
-- Owner accepted: each new UTC-day baseline uses the last confirmed account equity mark from the immediately preceding UTC day; rollover is rejected when the previous day has no confirmed mark or any UTC day was skipped.
-- Implementation committed on existing branch `feature/core-operational-proof-20261112`; no new branch/PR. Implementation HEAD: `9365d3669a0a2a7c52295b58b1a472fe1972d8d0`.
-- Evidence report: `docs/evidence/SIMULATED_UTC_DAILY_BASELINE_ROLLOVER_V1_2026-11-14.md`, latest evidence update commit `cd1c03b825da673b1ac8b3a243d60587514f68b3` (initial evidence commit `2b7ac5ed58d471b8bffcde3256ac3d6852279456`).
-- Added migration v11 and immutable append-only `paper_simulated_daily_baseline_events`; event hashes chain from the immutable simulated equity-origin record. Read-time validation checks continuity, chain hashes, event source, and current risk-state baseline.
-- `record_account_mark` now admits only one-day contiguous SIMULATED rollover when the prior day's last confirmed mark and dataset version exist. Event append and risk-state baseline update occur in the same `BEGIN IMMEDIATE`; transaction rollback preserves both on failure. HWM is preserved. Funded-account cutover/funding path is not intentionally changed.
-- Added six isolated SQLite integration tests: valid rollover; skipped UTC day rejected without mutation; injected update failure rolls back event and state; provenance tampering fails closed; multi-day chain survives restart; missing previous-day mark rejected.
-- Test specification commit preceded implementation: `ca7e1ded65c037750682c7c9908ac5f4e7b987c7`. A superseded legacy test that expected all next-day marks to fail was removed in commit `3b29a9a3cf48d0d422b4030230a25dd282718267`. Subsequent implementation commits: `920c279d66f352d342b9bca3cf2542bc711721fa`, `1d8a4c28942dc571e82ad7b1d9550519fdb194a4`, `8b4568afce57592f86cb64db266f0e79a9a7a05f`, `f052088666c50c9a13005d0ab9df298947fc4818`, `80beedf01086611fa1aaae0ff06dc4011abbb64d`, `e6378f8fba06b7fbecb742ae2470cef7a8498291`, `d27c8dbf7497c49cf7c14a45248dfbe8bb2a7b61`.
-- Final source blobs: `simulated_daily_baseline.py` `19cd99cb55b03aa178d09b48b7b8348bae035d1e`; `account_equity.py` `701bcc25e8c5850fdb9052fd7481996debb2e019`; `ledger.py` `a9839b979f863b06ba056c4c7aa3cca2d86a9cc2`; `test_simulated_equity.py` `e2aacddc899102a89f8aee19337ecaf35465513a`; workflow `.github/workflows/paper-ledger-t1-compatibility.yml` `aa071bd626c289befff8a484a4efc99ef5db5672`.
-- Status: contract **OWNER APPROVED**; implementation/tests **COMMITTED**; RED execution **NOT VERIFIED**; GREEN/integration execution **NOT VERIFIED**; funded-account regression **NOT VERIFIED**; overall PAPER Ledger readiness **BLOCKED / NOT VERIFIED**. No workflow run/job/artifact ID is recorded because the available workflow-run lookup did not return push-triggered runs. No test is claimed PASS.
+- Owner-approved contract: each new UTC-day baseline is the last confirmed account equity mark from the immediately preceding UTC day; reject when the previous day has no confirmed mark or any UTC day was skipped.
+- Active branch remains feature/core-operational-proof-20261112. No new branch or PR.
+- Implementation/test source SHA with final passing CI: 88ff9d51b845ca674a547bf27d479358a380bdcb.
+- Implementation fixes after initial CI findings:
+  - f59fb5a224c40b93853403cdb958a5634e1c9800: read origin anchor from persisted origin row rather than indexing the boolean return from verify_simulated_equity_origin.
+  - 5d9ee0a199a23d5f2055c5e9367843073e5c95e1: correct tuple-field access for the persisted origin anchor.
+  - deaa46296476152f3b0c0b1f0dba05d399586328: permit current SIMULATED risk baseline to advance beyond immutable initial equity when a rollover event exists.
+  - 88ff9d51b845ca674a547bf27d479358a380bdcb: preserve dedicated provenance-tamper error reporting by leaving event-content validation to the daily-baseline verifier.
+- CI trigger update for the Simulated Capital V1 workflow was committed in 88d50b3b84d898254a7c85ab13cf87d486a5317b; it includes simulated_daily_baseline.py in path filters and compile checks.
+- Final source blobs: simulated_daily_baseline.py bf3a0bb56d8e12e26f529b258d430dd35c7f88c3; simulated_equity.py 1219723ffca0de4237032061de4b46d0bacf7a08; account_equity.py 701bcc25e8c5850fdb9052fd7481996debb2e019; ledger.py a9839b979f863b06ba056c4c7aa3cca2d86a9cc2; test_simulated_equity.py e2aacddc899102a89f8aee19337ecaf35465513a.
+- Workflow blobs: paper-ledger-t1-compatibility.yml aa071bd626c289befff8a484a4efc99ef5db5672; simulated-capital-v1-contract.yml d2d5edb43c41e946d7a2e168a724e17f1c9037de.
+- Paper Ledger T1 Compatibility: run 43606676090, job 132482704667, SUCCESS, 140/140 tests, exact checkout SHA 88ff9d51b845ca674a547bf27d479358a380bdcb, no artifact.
+- Simulated Capital V1 Contract: run 43606676141, job 132482704933, SUCCESS, 28/28 tests, exact checkout SHA 88ff9d51b845ca674a547bf27d479358a380bdcb, no artifact.
+- The 140-test suite includes 13 Dual Ledger Bootstrap contract tests and risk-control tests. This is disposable CI evidence only, not operational Bootstrap approval or runtime proof.
+- Intermediate failures were preserved: 43605410402, 43606530035, 43606568914, 43606634971. Each was analyzed and corrected before final passing runs.
+- Evidence report: docs/evidence/SIMULATED_UTC_DAILY_BASELINE_ROLLOVER_V1_2026-11-14.md, verification update commit 6a64afa0018f2416d0470451f484b96eb00f2bf6.
+- Status: rollover implementation and dedicated integration tests PASS WITHIN CI TEST SCOPE; funded Bootstrap contract compatibility PASS WITHIN THE 140-TEST SUITE; runtime Shared Risk Engine admission and contract-bound 1% per-order margin enforcement NOT VERIFIED / NOT IMPLEMENTED; overall PAPER Ledger readiness BLOCKED / NOT VERIFIED.
 - No operational DB, VPS, T0, exchange credentials, deployment, Bootstrap runtime, Runner, AI execution, live order or real trading was used or authorized.
-- Next: obtain and inspect GitHub Actions run against exact HEAD `9365d3669a0a2a7c52295b58b1a472fe1972d8d0`; fix any failures test-first; verify funded-account compatibility; then record exact run/job/artifact and final status. Bootstrap/Runner remain **NOT AUTHORIZED**.
+- Next permitted increment: read-only audit and test-first contract for contract-bound 1% per-order margin admission in the shared order-admission path. Preserve existing funded-account behavior and remain paper-only. Bootstrap activation and Runner remain NOT AUTHORIZED.
+
