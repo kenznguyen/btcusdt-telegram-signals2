@@ -5867,3 +5867,13 @@ Current application:
 - Before any synchronization, operator must confirm the VPS checkout target/path and preserve a rollback copy; transfer only the approved repository source at an exact pinned commit on the existing branch. Then inspect `git rev-parse HEAD`, `git status --short`, tracked-file hashes and the intended source manifest read-only; do not execute application code or migrations. Record exact local/VPS commit and hash comparison, and stop on dirty state, mismatch, unexpected files or path overlap.
 - Active branch remains `feature/core-operational-proof-20261112`; no branch or PR created. No source code was changed for this approval record.
 - Next: obtain an authorized SSH execution path or have the owner/operator run the bounded read-only procedure and return its output; only then determine PASS/BLOCKED for VPS source parity.
+
+## 2026-11-14 — Bounded Core First offline tests on replacement VPS
+
+- Active branch: `feature/core-operational-proof-20261112`; VPS checkout exact SHA: `b92bb75b00b6f91c39c1b78fafab5cd1c77d8fde`.
+- Owner-run bounded offline test execution: `pipeline.test_core_signal` 6/6 PASS and `pipeline.test_core_strategy` 6/6 PASS; total 12/12 PASS in 0.040s using the existing `btc​usdt-core-runtime` venv and `AI_EXECUTION_ENABLED=false`.
+- Test blobs: `a946716604e2e1a74b0e32f0aae5d07b820f2cbf` and `a0d5b46845d3fde006ed817fe21bdd8b6546c1d1`; producer blob at this SHA: `0be512d99b4302077ab79879184b74949f0feaaa`.
+- Evidence: `docs/evidence/CORE_FIRST_VPS_OFFLINE_TESTS_2026-11-14.md`, recorded in commit `2142a023c3964bbcbd2f267396892a6dcb89b7f2`.
+- Status: bounded offline Core signal/strategy tests **PASS**. Shared Risk Engine, persistent PaperLedger, Kill Switch runtime, Core one-shot runtime readiness and overall VPS runtime readiness remain **NOT VERIFIED**. AI remains not implemented; no AI execution.
+- No workflow or artifact was produced. No DB/T0, package install, Bootstrap/Runner, service/autostart, exchange, live order or real trading action.
+- Next: continue the remaining Core First readiness gap with a separately bounded read-only review; do not activate Bootstrap/Runner.
