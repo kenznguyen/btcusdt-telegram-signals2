@@ -82,3 +82,42 @@ sidecar claim, or that the evidence is independently controlled.
 All CI fixtures are synthetic. No Tardis endpoint, credential, D07.2 verifier,
 real D07.8 package, ledger, T0 or VPS is used. No database or ledger writes
 are performed.
+
+
+## D07.9 V2 explicit-unknown contract
+
+V2 is additive and does not change the V1 schema or validator. Its JSON Schema
+is `schema.v2.json`; its separate structural/semantic validator is
+`validator_v2.py`; its synthetic tests are `test_validator_v2.py`.
+
+Each provenance claim uses:
+- `status`: `KNOWN`, `UNKNOWN`, `UNAVAILABLE`, or `NOT_APPLICABLE`.
+- `value`: non-null only for `KNOWN`; null for the other statuses.
+- `basis`: owner-reported, local observation, cryptographic check, provider
+  attestation, or independent attestation.
+- `limitation`: required for UNKNOWN/UNAVAILABLE/NOT_APPLICABLE.
+- `evidenceRefs`: references only; they are not authenticated by schema
+  validation.
+
+A V2 document may be `STRUCTURE_VALID` while its provenance disposition is
+`NOT_VERIFIED`. Empty custody event arrays are structurally valid and always
+leave custody coverage NOT_VERIFIED. OWNER_REPORTED claims are never promoted
+to provider or independent attestation by this validator.
+
+When supplied a D07.8 manifest, V2 compares the subject path, byte length and
+SHA-256 against the matching manifest entry. A match yields only
+`byteIntegrity=PASS_WITHIN_PACKAGE_BOUNDARY`; it does not prove upstream
+origin, provider authenticity, collector identity/independence, custody,
+global completeness or factual truth. Evidence references and the reference
+index still require the separately bounded D07.11 resolver and trust review.
+
+Run V1 regression and V2 tests together:
+
+```sh
+python -m pip install -r d07_9_lineage/requirements.txt
+python -m unittest d07_9_lineage.test_validator d07_9_lineage.test_validator_v2 -v
+```
+
+The dedicated GitHub Actions workflow is
+`.github/workflows/d07-9-v2-explicit-unknown.yml`. CI fixtures are synthetic;
+no real package, network, VPS, T0, ledger or execution system is accessed.
