@@ -97,8 +97,14 @@ def append_simulated_daily_baseline_event(
     previous_dataset_version, recorded_at_ms,
 ):
     from paper_execution.simulated_equity import verify_simulated_equity_origin
-    origin = verify_simulated_equity_origin(connection)
-    if not origin:
+    origin_valid = verify_simulated_equity_origin(connection)
+    if not origin_valid:
+        raise sqlite3.DatabaseError("SIMULATED_DAILY_BASELINE_ORIGIN_REQUIRED")
+    origin = connection.execute(
+        """SELECT utc_day_ms,record_sha256
+           FROM paper_simulated_equity_origin WHERE account_id=1"""
+    ).fetchone()
+    if origin is None:
         raise sqlite3.DatabaseError("SIMULATED_DAILY_BASELINE_ORIGIN_REQUIRED")
     if (type(utc_day_ms) is not int or type(previous_utc_day_ms) is not int
             or utc_day_ms != previous_utc_day_ms + DAY_MS
@@ -116,8 +122,8 @@ def append_simulated_daily_baseline_event(
     last = connection.execute(
         f"SELECT utc_day_ms,event_hash FROM {TABLE} WHERE account_id=1 ORDER BY utc_day_ms DESC LIMIT 1"
     ).fetchone()
-    previous_hash = last[1] if last else origin["recordSha256"]
-    expected_previous_day = last[0] if last else origin["utcDayMs"]
+    previous_hash = last[1] if last else origin[1]
+    expected_previous_day = last[0] if last else origin[0]
     if expected_previous_day != previous_utc_day_ms:
         raise ValueError("ACCOUNT_RISK_DAILY_BASELINE_UNAVAILABLE")
     document = {
@@ -149,8 +155,14 @@ def append_simulated_daily_baseline_event(
 
 def verify_simulated_daily_baseline_provenance(connection, *, risk_day, risk_baseline):
     from paper_execution.simulated_equity import verify_simulated_equity_origin
-    origin = verify_simulated_equity_origin(connection)
-    if not origin:
+    origin_valid = verify_simulated_equity_origin(connection)
+    if not origin_valid:
+        raise sqlite3.DatabaseError("SIMULATED_DAILY_BASELINE_ORIGIN_REQUIRED")
+    origin = connection.execute(
+        """SELECT utc_day_ms,record_sha256
+           FROM paper_simulated_equity_origin WHERE account_id=1"""
+    ).fetchone()
+    if origin is None:
         raise sqlite3.DatabaseError("SIMULATED_DAILY_BASELINE_ORIGIN_REQUIRED")
     objects = {(r[0], r[1]) for r in connection.execute(
         "SELECT type,name FROM sqlite_master"
