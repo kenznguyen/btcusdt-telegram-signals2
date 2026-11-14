@@ -189,10 +189,13 @@ class PaperFundingEndToEndTest(unittest.TestCase):
             start_at_ms=NOW, end_at_ms=END, recorded_at_ms=READ_AT,
         )
         self.assertEqual(len(posted), 3)
-        self.assertEqual(len(post_paper_funding_events(
+        self.assertEqual([row["idempotent"] for row in posted], [False, False, False])
+        retried = post_paper_funding_events(
             self.db_path, position_snapshots=positions, funding_rate_events=rates,
             start_at_ms=NOW, end_at_ms=END, recorded_at_ms=READ_AT,
-        )), 3)
+        )
+        self.assertEqual(len(retried), 3)
+        self.assertEqual([row["idempotent"] for row in retried], [True, True, True])
 
         reconciliation = record_funding_reconciliation(
             self.db_path, expected_population=expected, recorded_at_ms=READ_AT,
