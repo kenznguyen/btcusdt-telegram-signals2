@@ -47,7 +47,7 @@ def _contract(contract_bytes):
             object_pairs_hook=_reject_duplicate_keys,
         )
         validated = validate_simulated_capital_contract(raw)
-    except (UnicodeDecodeError, json.JSONDecodeError, ValueError):
+    except (UnicodeDecodeError, json.JSONDecodeError):
         raise ValueError("SIMULATED_ORIGIN_CONTRACT_INVALID") from None
     return validated, hashlib.sha256(contract_bytes).hexdigest()
 
@@ -122,7 +122,7 @@ def _ensure_schema(connection):
     seed_columns = {row[1] for row in connection.execute(
         "PRAGMA table_info(paper_simulated_capital_seed_events)"
     )}
-    if not _ORIGIN_COLUMNS.issubset(origin_columns) or not _SEED_COLUMNS.issubset(seed_columns):
+    if origin_columns != _ORIGIN_COLUMNS or seed_columns != _SEED_COLUMNS:
         raise sqlite3.DatabaseError("SIMULATED_ORIGIN_SCHEMA_INCOMPLETE")
 
 
@@ -159,32 +159,6 @@ def initialize_simulated_origin(
 
         seed_event_id = f"simulated-seed:{account_id}:{contract_hash}"
         source = "OWNER_APPROVED_SIMULATION"
-        origin_document = {
-            "accountId": account_id,
-            "contractId": contract["contractId"],
-            "schemaVersion": contract["schemaVersion"],
-            "capitalMode": contract["capitalMode"],
-            "tradingMode": contract["tradingMode"],
-            "initialCapitalQuote": contract["initialCapitalQuote"],
-            "quoteCurrency": contract["quoteCurrency"],
-            "contractSha256": contract_hash,
-            "seedEventId": seed_event_id,
-            "initializedAtMs": initialized_at_ms,
-            "source": source,
-        }
-        origin_digest = _canonical_digest(origin_document)
-        seed_document = {
-            "eventId": seed_event_id,
-            "accountId": account_id,
-            "eventType": "INITIAL_SIMULATED_SEED",
-            "amountQuote": contract["initialCapitalQuote"],
-            "quoteCurrency": contract["quoteCurrency"],
-            "contractSha256": contract_hash,
-            "recordedAtMs": initialized_at_ms,
-            "source": source,
-        }
-        seed_digest = _canonical_digest(seed_document)
-
         existing_origin = connection.execute(
             "SELECT contract_id,schema_version,capital_mode,trading_mode,"
             "initial_capital_quote,quote_currency,contract_sha256,seed_event_id,"
@@ -198,6 +172,38 @@ def initialize_simulated_origin(
             "FROM paper_simulated_capital_seed_events WHERE account_id=?",
             (account_id,),
         ).fetchone()
+        if (existing_origin is None) != (existing_seed is None):
+            raise ValueError("SIMULATED_ORIGIN_CONTRACT_MISMATCH")
+        effective_timestamp = initialized_at_ms
+        if existing_origin is not None:
+            effective_timestamp = existing_origin[8]
+            if type(effective_timestamp) is not int or effective_timestamp < 0:
+                raise ValueError("SIMULATED_ORIGIN_CONTRACT_MISMATCH")
+        origin_document = {
+            "accountId": account_id,
+            "contractId": contract["contractId"],
+            "schemaVersion": contract["schemaVersion"],
+            "capitalMode": contract["capitalMode"],
+            "tradingMode": contract["tradingMode"],
+            "initialCapitalQuote": contract["initialCapitalQuote"],
+            "quoteCurrency": contract["quoteCurrency"],
+            "contractSha256": contract_hash,
+            "seedEventId": seed_event_id,
+            "initializedAtMs": effective_timestamp,
+            "source": source,
+        }
+        origin_digest = _canonical_digest(origin_document)
+        seed_document = {
+            "eventId": seed_event_id,
+            "accountId": account_id,
+            "eventType": "INITIAL_SIMULATED_SEED",
+            "amountQuote": contract["initialCapitalQuote"],
+            "quoteCurrency": contract["quoteCurrency"],
+            "contractSha256": contract_hash,
+            "recordedAtMs": effective_timestamp,
+            "source": source,
+        }
+        seed_digest = _canonical_digest(seed_document)
 
         expected_origin = (
             contract["contractId"], contract["schemaVersion"], contract["capitalMode"],
@@ -233,7 +239,7 @@ def initialize_simulated_origin(
             "quoteCurrency": contract["quoteCurrency"],
             "contractSha256": contract_hash,
             "seedEventId": seed_event_id,
-            "initializedAtMs": initialized_at_ms,
+            "initializedAtMs": effective_timestamp,
             "source": source,
             "originRecordSha256": origin_digest,
             "seedRecordSha256": seed_digest,
