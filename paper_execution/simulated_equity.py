@@ -201,8 +201,10 @@ def verify_simulated_equity_origin(connection):
             "recordedAtMs": initialized, "source": source,
         }),
     )
-    if origin_digest != _canonical_digest(origin_document) or seed != expected_seed:
-        raise sqlite3.DatabaseError("SIMULATED_EQUITY_ORIGIN_CORRUPT")
+    if origin_digest != _canonical_digest(origin_document):
+        raise sqlite3.DatabaseError("SIMULATED_ORIGIN_RECORD_DIGEST_MISMATCH")
+    if seed != expected_seed:
+        raise sqlite3.DatabaseError("SIMULATED_SEED_RECORD_MISMATCH")
 
     utc_day = initialized // 86_400_000 * 86_400_000
     equity_document = {
