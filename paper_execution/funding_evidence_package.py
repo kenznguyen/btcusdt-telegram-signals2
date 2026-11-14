@@ -132,12 +132,21 @@ def validate_funding_evidence_manifest(manifest):
 
     expected_set = set(expected)
     observed_set = set(observed)
+    if expected_set:
+        coverage_comparison = "COMPARED_TO_DECLARED_EXPECTED_SET"
+        missing = sorted(expected_set - observed_set)
+        unexpected = sorted(observed_set - expected_set)
+    else:
+        coverage_comparison = "NOT_AVAILABLE_NO_EXPECTED_SET"
+        missing = []
+        unexpected = []
     return {
         "status": "STRUCTURE_VALID",
         "fileCount": len(files),
         "recordCount": total_records,
-        "missingExpectedTimestampsMs": sorted(expected_set - observed_set),
-        "unexpectedObservedTimestampsMs": sorted(observed_set - expected_set),
+        "coverageComparison": coverage_comparison,
+        "missingExpectedTimestampsMs": missing,
+        "unexpectedObservedTimestampsMs": unexpected,
         "completeness": "NOT_VERIFIED",
         "byteIntegrity": "NOT_CHECKED",
         "issuerAuthenticity": "NOT_VERIFIED",
