@@ -52,7 +52,7 @@ Even if collector-path separation is later supported, it establishes only a sepa
 
 ## 4. Required evidence package
 
-Use the immutable package structure defined by D07.8. D07.9 adds a collector-lineage evidence section to the manifest/evidence record; it does not alter the D07.8 validator or claim that its syntactic manifest checks prove custody.
+Use the immutable D07.8 package unchanged. D07.9 lineage evidence is a separate sidecar record, `TARDIS_COLLECTOR_LINEAGE_V1`, linked by exact D07.8 `packageId`; it does not add fields to the D07.8 manifest or alter its validator. The normative field contract, byte-custody rules, dependency inventory, review states, versioning and adversarial cases are defined in [D07.9 Collector Lineage Evidence Record V1](D07_9_COLLECTOR_LINEAGE_EVIDENCE_RECORD_V1_2026-11-14.md). A structurally valid sidecar is not proof of custody or independence.
 
 Required evidence fields:
 
@@ -143,7 +143,7 @@ The future evidence review must block promotion when any of the following occurs
 - gaps, unmatched rows, pagination boundaries or provider period semantics are hidden;
 - package custody or immutable version history cannot be reconstructed.
 
-Negative tests for any future implementation should include: same collector under two names; different files from one shared collector; shared storage/control plane; missing lineage fields; byte tampering after capture; byte truncation; hash mismatch; timestamp-unit confusion; duplicate settlement; partial overlap; no overlap; mismatched rates; venue substitution; circular expected schedule; missing expected timestamp; and false completeness claims from a single terminal page.
+Negative tests for the sidecar contract are specified in the linked V1 record (20 adversarial cases plus positive controls). D07.7 comparator negatives remain separate and include timestamp-key identity, duplicate settlement, malformed Decimal rate, venue/contract mismatch, partial/no overlap and explicit shared collector lineage. Neither test group can promote completeness or issuer authenticity.
 
 ## 8. Decision gates after this design
 
@@ -155,7 +155,7 @@ Negative tests for any future implementation should include: same collector unde
 
 ## 9. Current disposition
 
-- D07.9 collector independence assessment design: **DOCUMENTED — DESIGN ONLY**.
+- D07.9 collector independence assessment design: **DOCUMENTED — DESIGN ONLY**. The separate `TARDIS_COLLECTOR_LINEAGE_V1` sidecar contract is documented; it does not modify D07.8.
 - Tardis real data acquisition/parser: **NOT AUTHORIZED / NOT IMPLEMENTED**.
 - Real byte custody/readback for Tardis: **NOT VERIFIED**.
 - Collector independence: **NOT VERIFIED**.
