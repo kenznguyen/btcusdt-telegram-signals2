@@ -1,0 +1,47 @@
+name: D07.8 Offline Package Builder
+
+on:
+  push:
+    branches:
+      - feature/core-operational-proof-20261112
+    paths:
+      - paper_execution/funding_evidence_package.py
+      - paper_execution/funding_evidence_package_builder.py
+      - paper_execution/test_funding_evidence_package.py
+      - paper_execution/test_funding_evidence_package_builder.py
+      - .github/workflows/d07-8-offline-package-builder.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  offline-contract-and-builder:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Compile D07.8 modules
+        run: |
+          python -m py_compile \
+            paper_execution/funding_evidence_package.py \
+            paper_execution/funding_evidence_package_builder.py \
+            paper_execution/test_funding_evidence_package.py \
+            paper_execution/test_funding_evidence_package_builder.py
+      - name: Run offline synthetic contract and builder tests
+        shell: bash
+        run: |
+          set -o pipefail
+          python -m unittest \
+            paper_execution.test_funding_evidence_package \
+            paper_execution.test_funding_evidence_package_builder \
+            -v 2>&1 | tee d07-8-offline-tests.log
+      - name: Upload bounded test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: d07-8-offline-package-builder-test-evidence
+          path: d07-8-offline-tests.log
+          if-no-files-found: warn
