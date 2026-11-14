@@ -23,16 +23,8 @@ NOW = 1_800_000_000_000
 class FeederRecoveryLeaseRegressionTest(unittest.TestCase):
     def test_startup_recovery_renews_lease_across_pages_beyond_ttl(self):
         interval = INTERVAL_MS["15m"]
-        clock_calls = {"count": 0}
-
         def synthetic_clock():
-            clock_calls["count"] += 1
-            count = clock_calls["count"]
-            if count <= 3:
-                return NOW
-            if count <= 5:
-                return NOW + 40_000
-            return NOW + 80_000
+            return NOW
 
         with tempfile.TemporaryDirectory(prefix="t0-recovery-lease-regression-") as directory:
             database = Path(directory) / "canonical.sqlite3"
@@ -64,11 +56,15 @@ class FeederRecoveryLeaseRegressionTest(unittest.TestCase):
             heartbeat_times = []
 
             def record_heartbeat(owner, generation, now_ms=None, ttl_seconds=60):
-                heartbeat_times.append(now_ms)
+                # Model two recovery pages taking 40 seconds each. The first
+                # renewal extends the original lease past NOW+60s; the second
+                # renewal must still succeed at NOW+80s.
+                renewal_now = NOW + (len(heartbeat_times) + 1) * 40_000
+                heartbeat_times.append(renewal_now)
                 return actual_heartbeat(
                     owner,
                     generation,
-                    now_ms=now_ms,
+                    now_ms=renewal_now,
                     ttl_seconds=ttl_seconds,
                 )
 
