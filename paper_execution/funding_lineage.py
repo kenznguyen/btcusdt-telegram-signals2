@@ -43,6 +43,8 @@ def _validate_observations(rows, expected_venue):
         timestamp = row["funding_time_ms"]
         if type(timestamp) is not int or timestamp < 0:
             raise ValueError("FUNDING_TIMESTAMP_INVALID")
+        if not isinstance(row["funding_rate"], str) or not row["funding_rate"].strip():
+            raise ValueError("FUNDING_RATE_INVALID")
         try:
             rate = Decimal(row["funding_rate"])
         except (InvalidOperation, TypeError, ValueError):
