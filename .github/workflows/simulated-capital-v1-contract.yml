@@ -7,6 +7,8 @@ on:
     paths:
       - "paper_execution/simulated_capital.py"
       - "paper_execution/test_simulated_capital_contract.py"
+      - "paper_execution/simulated_origin.py"
+      - "paper_execution/test_simulated_origin.py"
       - "paper_execution/contracts/simulated_capital_v1.json"
       - ".github/workflows/simulated-capital-v1-contract.yml"
   pull_request:
@@ -35,6 +37,6 @@ jobs:
           python-version: "3.12"
       - name: Compile validator and test machine-readable contract
         run: |
-          python -m py_compile paper_execution/simulated_capital.py paper_execution/test_simulated_capital_contract.py
+          python -m py_compile paper_execution/simulated_capital.py paper_execution/test_simulated_capital_contract.py paper_execution/simulated_origin.py paper_execution/test_simulated_origin.py
           python -m json.tool paper_execution/contracts/simulated_capital_v1.json >/dev/null
-          python -m unittest paper_execution.test_simulated_capital_contract -v
+          python -m unittest paper_execution.test_simulated_capital_contract paper_execution.test_simulated_origin -v
