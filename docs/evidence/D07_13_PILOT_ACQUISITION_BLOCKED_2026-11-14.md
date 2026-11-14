@@ -262,3 +262,38 @@ The three Binance fundingRate values match the three previously extracted Tardis
 - PAPER ledger bootstrap: **BLOCKED / NOT APPROVED**.
 
 No raw VPS capture was uploaded or committed. No source code, comparator, manifest/validator, funding row, ledger/database, T0, VPS runtime, Runner/One-shot, credentials or execution state was changed. Documentation-only; no CI run or artifact was produced.
+
+## 10. Read-only assessment of Binance funding-history pagination and 500-record coverage (2026-11-14)
+
+Official Binance USDⓈ-M REST documentation for `GET /fapi/v1/fundingRate` was reviewed without making a new endpoint request:
+https://developers.binance.info/en/docs/catalog/core-trading-derivatives-trading-usd-s-m-futures/api/rest-api/market-data
+
+The current documentation states:
+- `startTime` and `endTime` are inclusive millisecond bounds.
+- `limit` maximum is 1,000; documented default is 100.
+- If no `startTime` and `endTime` are sent, the most recent 200 records are returned.
+- If the number of records in the requested interval exceeds `limit`, the response starts at `startTime + limit` (the documented wording); results are in ascending order.
+
+### Assessment against the captured page
+
+- The captured page has 500 records, but the provenance envelope does not disclose the actual request URL or query parameters. It stores only a `requestFingerprint`; no independently readable parameter manifest or request log is included in the supplied evidence.
+- The envelope `scope.startAtMs` and `scope.endAtMs` match the first and last returned fundingTime values. Without the original request parameters, it is not established whether those fields describe the requested interval, the observed result bounds, or a reconstructed scope.
+- The current official API documentation does not identify 500 as the maximum page size. It documents a maximum of 1,000 and default of 100. Therefore, the observed 500 rows cannot be attributed to a 500-row API cap from this evidence.
+- A single page with `terminal=true`, `nextCursor=null` and `sourceTotal=null` is not a completeness proof. The envelope does not demonstrate that the complete target interval was requested, that the response was not truncated by the request limit, or that a subsequent page was unnecessary.
+- The observed 500 timestamps span 2026-05-31 16:00:00.004 UTC through 2026-11-14 00:00:00.004 UTC. Their common interval is approximately eight hours, but interval regularity inside this bounded page does not prove that earlier history or the full intended interval is present.
+
+### Safe pagination model for a separately approved future acquisition
+
+For a future explicitly approved acquisition, preserve each exact request and response page separately. Use explicit inclusive `startTime`/`endTime` and a known `limit` (not above 1,000); after validating a page, advance the next page's `startTime` to the previous page's final `fundingTime + 1 ms` to avoid repeating the inclusive boundary. Continue until the requested end bound is covered by returned event-time evidence, while checking monotonicity, duplicate keys, empty-page behavior, page count, response length and exact request/response fingerprints. This is a proposed method derived from the documented inclusive bounds and ascending order, not an executed acquisition or an assertion that Binance guarantees a stable snapshot across pages.
+
+No pagination request was made in this review. No retry, alternate route, VPS command, raw transfer or data mutation was performed.
+
+### Disposition
+
+- Binance endpoint documented maximum: **1,000 records/page**.
+- Actual request limit for the captured D07.6 page: **NOT VERIFIED**.
+- Whether 500 rows represent a truncated page or the complete requested interval: **NOT VERIFIED**.
+- Endpoint enumeration/global completeness: **NOT VERIFIED**.
+- D07.6 raw byte integrity remains **PASS — owner-provided evidence**.
+- D07.7 three-event funding-rate agreement remains **PASS — LIMITED**; no formal comparator PASS.
+- D07.2 remains **BLOCKED_SHARED_LINEAGE**; D07 remains **PARTIAL**; PAPER ledger bootstrap remains **BLOCKED / NOT APPROVED**.
