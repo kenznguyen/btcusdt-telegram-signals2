@@ -6,10 +6,10 @@ closed BTCUSDT candles and never accesses exchange trading endpoints.
 import math
 import os
 from decimal import Decimal, DecimalException, ROUND_DOWN, localcontext
-from risk_policy import CORE_LEVERAGE, ORDER_MARGIN_BUDGET_PCT
+from risk_policy import CORE_LEVERAGE, CORE_ROE_SIGNAL_MULTIPLIER, ORDER_MARGIN_BUDGET_PCT
 from pipeline.values import identity, number, stamp
 
-LEVERAGE = float(CORE_LEVERAGE)
+ROE_SIGNAL_MULTIPLIER = float(CORE_ROE_SIGNAL_MULTIPLIER)
 RSI_LEN = int(os.environ.get("RSI_LENGTH", "14"))
 DMI_LEN = int(os.environ.get("DMI_LENGTH", "14"))
 ADX_SMOOTH = int(os.environ.get("ADX_SMOOTHING", "14"))
@@ -129,11 +129,11 @@ def _paper_ledger_decimal(value, *, signed=False):
 def _roe(side, average, close):
     if not side or average <= 0:
         return None
-    return ((close - average) / average if side == "LONG" else (average - close) / average) * LEVERAGE * 100.0
+    return ((close - average) / average if side == "LONG" else (average - close) / average) * ROE_SIGNAL_MULTIPLIER * 100.0
 
 
 def _threshold(side, average, abs_roe):
-    move = abs(abs_roe) / (100.0 * LEVERAGE)
+    move = abs(abs_roe) / (100.0 * ROE_SIGNAL_MULTIPLIER)
     return average * (1.0 - move) if side == "LONG" else average * (1.0 + move)
 
 
