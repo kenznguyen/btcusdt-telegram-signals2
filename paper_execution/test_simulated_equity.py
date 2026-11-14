@@ -461,5 +461,71 @@ class SimulatedEquityInitializationTest(unittest.TestCase):
             with self.assertRaisesRegex(sqlite3.DatabaseError, "SIMULATED_DAILY_BASELINE_PROVENANCE_INVALID"):
                 read_account_risk_snapshot(path, now_ms=next_day + 2_000)
 
+
+    def test_simulated_rollover_chain_survives_restart_and_multiple_days(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "simulated.sqlite3"
+            PaperLedger(
+                path, strategy_id="STRATEGY_CORE", source_sha="a" * 40,
+                simulated_contract_bytes=self.contract,
+                simulated_initialized_at_ms=self.now,
+            )
+            account_scope = PaperLedger(path)
+            record_account_mark(
+                account_scope, "100", self.now - 60_000, self.now,
+                "sha256:" + "c" * 64,
+            )
+            day0 = self.now // 86_400_000 * 86_400_000
+            day1, day2 = day0 + 86_400_000, day0 + 2 * 86_400_000
+            record_account_mark(
+                account_scope, "101", day1, day1 + 1_000,
+                "sha256:" + "d" * 64,
+            )
+            restarted = PaperLedger(path)
+            self.assertTrue(read_account_risk_snapshot(
+                path, now_ms=day1 + 2_000
+            )["riskReady"])
+            third = record_account_mark(
+                restarted, "102", day2, day2 + 1_000,
+                "sha256:" + "e" * 64,
+            )
+            self.assertTrue(third["riskReady"])
+            self.assertEqual(third["dailyBaselineUtcDayMs"], day2)
+            with sqlite3.connect(path) as db:
+                rows = db.execute(
+                    """SELECT utc_day_ms,baseline_equity_quote,previous_utc_day_ms,
+                              previous_equity_quote
+                       FROM paper_simulated_daily_baseline_events ORDER BY utc_day_ms"""
+                ).fetchall()
+                self.assertEqual(rows, [
+                    (day1, "100", day0, "100"),
+                    (day2, "100", day1, "100"),
+                ])
+
+    def test_simulated_rollover_requires_a_confirmed_mark_on_previous_day(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "simulated.sqlite3"
+            PaperLedger(
+                path, strategy_id="STRATEGY_CORE", source_sha="a" * 40,
+                simulated_contract_bytes=self.contract,
+                simulated_initialized_at_ms=self.now,
+            )
+            account_scope = PaperLedger(path)
+            day1 = self.now // 86_400_000 * 86_400_000 + 86_400_000
+            with self.assertRaisesRegex(ValueError, "ACCOUNT_RISK_DAILY_BASELINE_UNAVAILABLE"):
+                record_account_mark(
+                    account_scope, "100", day1, day1 + 1_000,
+                    "sha256:" + "d" * 64,
+                )
+            with sqlite3.connect(path) as db:
+                self.assertEqual(db.execute(
+                    """SELECT daily_baseline_utc_day_ms,last_equity_quote,
+                              mark_observed_at_ms,risk_ready
+                       FROM paper_account_risk_state WHERE account_id=1"""
+                ).fetchone(), (
+                    self.now // 86_400_000 * 86_400_000,
+                    None, None, 0,
+                ))
+
 if __name__ == "__main__":
     unittest.main()
