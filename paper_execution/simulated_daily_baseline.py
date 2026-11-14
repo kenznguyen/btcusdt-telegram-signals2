@@ -78,12 +78,16 @@ def migrate_simulated_daily_baseline_rollover(connection, source_sha):
     if not required.issubset(objects) or columns != expected:
         raise sqlite3.DatabaseError("SIMULATED_DAILY_BASELINE_SCHEMA_INCOMPLETE")
     if row is None:
+        applied_at = connection.execute(
+            "SELECT updated_at_ms FROM paper_account_risk_state WHERE account_id=1"
+        ).fetchone()
+        applied_at_ms = applied_at[0] if applied_at else 0
         connection.execute(
             """INSERT INTO paper_schema_migrations
                (version,name,checksum,applied_at_ms,source_sha,status)
                VALUES (?,?,?,?,?,'APPLIED')""",
             (MIGRATION_VERSION, "simulated-utc-daily-baseline-rollover",
-             MIGRATION_CHECKSUM, 0, source_sha.lower()),
+             MIGRATION_CHECKSUM, applied_at_ms, source_sha.lower()),
         )
 
 
@@ -180,6 +184,7 @@ def verify_simulated_daily_baseline_provenance(connection, *, risk_day, risk_bas
                     or type(prior_mark) is not int
                     or prior_mark // DAY_MS * DAY_MS != prior_day
                     or not isinstance(dataset, str) or not dataset.strip()
+                    or baseline != prior_equity
                     or prior_hash != previous_hash
                     or source != "SIMULATED_PREVIOUS_DAY_LAST_CONFIRMED_EQUITY"
                     or type(recorded) is not int or recorded < day
