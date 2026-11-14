@@ -60,9 +60,11 @@ def make_case(root):
         ref: {"path": "refs/evidence.txt", "byteLength": len(evidence), "sha256": digest(evidence)}
         for ref in refs
     }
-    package = {"packageId": "synthetic-package", "files": [{"path": "raw/funding.csv"}]}
-    manifest = {"raw/funding.csv": {"byteLength": len(raw), "sha256": digest(raw)}}
-    return record, package, index, manifest, raw, evidence
+    package = {
+        "packageId": "synthetic-package",
+        "files": [{"path": "raw/funding.csv", "byteLength": len(raw), "sha256": digest(raw)}],
+    }
+    return record, package, index, raw, evidence
 
 
 class D0711EvidenceResolverTests(unittest.TestCase):
@@ -80,7 +82,6 @@ class D0711EvidenceResolverTests(unittest.TestCase):
             "d07_8_package": self.package,
             "evidence_root": self.root,
             "reference_index": self.index,
-            "manifest_file_metadata": self.manifest,
         }
         args.update(overrides)
         return resolve_lineage_record(**args)
@@ -110,6 +111,7 @@ class D0711EvidenceResolverTests(unittest.TestCase):
         index["provider-source"] = dict(index["provider-source"], sha256="0" * 64)
         result = self.resolve(reference_index=index)
         self.assertEqual(result["status"], "BLOCKED")
+        self.assertEqual(result["evidenceReferenceResolution"], "BLOCKED")
 
     def test_05_path_traversal_is_rejected(self):
         index = dict(self.index)
@@ -132,9 +134,8 @@ class D0711EvidenceResolverTests(unittest.TestCase):
         self.assertEqual(result["status"], "BLOCKED")
 
     def test_08_raw_manifest_hash_mismatch_blocks_integrity(self):
-        manifest = dict(self.manifest)
-        manifest["raw/funding.csv"] = {"byteLength": len(self.raw), "sha256": "f" * 64}
-        result = self.resolve(manifest_file_metadata=manifest)
+        self.package["files"][0]["sha256"] = "f" * 64
+        result = self.resolve()
         self.assertEqual(result["status"], "BLOCKED")
         self.assertEqual(result["byteIntegrity"], "BLOCKED")
 
@@ -144,8 +145,10 @@ class D0711EvidenceResolverTests(unittest.TestCase):
         self.assertEqual(result["status"], "BLOCKED")
 
     def test_10_manifest_raw_file_missing_is_not_verified(self):
-        self.package["files"][0].pop("sha256")\n        result = self.resolve()
+        self.package["files"][0].pop("sha256")
+        result = self.resolve()
         self.assertEqual(result["status"], "NOT_VERIFIED")
+        self.assertEqual(result["byteIntegrity"], "BLOCKED")
 
     def test_11_reference_length_mismatch_blocks(self):
         index = dict(self.index)
@@ -158,9 +161,9 @@ class D0711EvidenceResolverTests(unittest.TestCase):
         result = self.resolve()
         self.assertEqual(result["status"], "BLOCKED")
 
-    def test_13_duplicate_reference_index_path_does_not_skip_checks(self):
+    def test_13_normalized_path_segments_are_rejected(self):
         index = dict(self.index)
-        index["provider-source"] = dict(index["provider-source"], path="refs/../refs/evidence.txt")
+        index["provider-source"] = dict(index["provider-source"], path="refs//evidence.txt")
         result = self.resolve(reference_index=index)
         self.assertEqual(result["status"], "BLOCKED")
 
