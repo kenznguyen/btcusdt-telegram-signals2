@@ -9,7 +9,7 @@ import json
 import sqlite3
 from decimal import Decimal, DecimalException
 
-from paper_execution.simulated_origin import initialize_simulated_origin
+from paper_execution.simulated_origin import initialize_simulated_origin, _contract
 
 
 _TABLE = "paper_simulated_equity_origin"
@@ -104,6 +104,50 @@ def _require_pristine_simulated_account(connection):
         value not in ("0", "0.0", "0.00") for row in rows for value in row[1:]
     ):
         raise ValueError("SIMULATED_ACCOUNT_NOT_PRISTINE")
+
+
+
+def prepare_simulated_account_config(connection, *, contract_bytes):
+    """Seed the legacy migration input only for a genuinely new simulated ledger.
+
+    Existing account configuration without a matching immutable simulated origin
+    belongs to an existing ledger and must never be reclassified as synthetic.
+    This function participates in the caller's transaction.
+    """
+    if not connection.in_transaction:
+        raise sqlite3.OperationalError("SIMULATED_INITIALIZATION_REQUIRES_TRANSACTION")
+    contract, contract_hash = _contract(contract_bytes)
+    configured = connection.execute(
+        "SELECT initial_capital FROM paper_account_config WHERE id=1"
+    ).fetchone()
+    origin_table = connection.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name='paper_simulated_capital_origin'"
+    ).fetchone()
+    origin = connection.execute(
+        "SELECT contract_sha256,initial_capital_quote FROM paper_simulated_capital_origin WHERE account_id=1"
+    ).fetchone() if origin_table else None
+
+    if configured is None:
+        if origin is not None:
+            raise sqlite3.DatabaseError("SIMULATED_ACCOUNT_ORIGIN_WITHOUT_CONFIG")
+        history = connection.execute(
+            "SELECT 1 FROM paper_equity_history LIMIT 1"
+        ).fetchone()
+        if history:
+            raise ValueError("SIMULATED_ACCOUNT_ALREADY_EXISTS")
+        connection.execute(
+            "INSERT INTO paper_account_config VALUES (1,?)",
+            (contract["initialCapitalQuote"],),
+        )
+        return contract_hash
+
+    if origin is None:
+        raise ValueError("SIMULATED_ACCOUNT_ALREADY_EXISTS")
+    if (origin[0] != contract_hash
+            or origin[1] != contract["initialCapitalQuote"]
+            or str(configured[0]) != contract["initialCapitalQuote"]):
+        raise ValueError("SIMULATED_ORIGIN_CONTRACT_MISMATCH")
+    return contract_hash
 
 
 def initialize_simulated_equity(
