@@ -34,8 +34,9 @@ class SimulatedOrderAdmissionTest(unittest.TestCase):
             simulated_contract_bytes=contract,
             simulated_initialized_at_ms=self.now,
         )
+        account_scope = PaperLedger(self.path)
         record_account_mark(
-            self.core,
+            account_scope,
             "100",
             self.now - 60_000,
             self.now,
