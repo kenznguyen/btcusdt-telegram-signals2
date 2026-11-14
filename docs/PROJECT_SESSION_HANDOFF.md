@@ -6044,3 +6044,15 @@ Current application:
 - Maintainability note (non-blocking): Runtime currently reads scheduler's private `_thread_error`; a public, thread-safe scheduler failure accessor would make this boundary clearer if the scheduler interface is next revised. No additional source edit was made during this review.
 - CI coverage gap: the inspected T0 feeder workflows target the older branch `feature/t0-centralized-data-feeder-p1-20261101`; their path filters do not include `market_data/test_feeder_runtime_regressions.py`. The active-branch Core operational workflow does not cover these T0 feeder files. No matching GitHub Actions run/status/artifact exists for the tested SHA. Therefore automated CI evidence is **NOT VERIFIED**.
 - Next gate: owner decision whether to add a narrowly scoped GitHub Actions workflow on `feature/core-operational-proof-20261112` for the three feeder regression/lifecycle/scheduler suites and upload exact-SHA logs. VPS deployment/runtime validation remains a separate approval gate and has not been performed.
+
+
+## 2026-11-15 — Dedicated T0 Feeder regression CI
+
+- Owner explicitly approved a narrowly scoped CI workflow for the T0 Feeder background scheduler fix.
+- Added `.github/workflows/t0-feeder-regression-ci.yml` on the existing active branch `feature/core-operational-proof-20261112`; workflow commit/source SHA: `d259c73e419b757dd3166158efc6247e41120ff2`.
+- Workflow scope is restricted to Feeder source/test path changes on this branch and manual dispatch. It checks out the exact pushed SHA, uses Python 3.11, compiles the five relevant modules, and runs `market_data.test_feeder_runtime_regressions`, `market_data.test_feeder_lifecycle`, and `market_data.test_feeder_scheduler`.
+- Safety boundary: temporary test fixtures only; persistent T0/PAPER DB variables and exchange credentials are explicitly empty/guarded; `AI_EXECUTION_ENABLED=false`; no deployment or runtime service action.
+- Evidence artifact is configured to retain exact-SHA provenance, test log, compile verdict, safety scope and final verdict for 14 days.
+- Initial automatic push run: workflow run ID `43653926985`, exact SHA `d259c73e419b757dd3166158efc6247e41120ff2`, URL https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43653926985. At handoff update time the run was **IN_PROGRESS**; final conclusion and artifact availability remain pending.
+- VPS/T0 deployment remains **NOT AUTHORIZED / NOT PERFORMED**. No T0 DB or PAPER Ledger access/mutation, service restart, Feeder activation, autostart/systemd change, or real order is part of this workflow.
+- Next: collect final run conclusion, job logs and artifact metadata; record PASS/FAIL against the exact run SHA. Deployment remains a separate explicit approval gate.
