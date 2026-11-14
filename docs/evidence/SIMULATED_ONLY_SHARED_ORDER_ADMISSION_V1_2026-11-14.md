@@ -89,3 +89,13 @@ Wait for run `43609479824` to reach a terminal state and inspect its job log and
 - Exact-source Bootstrap rerun [43610139453](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43610139453), source SHA `b5822f148c451fbf786bcf24981f672fe9ca49b6`, was QUEUED at this update. Result NOT VERIFIED.
 - Status: daily-baseline expectations and migration-v11 history assertions corrected; full 641-test regression still BLOCKED / NOT VERIFIED pending run 43610139453.
 - Next: inspect the queued run's terminal outcome and focused failing test log only. If PASS, proceed to the Core Decision Cycle / One-shot gap. Do not activate Bootstrap/Runner.
+
+
+## Core one-shot CI verdict-count correction — 2026-11-14
+
+- Read-only log inspection of Core operational proof run [43608805282](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43608805282), exact test source SHA `a65025f517affbba46756d020150b4f6ddff31bb`, showed `pipeline.test_core_runtime_one_shot` actually ran 15 tests and all 15 passed. The workflow's evidence step still expected `Ran 14 tests` and wrote `CORE_RUNTIME_ONE_SHOT_TESTS=14_PASS`, causing the verdict to be incorrectly recorded as NOT_VERIFIED.
+- Corrected only the workflow's expected test count and evidence label to 15. No Core runner or trading logic changed.
+- Workflow commit/source SHA: `65973afea7dfb87035494298ea42c6d88ca84b8c`; workflow blob `77118f2e0537f80a5c0c5ba16cdb9af3cf5ae043`.
+- Exact-source rerun [43610239885](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43610239885), source SHA `65973afea7dfb87035494298ea42c6d88ca84b8c`, was QUEUED at this update. Corrected verdict NOT VERIFIED pending run completion.
+- Status: one-shot unit suite 15/15 PASS on prior run; corrected workflow evidence logic committed; end-to-end CI verdict pending. No runtime activation.
+- Next: reconcile Bootstrap run 43610139453 and Core proof run 43610239885; only after both terminal results proceed to any remaining Core gate.
