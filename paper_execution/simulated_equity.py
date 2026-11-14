@@ -9,7 +9,9 @@ import json
 import sqlite3
 from decimal import Decimal, DecimalException
 
-from paper_execution.simulated_origin import initialize_simulated_origin, _contract
+from paper_execution.simulated_origin import (
+    initialize_simulated_origin, _contract, _canonical_digest,
+)
 
 
 _TABLE = "paper_simulated_equity_origin"
@@ -122,6 +124,129 @@ def _require_pristine_simulated_account(connection):
     ):
         raise ValueError("SIMULATED_ACCOUNT_NOT_PRISTINE")
 
+
+
+
+def verify_simulated_equity_origin(connection):
+    """Verify a persisted SIMULATED origin without requiring a funded cutover."""
+    objects = _objects(connection)
+    names = {name for kind, name in objects if kind == "table"}
+    simulated_tables = {
+        "paper_simulated_capital_origin",
+        "paper_simulated_capital_seed_events",
+        _TABLE,
+    }
+    present = simulated_tables & names
+    if not present:
+        return False
+    if present != simulated_tables:
+        raise sqlite3.DatabaseError("SIMULATED_EQUITY_ORIGIN_SCHEMA_INCOMPLETE")
+
+    required_triggers = {
+        ("trigger", "paper_simulated_origin_immutable_update"),
+        ("trigger", "paper_simulated_origin_immutable_delete"),
+        ("trigger", "paper_simulated_seed_immutable_update"),
+        ("trigger", "paper_simulated_seed_immutable_delete"),
+        ("trigger", f"{_TABLE}_immutable_update"),
+        ("trigger", f"{_TABLE}_immutable_delete"),
+    }
+    if not required_triggers.issubset(objects):
+        raise sqlite3.DatabaseError("SIMULATED_EQUITY_ORIGIN_SCHEMA_INCOMPLETE")
+
+    origin = connection.execute(
+        """SELECT contract_id,schema_version,capital_mode,trading_mode,
+                  initial_capital_quote,quote_currency,contract_sha256,
+                  seed_event_id,initialized_at_ms,source,record_sha256
+           FROM paper_simulated_capital_origin WHERE account_id=1"""
+    ).fetchone()
+    seed = connection.execute(
+        """SELECT event_id,event_type,amount_quote,quote_currency,
+                  contract_sha256,recorded_at_ms,source,record_sha256
+           FROM paper_simulated_capital_seed_events WHERE account_id=1"""
+    ).fetchone()
+    equity = connection.execute(
+        f"""SELECT contract_sha256,initial_equity_quote,high_water_mark_quote,
+                   utc_day_ms,daily_baseline_equity_quote,initialized_at_ms,
+                   source,record_sha256 FROM {_TABLE} WHERE account_id=1"""
+    ).fetchone()
+    if origin is None or seed is None or equity is None:
+        raise sqlite3.DatabaseError("SIMULATED_EQUITY_ORIGIN_MISSING")
+
+    contract_id, schema_version, capital_mode, trading_mode, capital, currency, contract_hash, seed_id, initialized, source, origin_digest = origin
+    if (contract_id != "SIMULATED_CAPITAL_V1" or schema_version != 1
+            or capital_mode != "SIMULATED" or trading_mode != "PAPER"
+            or capital != "100" or currency != "USDT"
+            or not isinstance(contract_hash, str) or len(contract_hash) != 64
+            or any(char not in "0123456789abcdef" for char in contract_hash)
+            or seed_id != f"simulated-seed:1:{contract_hash}"
+            or type(initialized) is not int or initialized < 0
+            or source != "OWNER_APPROVED_SIMULATION"):
+        raise sqlite3.DatabaseError("SIMULATED_EQUITY_ORIGIN_CORRUPT")
+
+    origin_document = {
+        "accountId": 1, "contractId": contract_id, "schemaVersion": schema_version,
+        "capitalMode": capital_mode, "tradingMode": trading_mode,
+        "initialCapitalQuote": capital, "quoteCurrency": currency,
+        "contractSha256": contract_hash, "seedEventId": seed_id,
+        "initializedAtMs": initialized, "source": source,
+    }
+    expected_seed = (
+        seed_id, "INITIAL_SIMULATED_SEED", "100", "USDT",
+        contract_hash, initialized, source,
+        _canonical_digest({
+            "eventId": seed_id, "accountId": 1,
+            "eventType": "INITIAL_SIMULATED_SEED", "amountQuote": "100",
+            "quoteCurrency": "USDT", "contractSha256": contract_hash,
+            "recordedAtMs": initialized, "source": source,
+        }),
+    )
+    if origin_digest != _canonical_digest(origin_document) or seed != expected_seed:
+        raise sqlite3.DatabaseError("SIMULATED_EQUITY_ORIGIN_CORRUPT")
+
+    utc_day = initialized // 86_400_000 * 86_400_000
+    equity_document = {
+        "accountId": 1, "contractSha256": contract_hash,
+        "initialEquityQuote": "100", "highWaterMarkQuote": "100",
+        "utcDayMs": utc_day, "dailyBaselineEquityQuote": "100",
+        "initializedAtMs": initialized, "source": "SIMULATED_CAPITAL_ORIGIN",
+    }
+    if (equity[0:7] != (
+            contract_hash, "100", "100", utc_day, "100",
+            initialized, "SIMULATED_CAPITAL_ORIGIN")
+            or equity[7] != _digest(equity_document)):
+        raise sqlite3.DatabaseError("SIMULATED_EQUITY_ORIGIN_CORRUPT")
+
+    account = connection.execute(
+        "SELECT mode,initial_capital,currency FROM paper_accounts WHERE account_id=1"
+    ).fetchone()
+    configured = connection.execute(
+        "SELECT initial_capital FROM paper_account_config WHERE id=1"
+    ).fetchone()
+    risk = connection.execute(
+        """SELECT high_water_mark_quote,daily_baseline_utc_day_ms,
+                  daily_baseline_equity_quote,risk_ready
+           FROM paper_account_risk_state WHERE account_id=1"""
+    ).fetchone()
+    if (account != ("PAPER", "100", "USDT") or configured != ("100",)
+            or risk is None or type(risk[3]) is not int or risk[3] not in (0, 1)
+            or risk[1] != utc_day or risk[2] != "100"):
+        raise sqlite3.DatabaseError("SIMULATED_EQUITY_RISK_STATE_CORRUPT")
+    try:
+        hwm = Decimal(risk[0])
+    except (DecimalException, TypeError, ValueError):
+        raise sqlite3.DatabaseError("SIMULATED_EQUITY_RISK_STATE_CORRUPT") from None
+    if not hwm.is_finite() or hwm < Decimal("100"):
+        raise sqlite3.DatabaseError("SIMULATED_EQUITY_RISK_STATE_CORRUPT")
+
+    for table in (
+        "paper_funding_events", "paper_funding_coverage",
+        "paper_account_equity_cutovers", "paper_funding_reconciliations",
+    ):
+        if table in names and connection.execute(
+            f"SELECT 1 FROM {table} WHERE account_id=1 LIMIT 1"
+        ).fetchone():
+            raise sqlite3.DatabaseError("SIMULATED_ACCOUNT_FUNDING_MIXED")
+    return True
 
 
 def prepare_simulated_account_config(connection, *, contract_bytes):
