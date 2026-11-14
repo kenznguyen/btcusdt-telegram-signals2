@@ -33,8 +33,10 @@ class SimulatedEquityInitializationTest(unittest.TestCase):
                 funding_quote TEXT NOT NULL, initial_margin_quote TEXT NOT NULL
             );
             CREATE TABLE paper_account_adjustments (
-                account_id INTEGER NOT NULL, adjustment_type TEXT NOT NULL,
-                amount_quote TEXT NOT NULL
+                adjustment_id TEXT PRIMARY KEY, account_id INTEGER NOT NULL,
+                strategy_id TEXT NOT NULL, adjustment_type TEXT NOT NULL,
+                amount_quote TEXT NOT NULL, source_table TEXT NOT NULL,
+                source_hash TEXT NOT NULL, created_at_ms INTEGER NOT NULL
             );
             CREATE TABLE paper_orders (order_id TEXT PRIMARY KEY);
             CREATE TABLE paper_funding_events (event_id TEXT PRIMARY KEY);
@@ -52,6 +54,13 @@ class SimulatedEquityInitializationTest(unittest.TestCase):
             self.db.execute(
                 """INSERT INTO paper_strategy_ledgers VALUES
                    (1,?,'0','0','0','0','0','0')""", (strategy,)
+            )
+        for adjustment_type in ("LEGACY_REALIZED_PNL", "LEGACY_FEES"):
+            self.db.execute(
+                """INSERT INTO paper_account_adjustments VALUES
+                   (?,?,?,?,'0','paper_state',?,?)""",
+                ("legacy-v1:" + adjustment_type, 1, "LEGACY_UNATTRIBUTED",
+                 adjustment_type, "a" * 64, 0),
             )
         self.contract = json.dumps(
             DEFAULT_SIMULATED_CAPITAL_CONTRACT, separators=(",", ":")
