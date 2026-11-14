@@ -1,10 +1,13 @@
 import hashlib
 import json
 import sqlite3
+import tempfile
 import unittest
+from pathlib import Path
 
 from paper_execution.simulated_capital import DEFAULT_SIMULATED_CAPITAL_CONTRACT
 from paper_execution.simulated_equity import initialize_simulated_equity
+from paper_execution.ledger import PaperLedger
 
 
 class SimulatedEquityInitializationTest(unittest.TestCase):
@@ -195,6 +198,62 @@ class SimulatedEquityInitializationTest(unittest.TestCase):
             )
         with self.assertRaisesRegex(sqlite3.IntegrityError, "SIMULATED_EQUITY_ORIGIN_IMMUTABLE"):
             self.db.execute("DELETE FROM paper_simulated_equity_origin")
+
+
+    def test_paperledger_initializes_new_simulated_account_atomically(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "simulated.sqlite3"
+            PaperLedger(
+                path,
+                strategy_id="STRATEGY_CORE",
+                source_sha="a" * 40,
+                simulated_contract_bytes=self.contract,
+                simulated_initialized_at_ms=self.now,
+            )
+            with sqlite3.connect(path) as db:
+                self.assertEqual(db.execute(
+                    "SELECT initial_capital FROM paper_account_config WHERE id=1"
+                ).fetchone(), ("100",))
+                self.assertEqual(db.execute(
+                    "SELECT initial_capital,currency FROM paper_accounts WHERE account_id=1"
+                ).fetchone(), ("100", "USDT"))
+                self.assertEqual(db.execute(
+                    """SELECT high_water_mark_quote,daily_baseline_utc_day_ms,
+                              daily_baseline_equity_quote,risk_ready
+                       FROM paper_account_risk_state WHERE account_id=1"""
+                ).fetchone(), (
+                    "100", self.now // 86_400_000 * 86_400_000, "100", 0
+                ))
+                self.assertEqual(db.execute(
+                    "SELECT COUNT(*) FROM paper_simulated_capital_seed_events"
+                ).fetchone()[0], 1)
+                self.assertEqual(db.execute(
+                    "SELECT COUNT(*) FROM paper_funding_events"
+                ).fetchone()[0], 0)
+
+    def test_paperledger_refuses_to_reclassify_existing_legacy_account_as_simulated(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "legacy.sqlite3"
+            PaperLedger(path)
+            with sqlite3.connect(path) as db:
+                db.execute(
+                    "INSERT INTO paper_account_config VALUES (1,'100')"
+                )
+            with self.assertRaisesRegex(ValueError, "SIMULATED_ACCOUNT_ALREADY_EXISTS"):
+                PaperLedger(
+                    path,
+                    strategy_id="STRATEGY_CORE",
+                    source_sha="a" * 40,
+                    simulated_contract_bytes=self.contract,
+                    simulated_initialized_at_ms=self.now,
+                )
+            with sqlite3.connect(path) as db:
+                self.assertIsNone(db.execute(
+                    "SELECT 1 FROM sqlite_master WHERE type='table' AND name='paper_accounts'"
+                ).fetchone())
+                self.assertIsNone(db.execute(
+                    "SELECT 1 FROM sqlite_master WHERE type='table' AND name='paper_simulated_capital_origin'"
+                ).fetchone())
 
 
 if __name__ == "__main__":
