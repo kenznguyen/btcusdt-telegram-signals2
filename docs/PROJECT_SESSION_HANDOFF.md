@@ -5844,3 +5844,16 @@ Current application:
 - Status: one-shot test suite 15/15 PASS on the prior Core run; workflow evidence mismatch corrected but exact-source proof pending. Bootstrap full regression pending. Overall PAPER Ledger readiness BLOCKED / NOT VERIFIED. AI remains out of scope.
 - No operational DB/VPS/T0, Bootstrap activation, Runner activation, AI execution or live order.
 - Next: reconcile runs 43610139453 and 43610239885 at terminal state; preserve exact SHA and only then advance the Core gate.
+
+
+## 2026-11-14 — Final Bootstrap regression and Core Decision Cycle proof
+
+- Active branch remains `feature/core-operational-proof-20261112`; no new branch or PR.
+- Bootstrap full regression [run 43610139453](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43610139453), job `132493202759`, exact checkout SHA `b5822f148c451fbf786bcf24981f672fe9ca49b6`: SUCCESS; full PaperLedger suite 641/641 PASS. Focused Bootstrap/D07 tests also passed.
+- Bootstrap artifact ID `14119822199`, name `dual-ledger-bootstrap-proof-b5822f148c451fbf786bcf24981f672fe9ca49b6`, 19,880 bytes, GitHub digest SHA-256 `70a7dff446506481c0f04f0adf61b2e60357697d250578c76146c38f418c875b`, expires 2026-11-21T15:25:53Z. Payload hash NOT independently verified.
+- Core operational proof [run 43610239885](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43610239885), job `132493515240`, exact checkout SHA `65973afea7dfb87035494298ea42c6d88ca84b8c`: SUCCESS. Core One-shot 15/15 PASS; workflow verdicts `CORE_RUNTIME_DECISION_CYCLE=ONE_SHOT_TESTS_PASS`, `CORE_RUNTIME_ONE_SHOT=PASS`, `CORE_RUNTIME_PREFLIGHT=PASS`, `CORE_RUNTIME_ADAPTER=PASS`. All workflow steps passed.
+- Core artifact ID `14120465199`, name `core-first-code-operational-proof-43610239885`, 11,292 bytes, GitHub digest SHA-256 `e106525735e9679528603eaa7e5343060c052feef57cf088cd612b6cc8d6d102`, expires 2026-11-21T15:27:03Z. Payload hash NOT independently verified.
+- Evidence report updated: `docs/evidence/SIMULATED_ONLY_SHARED_ORDER_ADMISSION_V1_2026-11-14.md` in commit `7023b4f02b8d1359cf5a989b97ef46f46a843b59`, blob `ee5aa113bc008b2e4873798ddb8902d19b890216`.
+- Status: Bootstrap broad regression PASS within CI scope; Core code-level operational proof and Decision Cycle/One-shot PASS within CI scope. PAPER Ledger persistent runtime readiness remains BLOCKED / NOT VERIFIED; these CI runs do not prove VPS/runtime readiness and do not authorize Bootstrap/Runner activation. AI Trusted Admission Context/admitted leverage remains NOT IMPLEMENTED / BLOCKED; continue Core First.
+- No operational DB, VPS, T0, exchange credentials, AI execution, live order or real trade was used or authorized.
+- Next: identify and close remaining Core-first paper-runtime readiness gap through a bounded read-only/design/test increment; no Bootstrap/Runner activation or operational runtime action.
