@@ -6,6 +6,7 @@ from pathlib import Path
 
 from paper_execution.account_equity import record_account_mark
 from paper_execution.ledger import PaperLedger
+from paper_execution import risk_control
 from paper_execution.simulated_capital import DEFAULT_SIMULATED_CAPITAL_CONTRACT
 
 
@@ -16,9 +17,9 @@ class SimulatedOrderAdmissionTest(unittest.TestCase):
         self.path = Path(self.temp.name) / "simulated-order-admission.sqlite3"
         self.now = 1_800_000_000_000
         self.limits = {
-            "maxDrawdownPct": "20",
-            "maxDailyLossUsdt": "10",
-            "maxExposureUsdt": "1000",
+            "maxDrawdownPct": "10",
+            "maxDailyLossUsdt": "2",
+            "maxExposureUsdt": "10",
         }
         contract = json.dumps(
             DEFAULT_SIMULATED_CAPITAL_CONTRACT, separators=(",", ":")
@@ -123,6 +124,55 @@ class SimulatedOrderAdmissionTest(unittest.TestCase):
             ).fetchone()[0]
         self.assertEqual(reservation_count, 0)
         self.assertEqual(position, "0")
+
+
+    def test_simulated_core_dca_uses_same_shared_admission_without_funding(self):
+        entry = self.core.submit(
+            self.intent("simulated-core-entry-before-dca", "0.009"),
+            self.book(),
+            self.now,
+            strategy_event="ENTRY",
+        )
+        self.assertEqual(entry["status"], "FILLED", entry)
+
+        dca = self.core.submit(
+            self.intent("simulated-core-dca", "0.018"),
+            self.book(),
+            self.now,
+            strategy_event="DCA",
+        )
+        self.assertEqual(dca["status"], "FILLED", dca)
+        with sqlite3.connect(self.path) as connection:
+            state = connection.execute(
+                """SELECT position_base,dca_used FROM paper_strategy_ledgers
+                   WHERE account_id=1 AND strategy_id='STRATEGY_CORE'"""
+            ).fetchone()
+            self.assertEqual(state, ("0.018", 1))
+            self.assertEqual(connection.execute(
+                "SELECT COUNT(*) FROM paper_funding_events"
+            ).fetchone()[0], 0)
+
+    def test_simulated_core_entry_is_blocked_by_shared_kill_switch(self):
+        with sqlite3.connect(self.path) as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            risk_control.set_kill(connection, True, self.now, "TEST_KILL_SWITCH")
+
+        result = self.core.submit(
+            self.intent("simulated-core-kill-switch", "0.009"),
+            self.book(),
+            self.now,
+            strategy_event="ENTRY",
+        )
+        self.assertEqual(result["status"], "REJECTED", result)
+        self.assertIn("KILL", result["reason"])
+        with sqlite3.connect(self.path) as connection:
+            self.assertEqual(connection.execute(
+                """SELECT position_base FROM paper_strategy_ledgers
+                   WHERE account_id=1 AND strategy_id='STRATEGY_CORE'"""
+            ).fetchone()[0], "0")
+            self.assertEqual(connection.execute(
+                "SELECT COUNT(*) FROM paper_risk_reservations"
+            ).fetchone()[0], 0)
 
 
 if __name__ == "__main__":
