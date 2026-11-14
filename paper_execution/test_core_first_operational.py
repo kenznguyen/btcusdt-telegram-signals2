@@ -2051,6 +2051,20 @@ class CoreLedgerNoCreateAndLeveragePolicyTest(unittest.TestCase):
             self.fixture.core.set_paused(False, self.fixture.now + 1)
         self.assertEqual(path.read_bytes(), b"replacement-database-must-not-be-opened")
 
+    def test_read_only_core_ledger_rejects_replacement_since_preflight(self):
+        path = self.fixture.core.path
+        before = path.stat()
+        expected = (before.st_dev, before.st_ino)
+        replacement = path.parent / "preflight-replaced.sqlite3"
+        replacement.write_bytes(b"new-file-after-preflight")
+        replacement.replace(path)
+        with self.assertRaisesRegex(sqlite3.OperationalError, "PAPER_LEDGER_PATH_REPLACED"):
+            PaperLedger(
+                path, strategy_id="STRATEGY_CORE", leverage="1",
+                apply_migrations=False, expected_file_identity=expected,
+            )
+        self.assertEqual(path.read_bytes(), b"new-file-after-preflight")
+
 
 if __name__ == "__main__":
     unittest.main()
