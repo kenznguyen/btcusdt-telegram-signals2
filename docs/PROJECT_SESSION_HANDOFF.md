@@ -5259,3 +5259,13 @@ Next: preserve this proof and do not rerun automatically. Any additional runtime
 - Scope confirmation: no Tardis downloads/API calls, persistent connector, funding-row imports, ledger/database writes, T0 access/mutation, VPS operations, Runner/One-shot, live execution or orders occurred.
 - Next: keep D07.8 closed at the approved offline-contract boundary. Any real Tardis acquisition/parser or provenance-verifier expansion requires a separate explicit owner approval defining exact scope and limits.
 
+
+
+## 2026-11-14 — Owner-approved Core Runner hardening G2–G6
+
+- This section supersedes the earlier candidate note stating Runner implementation was not approved. Owner explicitly approved G2–G6 implementation on the active branch using TDD, disposable SQLite fixtures and GitHub Actions only.
+- Scope and current evidence are recorded in [CORE_RUNNER_HARDENING_G2_G6_2026-11-14.md](evidence/CORE_RUNNER_HARDENING_G2_G6_2026-11-14.md).
+- Latest code source at this update: `34066f4f1d3781c3acc8d597dfcf0cb305882000`. Exact Core workflow run [43571521270](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43571521270) is still in progress; latest-source acceptance is **NOT VERIFIED** until that run completes.
+- Earlier complete Core-First evidence at source `8b774bd33e7f2199dbf542e4788f35819bc6a26b`: run [43571155276](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43571155276), job `132375787785`, SUCCESS (28/28 steps); hardening tests 7/7 PASS; SQLite ledger integration command 26 tests PASS; artifact `14104865011`, SHA-256 `8a61c397ea30a88a1d9b44766b17297063028718754f4fd025f5b5417c7807ea`.
+- No VPS, SSH, deployment, persistent process/autostart, T0 access/mutation, exchange access/credentials, AI execution, live trading or real orders occurred. `AI_EXECUTION_ENABLED=false`.
+- Next: verify run 43571521270 at exact SHA 34066f4f1d3781c3acc8d597dfcf0cb305882000, then finalize status and evidence. Preserve branch; do not create a parallel PR or activate runtime.
