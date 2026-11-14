@@ -6005,3 +6005,33 @@ Current application:
 3. Follow TDD on the existing branch only. Before changing production lifecycle behavior, report the exact failing tests and proposed minimal scope for owner approval. Do not change T0 runtime, database, lease values, freshness threshold, or VPS state without separate explicit approval.
 4. Re-run the bounded T0→T2 tests only after the timestamp/freshness semantics are resolved without falsifying observation time.
 
+
+
+## 2026-11-15 — T0 Feeder background scheduler failure regression and fix
+
+### Scope and source
+- Active branch: `feature/core-operational-proof-20261112`; branch HEAD at this update: `abc937715816492b37b06f3a4ef9d0345c40c583`.
+- Owner approved a narrowly scoped production fix after the isolated background-scheduler regression demonstrated that a scheduler exception could leave Runtime RUNNING/READY while `run_service()` returned 0.
+- Production changes are limited to `market_data/feeder.py` and `market_data/feeder_service.py`; regression assertions are in `market_data/test_feeder_runtime_regressions.py`.
+- Commits: `329a94f95aac09ac0fe83381acfbb9ac60d58a15` (Runtime failure detection), `4539fc1fcb4d60d654ea24c7c26a08516404c90f` (service propagation), and `abc937715816492b37b06f3a4ef9d0345c40c583` (lease-through-drain regression assertion).
+- Final tested source SHA: `abc937715816492b37b06f3a4ef9d0345c40c583`.
+
+### Fix behavior
+- Runtime exposes `check_background_failure()`: detects the scheduler's recorded background exception, transitions RUNNING to FAILED, requests heartbeat stop, marks health not-ready, and emits the scheduler-failure event.
+- `run_service()` polls this Runtime health method before evaluating lifecycle state; FAILED returns service result 3.
+- Shutdown still announces STOPPING before `runtime.stop()`; the regression verifies the exact lease remains valid at STOPPING and is released only after the runtime drain/stop path completes.
+- No canonical T0 DB, schema, lease TTL/heartbeat configuration, market data, PAPER Ledger, VPS runtime, or trading execution was changed by this code increment.
+
+### Verification and provenance
+- Owner-pasted isolated worktree test output at exact source SHA `abc937715816492b37b06f3a4ef9d0345c40c583`: `Ran 56 tests in 1.457s — OK`.
+- The executed command covered `market_data.test_feeder_runtime_regressions`, `market_data.test_feeder_lifecycle`, and `market_data.test_feeder_scheduler`; result **56/56 PASS**.
+- This is owner-provided terminal evidence. The assistant did not access the VPS or independently execute the tests.
+- GitHub Actions workflow runs and artifacts for this SHA: **NONE returned / NOT VERIFIED**. No CI PASS is claimed.
+- Branch comparison from the prior test commit `0f8c6baef3f1550fbd272bc85586302cda5a8f86`: ahead 3, behind 0; exactly the three intended source/test files changed.
+
+### Status and next gate
+- Focused T0 feeder regression + lifecycle + scheduler tests: **PASS (56/56), owner-pasted isolated-worktree evidence**.
+- Source fix: **COMMITTED** on the existing active branch.
+- GitHub Actions evidence: **NOT VERIFIED**.
+- Deployment to replacement VPS / T0 runtime: **NOT AUTHORIZED / NOT PERFORMED**. No service restart, Feeder start, autostart/systemd change, or T0 DB access/mutation is implied by this test PASS.
+- Next: review the final diff and CI coverage; separately request explicit bounded approval before any VPS deployment or runtime validation. Preserve paper-only posture and `AI_EXECUTION_ENABLED=false`; no real orders.
