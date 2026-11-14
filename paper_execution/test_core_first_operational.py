@@ -2043,6 +2043,14 @@ class CoreLedgerNoCreateAndLeveragePolicyTest(unittest.TestCase):
             self.fixture.core.set_paused(False, self.fixture.now + 1)
         self.assertFalse(self.fixture.core.path.exists())
 
+    def test_read_only_core_ledger_rejects_regular_file_replacement_after_constructor(self):
+        path = self.fixture.core.path
+        path.unlink()
+        path.write_bytes(b"replacement-database-must-not-be-opened")
+        with self.assertRaisesRegex(sqlite3.OperationalError, "PAPER_LEDGER_PATH_REPLACED"):
+            self.fixture.core.set_paused(False, self.fixture.now + 1)
+        self.assertEqual(path.read_bytes(), b"replacement-database-must-not-be-opened")
+
 
 if __name__ == "__main__":
     unittest.main()
