@@ -1,0 +1,255 @@
+{
+  "schemaVersion": "SOURCE_LINEAGE_RECORD_V2",
+  "recordId": "d07-9-btcusdt-20261101-v2-draft",
+  "packageId": "d07-8-tardis-btcusdt-20261101-pilot-v4",
+  "createdAt": "2026-11-14T20:23:34+07:00",
+  "subject": {
+    "path": {
+      "status": "KNOWN",
+      "value": "raw/BTCUSDT.csv.gz",
+      "basis": "LOCAL_OBSERVATION",
+      "limitation": null,
+      "evidenceRefs": [
+        "docs/evidence/D07_8_OFFLINE_PACKAGE_BUILDER_2026-11-14.md"
+      ]
+    },
+    "byteLength": {
+      "status": "KNOWN",
+      "value": 1431960,
+      "basis": "CRYPTOGRAPHIC_CHECK",
+      "limitation": null,
+      "evidenceRefs": [
+        "docs/evidence/D07_8_OFFLINE_PACKAGE_BUILDER_2026-11-14.md"
+      ]
+    },
+    "sha256": {
+      "status": "KNOWN",
+      "value": "71963e8235106ae36fe386ef0fbd52b078df48ea854d09d814469eddeed58a8c",
+      "basis": "CRYPTOGRAPHIC_CHECK",
+      "limitation": null,
+      "evidenceRefs": [
+        "docs/evidence/D07_8_OFFLINE_PACKAGE_BUILDER_2026-11-14.md",
+        "docs/evidence/D07_8_SOURCE_ORIGIN_CLARIFICATION_2026-11-14.md"
+      ]
+    },
+    "preservedOriginal": {
+      "status": "KNOWN",
+      "value": true,
+      "basis": "LOCAL_OBSERVATION",
+      "limitation": null,
+      "evidenceRefs": [
+        "docs/evidence/D07_8_OFFLINE_PACKAGE_BUILDER_2026-11-14.md"
+      ]
+    },
+    "readback": {
+      "status": "KNOWN",
+      "value": true,
+      "basis": "CRYPTOGRAPHIC_CHECK",
+      "limitation": null,
+      "evidenceRefs": [
+        "docs/evidence/D07_8_OFFLINE_PACKAGE_BUILDER_2026-11-14.md"
+      ]
+    }
+  },
+  "retrieval": {
+    "channel": {
+      "status": "KNOWN",
+      "value": "CHATGPT",
+      "basis": "OWNER_REPORTED",
+      "limitation": null,
+      "evidenceRefs": [
+        "docs/evidence/D07_8_SOURCE_ORIGIN_CLARIFICATION_2026-11-14.md"
+      ]
+    },
+    "actor": {
+      "status": "KNOWN",
+      "value": "OWNER",
+      "basis": "OWNER_REPORTED",
+      "limitation": null,
+      "evidenceRefs": [
+        "docs/evidence/D07_8_SOURCE_ORIGIN_CLARIFICATION_2026-11-14.md"
+      ]
+    },
+    "retrievedAt": {
+      "status": "UNKNOWN",
+      "value": null,
+      "basis": null,
+      "limitation": "Exact time the owner retrieved the file from ChatGPT is not evidenced",
+      "evidenceRefs": []
+    },
+    "upstreamOrigin": {
+      "status": "UNKNOWN",
+      "value": null,
+      "basis": null,
+      "limitation": "Original source and creator before ChatGPT are unknown; direct Tardis export is not established",
+      "evidenceRefs": [
+        "docs/evidence/D07_8_SOURCE_ORIGIN_CLARIFICATION_2026-11-14.md"
+      ]
+    },
+    "otherSourceUsed": {
+      "status": "KNOWN",
+      "value": false,
+      "basis": "OWNER_REPORTED",
+      "limitation": null,
+      "evidenceRefs": [
+        "docs/evidence/D07_8_SOURCE_ORIGIN_CLARIFICATION_2026-11-14.md"
+      ]
+    }
+  },
+  "provider": {
+    "identity": {
+      "status": "UNKNOWN",
+      "value": null,
+      "basis": null,
+      "limitation": "No provider-issued receipt or authenticated export metadata is available",
+      "evidenceRefs": []
+    },
+    "dataset": {
+      "status": "UNKNOWN",
+      "value": null,
+      "basis": null,
+      "limitation": "binance-futures is intended pilot context only, not authenticated dataset provenance",
+      "evidenceRefs": [
+        "docs/evidence/D07_8_OFFLINE_PACKAGE_BUILDER_2026-11-14.md"
+      ]
+    },
+    "feed": {
+      "status": "UNKNOWN",
+      "value": null,
+      "basis": null,
+      "limitation": "derivative_ticker is intended pilot context only, not authenticated feed provenance",
+      "evidenceRefs": [
+        "docs/evidence/D07_8_OFFLINE_PACKAGE_BUILDER_2026-11-14.md"
+      ]
+    },
+    "venue": {
+      "status": "UNKNOWN",
+      "value": null,
+      "basis": null,
+      "limitation": "The CSV exchange label and pilot context do not authenticate venue or issuer identity",
+      "evidenceRefs": [
+        "docs/evidence/D07_8_OFFLINE_PACKAGE_BUILDER_2026-11-14.md"
+      ]
+    },
+    "requestId": {
+      "status": "UNAVAILABLE",
+      "value": null,
+      "basis": null,
+      "limitation": "No provider request ID, export receipt or job metadata was supplied",
+      "evidenceRefs": []
+    }
+  },
+  "collector": {
+    "identity": {
+      "status": "UNKNOWN",
+      "value": null,
+      "basis": null,
+      "limitation": "Original collector identity before ChatGPT is unknown",
+      "evidenceRefs": []
+    },
+    "software": {
+      "status": "UNKNOWN",
+      "value": null,
+      "basis": null,
+      "limitation": "Original acquisition software and version are unknown",
+      "evidenceRefs": []
+    },
+    "execution": {
+      "status": "UNKNOWN",
+      "value": null,
+      "basis": null,
+      "limitation": "No original collector execution record is available",
+      "evidenceRefs": []
+    },
+    "host": {
+      "status": "UNKNOWN",
+      "value": null,
+      "basis": null,
+      "limitation": "Original acquisition host is unknown",
+      "evidenceRefs": []
+    },
+    "startedAt": {
+      "status": "UNKNOWN",
+      "value": null,
+      "basis": null,
+      "limitation": "Original acquisition start time is unknown",
+      "evidenceRefs": []
+    },
+    "completedAt": {
+      "status": "UNKNOWN",
+      "value": null,
+      "basis": null,
+      "limitation": "Original acquisition completion time is unknown",
+      "evidenceRefs": []
+    },
+    "transport": {
+      "status": "UNKNOWN",
+      "value": null,
+      "basis": null,
+      "limitation": "Transport used before ChatGPT is unknown",
+      "evidenceRefs": []
+    },
+    "networkEgress": {
+      "status": "UNKNOWN",
+      "value": null,
+      "basis": null,
+      "limitation": "Original acquisition network-egress evidence is unavailable",
+      "evidenceRefs": []
+    }
+  },
+  "custody": {
+    "events": [],
+    "coverage": "NOT_VERIFIED"
+  },
+  "dependencies": [
+    {
+      "dependencyId": "binance-issuer",
+      "category": "ISSUER",
+      "identity": {
+        "status": "UNKNOWN",
+        "value": null,
+        "basis": null,
+        "limitation": "Binance issuer authenticity is not independently established",
+        "evidenceRefs": []
+      },
+      "sharedWithBinanceRestCapture": {
+        "status": "KNOWN",
+        "value": true,
+        "basis": "LOCAL_OBSERVATION",
+        "limitation": null,
+        "evidenceRefs": [
+          "docs/evidence/D07_8_SOURCE_ORIGIN_CLARIFICATION_2026-11-14.md"
+        ]
+      },
+      "materialToCollectorSeparation": {
+        "status": "UNKNOWN",
+        "value": null,
+        "basis": null,
+        "limitation": "No collector identity or dependency evidence permits a materiality determination",
+        "evidenceRefs": []
+      }
+    }
+  ],
+  "assessment": {
+    "declaredBoundary": "Draft records only the owner-reported immediate ChatGPT retrieval channel and the D07.8 v4 raw-object byte identity. It is not an authenticated Tardis export or collector-lineage attestation.",
+    "unresolvedClaims": [
+      "Original upstream origin before ChatGPT",
+      "Direct Tardis export and provider identity",
+      "Provider request/export receipt",
+      "Collector identity, software, execution, host and acquisition times",
+      "Pre-ChatGPT transport and network egress",
+      "Custody events and custody before ChatGPT",
+      "Binance issuer authenticity",
+      "Authoritative expected funding schedule and global completeness",
+      "Evidence-reference index origin, authority and immutability"
+    ],
+    "reviewDisposition": "NOT_REVIEWED",
+    "reviewerRef": null,
+    "reviewedAt": null,
+    "rationaleRef": "docs/evidence/D07_8_SOURCE_ORIGIN_CLARIFICATION_2026-11-14.md"
+  },
+  "supersedes": {
+    "recordId": null,
+    "reason": null
+  }
+}
