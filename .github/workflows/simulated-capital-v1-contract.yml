@@ -16,6 +16,7 @@ on:
       - ".github/workflows/simulated-capital-v1-contract.yml"
   pull_request:
     paths:
+      - "paper_execution/ledger.py"
       - "paper_execution/simulated_capital.py"
       - "paper_execution/test_simulated_capital_contract.py"
       - "paper_execution/simulated_origin.py"
