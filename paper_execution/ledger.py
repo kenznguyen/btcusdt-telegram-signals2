@@ -1635,7 +1635,7 @@ def cancel_dual_order(db_path, order_id, now_ms, *, expected_strategy_id=None):
 
 
 class PaperLedger:
-    def __init__(self, db_path, *, max_position_base="0.01", fee_rate="0.0005", max_spread_bps="50", risk_limits=None, require_risk_limits=False, leverage=None, strategy_id="MANUAL", source_sha=None, apply_migrations=True):
+    def __init__(self, db_path, *, max_position_base="0.01", fee_rate="0.0005", max_spread_bps="50", risk_limits=None, require_risk_limits=False, leverage=None, strategy_id="MANUAL", source_sha=None, apply_migrations=True, expected_file_identity=None):
         self.path = Path(db_path)
         self.maximum, self.fee_rate, self.spread = number(max_position_base), number(fee_rate), number(max_spread_bps)
         self.risk_limits, self.require_risk_limits = risk_limits, bool(require_risk_limits)
@@ -1663,7 +1663,17 @@ class PaperLedger:
             if self.path.is_symlink() or not self.path.is_file():
                 raise FileNotFoundError("Paper ledger is unavailable")
             initial_stat = self.path.stat()
-            self._expected_file_identity = (initial_stat.st_dev, initial_stat.st_ino)
+            initial_identity = (initial_stat.st_dev, initial_stat.st_ino)
+            if expected_file_identity is not None:
+                if (
+                    not isinstance(expected_file_identity, (tuple, list))
+                    or len(expected_file_identity) != 2
+                    or any(type(value) is not int for value in expected_file_identity)
+                ):
+                    raise ValueError("LEDGER_FILE_IDENTITY_INVALID")
+                if initial_identity != tuple(expected_file_identity):
+                    raise sqlite3.OperationalError("PAPER_LEDGER_PATH_REPLACED")
+            self._expected_file_identity = initial_identity
         with closing(self.connect()) as connection, connection:
             if read_only_existing:
                 connection.execute("PRAGMA query_only=ON")
