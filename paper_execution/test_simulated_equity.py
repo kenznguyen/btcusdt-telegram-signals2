@@ -453,6 +453,9 @@ class SimulatedEquityInitializationTest(unittest.TestCase):
             )
             with sqlite3.connect(path) as db:
                 db.execute(
+                    "DROP TRIGGER paper_simulated_daily_baseline_events_immutable_update"
+                )
+                db.execute(
                     "UPDATE paper_simulated_daily_baseline_events SET baseline_equity_quote='99'"
                 )
             with self.assertRaisesRegex(sqlite3.DatabaseError, "SIMULATED_DAILY_BASELINE_PROVENANCE_INVALID"):
