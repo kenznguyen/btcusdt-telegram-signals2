@@ -5857,3 +5857,13 @@ Current application:
 - Status: Bootstrap broad regression PASS within CI scope; Core code-level operational proof and Decision Cycle/One-shot PASS within CI scope. PAPER Ledger persistent runtime readiness remains BLOCKED / NOT VERIFIED; these CI runs do not prove VPS/runtime readiness and do not authorize Bootstrap/Runner activation. AI Trusted Admission Context/admitted leverage remains NOT IMPLEMENTED / BLOCKED; continue Core First.
 - No operational DB, VPS, T0, exchange credentials, AI execution, live order or real trade was used or authorized.
 - Next: identify and close remaining Core-first paper-runtime readiness gap through a bounded read-only/design/test increment; no Bootstrap/Runner activation or operational runtime action.
+
+
+## 2026-11-14 — Owner approval: bounded VPS source parity
+
+- Owner approved the previously proposed bounded scope: synchronize the approved Core source to the test VPS and perform read-only source-parity inspection only.
+- Approval does NOT authorize Bootstrap, database creation/migration, ledger initialization, Runner/One-shot/continuous execution, service/systemd/autostart changes, T0 access or mutation, exchange access, AI execution, live trading or real orders.
+- Execution status: **BLOCKED / NOT RUN** in this ChatGPT session because no SSH/VPS remote-execution connector is available. No VPS command, file transfer, service action or runtime inspection was performed; do not represent source parity as verified.
+- Before any synchronization, operator must confirm the VPS checkout target/path and preserve a rollback copy; transfer only the approved repository source at an exact pinned commit on the existing branch. Then inspect `git rev-parse HEAD`, `git status --short`, tracked-file hashes and the intended source manifest read-only; do not execute application code or migrations. Record exact local/VPS commit and hash comparison, and stop on dirty state, mismatch, unexpected files or path overlap.
+- Active branch remains `feature/core-operational-proof-20261112`; no branch or PR created. No source code was changed for this approval record.
+- Next: obtain an authorized SSH execution path or have the owner/operator run the bounded read-only procedure and return its output; only then determine PASS/BLOCKED for VPS source parity.
