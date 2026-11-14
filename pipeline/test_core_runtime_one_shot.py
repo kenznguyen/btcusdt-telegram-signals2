@@ -92,7 +92,7 @@ class CoreOneShotRunnerTest(unittest.TestCase):
                 }
 
         with (
-            patch("core_runtime.one_shot._preflight", return_value={"status": "PREFLIGHT_PASS"}),
+            patch("core_runtime.one_shot._preflight", return_value={"status": "PREFLIGHT_PASS", "riskReady": True}),
             patch("paper_execution.ledger.read_account_risk_snapshot",
                   return_value=risk or self.bundle["accountRisk"]["snapshot"]),
             patch("paper_execution.ledger.read_snapshot",
@@ -217,7 +217,7 @@ class CoreOneShotRunnerTest(unittest.TestCase):
             events.append(("prepared", intent["intentId"]))
 
         with (
-            patch("core_runtime.one_shot._preflight", return_value={"status": "PREFLIGHT_PASS"}),
+            patch("core_runtime.one_shot._preflight", return_value={"status": "PREFLIGHT_PASS", "riskReady": True}),
             patch("paper_execution.ledger.read_account_risk_snapshot",
                   return_value=self.bundle["accountRisk"]["snapshot"]),
             patch("paper_execution.ledger.read_snapshot", return_value=self.paper_state),
@@ -240,7 +240,7 @@ class CoreOneShotRunnerTest(unittest.TestCase):
             raise OSError("journal unavailable")
 
         with (
-            patch("core_runtime.one_shot._preflight", return_value={"status": "PREFLIGHT_PASS"}),
+            patch("core_runtime.one_shot._preflight", return_value={"status": "PREFLIGHT_PASS", "riskReady": True}),
             patch("paper_execution.ledger.read_account_risk_snapshot",
                   return_value=self.bundle["accountRisk"]["snapshot"]),
             patch("paper_execution.ledger.read_snapshot", return_value=self.paper_state),
