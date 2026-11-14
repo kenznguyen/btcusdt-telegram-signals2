@@ -88,10 +88,27 @@ def _require_pristine_simulated_account(connection):
 
     if any(connection.execute(f"SELECT 1 FROM {table} LIMIT 1").fetchone()
            for table in (
-               "paper_account_adjustments", "paper_orders",
-               "paper_funding_events", "paper_funding_coverage",
-               "paper_account_equity_cutovers",
+               "paper_orders", "paper_funding_events",
+               "paper_funding_coverage", "paper_account_equity_cutovers",
            )):
+        raise ValueError("SIMULATED_ACCOUNT_NOT_PRISTINE")
+
+    adjustments = connection.execute(
+        """SELECT strategy_id,adjustment_type,amount_quote,source_table,source_hash
+           FROM paper_account_adjustments WHERE account_id=1
+           ORDER BY adjustment_type"""
+    ).fetchall()
+    expected_adjustments = {
+        ("LEGACY_UNATTRIBUTED", "LEGACY_FEES", "0", "paper_state"),
+        ("LEGACY_UNATTRIBUTED", "LEGACY_REALIZED_PNL", "0", "paper_state"),
+    }
+    observed_adjustments = {
+        (row[0], row[1], row[2], row[3]) for row in adjustments
+    }
+    if (observed_adjustments != expected_adjustments or len(adjustments) != 2
+            or any(not isinstance(row[4], str) or len(row[4]) != 64
+                   or any(char not in "0123456789abcdef" for char in row[4])
+                   for row in adjustments)):
         raise ValueError("SIMULATED_ACCOUNT_NOT_PRISTINE")
 
     rows = connection.execute(
