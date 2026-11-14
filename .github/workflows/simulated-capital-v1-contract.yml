@@ -11,6 +11,7 @@ on:
       - "paper_execution/test_simulated_origin.py"
       - "paper_execution/simulated_equity.py"
       - "paper_execution/ledger.py"
+      - "paper_execution/account_equity.py"
       - "paper_execution/test_simulated_equity.py"
       - "paper_execution/contracts/simulated_capital_v1.json"
       - ".github/workflows/simulated-capital-v1-contract.yml"
@@ -45,6 +46,6 @@ jobs:
           python-version: "3.12"
       - name: Compile validator and test machine-readable contract
         run: |
-          python -m py_compile paper_execution/simulated_capital.py paper_execution/test_simulated_capital_contract.py paper_execution/test_simulated_origin.py paper_execution/simulated_equity.py paper_execution/test_simulated_equity.py paper_execution/ledger.py
+          python -m py_compile paper_execution/account_equity.py paper_execution/simulated_capital.py paper_execution/test_simulated_capital_contract.py paper_execution/test_simulated_origin.py paper_execution/simulated_equity.py paper_execution/test_simulated_equity.py paper_execution/ledger.py
           python -m json.tool paper_execution/contracts/simulated_capital_v1.json >/dev/null
           python -m unittest paper_execution.test_simulated_capital_contract paper_execution.test_simulated_origin paper_execution.test_simulated_equity -v
