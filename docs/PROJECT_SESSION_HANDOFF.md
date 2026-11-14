@@ -5462,3 +5462,18 @@ Next: preserve this proof and do not rerun automatically. Any additional runtime
 - No code/tests changed, no CI run/artifact, no network request, VPS/T0 access, raw transfer, ledger/database write, Runner/One-shot or live execution.
 - Status: D07.7 exact-key comparison **PASS_WITHIN_OVERLAP — 1/3, LIMITED SAMPLE**; D07.2 **BLOCKED_SHARED_LINEAGE**; D07 **PARTIAL**; PAPER ledger bootstrap **BLOCKED / NOT APPROVED**.
 - Next gate: obtain an owner-approved evidence bundle containing the preserved original Binance response bytes and the actual D07.8 manifest, D07.9 sidecar and reference index, plus the preserved Tardis raw attachment. Then perform the full bounded offline D07.11 resolution and D07.7 comparison. No timestamp tolerance, new acquisition, VPS operation or ledger import is implied.
+
+
+## 2026-11-14 — D07 VPS evidence-location search follow-up
+
+- Owner supplied read-only VPS search output from the replacement test host `ubuntu@scw-optimistic-jang`; assistant did not access the VPS directly.
+- Filename search found 16 files named `synthetic-evidence-retention-manifest.json`, all under `docs/evidence/p1-8/<id>/`. These are P1.8 synthetic retention manifests, not evidence of an actual D07.8 Tardis package manifest.
+- A subsequent content/name search output identified repository design and implementation files: D07.7 comparator/tests, D07.7 comparison contract, D07.8 package design, D07.1–D07.5 documents and other lineage references. It did not identify an actual D07.8 package manifest, D07.9 lineage sidecar or evidence reference index. The same output included pip-cache files and a Git object; neither is a D07 custody artifact.
+- The owner re-ran a scoped search:
+  - D07.6 capture directory `/tmp/d07-6-binance-20261114T051131Z` contains exactly the previously recorded five files: `http_status.txt`, `provenance-envelope.json`, `response_body.bin`, `response_headers.txt`, `retrieved_at_utc.txt`. No additional manifest, sidecar or reference-index file was listed.
+  - `find docs/evidence -type f (JSON/JSONL) ! -path '*/p1-8/*'` returned no candidates.
+  - Envelope metadata inspection did not execute because the host has no `python` command; shell suggested `python3`. This is a command invocation issue, not evidence that the envelope lacks references. The proposed `python3` inspection has not yet been run.
+- Search conclusions are strictly scoped: P1.8 synthetic manifests **FOUND (16)**; D07.7 source/docs **FOUND**; D07.8 design **FOUND**; actual D07.8 package manifest **NOT VERIFIED**; actual D07.9 sidecar **NOT VERIFIED**; evidence reference index **NOT VERIFIED**. No evidence supports a claim that these artifacts do not exist elsewhere on the VPS.
+- No files were opened or modified by the search commands beyond the earlier bounded inventory; no files were created, moved or deleted. No resolver, parser, network request, ledger/database, T0, Runner/One-shot or live execution was run.
+- Current D07 disposition unchanged: D07.7 exact-key sample comparison **PASS_WITHIN_OVERLAP — 1/3, LIMITED SAMPLE**; three nearest-event numeric rate values agree **PASS — LIMITED**, not three exact-key matches; D07.2 **BLOCKED_SHARED_LINEAGE**; D07 **PARTIAL**; formal D07.11 resolution **NOT VERIFIED**; PAPER ledger bootstrap **BLOCKED / NOT APPROVED**.
+- Next bounded step, if continued: run the envelope metadata inspection with `python3`, then decide whether a narrowly scoped read-only directory search outside the current `docs/evidence` scope is necessary. No broader VPS search, evidence construction, acquisition or ledger operation is authorized by this record.
