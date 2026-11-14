@@ -5925,3 +5925,17 @@ Current application:
 - Status: Ledger/config creation and SQLite/origin checks **PASS within owner-reported command scope**; risk readiness **BLOCKED / NOT READY by design**; persistent PAPER runtime and overall VPS operational readiness **NOT VERIFIED / BLOCKED**.
 - Next: bounded read-only review of the generated config and Ledger risk snapshot, then define the valid market-mark source/freshness contract. Do not record a mark or enable risk readiness without separate bounded approval.
 - Restrictions remain: no T0 access/mutation, Bootstrap, preflight, Decision Cycle, One-shot, Runner, service/autostart, exchange access, AI execution, live trading or real orders. Preserve the existing untracked VPS file and all existing data.
+
+
+## 2026-11-14 — PAPER Ledger read-only state inspection
+
+- Owner-approved read-only inspection completed at owner-reported VPS source SHA `b92bb75b00b6f91c39c1b78fafab5cd1c77d8fde`, branch `feature/core-operational-proof-20261112`.
+- Config SHA-256: `211a29985c6c3b211f50edea87c4371acf69ee339ad513ae722ad289b5ea9bb6`; config explicitly PAPER and `ai_execution_enabled=false`.
+- Owner-pasted output: SQLite integrity `ok`; simulated origin valid; PAPER initial capital 100 USDT; migrations 1–11 all APPLIED; all Core/AI/Legacy ledger positions and accounting values zero; no order rows.
+- Risk state: HWM and daily baseline 100; no last equity, mark price, mark timestamps or dataset version; `risk_ready=0`, reason `SIMULATED_INITIAL_MARK_REQUIRED`.
+- Kill Switch: `paused=0`, `killed=0`, reason null — **not armed**. No change was authorized or performed. The independent `risk_ready=0` state remains a fail-closed readiness blocker.
+- Evidence: `docs/evidence/VPS_PAPER_LEDGER_READONLY_INSPECTION_2026-11-14.md`, commit `b4344208deeb04e3d1ba11a6d8cc09d15f73bbc5`.
+- Evidence provenance: owner-pasted terminal output; no independent SSH observation and no CI workflow/artifact.
+- Status: read-only inspection **PASS** within scope; risk readiness **BLOCKED / NOT READY**; Kill Switch **NOT ARMED**; persistent PAPER runtime and overall VPS operational readiness **NOT VERIFIED / BLOCKED**.
+- Next: design and seek separate approval for the read-only market-data source and first simulated mark ingestion contract (timeframe, freshness, dataset provenance, exact write operation). No mark write, Kill Switch mutation, preflight, Bootstrap, Decision Cycle, One-shot or Runner until separately approved.
+- Restrictions remain: no T0 mutation, no AI execution, no live trading or real orders; preserve existing VPS files and data.
