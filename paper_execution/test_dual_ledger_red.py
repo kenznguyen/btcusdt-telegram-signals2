@@ -45,7 +45,7 @@ class DualLedgerRedTest(unittest.TestCase):
         path = Path(self.temp.name) / filename
         bootstrap = PaperLedger(path, max_position_base="1", fee_rate="0.001")
         bootstrap.record_equity(
-            "100", self.now - 60_000, self.now, "sha256:dual-ledger-seed", "100"
+            "1400", self.now - 60_000, self.now, "sha256:dual-ledger-seed", "1400"
         )
         limits = {"maxDrawdownPct": "50", "maxDailyLossUsdt": "50", "maxExposureUsdt": "1000"}
         core = PaperLedger(
@@ -61,9 +61,9 @@ class DualLedgerRedTest(unittest.TestCase):
         with sqlite3.connect(path) as connection:
             day = self.now // 86_400_000 * 86_400_000
             connection.execute(
-                """UPDATE paper_account_risk_state SET high_water_mark_quote='100',
-                   daily_baseline_utc_day_ms=?,daily_baseline_equity_quote='100',
-                   last_equity_quote='100',last_mark_price='100',mark_observed_at_ms=?,
+                """UPDATE paper_account_risk_state SET high_water_mark_quote='1400',
+                   daily_baseline_utc_day_ms=?,daily_baseline_equity_quote='1400',
+                   last_equity_quote='1400',last_mark_price='100',mark_observed_at_ms=?,
                    mark_candle_close_ms=?,dataset_version='sha256:dual-ledger-seed',
                    risk_ready=1,unavailable_reason=NULL,updated_at_ms=? WHERE account_id=1""",
                 (day, self.now, self.now-60_000, self.now),
@@ -80,9 +80,9 @@ class DualLedgerRedTest(unittest.TestCase):
             )
             ledger.record_account_equity_cutover(
                 path, cutover_id="fixture-account-cutover",
-                expected_initial_capital_quote="100",
+                expected_initial_capital_quote="1400",
                 expected_realized_pnl_quote="0", expected_fees_quote="0",
-                expected_funding_quote="0", expected_account_equity_quote="100",
+                expected_funding_quote="0", expected_account_equity_quote="1400",
                 mark_price="100", mark_candle_close_ms=self.now-60_000,
                 mark_observed_at_ms=self.now,
                 dataset_version="sha256:dual-ledger-seed",
@@ -184,7 +184,7 @@ class DualLedgerRedTest(unittest.TestCase):
         self.assertEqual([row[0] for row in rows], ["ENTRY", "DCA"])
         for _, basis, margin, notional, status in rows:
             self.assertEqual(Decimal(margin), Decimal(basis)*Decimal("0.01"))
-            self.assertEqual(Decimal(notional), Decimal(margin)*Decimal("13"))
+            self.assertEqual(Decimal(notional), Decimal(margin)*Decimal("1"))
             self.assertEqual(status, "CONSUMED")
 
         repeated_dca = self.core.submit(
@@ -643,7 +643,7 @@ class DualLedgerRedTest(unittest.TestCase):
             )
             connection.execute(
                 """UPDATE paper_account_risk_state
-                   SET last_equity_quote='100',high_water_mark_quote='100'
+                   SET last_equity_quote='1400',high_water_mark_quote='1400'
                    WHERE account_id=1"""
             )
         shared_book = self.book(self.now)
@@ -787,7 +787,7 @@ class DualLedgerRedTest(unittest.TestCase):
             connection.execute(
                 """UPDATE paper_account_risk_state
                    SET risk_ready=1,unavailable_reason=NULL,
-                       high_water_mark_quote='100',last_equity_quote='100'
+                       high_water_mark_quote='1400',last_equity_quote='1400'
                    WHERE account_id=1"""
             )
 
@@ -841,9 +841,9 @@ class DualLedgerRedTest(unittest.TestCase):
         )
         ledger.record_account_equity_cutover(
             path, cutover_id="funding-event-provenance-cutover",
-            expected_initial_capital_quote="100",
+            expected_initial_capital_quote="1400",
             expected_realized_pnl_quote="0", expected_fees_quote="0",
-            expected_funding_quote="0.25", expected_account_equity_quote="99.75",
+            expected_funding_quote="0.25", expected_account_equity_quote="1399.75",
             mark_price="100", mark_candle_close_ms=self.now - 60_000,
             mark_observed_at_ms=self.now, dataset_version="sha256:dual-ledger-seed",
             funding_coverage_start_at_ms=self.now - 86_400_000,
@@ -992,9 +992,9 @@ class DualLedgerRedTest(unittest.TestCase):
             ledger.record_account_equity_cutover(
                 path,
                 cutover_id="cutover-blocked-unknown-funding",
-                expected_initial_capital_quote="100",
+                expected_initial_capital_quote="1400",
                 expected_realized_pnl_quote="0", expected_fees_quote="0",
-                expected_funding_quote="0", expected_account_equity_quote="100",
+                expected_funding_quote="0", expected_account_equity_quote="1400",
                 mark_price="100",
                 mark_candle_close_ms=self.now - 60_000,
                 mark_observed_at_ms=self.now,
@@ -1090,7 +1090,7 @@ class DualLedgerRedTest(unittest.TestCase):
 
         kwargs = {
             "cutover_id": "account-cutover-verified-001",
-            "expected_initial_capital_quote": "100",
+            "expected_initial_capital_quote": "1400",
             "expected_realized_pnl_quote": "1.5",
             "expected_fees_quote": "0.4",
             "expected_funding_quote": "0.2",
@@ -1221,11 +1221,11 @@ class DualLedgerRedTest(unittest.TestCase):
             ledger.record_account_equity_cutover(
                 path,
                 cutover_id="statement-total-mismatch-cutover",
-                expected_initial_capital_quote="100",
+                expected_initial_capital_quote="1400",
                 expected_realized_pnl_quote="0",
                 expected_fees_quote="0",
                 expected_funding_quote="0",
-                expected_account_equity_quote="100",
+                expected_account_equity_quote="1400",
                 mark_price="100",
                 mark_candle_close_ms=self.now - 60_000,
                 mark_observed_at_ms=self.now,
@@ -1304,9 +1304,9 @@ class DualLedgerRedTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "FUNDING_PROVENANCE_INCOMPLETE"):
             ledger.record_account_equity_cutover(
                 path, cutover_id="cutover-funding-gap",
-                expected_initial_capital_quote="100", expected_realized_pnl_quote="0",
+                expected_initial_capital_quote="1400", expected_realized_pnl_quote="0",
                 expected_fees_quote="0", expected_funding_quote="0",
-                expected_account_equity_quote="100", mark_price="100",
+                expected_account_equity_quote="1400", mark_price="100",
                 mark_candle_close_ms=self.now - 60_000, mark_observed_at_ms=self.now,
                 dataset_version="sha256:dual-ledger-seed",
                 funding_coverage_start_at_ms=self.now - 86_400_000,
@@ -1330,9 +1330,9 @@ class DualLedgerRedTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "ACCOUNT_EQUITY_CUTOVER_MARK_INVALID"):
             ledger.record_account_equity_cutover(
                 path, cutover_id="cutover-future-mark",
-                expected_initial_capital_quote="100", expected_realized_pnl_quote="0",
+                expected_initial_capital_quote="1400", expected_realized_pnl_quote="0",
                 expected_fees_quote="0", expected_funding_quote="0",
-                expected_account_equity_quote="100", mark_price="100",
+                expected_account_equity_quote="1400", mark_price="100",
                 mark_candle_close_ms=self.now - 60_000,
                 mark_observed_at_ms=self.now + 1,
                 dataset_version="sha256:dual-ledger-seed",
@@ -1357,9 +1357,9 @@ class DualLedgerRedTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "ACCOUNT_EQUITY_CUTOVER_CANDLE_STALE"):
             ledger.record_account_equity_cutover(
                 path, cutover_id="cutover-stale-candle",
-                expected_initial_capital_quote="100", expected_realized_pnl_quote="0",
+                expected_initial_capital_quote="1400", expected_realized_pnl_quote="0",
                 expected_fees_quote="0", expected_funding_quote="0",
-                expected_account_equity_quote="100", mark_price="100",
+                expected_account_equity_quote="1400", mark_price="100",
                 mark_candle_close_ms=self.now - 30 * 60_000 - 1,
                 mark_observed_at_ms=self.now,
                 dataset_version="sha256:dual-ledger-seed",
@@ -1403,9 +1403,9 @@ class DualLedgerRedTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "FUNDING_POPULATION_OBSERVED_PROVENANCE_INCOMPLETE"):
             ledger.record_account_equity_cutover(
                 path, cutover_id="cutover-corrupt-funding-event",
-                expected_initial_capital_quote="100", expected_realized_pnl_quote="0",
+                expected_initial_capital_quote="1400", expected_realized_pnl_quote="0",
                 expected_fees_quote="0", expected_funding_quote="0.25",
-                expected_account_equity_quote="99.75", mark_price="100",
+                expected_account_equity_quote="1399.75", mark_price="100",
                 mark_candle_close_ms=self.now - 60_000, mark_observed_at_ms=self.now,
                 dataset_version="sha256:dual-ledger-seed",
                 funding_coverage_start_at_ms=self.now - 86_400_000,
@@ -1433,11 +1433,11 @@ class DualLedgerRedTest(unittest.TestCase):
         )
         kwargs = {
             "cutover_id": "restart-replay-cutover-001",
-            "expected_initial_capital_quote": "100",
+            "expected_initial_capital_quote": "1400",
             "expected_realized_pnl_quote": "0",
             "expected_fees_quote": "0",
             "expected_funding_quote": "0",
-            "expected_account_equity_quote": "100",
+            "expected_account_equity_quote": "1400",
             "mark_price": "100",
             "mark_candle_close_ms": self.now - 60_000,
             "mark_observed_at_ms": self.now,
@@ -1615,11 +1615,11 @@ os._exit(0)
                 )
                 kwargs = {
                     "cutover_id": f"crash-{crash_point}-cutover",
-                    "expected_initial_capital_quote": "100",
+                    "expected_initial_capital_quote": "1400",
                     "expected_realized_pnl_quote": "0",
                     "expected_fees_quote": "0",
                     "expected_funding_quote": "0",
-                    "expected_account_equity_quote": "100",
+                    "expected_account_equity_quote": "1400",
                     "mark_price": "100",
                     "mark_candle_close_ms": self.now - 60_000,
                     "mark_observed_at_ms": self.now,
@@ -1752,11 +1752,11 @@ os._exit(0)
         )
         kwargs = {
             "cutover_id": "post-commit-crash-cutover",
-            "expected_initial_capital_quote": "100",
+            "expected_initial_capital_quote": "1400",
             "expected_realized_pnl_quote": "0",
             "expected_fees_quote": "0",
             "expected_funding_quote": "0",
-            "expected_account_equity_quote": "100",
+            "expected_account_equity_quote": "1400",
             "mark_price": "100",
             "mark_candle_close_ms": self.now - 60_000,
             "mark_observed_at_ms": self.now,
@@ -1794,8 +1794,8 @@ os._exit(0)
             }
         self.assertEqual(committed["cutovers"], 1)
         self.assertEqual(committed["audits"], 1)
-        self.assertEqual(committed["risk"][0], "100")
-        self.assertEqual(committed["risk"][2], "100")
+        self.assertEqual(committed["risk"][0], "1400")
+        self.assertEqual(committed["risk"][2], "1400")
         self.assertEqual(committed["risk"][4], 1)
 
         replay = ledger.record_account_equity_cutover(path, **kwargs)
@@ -1829,7 +1829,7 @@ os._exit(0)
             connection.execute(
                 """UPDATE paper_account_risk_state
                    SET risk_ready=1,unavailable_reason=NULL,
-                       high_water_mark_quote='100' WHERE account_id=1"""
+                       high_water_mark_quote='1400' WHERE account_id=1"""
             )
 
         ledger.record_funding_event(
@@ -1849,7 +1849,7 @@ os._exit(0)
                 """SELECT high_water_mark_quote,last_equity_quote,risk_ready
                    FROM paper_account_risk_state WHERE account_id=1"""
             ).fetchone()
-        self.assertEqual(high_water_mark, "100")
+        self.assertEqual(high_water_mark, "1400")
         self.assertEqual(equity, "105")
         self.assertEqual(risk_ready, 0)
 
@@ -1904,9 +1904,9 @@ os._exit(0)
         )
         ledger.record_account_equity_cutover(
             path, cutover_id="snapshot-corrupt-funding-cutover",
-            expected_initial_capital_quote="100",
+            expected_initial_capital_quote="1400",
             expected_realized_pnl_quote="0", expected_fees_quote="0",
-            expected_funding_quote="0", expected_account_equity_quote="100",
+            expected_funding_quote="0", expected_account_equity_quote="1400",
             mark_price="100", mark_candle_close_ms=self.now - 60_000,
             mark_observed_at_ms=self.now, dataset_version="sha256:dual-ledger-seed",
             funding_coverage_start_at_ms=self.now - 86_400_000,
