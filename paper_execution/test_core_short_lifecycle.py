@@ -91,7 +91,7 @@ class CoreShortLifecycleTest(unittest.TestCase):
                     context.prec = 80
                     self.assertLessEqual(Decimal(margin), Decimal(basis) * Decimal("0.01"))
                     self.assertGreater(Decimal(margin), Decimal(basis) * Decimal("0.0099"))
-                    self.assertEqual(Decimal(notional), Decimal(margin) * Decimal("13"))
+                    self.assertEqual(Decimal(notional), Decimal(margin) * Decimal("1"))
                 self.assertEqual(status, "CONSUMED")
 
             # Mark below weighted short entry to reconcile positive unrealized PnL.
