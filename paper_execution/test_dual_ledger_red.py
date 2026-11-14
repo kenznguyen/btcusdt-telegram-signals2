@@ -2563,6 +2563,7 @@ os._exit(0)
         account_result = account.record_account_mark(
             mark_price="110", candle_close_ms=self.now-60_000,
             observed_at_ms=self.now, dataset_version="sha256:account-mark",
+            initial_capital="1400",
         )
         with sqlite3.connect(self.path) as connection:
             risk = connection.execute(
