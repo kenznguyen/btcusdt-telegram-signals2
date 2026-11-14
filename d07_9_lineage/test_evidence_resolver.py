@@ -27,6 +27,7 @@ def make_case(root):
         "reviewer-proof", "review-rationale",
     ]
     record = {
+        "packageId": "synthetic-package",
         "custodian": {"actorRef": "custodian-owner", "organizationRef": None},
         "provider": {"sourceReference": "provider-source"},
         "acquisition": {
@@ -96,7 +97,7 @@ class D0711EvidenceResolverTests(unittest.TestCase):
         index.pop("provider-source")
         result = self.resolve(reference_index=index)
         self.assertEqual(result["status"], "NOT_VERIFIED")
-        self.assertIn("EVIDENCE_REFERENCE_MISSING", result["errors"])
+        self.assertTrue(any(x.startswith("EVIDENCE_REFERENCE_MISSING:") for x in result["errors"]))
 
     def test_03_reference_target_missing_fails_closed(self):
         index = dict(self.index)
