@@ -183,5 +183,11 @@ class D0711EvidenceResolverTests(unittest.TestCase):
         self.assertEqual(result["status"], "BLOCKED")
         self.assertEqual(result["evidenceReferenceResolution"], "BLOCKED")
 
+    def test_16_boolean_readback_length_is_not_accepted_as_integer(self):
+        self.record["custody"]["readbackFiles"][0]["byteLength"] = True
+        result = self.resolve()
+        self.assertEqual(result["status"], "BLOCKED")
+        self.assertEqual(result["byteIntegrity"], "BLOCKED")
+
 if __name__ == "__main__":
     unittest.main()
