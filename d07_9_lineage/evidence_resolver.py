@@ -49,8 +49,13 @@ def _result(status, errors, reference_status="NOT_VERIFIED", byte_status="NOT_VE
 def _safe_relative_path(value):
     if not isinstance(value, str) or not value or "\\" in value:
         return False
+    parts = value.split("/")
     path = PurePosixPath(value)
-    return not path.is_absolute() and all(part not in {"", ".", ".."} for part in path.parts)
+    return (
+        not path.is_absolute()
+        and all(part not in {"", ".", ".."} for part in parts)
+        and not (len(parts[0]) == 2 and parts[0][1] == ":")
+    )
 
 
 def _independent_read(evidence_root, relative_path, timeout_seconds):
@@ -88,9 +93,28 @@ def _valid_descriptor(value):
         return False
     length, digest = value.get("byteLength"), value.get("sha256")
     return (
-        isinstance(length, int) and not isinstance(length, bool) and length >= 0
+        isinstance(length, int) and not isinstance(length, bool) and length > 0
         and isinstance(digest, str) and _HEX_256.fullmatch(digest) is not None
     )
+
+
+def _disposition(reference_errors, raw_errors):
+    hard_tokens = ("UNSAFE", "MISMATCH", "INVALID", "SYMLINK", "PATH_ESCAPES")
+    reference_status = (
+        "BLOCKED" if any(any(token in item for token in hard_tokens) for item in reference_errors)
+        else ("NOT_VERIFIED" if reference_errors else "PASS")
+    )
+    byte_status = (
+        "BLOCKED" if any(any(token in item for token in hard_tokens) for item in raw_errors)
+        else ("NOT_VERIFIED" if raw_errors else "PASS")
+    )
+    if "BLOCKED" in {reference_status, byte_status}:
+        overall = "BLOCKED"
+    elif "NOT_VERIFIED" in {reference_status, byte_status}:
+        overall = "NOT_VERIFIED"
+    else:
+        overall = "PASS"
+    return overall, reference_status, byte_status
 
 
 def resolve_lineage_record(
@@ -102,7 +126,7 @@ def resolve_lineage_record(
     manifest_file_metadata,
     timeout_seconds=5,
 ):
-    """Resolve sidecar references and independently hash D07.8 raw files.
+    """Resolve sidecar refs and independently hash D07.8 raw files.
 
     manifest_file_metadata is a normalized raw-only view of D07.8 files[],
     keyed by exact relative path and containing byteLength and sha256.
@@ -120,7 +144,6 @@ def resolve_lineage_record(
     if not root.exists() or not root.is_dir():
         return _result("NOT_VERIFIED", ["EVIDENCE_ROOT_UNAVAILABLE"])
 
-    errors = []
     reference_errors = []
     for reference in collect_evidence_references(record):
         descriptor = reference_index.get(reference)
@@ -161,54 +184,36 @@ def resolve_lineage_record(
         or set(raw_paths) != package_raw_paths or set(readback_paths) != set(raw_paths)
     ):
         raw_errors.append("D07_8_RAW_PATH_SET_MISMATCH")
-        return _result("BLOCKED", reference_errors + raw_errors,
-                       "BLOCKED" if reference_errors else "PASS", "BLOCKED")
-
-    if set(manifest_file_metadata) != package_raw_paths:
+    elif set(manifest_file_metadata) != package_raw_paths:
         raw_errors.append("D07_8_RAW_METADATA_INCOMPLETE")
-        return _result("NOT_VERIFIED", reference_errors + raw_errors,
-                       "BLOCKED" if reference_errors and any("MISMATCH" in x or "UNSAFE" in x or "INVALID" in x for x in reference_errors)
-                       else ("NOT_VERIFIED" if reference_errors else "PASS"),
-                       "NOT_VERIFIED")
+    else:
+        readback_by_path = {item["d07_8Path"]: item for item in readback_files}
+        for raw in raw_files:
+            path = raw["d07_8Path"]
+            manifest = manifest_file_metadata.get(path)
+            readback = readback_by_path[path]
+            if not _valid_descriptor(manifest):
+                raw_errors.append("D07_8_RAW_METADATA_INVALID:" + path)
+                continue
+            if readback.get("method") != "INDEPENDENT_READBACK" or raw.get("preservedOriginal") is not True:
+                raw_errors.append("RAW_CUSTODY_DECLARATION_INVALID:" + path)
+                continue
+            if (
+                raw.get("byteLengthAtReceipt") != manifest["byteLength"]
+                or raw.get("sha256AtReceipt") != manifest["sha256"]
+                or readback.get("byteLength") != manifest["byteLength"]
+                or readback.get("sha256") != manifest["sha256"]
+            ):
+                raw_errors.append("RAW_DECLARATION_MANIFEST_MISMATCH:" + path)
+                continue
+            if not _safe_relative_path(path):
+                raw_errors.append("RAW_PATH_UNSAFE:" + path)
+                continue
+            actual, error = _independent_read(root, path, timeout_seconds)
+            if error:
+                raw_errors.append(error + ":" + path)
+            elif actual != manifest:
+                raw_errors.append("RAW_CONTENT_MANIFEST_MISMATCH:" + path)
 
-    readback_by_path = {item["d07_8Path"]: item for item in readback_files}
-    for raw in raw_files:
-        path = raw["d07_8Path"]
-        manifest = manifest_file_metadata.get(path)
-        readback = readback_by_path[path]
-        if not _valid_descriptor(manifest):
-            raw_errors.append("D07_8_RAW_METADATA_INVALID:" + path)
-            continue
-        if (
-            raw.get("byteLengthAtReceipt") != manifest["byteLength"]
-            or raw.get("sha256AtReceipt") != manifest["sha256"]
-            or readback.get("byteLength") != manifest["byteLength"]
-            or readback.get("sha256") != manifest["sha256"]
-        ):
-            raw_errors.append("RAW_DECLARATION_MANIFEST_MISMATCH:" + path)
-            continue
-        if not _safe_relative_path(path):
-            raw_errors.append("RAW_PATH_UNSAFE:" + path)
-            continue
-        actual, error = _independent_read(root, path, timeout_seconds)
-        if error:
-            raw_errors.append(error + ":" + path)
-        elif actual != manifest:
-            raw_errors.append("RAW_CONTENT_MANIFEST_MISMATCH:" + path)
-
-    errors = reference_errors + raw_errors
-    reference_hard = any(
-        any(token in item for token in ("UNSAFE", "MISMATCH", "INVALID", "SYMLINK", "PATH_ESCAPES"))
-        for item in reference_errors
-    )
-    byte_hard = any(
-        any(token in item for token in ("UNSAFE", "MISMATCH", "INVALID", "SYMLINK", "PATH_ESCAPES"))
-        for item in raw_errors
-    )
-    reference_status = "BLOCKED" if reference_hard else ("NOT_VERIFIED" if reference_errors else "PASS")
-    byte_status = "BLOCKED" if byte_hard else ("NOT_VERIFIED" if raw_errors else "PASS")
-    if reference_hard or byte_hard:
-        return _result("BLOCKED", errors, reference_status, byte_status)
-    if reference_errors or raw_errors:
-        return _result("NOT_VERIFIED", errors, reference_status, byte_status)
-    return _result("PASS", [], "PASS", "PASS")
+    overall, reference_status, byte_status = _disposition(reference_errors, raw_errors)
+    return _result(overall, reference_errors + raw_errors, reference_status, byte_status)
