@@ -1656,8 +1656,14 @@ class PaperLedger:
             raise ValueError("Invalid paper risk configuration")
         read_only_existing = self.strategy_id in DUAL_STRATEGIES and not apply_migrations
         self._allow_create = not read_only_existing
+        self._expected_file_identity = None
         if self._allow_create:
             self.path.parent.mkdir(parents=True, exist_ok=True)
+        else:
+            if self.path.is_symlink() or not self.path.is_file():
+                raise FileNotFoundError("Paper ledger is unavailable")
+            initial_stat = self.path.stat()
+            self._expected_file_identity = (initial_stat.st_dev, initial_stat.st_ino)
         with closing(self.connect()) as connection, connection:
             if read_only_existing:
                 connection.execute("PRAGMA query_only=ON")
@@ -1719,14 +1725,25 @@ class PaperLedger:
             if self.path.is_symlink() or not self.path.is_file():
                 raise FileNotFoundError("Paper ledger is unavailable")
             before = self.path.stat()
+            before_identity = (before.st_dev, before.st_ino)
+            if (
+                self._expected_file_identity is not None
+                and before_identity != self._expected_file_identity
+            ):
+                raise sqlite3.OperationalError("PAPER_LEDGER_PATH_REPLACED")
             uri = self.path.resolve(strict=True).as_uri() + "?mode=rw"
             connection = sqlite3.connect(uri, uri=True, timeout=10)
             try:
                 after = self.path.stat()
+                after_identity = (after.st_dev, after.st_ino)
                 if (
                     self.path.is_symlink()
                     or not self.path.is_file()
-                    or (before.st_dev, before.st_ino) != (after.st_dev, after.st_ino)
+                    or before_identity != after_identity
+                    or (
+                        self._expected_file_identity is not None
+                        and after_identity != self._expected_file_identity
+                    )
                 ):
                     raise sqlite3.OperationalError("PAPER_LEDGER_PATH_REPLACED")
             except Exception:
