@@ -209,11 +209,11 @@ def initialize_simulated_origin(
             contract["contractId"], contract["schemaVersion"], contract["capitalMode"],
             contract["tradingMode"], contract["initialCapitalQuote"],
             contract["quoteCurrency"], contract_hash, seed_event_id,
-            initialized_at_ms, source, origin_digest,
+            effective_timestamp, source, origin_digest,
         )
         expected_seed = (
             seed_event_id, "INITIAL_SIMULATED_SEED", contract["initialCapitalQuote"],
-            contract["quoteCurrency"], contract_hash, initialized_at_ms, source,
+            contract["quoteCurrency"], contract_hash, effective_timestamp, source,
             seed_digest,
         )
         if existing_origin is None and existing_seed is None:
