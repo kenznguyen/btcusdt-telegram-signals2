@@ -81,7 +81,7 @@ class RunnerHardeningPolicyTest(unittest.TestCase):
                 "liveTradingSupported": False,
                 "riskReady": False,
             }
-            with patch("paper_execution.ledger.read_account_risk_snapshot", return_value=risk):
+            with patch("core_runtime.preflight.read_account_risk_snapshot", return_value=risk):
                 result = _preflight(config, allow_risk_unready=True)
                 self.assertFalse(result["riskReady"])
                 with self.assertRaisesRegex(PreflightError, "RISK_STATE_BLOCKED"):
