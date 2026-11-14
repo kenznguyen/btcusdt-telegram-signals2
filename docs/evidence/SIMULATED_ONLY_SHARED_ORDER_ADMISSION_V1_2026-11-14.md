@@ -79,3 +79,13 @@ All runs below were triggered from branch `feature/core-operational-proof-202611
 ## Next step
 
 Wait for run `43609479824` to reach a terminal state and inspect its job log and artifact metadata. If it passes, record the exact result and continue Core-First gap closure for the decision-cycle/one-shot sub-verdicts. Do not activate Bootstrap or Runner, use an operational database/VPS/T0, enable AI execution, or place live orders.
+
+
+## Bootstrap regression follow-up — migration idempotency assertions
+
+- Run [43609479824](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43609479824), exact SHA `b79f27aa9ea85b52370c6601d68ba1c8e6bd04ba`, completed FAILURE after 641 tests with only 2 failures. Both were migration idempotency assertions in `test_dual_ledger_migration_red.py` still expecting migration history through v10; actual schema correctly contains v11.
+- Corrected only those two expected migration-history lists to include v11. No production source changes.
+- Test-only commit: `b5822f148c451fbf786bcf24981f672fe9ca49b6`; test blob `6ec693cee45b8d2548a25b7f8cf3f24ca2522fa8`.
+- Exact-source Bootstrap rerun [43610139453](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43610139453), source SHA `b5822f148c451fbf786bcf24981f672fe9ca49b6`, was QUEUED at this update. Result NOT VERIFIED.
+- Status: daily-baseline expectations and migration-v11 history assertions corrected; full 641-test regression still BLOCKED / NOT VERIFIED pending run 43610139453.
+- Next: inspect the queued run's terminal outcome and focused failing test log only. If PASS, proceed to the Core Decision Cycle / One-shot gap. Do not activate Bootstrap/Runner.
