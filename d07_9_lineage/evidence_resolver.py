@@ -17,7 +17,7 @@ def collect_evidence_references(value):
     def visit(node):
         if isinstance(node, dict):
             for key, child in node.items():
-                if (key.endswith("Ref") or key.endswith("Reference")) and isinstance(child, str) and child.strip():
+                if (key.endswith("Ref") or key.endswith("Reference")) and isinstance(child, str):
                     found.add(child)
                 else:
                     visit(child)
@@ -47,7 +47,7 @@ def _result(status, errors, reference_status="NOT_VERIFIED", byte_status="NOT_VE
 
 
 def _safe_relative_path(value):
-    if not isinstance(value, str) or not value or "\\" in value:
+    if not isinstance(value, str) or not value or "\\\\" in value:
         return False
     parts = value.split("/")
     path = PurePosixPath(value)
@@ -123,13 +123,11 @@ def resolve_lineage_record(
     d07_8_package,
     evidence_root,
     reference_index,
-    manifest_file_metadata,
     timeout_seconds=5,
 ):
-    """Resolve sidecar refs and independently hash D07.8 raw files.
+    """Resolve sidecar refs and independently hash raw files against D07.8 files[].
 
-    manifest_file_metadata is a normalized raw-only view of D07.8 files[],
-    keyed by exact relative path and containing byteLength and sha256.
+    D07.8 files[] is authoritative for each raw path, byteLength and sha256.
     PASS applies only to reference resolution and raw-byte equality. It never
     promotes collector independence or any issuer/completeness/truth claim.
     """
@@ -137,7 +135,7 @@ def resolve_lineage_record(
         return _result("BLOCKED", ["LINEAGE_OR_PACKAGE_ENVELOPE_INVALID"])
     if record.get("packageId") != d07_8_package.get("packageId"):
         return _result("BLOCKED", ["D07_8_PACKAGE_ID_MISMATCH"])
-    if not isinstance(reference_index, dict) or not isinstance(manifest_file_metadata, dict):
+    if not isinstance(reference_index, dict):
         return _result("BLOCKED", ["RESOLVER_INDEX_INVALID"])
 
     root = Path(evidence_root)
@@ -146,6 +144,9 @@ def resolve_lineage_record(
 
     reference_errors = []
     for reference in collect_evidence_references(record):
+        if not reference.strip():
+            reference_errors.append("EVIDENCE_REFERENCE_EMPTY")
+            continue
         descriptor = reference_index.get(reference)
         if descriptor is None:
             reference_errors.append("EVIDENCE_REFERENCE_MISSING:" + reference)
@@ -172,25 +173,34 @@ def resolve_lineage_record(
         return _result("BLOCKED", reference_errors + ["RAW_FILE_INVENTORY_INVALID"],
                        "BLOCKED" if reference_errors else "PASS", "BLOCKED")
 
-    package_raw_paths = {
-        item.get("path") for item in package_files
-        if isinstance(item, dict) and isinstance(item.get("path"), str) and item["path"].startswith("raw/")
-    }
+    package_raw_files = {}
+    for item in package_files:
+        if not isinstance(item, dict) or not isinstance(item.get("path"), str):
+            return _result("BLOCKED", reference_errors + ["D07_8_FILE_ENTRY_INVALID"],
+                           "BLOCKED" if reference_errors else "PASS", "BLOCKED")
+        if item["path"].startswith("raw/"):
+            if item["path"] in package_raw_files:
+                return _result("BLOCKED", reference_errors + ["D07_8_RAW_PATH_DUPLICATE"],
+                               "BLOCKED" if reference_errors else "PASS", "BLOCKED")
+            package_raw_files[item["path"]] = item
+
     raw_paths = [item.get("d07_8Path") for item in raw_files if isinstance(item, dict)]
     readback_paths = [item.get("d07_8Path") for item in readback_files if isinstance(item, dict)]
     if (
         len(raw_paths) != len(raw_files) or len(readback_paths) != len(readback_files)
         or len(raw_paths) != len(set(raw_paths)) or len(readback_paths) != len(set(readback_paths))
-        or set(raw_paths) != package_raw_paths or set(readback_paths) != set(raw_paths)
+        or set(raw_paths) != set(package_raw_files) or set(readback_paths) != set(raw_paths)
     ):
         raw_errors.append("D07_8_RAW_PATH_SET_MISMATCH")
-    elif set(manifest_file_metadata) != package_raw_paths:
-        raw_errors.append("D07_8_RAW_METADATA_INCOMPLETE")
     else:
         readback_by_path = {item["d07_8Path"]: item for item in readback_files}
         for raw in raw_files:
             path = raw["d07_8Path"]
-            manifest = manifest_file_metadata.get(path)
+            manifest_file = package_raw_files[path]
+            manifest = {
+                "byteLength": manifest_file.get("byteLength"),
+                "sha256": manifest_file.get("sha256"),
+            }
             readback = readback_by_path[path]
             if not _valid_descriptor(manifest):
                 raw_errors.append("D07_8_RAW_METADATA_INVALID:" + path)
