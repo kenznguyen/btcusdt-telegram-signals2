@@ -197,3 +197,68 @@ This is a fail-closed no-counterpart diagnostic, **not** a real Binance-vs-Tardi
 - D07.2 `BLOCKED_SHARED_LINEAGE`: unchanged. D07 overall: **PARTIAL**. PAPER ledger bootstrap: **BLOCKED / NOT APPROVED**.
 
 Next gate requires the exact original Binance D07.6 response bytes (or a previously verified, immutable copy and its parser output) to be supplied into this bounded offline evidence review, plus the actual D07.8 manifest, D07.9 sidecar and evidence reference index for formal D07.11 resolution. No VPS/T0 access or database/ledger import is implied. No files were committed from the attachment. No code was changed; no CI run/artifact was produced.
+
+## 9. Owner-pasted VPS read-only D07.6 capture verification and three-event comparison (2026-11-14)
+
+The owner ran the previously supplied read-only commands on `ubuntu@scw-optimistic-jang` and pasted the complete terminal output into this review. The assistant did not establish an SSH session and did not independently access the VPS. Results below are therefore recorded as **owner-provided terminal evidence**, not assistant-observed host evidence.
+
+### 9.1 Capture directory and raw-byte identity
+
+Directory: `/tmp/d07-6-binance-20261114T051131Z`.
+
+Owner-provided inventory showed:
+- `response_body.bin`: 63,043 bytes, mtime 2026-11-14 05:11:32 UTC.
+- `retrieved_at_utc.txt`: 21 bytes.
+- `http_status.txt`: 4 bytes.
+- `response_headers.txt`: 889 bytes.
+- `provenance-envelope.json`: 1,629 bytes.
+
+The owner-pasted read-only verification returned:
+- HTTP status file: `200`.
+- Retrieval timestamp: `2026-11-14T05:11:31Z`.
+- Response header: `HTTP/2 200`, `content-type: application/json;charset=UTF-8`, `content-length: 63043`.
+- Exact response-body length: `63043`.
+- SHA-256: `71eece4bd1d885eb090516c63bf261023f207a53747c6c1d9aa55eae1743b526`.
+
+The size and digest match the previously recorded D07.6 capture. The owner-pasted JSON inspection showed a root array of 500 records; first record fundingTime `1780243200004`, last record fundingTime `1794614400004`. A subsequent owner-pasted structural check showed 500 unique fundingTime values, nondecreasing order, no duplicate fundingTime, and all 500 records with `rateType=Regular`. Most common interval is 28,800,000 ms (8 hours), with small millisecond variations. This is a bounded structural check of the captured page, not proof of endpoint-wide enumeration completeness.
+
+### 9.2 Provenance-envelope assessment
+
+The owner-pasted envelope declares:
+- schemaVersion 1; evidenceSnapshotId `d07-6-binance-btcusdt-20261114T051131Z`;
+- one page, ordinal 0, relativePath `response_body.bin`, byteLength 63043, recordCount 500;
+- page SHA-256 `sha256:71eece4bd1d885eb090516c63bf261023f207a53747c6c1d9aa55eae1743b526`;
+- `nextCursor=null`, `sourceTotal=null`, `terminal=true`;
+- acquisition method: one-time unauthenticated HTTP GET, no credentials or proxy;
+- authority basis: public endpoint and captured HTTP metadata, without independent issuer attestation;
+- claimed issuer Binance, explicitly not independently verified;
+- expected and observed source both Binance USD-M, with shared upstream system Binance.
+
+Envelope declarations match the owner-pasted raw byte length and digest. Because the envelope is self-recorded metadata and no independent issuer attestation or complete endpoint enumeration evidence is present, it does not establish source authenticity, completeness, or issuer independence. In particular, `terminal=true` with `sourceTotal=null` and no next cursor is not sufficient proof that all requested history was returned.
+
+### 9.3 Corrected three-settlement Binance lookup
+
+An earlier diagnostic used three incorrectly calculated target epoch values (each 9,600,000 ms early). Those results are superseded and must not be used. The corrected UTC targets and owner-pasted raw-response lookups are:
+
+| Target settlement UTC | Correct target epoch ms | Binance fundingTime ms | Delta ms | Binance fundingRate |
+|---|---:|---:|---:|---:|
+| 2026-11-01 08:00:00Z | 1793520000000 | 1793520000003 | +3 | 0.00010000 |
+| 2026-11-01 16:00:00Z | 1793548800000 | 1793548800000 | 0 | 0.00010000 |
+| 2026-11-02 00:00:00Z | 1793577600000 | 1793577600005 | +5 | 0.00010000 |
+
+The three Binance fundingRate values match the three previously extracted Tardis candidate rates (`0.0001`) numerically. This is **three-event value agreement**, not a formal comparator PASS: no timestamp-matching/tolerance policy has been approved, and the evidence does not prove independent issuer lineage. The Tardis 08:00 candidate still has two rows tied at the latest pre-event exchange timestamp; both have the same rate but distinct local receive timestamps. The 00:00 event at the start of the Tardis daily file still has no strictly earlier observation in that file.
+
+### 9.4 Updated disposition
+
+- D07.6 raw byte length and SHA-256: **PASS — MATCHES RECORDED CAPTURE** (owner-pasted VPS command output).
+- D07.6 HTTP metadata and envelope/raw-byte consistency: **PASS — OWNER-PROVIDED EVIDENCE**.
+- Binance page structure: **PASS — 500 unique, ordered records; bounded page only**.
+- Binance endpoint enumeration/global completeness: **NOT VERIFIED** (`sourceTotal=null`; no authoritative total or pagination proof).
+- D07.7 three-event funding-rate agreement: **PASS — 3/3 VALUE AGREEMENT, LIMITED**.
+- D07.7 formal comparator/timestamp policy: **NOT VERIFIED / NOT PROMOTED**.
+- Tardis provider-origin provenance and formal D07.11 manifest/sidecar/reference-index resolution: **NOT VERIFIED**.
+- D07.2: **BLOCKED_SHARED_LINEAGE** (same Binance issuer).
+- D07 overall: **PARTIAL**.
+- PAPER ledger bootstrap: **BLOCKED / NOT APPROVED**.
+
+No raw VPS capture was uploaded or committed. No source code, comparator, manifest/validator, funding row, ledger/database, T0, VPS runtime, Runner/One-shot, credentials or execution state was changed. Documentation-only; no CI run or artifact was produced.
