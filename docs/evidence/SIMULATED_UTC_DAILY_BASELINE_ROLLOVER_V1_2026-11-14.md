@@ -2,7 +2,7 @@
 
 Date: 2026-11-14  
 Branch: `feature/core-operational-proof-20261112`  
-Implementation HEAD: `d27c8dbf7497c49cf7c14a45248dfbe8bb2a7b61`  
+Implementation HEAD: `3b29a9a3cf48d0d422b4030230a25dd282718267`  
 Base handoff HEAD: `8032ff1303e9e7ae6825149fb020b5cbdd43f208`
 
 ## Owner-approved contract
@@ -30,12 +30,13 @@ Subsequent implementation/fix commits:
 - `80beedf01086611fa1aaae0ff06dc4011abbb64d`
 - `e6378f8fba06b7fbecb742ae2470cef7a8498291`
 - `d27c8dbf7497c49cf7c14a45248dfbe8bb2a7b61`
+- `3b29a9a3cf48d0d422b4030230a25dd282718267` (removed superseded pre-rollover fail-closed test)
 
 Exact final source blob SHAs:
 - `paper_execution/simulated_daily_baseline.py`: `19cd99cb55b03aa178d09b48b7b8348bae035d1e`
 - `paper_execution/account_equity.py`: `701bcc25e8c5850fdb9052fd7481996debb2e019`
 - `paper_execution/ledger.py`: `a9839b979f863b06ba056c4c7aa3cca2d86a9cc2`
-- `paper_execution/test_simulated_equity.py`: `26bfdee91f30de04998625fe71ee0537ce44d7c5`
+- `paper_execution/test_simulated_equity.py`: `e2aacddc899102a89f8aee19337ecaf35465513a`
 
 ## Verification status
 
