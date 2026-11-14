@@ -25,6 +25,12 @@ from paper_execution.account_history import (
     reconstruct_daily_equity_baseline, migrate_cutover_ledger_snapshots,
     migrate_fee_currency_provenance, migrate_daily_baseline_audit,
 )
+from paper_execution.simulated_daily_baseline import (
+    MIGRATION_VERSION as SIMULATED_DAILY_BASELINE_MIGRATION_VERSION,
+    MIGRATION_CHECKSUM as SIMULATED_DAILY_BASELINE_MIGRATION_CHECKSUM,
+    migrate_simulated_daily_baseline_rollover,
+    verify_simulated_daily_baseline_provenance,
+)
 from paper_execution.replay_inputs import load_daily_equity_replay_inputs
 from paper_execution.funding import (
     MIGRATION_VERSION as FUNDING_MIGRATION_VERSION,
@@ -410,6 +416,7 @@ def read_account_risk_snapshot(db_path, *, now_ms):
                 (FUNDING_MIGRATION_VERSION, FUNDING_MIGRATION_CHECKSUM),
                 (CUTOVER_MIGRATION_VERSION, CUTOVER_MIGRATION_CHECKSUM),
                 (RECONCILIATION_MIGRATION_VERSION, RECONCILIATION_MIGRATION_CHECKSUM),
+                (SIMULATED_DAILY_BASELINE_MIGRATION_VERSION, SIMULATED_DAILY_BASELINE_MIGRATION_CHECKSUM),
             )
             for version, checksum in required_migrations:
                 migration = db.execute(
@@ -537,6 +544,12 @@ def read_account_risk_snapshot(db_path, *, now_ms):
             day = now // 86_400_000 * 86_400_000
             if risk["daily_baseline_utc_day_ms"] != day:
                 raise sqlite3.DatabaseError("ACCOUNT_RISK_DAILY_BASELINE_UNAVAILABLE")
+            if simulated:
+                verify_simulated_daily_baseline_provenance(
+                    db,
+                    risk_day=risk["daily_baseline_utc_day_ms"],
+                    risk_baseline=risk["daily_baseline_equity_quote"],
+                )
             if cutover and risk["daily_baseline_utc_day_ms"] > (
                 cutover["mark_observed_at_ms"] // 86_400_000 * 86_400_000
             ):
@@ -1350,6 +1363,7 @@ def _dual_ledger_migrations_ready(connection):
         (CUTOVER_SNAPSHOT_MIGRATION_VERSION, CUTOVER_SNAPSHOT_MIGRATION_CHECKSUM),
         (FEE_PROVENANCE_MIGRATION_VERSION, FEE_PROVENANCE_MIGRATION_CHECKSUM),
         (DAILY_BASELINE_AUDIT_MIGRATION_VERSION, DAILY_BASELINE_AUDIT_MIGRATION_CHECKSUM),
+        (SIMULATED_DAILY_BASELINE_MIGRATION_VERSION, SIMULATED_DAILY_BASELINE_MIGRATION_CHECKSUM),
     )
     for version, checksum in required:
         row = connection.execute(
@@ -1759,6 +1773,7 @@ class PaperLedger:
                     migrate_fee_currency_provenance(connection, self.source_sha)
                     migrate_daily_baseline_audit(connection, self.source_sha)
                     migrate_funding_population_reconciliation(connection, self.source_sha)
+                    migrate_simulated_daily_baseline_rollover(connection, self.source_sha)
                     if simulated_requested:
                         initialize_simulated_equity(
                             connection,
