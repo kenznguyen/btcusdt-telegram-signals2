@@ -5889,3 +5889,14 @@ Current application:
 - This is owner-pasted test output; no SSH session, CI workflow or artifact was independently produced/observed by the assistant.
 - Status: bounded PaperLedger + Risk Control tests **PASS**. Persistent operational ledger readiness, Bootstrap/Runner activation readiness and overall VPS runtime readiness remain **NOT VERIFIED / BLOCKED**. AI Strategy remains NOT IMPLEMENTED; paper-only and no live orders.
 - Next: identify the smallest remaining Core First readiness gap and define its bounded verification. Bootstrap/Runner activation remains NOT AUTHORIZED.
+
+
+## 2026-11-14 — Bounded Core lifecycle and Kill Switch VPS tests
+
+- Active branch: `feature/core-operational-proof-20261112`; owner-reported tested VPS checkout/source SHA: `b92bb75b00b6f91c39c1b78fafab5cd1c77d8fde`.
+- Owner-approved exact two-test execution completed on `ubuntu@scw-optimistic-jang`: `test_full_core_position_lifecycle_exit_pnl_fees_equity_and_post_exit_kill` and `test_kill_switch_rejects_core_entry_without_creating_exposure`; **2/2 PASS**, `Ran 2 tests in 0.436s — OK`.
+- Test file: `paper_execution/test_core_first_operational.py`; blob at tested source SHA: `681f674347b660a6afde093e7dc05538c9881609`; class: `CoreFirstOperationalProofTest`.
+- Execution used the existing `btcusdt-core-runtime` venv, `AI_EXECUTION_ENABLED=false`, and `TMPDIR=/tmp`. The initial invocation used an incorrect class name and failed during unittest test loading (0 tests); corrected invocation then ran exactly the two approved tests successfully.
+- Evidence is owner-pasted terminal output; no SSH session, GitHub Actions workflow or artifact was independently produced/observed by the assistant.
+- Status: Core lifecycle/exit accounting/Kill Switch rejection tests **PASS within this bounded offline fixture scope**. This does not establish persistent PAPER runtime readiness or VPS operational readiness; those remain **NOT VERIFIED / BLOCKED**. AI remains NOT IMPLEMENTED; no live orders.
+- Next: identify the smallest remaining Core First readiness gap and define its bounded verification. Bootstrap/Runner activation remains NOT AUTHORIZED.
