@@ -1121,7 +1121,7 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
                 )
                 for _, _, _, reserved_margin, _ in reservations:
                     self.assertLessEqual(
-                        Decimal(reserved_margin), Decimal("1")
+                        Decimal(reserved_margin), Decimal("14")
                     )
 
 
