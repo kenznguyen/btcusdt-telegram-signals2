@@ -5108,3 +5108,14 @@ Next: preserve this proof and do not rerun automatically. Any additional runtime
 - Workflow [43523109116](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43523109116) SUCCESS at source SHA `904b1cc7cd159f4bdf170fb5149414efef576d2c`; projection 19/19 PASS; full regression 540/540 PASS.
 - Artifact `14084346648`, 16,015 bytes, digest `sha256:707d90e49b65e5ccd736f645b398ee367c60ca23868e04ecc790dc57afd95463`.
 - Remaining D07 gate: read-only SQLite adapter to load actual cutover, execution journal and coverage rows. Pure projector still accepts caller-supplied rows; no database is opened.
+
+
+## 2026-11-14 — D07.5 read-only SQLite position adapter CI result
+
+- Exact tested source SHA: `b01685048d203820a90d4b9b3f8f62831fb42b23`, branch `feature/core-operational-proof-20261112`.
+- Added read-only SQLite loader for immutable cutover snapshots, execution journal and EXECUTION coverage. It uses `mode=ro`, `PRAGMA query_only=ON`, a read transaction, validates required schema migration checksums/status, table columns and immutability triggers, then invokes the pure incremental projector.
+- Workflow [43523963424](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43523963424), job `132224969794`, SUCCESS. Focused adapter tests 5/5; projection 19/19; model 19/19; public parser 19/19; provenance 17/17; reconciliation 14/14; persistence 12/12; bootstrap 13/13; full PaperLedger regression 545/545 PASS (135.398s).
+- Artifact `14083688122`, `dual-ledger-bootstrap-proof-b01685048d203820a90d4b9b3f8f62831fb42b23`, 16,503 bytes, GitHub digest `sha256:5ce5d3e482fb404194d192b7f9cee1feb1b95b1f6baec5698b5b006083f3a0ec`, expires 2026-11-20T23:01:48Z. Artifact payload digest not independently verified.
+- D07.5 projection + adapter: **PASS in disposable CI**. D07 overall remains **PARTIAL**.
+- Next: build an offline, fixture-driven end-to-end proof connecting exact public funding page bytes, parser, DB-backed position projection, expected model, a distinct PAPER posting path, persisted observed event enumeration, reconciliation and VERIFIED coverage. Do not copy expected rows into observed rows; that would be tautological. Independence, global completeness, freshness and issuer authenticity remain NOT VERIFIED.
+- No network client, private account data, credentials, VPS, production DB, T0, Runner/One-shot, live execution or orders were used.
