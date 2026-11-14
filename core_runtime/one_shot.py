@@ -234,7 +234,7 @@ def run_once(config_path, bundle_path, *, now_ms=None, on_intent_prepared=None):
             risk_limits=limits,
             require_risk_limits=True,
             apply_migrations=False,
-            expected_file_identity=preflight["_ledgerFileIdentity"],
+            expected_file_identity=preflight.get("_ledgerFileIdentity"),
         )
         order = ledger.submit(
             signal["intent"], bundle["orderBook"], now,
