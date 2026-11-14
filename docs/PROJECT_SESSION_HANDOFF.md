@@ -5651,3 +5651,15 @@ Next: preserve this proof and do not rerun automatically. Any additional runtime
 - Evidence report: `docs/evidence/SIMULATED_CAPITAL_V1_PAPER_LEDGER_AUDIT_DESIGN_2026-11-14.md`, created in commit `0cccaf8553d892c512782210e253694d786757b6`.
 - Status: source audit **PASS WITHIN SCOPE**; persistent simulated capital **NOT IMPLEMENTED**; contract-to-margin wiring **NOT IMPLEMENTED**; Smart DCA multi-leg parity **NOT VERIFIED**; PAPER Ledger **BLOCKED / NOT VERIFIED**. This was documentation/design only; no code, tests, schema, workflow, database, runtime, VPS, T0, Bootstrap, Runner, exchange access or live order changed. No CI run/artifact.
 - Next permitted increment: freeze the simulated-origin schema and DCA leg semantics, then implement with TDD on this branch. Do not activate Bootstrap or Runner; no ledger creation/migration or runtime operation is authorized.
+
+
+## 2026-11-14 — SIMULATED_CAPITAL_V1 origin schema and Smart DCA freeze proposal
+
+- Reopened the current branch and handoff. Starting HEAD: `139495a4a5c38f0cc6069c31ddbfe50cacd52f98`.
+- Reviewed Core producer `pipeline/core_strategy.py` blob `0be512d99b4302077ab79879184b74949f0feaaa`, Core tests `pipeline/test_core_strategy.py` blob `a0d5b46845d3fde006ed817fe21bdd8b6546c1d1`, dual-ledger admission and risk semantics.
+- Current Smart DCA is one addition per Core position lifecycle, using `dcaUsed`; flag resets after flat. Existing trigger: ROE <= -20%, M15 ADX > 45, plus LONG RSI > 20 and rising or SHORT RSI < 80 and falling. Exit checks have priority. Core DCA sizing uses current account equity and 1x Core leverage; Ledger must recheck admission.
+- Proposal recorded in `docs/evidence/SIMULATED_CAPITAL_V1_ORIGIN_AND_SMART_DCA_FREEZE_PROPOSAL_2026-11-14.md`, commit `c579e96bc5184b12653a4d0664380cf86fde5a04`.
+- Proposed origin: separate immutable `paper_simulated_capital_origin` plus append-only seed event, exact contract digest, one-time atomic initialization and restart verification. Never represent synthetic seed as funding/deposit or bypass legacy funded-account cutover.
+- Proposed DCA freeze: preserve one DCA per Core position lifecycle; same per-order 1% margin check and shared 10 USDT exposure/Kill Switch; AI does not inherit Core DCA. The 1% contract term is per order; no extra aggregate margin cap is invented. A multi-leg DCA design requires a new versioned contract.
+- **Owner freeze required:** origin schema, one-DCA semantics, per-order (not aggregate) margin interpretation, and AI DCA exclusion remain proposals until explicitly approved. No code/tests/schema/workflow/runtime changed; no CI run. No DB, migration, Bootstrap, Runner, T0/VPS, exchange or live-order action.
+- Next step: obtain owner decision on the four freeze items. After approval, implement the isolated origin/atomic admission path with TDD on this branch; keep Bootstrap and Runner unauthorized.
