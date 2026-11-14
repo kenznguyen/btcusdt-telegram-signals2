@@ -1655,6 +1655,17 @@ class PaperLedger:
             raise ValueError("AI_LEVERAGE_OUT_OF_RANGE")
         if self.maximum <= 0 or self.fee_rate > 1 or not 0 < self.spread <= 10_000:
             raise ValueError("Invalid paper risk configuration")
+        simulated_requested = (
+            simulated_contract_bytes is not None
+            or simulated_initialized_at_ms is not None
+        )
+        if simulated_requested and (
+            self.strategy_id != "STRATEGY_CORE"
+            or simulated_contract_bytes is None
+            or simulated_initialized_at_ms is None
+            or not apply_migrations
+        ):
+            raise ValueError("SIMULATED_INITIALIZATION_ARGUMENTS_INVALID")
         read_only_existing = self.strategy_id in DUAL_STRATEGIES and not apply_migrations
         self._allow_create = not read_only_existing
         self._expected_file_identity = None
@@ -1682,7 +1693,8 @@ class PaperLedger:
                     raise sqlite3.DatabaseError("DUAL_LEDGER_MIGRATION_NOT_READY")
                 return
             connection.execute("PRAGMA journal_mode=WAL")
-            connection.execute("BEGIN IMMEDIATE")
+            if simulated_requested:
+                connection.execute("BEGIN IMMEDIATE")
             initialized = connection.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='paper_state'").fetchone()
             connection.execute("""CREATE TABLE IF NOT EXISTS paper_state (
                 id INTEGER PRIMARY KEY CHECK(id=1), position TEXT NOT NULL, average TEXT NOT NULL,
@@ -1725,11 +1737,7 @@ class PaperLedger:
                     migrate_fee_currency_provenance(connection, self.source_sha)
                     migrate_daily_baseline_audit(connection, self.source_sha)
                     migrate_funding_population_reconciliation(connection, self.source_sha)
-                    if simulated_contract_bytes is not None or simulated_initialized_at_ms is not None:
-                        if (self.strategy_id != "STRATEGY_CORE"
-                                or simulated_contract_bytes is None
-                                or simulated_initialized_at_ms is None):
-                            raise ValueError("SIMULATED_INITIALIZATION_ARGUMENTS_INVALID")
+                    if simulated_requested:
                         initialize_simulated_equity(
                             connection,
                             contract_bytes=simulated_contract_bytes,
