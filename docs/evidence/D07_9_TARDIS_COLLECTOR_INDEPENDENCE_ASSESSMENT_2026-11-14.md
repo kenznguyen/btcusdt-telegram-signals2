@@ -167,3 +167,17 @@ Negative tests for the sidecar contract are specified in the linked V1 record (2
 - PAPER ledger bootstrap: **BLOCKED / NOT APPROVED**.
 
 No code, workflow, verifier, provider integration, funding row, ledger/database, T0 or VPS state was changed by this design.
+
+
+## 10. Sidecar V1 schema review outcome
+
+The separate sidecar contract was reviewed against D07.1 expected-population provenance, D07.7 comparison semantics and D07.8 package layout. Four documentation ambiguities were identified and clarified in [D07.9 Collector Lineage Evidence Record V1](D07_9_COLLECTOR_LINEAGE_EVIDENCE_RECORD_V1_2026-11-14.md), commit `e62eb84ae14c7a8b181d6337ddff17f73ecd5bfd`:
+
+1. Exact set equality between sidecar raw/readback paths and the D07.8 `raw/` inventory, excluding `derived/`, `transforms/` and `checksums/`.
+2. Explicit nullability/reason pairs for request and network-egress references, without weakening required actor/process/environment evidence.
+3. A distinct readback process/run reopening the preserved copy, with actor, environment, storage, timestamps and immutable evidence reference.
+4. Explicit dependency materiality separate from whether a dependency is shared, plus deterministic BLOCKED/NOT_VERIFIED/SUPPORTED_WITHIN_BOUNDARY precedence.
+
+The review is **PASS WITH DOCUMENTATION CLARIFICATIONS** for the sidecar contract's design boundary. This is not an implementation or runtime PASS. No validator, parser, workflow, D07.8 manifest/validator or D07.2 verifier was changed. No Tardis acquisition/API, credentials, real bytes, funding row, ledger/database, T0/VPS, Runner/One-shot or live execution was used.
+
+Disposition remains: sidecar V1 **DOCUMENTED — NOT IMPLEMENTED**; D07.8 unchanged; real custody/collector independence/overlap/completeness/authenticity/freshness/truth **NOT VERIFIED**; D07.2 `BLOCKED_SHARED_LINEAGE` unchanged; D07 **PARTIAL**; PAPER ledger bootstrap **BLOCKED / NOT APPROVED**.
