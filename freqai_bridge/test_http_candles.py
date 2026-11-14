@@ -554,7 +554,7 @@ class T2HttpConsumerTest(unittest.TestCase):
         interval = STEP
         start = START
         page_sizes = (32, 1)
-        generated = start + 33 * interval + 60_000
+        generated = start + 33 * interval + 180_000
         responses = []
         cursor = start
         for page_index, count in enumerate(page_sizes):
@@ -610,11 +610,10 @@ class T2HttpConsumerTest(unittest.TestCase):
         )
 
     def test_paged_window_rejects_when_latest_candle_exceeds_freshness_limit(self):
-        _, _, generated, responses = self._paged_window_responses(120_001)
+        start, end, generated, responses = self._paged_window_responses(120_001)
         client, _ = self._client(responses=responses, clock_ms=generated)
-        _, end, _, _ = self._paged_window_responses(120_001)
 
-        _, Config, Error = self._adapter()
+        _, _, Error = self._adapter()
         with self.assertRaisesRegex(Error, "FRESHNESS_EXCEEDED"):
             client.fetch(start_ms=START, end_ms=end, as_of_ms=generated)
 
