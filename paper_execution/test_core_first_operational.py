@@ -1996,6 +1996,9 @@ class CoreLedgerNoCreateAndLeveragePolicyTest(unittest.TestCase):
 
     def test_core_ledger_uses_one_x_baseline_and_rejects_legacy_thirteen_x(self):
         self.assertEqual(self.fixture.core.leverage, Decimal("1"))
+        from risk_policy import CORE_LEVERAGE, CORE_ROE_SIGNAL_MULTIPLIER
+        self.assertEqual(CORE_LEVERAGE, Decimal("1"))
+        self.assertEqual(CORE_ROE_SIGNAL_MULTIPLIER, Decimal("13"))
         with self.assertRaisesRegex(ValueError, "CORE_LEVERAGE_POLICY_MISMATCH"):
             PaperLedger(
                 self.fixture.path, strategy_id="STRATEGY_CORE",
