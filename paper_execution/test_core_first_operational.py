@@ -2038,17 +2038,25 @@ class CoreLedgerNoCreateAndLeveragePolicyTest(unittest.TestCase):
         self.assertEqual(target.read_bytes(), b"not-the-configured-ledger")
 
     def test_read_only_core_ledger_does_not_recreate_file_after_constructor(self):
-        self.fixture.core.path.unlink()
+        read_only = PaperLedger(
+            self.fixture.path, strategy_id="STRATEGY_CORE",
+            leverage="1", apply_migrations=False,
+        )
+        read_only.path.unlink()
         with self.assertRaises(FileNotFoundError):
-            self.fixture.core.set_paused(False, self.fixture.now + 1)
-        self.assertFalse(self.fixture.core.path.exists())
+            read_only.set_paused(False, self.fixture.now + 1)
+        self.assertFalse(read_only.path.exists())
 
     def test_read_only_core_ledger_rejects_regular_file_replacement_after_constructor(self):
-        path = self.fixture.core.path
+        read_only = PaperLedger(
+            self.fixture.path, strategy_id="STRATEGY_CORE",
+            leverage="1", apply_migrations=False,
+        )
+        path = read_only.path
         path.unlink()
         path.write_bytes(b"replacement-database-must-not-be-opened")
         with self.assertRaisesRegex(sqlite3.OperationalError, "PAPER_LEDGER_PATH_REPLACED"):
-            self.fixture.core.set_paused(False, self.fixture.now + 1)
+            read_only.set_paused(False, self.fixture.now + 1)
         self.assertEqual(path.read_bytes(), b"replacement-database-must-not-be-opened")
 
     def test_read_only_core_ledger_rejects_replacement_since_preflight(self):
