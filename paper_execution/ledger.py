@@ -1727,6 +1727,20 @@ class PaperLedger:
             equity_history.ensure(connection)
             if self.strategy_id in DUAL_STRATEGIES:
                 if apply_migrations:
+                    if simulated_requested:
+                        account_exists = connection.execute(
+                            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='paper_accounts'"
+                        ).fetchone()
+                        if account_exists:
+                            origin_exists = connection.execute(
+                                """SELECT 1 FROM sqlite_master WHERE type='table'
+                                   AND name='paper_simulated_capital_origin'"""
+                            ).fetchone()
+                            origin_row = connection.execute(
+                                "SELECT 1 FROM paper_simulated_capital_origin WHERE account_id=1"
+                            ).fetchone() if origin_exists else None
+                            if origin_row is None:
+                                raise ValueError("SIMULATED_ACCOUNT_ALREADY_EXISTS")
                     migrate_dual_ledger(connection, self.source_sha)
                     migrate_legacy_book_depth(connection, self.source_sha)
                     migrate_reservation_expiry(connection, self.source_sha)
