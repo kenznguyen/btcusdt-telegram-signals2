@@ -5556,3 +5556,18 @@ Next: preserve this proof and do not rerun automatically. Any additional runtime
 - This is design-only and awaits owner approval. No V2 schema, validator, code, tests, workflow or current provisional draft was changed. No test or CI run. V1 schema/validator behavior remains untouched.
 - Status: D07.8 `STRUCTURE_VALID`; provisional V1-shaped D07.9 draft remains NOT V1-schema-valid; V2 contract proposal CREATED / NOT IMPLEMENTED / AWAITING APPROVAL; D07.11 NOT RUN; D07.2 `BLOCKED_SHARED_LINEAGE`; D07 `PARTIAL`; Paper Ledger bootstrap `BLOCKED / NOT APPROVED`.
 - Next gate: owner review/approval of the V2 field contract and status semantics. Only then implement `schema.v2.json`, a separate V2 validator and TDD tests/workflow. No acquisition, VPS/T0, real D07.11, ledger, Runner/One-shot or execution is authorized.
+
+
+## 2026-11-14 — D07.9 V2 implementation and synthetic CI
+
+- Owner approved implementation of the separately versioned V2 explicit-unknown contract. Read the current handoff and TDD skill; preserved V1.
+- Added V2 schema `d07_9_lineage/schema.v2.json` (blob `d4de666a831c622a36bf5b9b4e9de3ff8e41a0e6`), validator `validator_v2.py` (blob `d73548f96caa892d16b716e65471370ffa94ca45`), and 15 synthetic V2 tests (blob `47d61a400fe6470af2b8f77531afbb6a94ff638f`).
+- Added dedicated workflow `.github/workflows/d07-9-v2-explicit-unknown.yml` (blob `d81a30abd636e801a91c00dd03f3f8ff7693af16`) and README usage/status boundaries.
+- V2 explicitly supports KNOWN / UNKNOWN / UNAVAILABLE / NOT_APPLICABLE assertions with basis, limitation and evidenceRefs. Empty custody events are structurally valid but custody remains NOT_VERIFIED. Owner-reported assertions never promote provider authenticity or upstream origin. Optional D07.8 manifest comparison only verifies package-bound byte identity; evidence refs/index are not authenticated by V2.
+- V1 preservation verified: schema blob `69b55f1ac8b5e223cd0005eeae5ba3577eed9244`; validator blob `160727bcd545472ff6cd9c67bbaea8d7957b195d`; tests blob `52fd70b13dd5528511b97dd52d610fcad56761ad`.
+- Test-first commits: V2 tests `2fb1d311c08c8df694d4df88d78beb13060f74e8`; schema `c9e2d19a0fba64e78ed41b402f0666bf3f7ac9b0`; validator `3a5fe36cfd6f19de4badc808315e5fe1c7c08636`; workflow `095b36fbd325e96924a920f654be14ac6f47dcf4`; README `cbcb132cca2cf3249782752248a1ea2091bda608`.
+- GitHub Actions run `43599304075`, exact checked-out SHA `095b36fbd325e96924a920f654be14ac6f47dcf4`, job `132460419077` SUCCESS. V2 schema check PASS; py_compile PASS; V1 regression + V2 contract tests **52/52 PASS** (37 V1 + 15 V2). Artifact `14115851384`, name `d07-9-v2-explicit-unknown-test-evidence`, digest `sha256:b56eba890e6c543b8c68f6bfdf549c7b3d2582df851116876e70a8b3e1827311`, 1,621 bytes, expires 2026-11-21T13:20:53Z.
+- Current branch HEAD after README-only and evidence-report commits: `7806b208402713ec0d48c70372fa91fb47ca5a08`. Implementation code/schema/test/workflow blobs match the exact source tested at `095b36f...`; only docs changed afterward.
+- Evidence report: `docs/evidence/D07_9_V2_IMPLEMENTATION_2026-11-14.md`, commit `7806b208402713ec0d48c70372fa91fb47ca5a08`.
+- Status: D07.9 V2 synthetic contract + V1 compatibility **PASS WITHIN SCOPE**; actual provenance **NOT VERIFIED**; D07.11 real resolution **NOT RUN**; D07.2 **BLOCKED_SHARED_LINEAGE**; D07 **PARTIAL**; Paper Ledger bootstrap **BLOCKED / NOT APPROVED**.
+- No real package was validated in CI; no network acquisition, VPS/T0, ledger, Runner/One-shot, credentials, trading or deletion. Next bounded step is a V2 draft for existing D07.8 v4 package, followed by schema/package-byte validation only. Do not run D07.11 without a real evidence reference index and separately established trust boundary.
