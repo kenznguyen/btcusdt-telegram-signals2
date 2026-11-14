@@ -5877,3 +5877,15 @@ Current application:
 - Status: bounded offline Core signal/strategy tests **PASS**. Shared Risk Engine, persistent PaperLedger, Kill Switch runtime, Core one-shot runtime readiness and overall VPS runtime readiness remain **NOT VERIFIED**. AI remains not implemented; no AI execution.
 - No workflow or artifact was produced. No DB/T0, package install, Bootstrap/Runner, service/autostart, exchange, live order or real trading action.
 - Next: continue the remaining Core First readiness gap with a separately bounded read-only review; do not activate Bootstrap/Runner.
+
+
+## 2026-11-14 — Bounded Core First VPS PaperLedger and Risk Control tests
+
+- Active branch: `feature/core-operational-proof-20261112`; owner-reported tested VPS checkout SHA: `b92bb75b00b6f91c39c1b78fafab5cd1c77d8fde`.
+- Owner-approved bounded execution completed on `ubuntu@scw-optimistic-jang`: 7/7 `paper_execution.test_risk_control` and 18/18 selected `PaperLedgerTest` cases; total **25/25 PASS** in 1.076s (`Ran 25 tests ... OK`).
+- Test blobs: `paper_execution/test_ledger.py` = `2eaf18956f0cc281a653a74b14a159cf3930bc2e`; `paper_execution/test_risk_control.py` = `5e1fdf60f9c2988d8e44e2019aa12de11c0dde9d`.
+- Execution used the existing venv, `AI_EXECUTION_ENABLED=false`, and disposable SQLite temp files under `/tmp`; T1 compatibility and CLI subprocess tests were excluded.
+- Evidence report: `docs/evidence/CORE_FIRST_VPS_PAPERLEDGER_RISK_CONTROL_TESTS_2026-11-14.md`.
+- This is owner-pasted test output; no SSH session, CI workflow or artifact was independently produced/observed by the assistant.
+- Status: bounded PaperLedger + Risk Control tests **PASS**. Persistent operational ledger readiness, Bootstrap/Runner activation readiness and overall VPS runtime readiness remain **NOT VERIFIED / BLOCKED**. AI Strategy remains NOT IMPLEMENTED; paper-only and no live orders.
+- Next: identify the smallest remaining Core First readiness gap and define its bounded verification. Bootstrap/Runner activation remains NOT AUTHORIZED.
