@@ -103,7 +103,7 @@ class CoreShortLifecycleTest(unittest.TestCase):
             )
             account_ledger.record_account_mark(
                 str(mark_price), fixture.now - 60_000, fixture.now,
-                "sha256:" + "9" * 64, "100",
+                "sha256:" + "9" * 64, "1400",
             )
             risk_before_exit = read_account_risk_snapshot(fixture.path, now_ms=fixture.now)
             self.assertTrue(risk_before_exit["riskReady"], risk_before_exit)
@@ -111,7 +111,7 @@ class CoreShortLifecycleTest(unittest.TestCase):
                 Decimal(risk_before_exit["positions"]["STRATEGY_CORE"]["unrealizedPnlQuote"]),
                 Decimal("0"),
             )
-            self.assertGreater(Decimal(risk_before_exit["accountEquityQuote"]), Decimal("100"))
+            self.assertGreater(Decimal(risk_before_exit["accountEquityQuote"]), Decimal("1400"))
 
             # RSI reaches the short take-profit threshold while the short ROE
             # is positive; Core must emit CLOSE and the ledger must flatten.
@@ -171,7 +171,7 @@ class CoreShortLifecycleTest(unittest.TestCase):
                     (Decimal(order["feeQuote"]) for order in (entry, dca, exit_order)),
                     Decimal("0"),
                 )
-                expected_equity = Decimal("100") + realized - fees - funding
+                expected_equity = Decimal("1400") + realized - fees - funding
                 self.assertEqual(fees, expected_fees)
                 self.assertEqual(Decimal(risk_after_exit["accountEquityQuote"]), expected_equity)
             self.assertGreater(realized, Decimal("0"))
