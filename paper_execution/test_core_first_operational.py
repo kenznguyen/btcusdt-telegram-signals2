@@ -2021,5 +2021,25 @@ class CoreLedgerNoCreateAndLeveragePolicyTest(unittest.TestCase):
         self.assertFalse(missing.parent.parent.exists())
 
 
+    def test_read_only_core_ledger_rejects_symlink_replacement(self):
+        target = Path(self.fixture.temp.name) / "replacement.sqlite3"
+        target.write_bytes(b"not-the-configured-ledger")
+        link = Path(self.fixture.temp.name) / "core-ledger-link.sqlite3"
+        link.symlink_to(target)
+        with self.assertRaises(FileNotFoundError):
+            PaperLedger(
+                link, strategy_id="STRATEGY_CORE",
+                leverage="1", apply_migrations=False,
+            )
+        self.assertTrue(link.is_symlink())
+        self.assertEqual(target.read_bytes(), b"not-the-configured-ledger")
+
+    def test_read_only_core_ledger_does_not_recreate_file_after_constructor(self):
+        self.fixture.core.path.unlink()
+        with self.assertRaises(FileNotFoundError):
+            self.fixture.core.snapshot()
+        self.assertFalse(self.fixture.core.path.exists())
+
+
 if __name__ == "__main__":
     unittest.main()
