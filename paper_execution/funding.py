@@ -860,7 +860,7 @@ def record_funding_event(
             return {"fundingEventId": event_id, "strategyId": strategy_id,
                     "amountQuote": old[1], "eventAtMs": event_at, "source": source,
                     "sourceSnapshotId": snapshot, "payloadHash": digest,
-                    "recordedAtMs": old[6], "mode": "PAPER"}
+                    "recordedAtMs": old[6], "mode": "PAPER", "idempotent": True}
         coverage_rows = db.execute(
             """SELECT status,source,reconciliation_id FROM paper_funding_coverage
                WHERE account_id=1 AND start_at_ms <= ? AND end_at_ms > ?""",
@@ -909,7 +909,7 @@ def record_funding_event(
                  "payloadHash": digest, "recordedAtMs": recorded, "mode": "PAPER"}
         db.execute("INSERT INTO paper_audit(at_ms,kind,document) VALUES (?, 'FUNDING_EVENT', ?)",
                    (recorded, json.dumps(audit, allow_nan=False)))
-        return audit
+        return {**audit, "idempotent": False}
 
 
 def record_funding_coverage(
