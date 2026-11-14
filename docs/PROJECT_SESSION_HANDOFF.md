@@ -5754,3 +5754,14 @@ Next: preserve this proof and do not rerun automatically. Any additional runtime
 - No operational DB, VPS, T0, exchange credentials, deployment, Bootstrap runtime, Runner, AI execution, live order or real trading was used or authorized.
 - Next permitted increment: read-only audit and test-first contract for contract-bound 1% per-order margin admission in the shared order-admission path. Preserve existing funded-account behavior and remain paper-only. Bootstrap activation and Runner remain NOT AUTHORIZED.
 
+
+
+## 2026-11-14 — SIMULATED-only Shared Order Admission read-only audit
+
+- Read-only audit completed against implementation source SHA 88ff9d51b845ca674a547bf27d479358a380bdcb; current branch remains feature/core-operational-proof-20261112.
+- Evidence report: docs/evidence/SIMULATED_ONLY_SHARED_ORDER_ADMISSION_AUDIT_2026-11-14.md, created in commit e582c0509e06d1fe78dc2ed5a2bd676ebf551a2f.
+- Finding: read_account_risk_snapshot recognizes a valid SIMULATED origin and validates the simulated daily-baseline chain, but PaperLedger._submit_scoped still requires a funded cutover row and complete funding provenance for exposure-increasing orders. Because SIMULATED-only equity intentionally has no funding/cutover evidence, its ENTRY/DCA admission remains blocked despite a valid simulated risk snapshot.
+- Existing shared margin policy is 1% of admission-time equity per order. The funded dual-ledger test suite includes Core ENTRY/DCA reservation assertions; this does not yet prove the SIMULATED-only writer path or every AI leverage boundary.
+- AI candidates remain fail-closed with AI_ADMISSION_NOT_ESTABLISHED until a trusted admission-context/admitted-leverage provider is wired. AI leverage must remain explicitly admitted within 1x–3x. Do not bypass this gate.
+- Status: read-only audit COMPLETE; SIMULATED-only writer admission NOT IMPLEMENTED / NOT VERIFIED; AI Trusted Admission Context NOT IMPLEMENTED / BLOCKED; funded-path existing behavior remains protected by its current test coverage.
+- Next permitted increment: write and commit isolated disposable-SQLite tests for SIMULATED-only Core ENTRY/DCA admission, 1% margin boundary, failure/rollback cases, Kill Switch and risk-limit rejection, plus funded-path regression; run RED before implementation. Then implement only the additive simulated admission path. No operational DB, VPS, T0, Bootstrap runtime, Runner, AI execution, live orders or real trading.
