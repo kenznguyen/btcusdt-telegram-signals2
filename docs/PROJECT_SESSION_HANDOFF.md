@@ -5477,3 +5477,16 @@ Next: preserve this proof and do not rerun automatically. Any additional runtime
 - No files were opened or modified by the search commands beyond the earlier bounded inventory; no files were created, moved or deleted. No resolver, parser, network request, ledger/database, T0, Runner/One-shot or live execution was run.
 - Current D07 disposition unchanged: D07.7 exact-key sample comparison **PASS_WITHIN_OVERLAP — 1/3, LIMITED SAMPLE**; three nearest-event numeric rate values agree **PASS — LIMITED**, not three exact-key matches; D07.2 **BLOCKED_SHARED_LINEAGE**; D07 **PARTIAL**; formal D07.11 resolution **NOT VERIFIED**; PAPER ledger bootstrap **BLOCKED / NOT APPROVED**.
 - Next bounded step, if continued: run the envelope metadata inspection with `python3`, then decide whether a narrowly scoped read-only directory search outside the current `docs/evidence` scope is necessary. No broader VPS search, evidence construction, acquisition or ledger operation is authorized by this record.
+
+
+## 2026-11-14 — D07.6 provenance-envelope metadata inspection
+
+- Owner supplied the successful `python3` metadata inspection output for `/tmp/d07-6-binance-20261114T051131Z/provenance-envelope.json`.
+- Confirmed `evidenceSnapshotId=d07-6-binance-btcusdt-20261114T051131Z`.
+- Confirmed lineage fields: expected source `Binance USD-M public funding-rate source`; observed source `Binance USD-M public funding-rate endpoint`; `sharedUpstreamSystems=[Binance]`.
+- Confirmed snapshot fields: `asOfMs=1794633091000`, `eventCutoffMs=1794614400005`, `retrievedAtMs=1794633091000`.
+- The displayed metadata contains no manifest, sidecar or reference-index reference. This is limited to the fields selected by the inspection script; it does not prove no such reference exists elsewhere in the envelope or VPS.
+- D07.6 capture remains a Binance raw capture, not a D07.8 Tardis evidence package. Actual D07.8 manifest, D07.9 sidecar and evidence reference index remain **NOT VERIFIED**.
+- No resolver, parser, network request, evidence mutation, ledger/database operation, T0, Runner/One-shot or live execution was performed in this step. Owner-provided terminal output is the evidence; assistant did not access the VPS directly.
+- D07 status remains unchanged: D07.7 exact-key comparison **PASS_WITHIN_OVERLAP — 1/3, LIMITED SAMPLE**; nearest-event numeric rate agreement **PASS — LIMITED**; D07.2 **BLOCKED_SHARED_LINEAGE**; D07 **PARTIAL**; formal D07.11 resolution **NOT VERIFIED**; PAPER ledger bootstrap **BLOCKED / NOT APPROVED**.
+- Next step: if further metadata inspection is needed, inspect the complete envelope's top-level keys and reference-like fields read-only; do not infer absence from this filtered output. No evidence construction or ledger operation is authorized.
