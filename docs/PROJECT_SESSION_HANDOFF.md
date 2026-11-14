@@ -5380,3 +5380,16 @@ Next: preserve this proof and do not rerun automatically. Any additional runtime
 - Disposition: D07.12 public-documentation readiness review **PASS — DOCUMENTATION ONLY**; provider capability **DOCUMENTED**; distinct collector path **PLAUSIBLE / NOT VERIFIED**; settlement-level suitability **NOT VERIFIED — SEMANTIC GAP**; full-period entitlement **NOT VERIFIED**. No CI run/artifact because this was documentation-only.
 - D07.2 `BLOCKED_SHARED_LINEAGE` unchanged; D07 remains **PARTIAL**; PAPER ledger bootstrap remains **BLOCKED / NOT APPROVED**.
 - Next gate: owner must separately specify exact UTC date/range, product/feed, account entitlement if required, environment/storage, request/file/byte limits and stop conditions before any real acquisition. A real-file parser/readback and any D07.2/D07.8 changes remain separate approval gates.
+
+
+## 2026-11-14 — D07.13 one-day pilot acquisition attempt
+
+- Owner confirmed the pilot date: 2026-11-01 UTC, interval `[2026-11-01T00:00:00Z, 2026-11-02T00:00:00Z)`; Tardis `binance-futures`, `derivative_ticker`, dataset symbol `BTCUSDT` (perpetual); no credentials.
+- Live public metadata read from `https://api.tardis.dev/v1/exchanges/binance-futures` returned HTTP 200. It confirmed enabled exchange `binance-futures`, BTCUSDT perpetual, supported `derivative_ticker`, and `datasets.exportedUntil=2026-11-14T00:00:00Z`. Metadata does not prove the target daily file exists or is non-empty.
+- Expected single-file endpoint: `https://datasets.tardis.dev/v1/binance-futures/derivative_ticker/2026/11/01/BTCUSDT.csv.gz`.
+- Binary acquisition did not start: web retrieval could not open the gzip object and the controlled container download facility refused the URL because it could not verify it as an accessible opened page. No bytes transferred; no file size, dataset HTTP status/headers, SHA-256, gzip validation, CSV row count, independent readback or settlement comparison exists. No alternate proxy/VPN/region, credentials, or alternate download path was attempted.
+- Evidence record: `docs/evidence/D07_13_PILOT_ACQUISITION_BLOCKED_2026-11-14.md`, commit `54af76ab16238fc6573e58373e68749089503e1d`.
+- Disposition: metadata verification **PASS — METADATA ONLY**; real acquisition **BLOCKED BEFORE TRANSFER**; custody/byte integrity/readback/overlap **NOT VERIFIED / NOT PERFORMED**. This is an environment/tooling limitation, not a provider-side denial.
+- D07.2 `BLOCKED_SHARED_LINEAGE` unchanged; D07 **PARTIAL**; PAPER ledger bootstrap **BLOCKED / NOT APPROVED**.
+- Next step requires an approved acquisition environment/storage destination able to retrieve the exact public gzip URL without credentials, or the owner supplying the original downloaded file as an attachment. VPS/T0, credentials, paid entitlement, alternate network route, wider range or raw replay API still require separate approval.
+- No code, verifier, funding row, ledger/database, T0/VPS or runtime changed. Documentation-only; no CI run.
