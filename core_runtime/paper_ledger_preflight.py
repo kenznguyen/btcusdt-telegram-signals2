@@ -3,21 +3,16 @@
 import os
 from pathlib import Path
 
-from core_runtime.continuous_dry_run import _canonical, _overlaps
 from core_runtime.preflight import (
     _CREDENTIAL_ENV_KEYS,
     _load_config,
 )
+from core_runtime.ledger_path_guard import validate_ledger_path_isolated
 from paper_execution.ledger import read_account_risk_snapshot
 
 
 class PaperLedgerPreflightError(ValueError):
     """Stable, fail-closed PaperLedger preflight rejection."""
-
-
-_PROTECTED_DB_ENV_KEYS = (
-    "MARKET_DATA_DB", "T0_FEEDER_LEASE_DB", "PAPER_DB", "PAPER_TRADING_DB",
-)
 
 
 def inspect_paper_ledger_preflight(config_path, *, now_ms, environ=None):
@@ -33,18 +28,12 @@ def inspect_paper_ledger_preflight(config_path, *, now_ms, environ=None):
     if any(env.get(key) for key in _CREDENTIAL_ENV_KEYS):
         raise PaperLedgerPreflightError("EXCHANGE_CREDENTIALS_FORBIDDEN")
 
-    ledger = _canonical(ledger_path)
+    try:
+        ledger = validate_ledger_path_isolated(ledger_path, environ=env)
+    except ValueError as exc:
+        raise PaperLedgerPreflightError(str(exc)) from None
     if not ledger.is_file():
         raise PaperLedgerPreflightError("LEDGER_FILE_REQUIRED")
-
-    for key in _PROTECTED_DB_ENV_KEYS:
-        protected_value = env.get(key)
-        if protected_value and _overlaps(ledger, _canonical(protected_value)):
-            if key in ("PAPER_DB", "PAPER_TRADING_DB"):
-                if _canonical(protected_value) != ledger:
-                    raise PaperLedgerPreflightError("LEDGER_PATH_ENV_MISMATCH")
-            else:
-                raise PaperLedgerPreflightError("T0_LEDGER_PATH_FORBIDDEN")
 
     try:
         snapshot = read_account_risk_snapshot(ledger, now_ms=now_ms)
