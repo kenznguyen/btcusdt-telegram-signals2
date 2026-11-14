@@ -5798,3 +5798,23 @@ Next: preserve this proof and do not rerun automatically. Any additional runtime
 - Current disposition: SIMULATED Core ENTRY/DCA shared admission and funded compatibility focused suite PASS within their stated scopes; broader Bootstrap regression PENDING/NOT VERIFIED; Core job PASS but decision-cycle/one-shot sub-verdicts NOT VERIFIED; overall PAPER Ledger readiness BLOCKED/NOT VERIFIED. AI remains NOT IMPLEMENTED / BLOCKED; user direction is Core First and no AI implementation in this increment.
 - No operational DB, VPS, T0, Bootstrap runtime, Runner activation, exchange credentials, AI execution, live order or real trading was used or authorized.
 - Next: inspect run `43609479824` terminal result and artifact; if PASS, close Core decision-cycle/one-shot gaps test-first. Bootstrap/Runner activation remains NOT AUTHORIZED.
+
+
+## 2026-11-14 — Owner-approved simplified evidence and progress update process
+
+This section supersedes any earlier instruction in this handoff that requires exhaustive or repetitive evidence collection for each routine increment. Preserve historical evidence as-is; do not retroactively rewrite old records.
+
+- Record only: (1) completed scope, (2) directly relevant test result, (3) exact source SHA, (4) workflow/run identifier when CI was run, (5) artifact details only when an artifact actually exists, (6) status, and (7) one next step.
+- Do not collect duplicate evidence from multiple sources when one authoritative result is sufficient.
+- Do not run extra workflows, audits, artifact downloads or verification steps solely to make the record look exhaustive. Perform additional checks only when required to resolve a material uncertainty or satisfy an explicit gate.
+- Keep claims scoped: test PASS is not runtime PASS; missing or mismatched evidence remains NOT VERIFIED; unresolved blocking conditions remain BLOCKED.
+- Update this handoff or the directly relevant evidence report once per meaningful increment, on the existing active branch. Do not create a parallel branch or PR for documentation bookkeeping.
+- This process change does not waive substantive project gates, risk controls, source-SHA matching, or explicit approval requirements.
+
+Current application:
+- Active branch: `feature/core-operational-proof-20261112`.
+- No source-code, workflow, test, runtime, database or VPS change is authorized by this process update.
+- AI Strategy and independent AI LONG/SHORT signals remain NOT IMPLEMENTED; continue Core First only.
+- Bootstrap/One-shot Runner activation remains NOT AUTHORIZED; paper-only posture and `AI_EXECUTION_ENABLED=false` remain unchanged.
+- Status: **PROCESS UPDATE RECORDED**. No CI run or artifact was needed for this documentation-only change.
+- Next: continue the existing Core First gate using the minimum evidence necessary to resolve its current blocker; do not expand scope.
