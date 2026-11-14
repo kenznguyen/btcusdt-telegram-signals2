@@ -81,3 +81,55 @@ Any use of VPS/T0, account credentials, paid entitlement, alternate network rout
 - PAPER ledger bootstrap: **BLOCKED / NOT APPROVED**.
 
 No repository code, D07.2/D07.8 verifier, funding row, ledger/database, T0/VPS or runtime state was changed. No CI was run because this is a documentation-only evidence record.
+
+
+## 7. Owner-supplied candidate file — follow-up inspection (2026-11-14)
+
+The owner supplied an attachment named `BTCUSDT.csv`. The uploaded path was inspected without modifying the file. Its content is GZIP (magic bytes `1f 8b 08`), despite the `.csv` filename.
+
+### 7.1 Preserved-byte and independent-process checks
+
+| Check | Result |
+|---|---|
+| Uploaded object size | 1,431,960 bytes |
+| SHA-256 of exact uploaded compressed bytes | `71963e8235106ae36fe386ef0fbd52b078df48ea854d09d814469eddeed58a8c` |
+| GZIP decompression / trailer integrity | PASS |
+| Decompressed payload size | 12,337,426 bytes |
+| Separate-process reopen of uploaded path | PASS — same size, SHA-256 and successful GZIP decompression |
+| Formal D07.11 sidecar/reference-index custody resolution | NOT RUN |
+| Immutable external custody / original provider transfer receipt | NOT VERIFIED |
+
+The separate process reopened the uploaded path from disk, independently recomputed the compressed-byte length and SHA-256, and decompressed it successfully. This is a bounded readback check of the attachment, not a complete D07.11 sidecar/custody proof.
+
+### 7.2 CSV structure and coverage observations
+
+- Header (11 columns): `exchange,symbol,timestamp,local_timestamp,funding_timestamp,funding_rate,predicted_funding_rate,open_interest,last_price,index_price,mark_price`.
+- Data rows: **98,211**.
+- All rows declare `exchange=binance-futures` and `symbol=BTCUSDT`.
+- `timestamp` range: 2026-11-01 00:00:00.000000 UTC through 2026-11-01 23:59:57.002000 UTC; nondecreasing.
+- `local_timestamp` range: 2026-11-01 00:00:00.062732 UTC through 2026-11-01 23:59:57.063032 UTC; nondecreasing.
+- All `timestamp` and `local_timestamp` values fall within the requested half-open UTC day.
+- `timestamp` has 13,953 duplicated key values (14,613 additional rows beyond one row per distinct timestamp; maximum multiplicity 3). This is recorded as an observation, not automatically classified as corruption.
+- `local_timestamp` has 2 duplicated key values (2 additional rows; maximum multiplicity 2).
+- Four distinct `funding_timestamp` values occur: 2026-11-01 00:00, 08:00 and 16:00 UTC, plus 2026-11-02 00:00 UTC. The first event has no strictly earlier observation in this daily file; the other three have a prior observation in the file.
+- Every row has `funding_rate=0.0001`; `predicted_funding_rate` is empty in all rows. `open_interest` is empty in 2 rows and `last_price` in 3 rows. Other listed fields are populated in all rows.
+
+### 7.3 Provenance and semantic limits
+
+The file's internal fields are consistent with the intended exchange, symbol and date, but those fields are self-declared content. The attachment does **not** establish that its compressed bytes were downloaded from the expected Tardis URL. No dataset-endpoint HTTP status/headers, response metadata, signed provider receipt, download log or independently authenticated provider origin accompanied it. Therefore:
+
+- Candidate file received and structurally inspected: **PASS — ATTACHMENT CONTENT ONLY**.
+- Exact Tardis URL / provider-origin provenance: **NOT VERIFIED**.
+- Compressed-byte integrity for the supplied attachment: **PASS — SHA-256 and GZIP**.
+- Separate-process attachment readback: **PASS — LIMITED**.
+- Formal D07.11 custody sidecar/reference-index gate: **NOT RUN**.
+- D07.7 settlement-key overlap and settlement-rate suitability: **NOT PERFORMED / NOT VERIFIED**. The four observed event timestamps and constant in-file rate are not, by themselves, proof of settlement equivalence.
+- Enumeration/global completeness, feed-gap completeness, freshness, issuer authenticity, collector-path independence and factual truth: **NOT VERIFIED**.
+
+The earlier endpoint-transfer blocker remains an accurate record of that attempt. This attachment provides a candidate data object for further bounded verification; it does not retroactively prove the endpoint transfer or provider provenance.
+
+### 7.4 Disposition and boundary
+
+D07.13 is now **PARTIAL PASS — ATTACHMENT RECEIVED, BYTE INTEGRITY AND BASIC STRUCTURE VERIFIED; PROVIDER PROVENANCE AND SETTLEMENT OVERLAP NOT VERIFIED**. D07.2 `BLOCKED_SHARED_LINEAGE` remains unchanged; D07 remains **PARTIAL**; PAPER ledger bootstrap remains **BLOCKED / NOT APPROVED**.
+
+No raw attachment was committed to GitHub. No parser/verifier code, D07.2/D07.8 logic, funding row, ledger/database, T0/VPS, Runner/One-shot, exchange credentials, live execution or order state was changed. This was an evidence/documentation-only increment; no CI run or artifact was produced.
