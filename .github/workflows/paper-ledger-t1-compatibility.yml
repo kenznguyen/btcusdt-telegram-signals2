@@ -11,6 +11,7 @@ on:
       - "paper_execution/simulated_daily_baseline.py"
       - "paper_execution/test_simulated_equity.py"
       - "paper_execution/test_simulated_order_admission.py"
+      - "paper_execution/test_simulated_order_admission.py"
       - "paper_execution/test_ledger.py"
       - "paper_execution/test_dual_ledger_red.py"
       - ".github/workflows/paper-ledger-t1-compatibility.yml"
@@ -21,6 +22,7 @@ on:
       - "paper_execution/simulated_equity.py"
       - "paper_execution/simulated_daily_baseline.py"
       - "paper_execution/test_simulated_equity.py"
+      - "paper_execution/test_simulated_order_admission.py"
       - "paper_execution/test_ledger.py"
       - ".github/workflows/paper-ledger-t1-compatibility.yml"
   workflow_dispatch:
