@@ -7,7 +7,8 @@ from pathlib import Path
 
 from paper_execution.simulated_capital import DEFAULT_SIMULATED_CAPITAL_CONTRACT
 from paper_execution.simulated_equity import initialize_simulated_equity
-from paper_execution.ledger import PaperLedger
+from paper_execution.ledger import PaperLedger, read_account_risk_snapshot
+from paper_execution.account_equity import record_account_mark
 
 
 class SimulatedEquityInitializationTest(unittest.TestCase):
@@ -264,6 +265,37 @@ class SimulatedEquityInitializationTest(unittest.TestCase):
                     "SELECT 1 FROM sqlite_master WHERE type='table' AND name='paper_simulated_capital_origin'"
                 ).fetchone())
 
+
+    def test_simulated_first_mark_establishes_readiness_without_funding_cutover(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "simulated.sqlite3"
+            PaperLedger(
+                path,
+                strategy_id="STRATEGY_CORE",
+                source_sha="a" * 40,
+                simulated_contract_bytes=self.contract,
+                simulated_initialized_at_ms=self.now,
+            )
+            account_scope = PaperLedger(path)
+            result = record_account_mark(
+                account_scope, "100", self.now - 60_000, self.now,
+                "sha256:" + "c" * 64,
+            )
+            self.assertTrue(result["riskReady"])
+            self.assertEqual(result["accountEquityQuote"], "100")
+            snapshot = read_account_risk_snapshot(path, now_ms=self.now)
+            self.assertTrue(snapshot["riskReady"])
+            self.assertIsNone(snapshot["unavailableReason"])
+            with sqlite3.connect(path) as db:
+                self.assertEqual(db.execute(
+                    "SELECT COUNT(*) FROM paper_account_equity_cutovers"
+                ).fetchone()[0], 0)
+                self.assertEqual(db.execute(
+                    "SELECT COUNT(*) FROM paper_funding_events"
+                ).fetchone()[0], 0)
+                self.assertEqual(db.execute(
+                    "SELECT risk_ready FROM paper_account_risk_state WHERE account_id=1"
+                ).fetchone(), (1,))
 
 if __name__ == "__main__":
     unittest.main()
