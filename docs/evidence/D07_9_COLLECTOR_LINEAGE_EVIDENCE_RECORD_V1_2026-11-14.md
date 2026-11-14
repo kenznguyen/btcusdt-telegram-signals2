@@ -300,6 +300,6 @@ The D07.10 structural validator checks that evidence-reference fields are presen
 
 ## 11. D07.10 implementation disposition
 
-The D07.9 V1 schema, offline structural validator and synthetic CI contract suite are implemented. The final verified source is `0c19227c75a8b29a17da24fb59e4843b52d56632`; GitHub Actions run `43580873129` passed all 37 synthetic tests. The validator is intentionally not an evidence resolver: non-empty references are declarations, not proof that targets exist. A declared `SUPPORTED_WITHIN_BOUNDARY` disposition therefore remains `NOT_VERIFIED` in the validator result until a separately approved evidence-resolution/review step exists.
+The D07.9 V1 schema, offline structural validator and synthetic CI contract suite are implemented. Exact tested source SHA: `f693282f3b6b517127d175846a8cc8bc3b2c1170`; GitHub Actions run `43580970861` passed all 37 synthetic tests. The validator is intentionally not an evidence resolver: non-empty references are declarations, not proof that targets exist. A declared `SUPPORTED_WITHIN_BOUNDARY` disposition therefore remains `NOT_VERIFIED` in the validator result until a separately approved evidence-resolution/review step exists.
 
 D07.8 and D07.2 remain unchanged. No real Tardis data, endpoint, credentials, ledger, database, T0 or VPS was accessed. D07 remains PARTIAL; PAPER ledger bootstrap remains BLOCKED / NOT APPROVED.
