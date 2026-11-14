@@ -1635,10 +1635,12 @@ def cancel_dual_order(db_path, order_id, now_ms, *, expected_strategy_id=None):
 
 
 class PaperLedger:
-    def __init__(self, db_path, *, max_position_base="0.01", fee_rate="0.0005", max_spread_bps="50", risk_limits=None, require_risk_limits=False, leverage="13", strategy_id="MANUAL", source_sha=None, apply_migrations=True):
+    def __init__(self, db_path, *, max_position_base="0.01", fee_rate="0.0005", max_spread_bps="50", risk_limits=None, require_risk_limits=False, leverage=None, strategy_id="MANUAL", source_sha=None, apply_migrations=True):
         self.path = Path(db_path)
         self.maximum, self.fee_rate, self.spread = number(max_position_base), number(fee_rate), number(max_spread_bps)
         self.risk_limits, self.require_risk_limits = risk_limits, bool(require_risk_limits)
+        if leverage is None:
+            leverage = "1" if strategy_id == "STRATEGY_CORE" else "13"
         self.leverage = number(leverage)
         if strategy_id not in {"MANUAL", *DUAL_STRATEGIES}:
             raise ValueError("Invalid paper ledger strategy scope")
@@ -1652,9 +1654,11 @@ class PaperLedger:
             raise ValueError("AI_LEVERAGE_OUT_OF_RANGE")
         if self.maximum <= 0 or self.fee_rate > 1 or not 0 < self.spread <= 10_000:
             raise ValueError("Invalid paper risk configuration")
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        with closing(self.connect()) as connection, connection:
-            if self.strategy_id in DUAL_STRATEGIES and not apply_migrations:
+        read_only_existing = self.strategy_id in DUAL_STRATEGIES and not apply_migrations
+        if not read_only_existing:
+            self.path.parent.mkdir(parents=True, exist_ok=True)
+        with closing(self.connect(create=not read_only_existing)) as connection, connection:
+            if read_only_existing:
                 connection.execute("PRAGMA query_only=ON")
                 if not _dual_ledger_migrations_ready(connection):
                     raise sqlite3.DatabaseError("DUAL_LEDGER_MIGRATION_NOT_READY")
@@ -1705,8 +1709,27 @@ class PaperLedger:
                 elif not _dual_ledger_migrations_ready(connection):
                     raise sqlite3.DatabaseError("DUAL_LEDGER_MIGRATION_NOT_READY")
 
-    def connect(self):
-        connection = sqlite3.connect(self.path, timeout=10)
+    def connect(self, *, create=True):
+        if create:
+            connection = sqlite3.connect(self.path, timeout=10)
+        else:
+            if self.path.is_symlink() or not self.path.is_file():
+                raise FileNotFoundError("Paper ledger is unavailable")
+            before = self.path.stat()
+            uri = self.path.resolve(strict=True).as_uri() + "?mode=rw"
+            connection = sqlite3.connect(uri, uri=True, timeout=10)
+            try:
+                after = self.path.stat()
+                if (
+                    self.path.is_symlink()
+                    or not self.path.is_file()
+                    or (before.st_dev, before.st_ino) != (after.st_dev, after.st_ino)
+                ):
+                    raise sqlite3.OperationalError("PAPER_LEDGER_PATH_REPLACED")
+                connection.execute("PRAGMA query_only=ON")
+            except Exception:
+                connection.close()
+                raise
         connection.execute("PRAGMA foreign_keys=ON")
         return connection
 
