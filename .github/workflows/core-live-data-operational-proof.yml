@@ -105,7 +105,7 @@ jobs:
         run: |
           set -euo pipefail
           python -m unittest pipeline.test_core_runtime_one_shot -v 2>&1 | tee core-runtime-one-shot-tests.log
-          echo "CORE_RUNTIME_ONE_SHOT_TESTS=14_PASS" | tee core-runtime-one-shot-status.txt
+          echo "CORE_RUNTIME_ONE_SHOT_TESTS=15_PASS" | tee core-runtime-one-shot-status.txt
 
       - name: Run Core Runner hardening RED-first contracts
         run: |
@@ -223,7 +223,7 @@ jobs:
               echo "CONTINUOUS_CORE_JOURNAL=NOT_VERIFIED"
               echo "CONTINUOUS_CORE_ORCHESTRATION=NOT_VERIFIED"
             fi
-            if grep -q "^OK$" core-runtime-one-shot-tests.log && grep -q "Ran 14 tests" core-runtime-one-shot-tests.log; then
+            if grep -q "^OK$" core-runtime-one-shot-tests.log && grep -q "Ran 15 tests" core-runtime-one-shot-tests.log; then
               echo "CORE_RUNTIME_DECISION_CYCLE=ONE_SHOT_TESTS_PASS"
               echo "CORE_RUNTIME_ONE_SHOT=PASS"
             else
