@@ -9,7 +9,7 @@ from unittest.mock import patch
 
 from core_runtime.preflight import PreflightError, _preflight
 from core_runtime.one_shot import _runner_policy
-from core_runtime.__main__ import _exit_code_for_run_result
+import core_runtime.__main__ as cli
 
 
 LIMITS = {
@@ -99,7 +99,7 @@ class RunnerHardeningPolicyTest(unittest.TestCase):
         )
         for result, expected in cases:
             with self.subTest(result=result):
-                self.assertEqual(_exit_code_for_run_result(result), expected)
+                self.assertEqual(cli._exit_code_for_run_result(result), expected)
 
 
 if __name__ == "__main__":
