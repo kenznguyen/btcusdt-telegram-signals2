@@ -5718,7 +5718,7 @@ Next: preserve this proof and do not rerun automatically. Any additional runtime
 
 ## 2026-11-14 — SIMULATED-only Equity Initialization V1 implementation and verification
 
-- Owner approved the additive SIMULATED-only equity-origin/cutover and readiness path. This supersedes the preceding “Next decision required” item in the historical atomic-initialization audit; the funded-account Bootstrap/funding/cutover path remains unchanged.
+- Owner approved the additive SIMULATED-only equity-origin/cutover and readiness path. This section supersedes the prior SIMULATED-only origin/schema proposal's pending-approval, NOT-IMPLEMENTED and NOT-VERIFIED dispositions; historical records remain intact. The funded-account Bootstrap/funding/cutover path remains unchanged.
 - Implementation source HEAD tested: `d083f39e5a1071f4f41c6d6195a8535608c77127`. Evidence report: `docs/evidence/SIMULATED_ONLY_EQUITY_INITIALIZATION_V1_2026-11-14.md`, blob `c99241f1bd4e40ff4432e358824b2fab766c8f05`, created in commit `74b07f5c5529b977aea82c229166fbc752701538`.
 - SIMULATED-only new-account setup seeds `paper_account_config.initial_capital=100` from the validated contract inside the caller-owned `BEGIN IMMEDIATE`; migration, origin, separate seed, equity-origin record, HWM=100 and UTC baseline=100 commit atomically. Existing legacy/funded config without matching immutable simulated origin is rejected. Synthetic seed is not a funding event.
 - Provenance verification gates account marks. A valid first account mark on the initialization UTC day sets simulated `risk_ready=1` without funded-account cutover. Restart preserves the original seed/origin and evolved risk state. Mixed funding/cutover evidence fails closed.
