@@ -1,0 +1,617 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/schemas/TARDIS_COLLECTOR_LINEAGE_V1.schema.json",
+  "title": "TARDIS_COLLECTOR_LINEAGE_V1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "recordId",
+    "packageId",
+    "createdAt",
+    "custodian",
+    "provider",
+    "acquisition",
+    "rawFiles",
+    "custody",
+    "transformation",
+    "dependencies",
+    "assessment",
+    "supersedesRecordId",
+    "supersessionReason"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "TARDIS_COLLECTOR_LINEAGE_V1"
+    },
+    "recordId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "packageId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "custodian": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "actorRef",
+        "role",
+        "organizationRef",
+        "organizationUnavailableReason"
+      ],
+      "properties": {
+        "actorRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "role": {
+          "enum": [
+            "OWNER",
+            "OPERATOR",
+            "SERVICE"
+          ]
+        },
+        "organizationRef": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "organizationUnavailableReason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "provider": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "dataset",
+        "feed",
+        "venue",
+        "sourceReference"
+      ],
+      "properties": {
+        "name": {
+          "const": "TARDIS"
+        },
+        "dataset": {
+          "type": "string",
+          "minLength": 1
+        },
+        "feed": {
+          "type": "string",
+          "minLength": 1
+        },
+        "venue": {
+          "const": "BINANCE"
+        },
+        "sourceReference": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "acquisition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "actorRef",
+        "process",
+        "executionRef",
+        "hostEnvironmentRef",
+        "startedAt",
+        "completedAt",
+        "transport",
+        "channel",
+        "providerPeriod",
+        "requestReference",
+        "requestReferenceUnavailableReason",
+        "networkEgressRef",
+        "networkEgressUnavailableReason"
+      ],
+      "properties": {
+        "method": {
+          "enum": [
+            "PROVIDER_EXPORT",
+            "PROVIDER_API",
+            "OWNER_SUPPLIED_FILE"
+          ]
+        },
+        "actorRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "process": {
+          "type": "string",
+          "minLength": 1
+        },
+        "executionRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "hostEnvironmentRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "startedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "completedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "transport": {
+          "enum": [
+            "HTTPS_DOWNLOAD",
+            "PROVIDER_API",
+            "LOCAL_TRANSFER"
+          ]
+        },
+        "channel": {
+          "type": "string",
+          "minLength": 1
+        },
+        "providerPeriod": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "start",
+            "end",
+            "semantics",
+            "timezone"
+          ],
+          "properties": {
+            "start": {
+              "type": "string",
+              "minLength": 1
+            },
+            "end": {
+              "type": "string",
+              "minLength": 1
+            },
+            "semantics": {
+              "type": "string",
+              "minLength": 1
+            },
+            "timezone": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "requestReference": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "requestReferenceUnavailableReason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "networkEgressRef": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "networkEgressUnavailableReason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "rawFiles": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "d07_8Path",
+          "mediaType",
+          "byteLengthAtReceipt",
+          "sha256AtReceipt",
+          "preservedOriginal"
+        ],
+        "properties": {
+          "d07_8Path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "mediaType": {
+            "type": "string",
+            "minLength": 1
+          },
+          "byteLengthAtReceipt": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "sha256AtReceipt": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "preservedOriginal": {
+            "const": true
+          }
+        }
+      }
+    },
+    "custody": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "receiptAt",
+        "receiptActorRef",
+        "storageRef",
+        "accessControlRef",
+        "readbackStartedAt",
+        "readbackAt",
+        "readbackActorRef",
+        "readbackProcess",
+        "readbackRunRef",
+        "readbackEnvironmentRef",
+        "readbackStorageRef",
+        "readbackEvidenceRef",
+        "readbackFiles",
+        "custodyEvents"
+      ],
+      "properties": {
+        "receiptAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "receiptActorRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "storageRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "accessControlRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "readbackStartedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "readbackAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "readbackActorRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "readbackProcess": {
+          "type": "string",
+          "minLength": 1
+        },
+        "readbackRunRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "readbackEnvironmentRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "readbackStorageRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "readbackEvidenceRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "readbackFiles": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "d07_8Path",
+              "byteLength",
+              "sha256",
+              "method"
+            ],
+            "properties": {
+              "d07_8Path": {
+                "type": "string",
+                "minLength": 1
+              },
+              "byteLength": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "method": {
+                "const": "INDEPENDENT_READBACK"
+              }
+            }
+          }
+        },
+        "custodyEvents": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "eventId",
+              "eventType",
+              "at",
+              "actorRef",
+              "fromStorageRef",
+              "toStorageRef",
+              "evidenceRef"
+            ],
+            "properties": {
+              "eventId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "eventType": {
+                "enum": [
+                  "RECEIVED",
+                  "COPIED",
+                  "READ_BACK",
+                  "TRANSFERRED",
+                  "SEALED"
+                ]
+              },
+              "at": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "actorRef": {
+                "type": "string",
+                "minLength": 1
+              },
+              "fromStorageRef": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "toStorageRef": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "evidenceRef": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    "transformation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "performed",
+        "parserSourceSha",
+        "configurationFingerprint",
+        "executedAt",
+        "fieldMappingRef",
+        "normalizedOutputFiles"
+      ],
+      "properties": {
+        "performed": {
+          "type": "boolean"
+        },
+        "parserSourceSha": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "configurationFingerprint": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "executedAt": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "fieldMappingRef": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "normalizedOutputFiles": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "path",
+              "byteLength",
+              "sha256",
+              "mediaType"
+            ],
+            "properties": {
+              "path": {
+                "type": "string",
+                "minLength": 1
+              },
+              "byteLength": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "mediaType": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    "dependencies": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "dependencyId",
+          "category",
+          "systemRef",
+          "relationship",
+          "sharedWithBinanceRestCapture",
+          "materialToCollectorSeparation",
+          "evidenceRef",
+          "unknownReason"
+        ],
+        "properties": {
+          "dependencyId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "category": {
+            "enum": [
+              "ISSUER",
+              "COLLECTOR",
+              "STORAGE",
+              "CONTROL_PLANE",
+              "NETWORK",
+              "TRANSFORMATION",
+              "TIME_AUTHORITY"
+            ]
+          },
+          "systemRef": {
+            "type": "string",
+            "minLength": 1
+          },
+          "relationship": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sharedWithBinanceRestCapture": {
+            "enum": [
+              "YES",
+              "NO",
+              "UNKNOWN"
+            ]
+          },
+          "materialToCollectorSeparation": {
+            "enum": [
+              "YES",
+              "NO",
+              "UNKNOWN"
+            ]
+          },
+          "evidenceRef": {
+            "type": "string",
+            "minLength": 1
+          },
+          "unknownReason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "assessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "declaredBoundary",
+        "unknowns",
+        "reviewDisposition",
+        "reviewerRef",
+        "reviewedAt",
+        "rationaleRef"
+      ],
+      "properties": {
+        "declaredBoundary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "unknowns": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "reviewDisposition": {
+          "enum": [
+            "NOT_REVIEWED",
+            "BLOCKED",
+            "NOT_VERIFIED",
+            "SUPPORTED_WITHIN_BOUNDARY"
+          ]
+        },
+        "reviewerRef": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "reviewedAt": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "rationaleRef": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "supersedesRecordId": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "supersessionReason": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  }
+}
