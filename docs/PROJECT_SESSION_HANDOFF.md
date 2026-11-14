@@ -1,6 +1,6 @@
 # Five-Layer System — Session Handoff
 
-Updated: 2026-11-14 (Asia/Ho_Chi_Minh)
+Updated: 2026-11-15 (Asia/Ho_Chi_Minh)
 
 > Start here in every new session. GitHub is the source of truth. Read this short file first; consult the [archived handoff history](archive/PROJECT_SESSION_HANDOFF_HISTORY_2026-11-10.md) only when an older decision or evidence record is needed.
 
@@ -5952,3 +5952,56 @@ Current application:
 - Status: **PASS** for the bounded loopback API/read-only access behavior and the supplied unchanged-database hash checks. API empty-window behavior does not prove market-data availability. T0 canonical DB currently has zero candles; Feeder and Binance ingestion remain NOT STARTED; live M15/H1 data readiness remains **NOT VERIFIED**. PAPER Ledger remains unchanged and `risk_ready=0`; persistent PAPER runtime readiness remains **BLOCKED / NOT VERIFIED**.
 - No Feeder, ingestion, exchange API, systemd/autostart, Runner/One-shot, AI execution, live order or real trading action occurred. Paper-only posture and `AI_EXECUTION_ENABLED=false` remain unchanged.
 - Next: perform the separately bounded read-only Feeder configuration/startup-path inspection. Do not start Feeder or ingest/write market data until a separate explicit approval.
+
+
+## 2026-11-15 — T0 Feeder / T0→T2 bounded verification and lifecycle review
+
+### Scope and safety boundary
+- Active repository branch remains `feature/core-operational-proof-20261112`; no new branch or PR.
+- Owner-reported replacement VPS: `ubuntu@scw-optimistic-jang`; repository path `/home/ubuntu/btcusdt-telegram-signals2`; tested VPS checkout/source SHA `b92bb75b00b6f91c39c1b78fafab5cd1c77d8fde`.
+- This update records owner-pasted terminal output and read-only source inspection. The assistant did not establish an SSH session or independently inspect the VPS.
+- Paper-only posture remains. `AI_EXECUTION_ENABLED=false`; no real orders, no AI execution, no Bootstrap/Runner/One-shot/Decision Cycle activation, no systemd/autostart, no credential changes.
+- T0 canonical DB and independent PAPER Ledger were not intentionally mutated by the bounded checks. Preserve the existing untracked VPS file and `core_runtime/config.paper.json`; do not clean or overwrite them.
+- No change to T0 source/runtime, T0 DB, Paper Ledger, freshness threshold, or service configuration was authorized or performed.
+
+### T0→T2 HTTP integration evidence
+- T0 API was started temporarily on loopback `127.0.0.1:8788` for the bounded read-only integration test and stopped afterward.
+- T0 API health: **PASS**.
+- T2 `canonical_context(bars=300, timeframe="15m")`: **PASS**, 300 candles returned; datasetVersion `sha256:0c1d712697a1ec8375154160c9c1d4c44ea04c10e4ba192e64b413981818c512`.
+- T2 `canonical_context(bars=300, timeframe="1h")`: **BLOCKED**, `CandleHttpError FRESHNESS_EXCEEDED`.
+- Owner reported 50 unit tests completed: **50/50 PASS**. No GitHub Actions run or artifact was produced for this owner-run test output.
+- API process was stopped. No T0/PAPER DB mutation was reported.
+
+### T0 data and Feeder state at latest diagnostic
+- Diagnostic time: 2026-11-14 22:38:29.333 UTC.
+- SQLite path: `/home/ubuntu/t0/data/market-data.sqlite3`; integrity check **ok**.
+- Latest M15 candle: open 22:15 UTC, close 22:29:59.999, available 22:30:09.501; ingestion lag 9,502 ms. Its observation age at diagnostic was approximately 499,832 ms.
+- Latest H1 candle: open 21:00 UTC, close 21:59:59.999, available 22:27:28.997; ingestion lag 1,648,998 ms (~27m29s).
+- At that diagnostic there were no missing closed intervals for M15 or H1. Counts: M15 324, H1 306. Lease owner was NULL, generation 3, expiry 0; Feeder process/session was not running.
+- The H1 historical recovery batch assigned a common `available_at_ms` to the candles in the fetched page. This explains the stale availability timestamp; it is not evidence that the exchange candle close time is wrong.
+- Do not rewrite `available_at_ms` to manufacture freshness. `SQLiteWriteGateway.write_batch()` leaves an existing same-OHLCV candle unchanged and rejects conflicting closed-candle history; it does not refresh an existing row's availability timestamp.
+- T0 Feeder was stopped after the bounded recovery run; lease was released. No systemd unit/autostart was found in the owner-pasted inspection. Stale PID files/logs do not prove a live process.
+
+### Read-only source findings requiring disposition
+- `sync_window()` captures `observed_at` after each CCXT page response; all candles from one page can therefore share an `available_at_ms`. Exchange server-time and local observed-time checks are applied to closed candles.
+- `FeederRuntime.start()` currently acquires the lease, opens the WAL keeper, performs `recovery.recover_all()`, starts the scheduler, marks runtime/health READY, and only then starts the lease-heartbeat thread. A recovery taking longer than the configured lease TTL could allow lease expiry before heartbeat begins. Fencing still prevents an expired/stale owner from committing writes, but startup may fail or lose the lease. Effective TTL/heartbeat/recovery configuration must be confirmed before proposing a change; no TTL adjustment is approved.
+- `FeederScheduler._run_background()` catches a background scheduler exception, stores `_thread_error`, and stops its scheduler loop. It does not currently propagate that failure into `FeederRuntime.state` or mark health not-ready.
+- `run_service()` checks only runtime state values `LEASE_LOST` and `FAILED`. Therefore a scheduler thread can stop after a non-lease exception while runtime remains RUNNING/READY and the service loop continues. This is a **potential lifecycle/health defect requiring a focused reproducer and TDD fix proposal**, not yet an implemented or fully tested finding.
+- Shutdown path inspected: scheduler stop/drain precedes lease release; lease release is scoped to the exact owner/generation; WAL keeper closes after drain/release or lease loss. Do not weaken this fencing or shutdown ordering.
+
+### Current status
+- T0 API loopback read-only test: **PASS** within the bounded owner-run scope.
+- T2 M15 300-candle context: **PASS**.
+- T2 H1 300-candle context: **BLOCKED — FRESHNESS_EXCEEDED**.
+- T0 SQLite integrity and lease-release snapshot: **PASS** at the supplied diagnostic point.
+- Ongoing Feeder operation / scheduler health: **NOT RUN / NOT VERIFIED**; Feeder is stopped.
+- T0→T2 end-to-end freshness parity for both timeframes: **PARTIAL / BLOCKED**.
+- Scheduler-error propagation and startup heartbeat timing: **SOURCE FINDINGS / NOT YET REPRODUCED BY TESTS**.
+- No change to `T0_CANDLE_MAX_LAG_MS=120000`; no timestamp rewrite, database migration, cleanup, or data deletion.
+
+### Next permitted step
+1. Complete the pending read-only inspection of effective `FeederConfig` values (lease TTL, heartbeat interval, poll interval, close grace and recovery lookback) and exact runtime-builder wiring.
+2. Build focused deterministic tests for: (a) scheduler background exception must transition runtime/health out of READY and surface a nonzero service result; (b) lease validity during startup recovery and heartbeat activation ordering. Use synthetic/fake clock and in-memory/disposable fixtures; do not start the VPS Feeder.
+3. Follow TDD on the existing branch only. Before changing production lifecycle behavior, report the exact failing tests and proposed minimal scope for owner approval. Do not change T0 runtime, database, lease values, freshness threshold, or VPS state without separate explicit approval.
+4. Re-run the bounded T0→T2 tests only after the timestamp/freshness semantics are resolved without falsifying observation time.
+
