@@ -9,7 +9,8 @@ on:
       - "ops/test_live_market_data_probe.py"
       - "pipeline/core_strategy.py"
       - "pipeline/api.py"
-      - "paper_execution/test_core_first_operational.py"
+      - "paper_execution/test_core_first_operational.py paper_execution/test_core_runner_ledger_integration.py"
+      - "paper_execution/test_core_runner_ledger_integration.py"
       - "paper_execution/test_account_risk_snapshot_read_only.py"
       - "paper_execution/test_core_short_lifecycle.py"
       - "paper_execution/test_risk_control.py"
@@ -158,6 +159,11 @@ jobs:
         run: |
           set -euo pipefail
           python -m unittest paper_execution.test_core_first_operational paper_execution.test_core_short_lifecycle -v 2>&1 | tee core-first-operational-tests.log
+
+      - name: Run Core Runner disposable SQLite ledger integration contracts
+        run: |
+          set -euo pipefail
+          python -m unittest paper_execution.test_core_runner_ledger_integration -v 2>&1 | tee core-runner-ledger-integration-tests.log
 
       - name: Verify account-wide risk snapshot is read-only and fail-closed
         run: |
