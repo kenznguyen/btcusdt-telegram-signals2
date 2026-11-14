@@ -3,7 +3,7 @@
 Date: 2026-11-14 (Asia/Ho_Chi_Minh)
 Branch: `feature/core-operational-proof-20261112`
 Source HEAD reviewed: `139495a4a5c38f0cc6069c31ddbfe50cacd52f98`
-Status: **PROPOSAL — OWNER FREEZE REQUIRED; NOT IMPLEMENTED**
+Status: **OWNER APPROVED — DESIGN FROZEN; IMPLEMENTATION NOT STARTED**
 
 ## 1. Purpose and boundary
 
@@ -115,3 +115,17 @@ The following are proposed defaults, not yet frozen by the owner:
 - **AI DCA:** not supported by this Core-specific DCA freeze.
 
 No code or tests were changed. No database, migration, Bootstrap, Runner, T0, VPS, exchange, or live-order action occurred.
+
+
+## 7. Owner approval — 2026-11-14
+
+The owner explicitly approved all four freeze decisions in this proposal:
+
+1. **Simulated origin:** approve the separate immutable `paper_simulated_capital_origin` record and append-only seed event, bound to the exact SIMULATED_CAPITAL_V1 contract SHA-256. The synthetic seed must not be represented as a funding/deposit event.
+2. **Core Smart DCA:** preserve at most one DCA addition per Core position lifecycle, with existing ROE/ADX/RSI/momentum triggers and exit priority unchanged.
+3. **Margin interpretation:** 1% of accepted current equity is a per-order margin ceiling, including every DCA order. No aggregate account-wide margin ceiling is added in this increment.
+4. **AI DCA:** AI does not inherit Core Smart DCA; AI DCA remains unsupported unless separately specified and approved.
+
+This approval freezes the design and authorizes the next bounded implementation increment: isolated TDD implementation of the simulated-origin persistence/initialization and atomic risk admission on the current branch. It does **not** authorize database migration or mutation of any existing operational database, Bootstrap, Runner, VPS/T0 access, exchange access, AI execution, live trading or real orders.
+
+Implementation must begin test-first, use disposable test databases/fixtures only, preserve funded-account Bootstrap/cutover behavior, and stop if the existing schema or risk semantics require an unapproved change.
