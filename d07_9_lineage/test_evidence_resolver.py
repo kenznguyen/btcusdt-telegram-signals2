@@ -168,5 +168,20 @@ class D0711EvidenceResolverTests(unittest.TestCase):
         self.assertEqual(result["status"], "BLOCKED")
 
 
+    def test_14_malformed_manifest_metadata_is_blocked(self):
+        self.package["files"][0]["byteLength"] = "not-an-integer"
+        result = self.resolve()
+        self.assertEqual(result["status"], "BLOCKED")
+        self.assertEqual(result["byteIntegrity"], "BLOCKED")
+
+    def test_15_symlink_parent_directory_is_rejected(self):
+        link = self.root / "refs-link"
+        link.symlink_to(self.root / "refs", target_is_directory=True)
+        index = dict(self.index)
+        index["provider-source"] = dict(index["provider-source"], path="refs-link/evidence.txt")
+        result = self.resolve(reference_index=index)
+        self.assertEqual(result["status"], "BLOCKED")
+        self.assertEqual(result["evidenceReferenceResolution"], "BLOCKED")
+
 if __name__ == "__main__":
     unittest.main()
