@@ -1,6 +1,8 @@
 """Synthetic tests for the D07.9 V2 explicit-unknown contract."""
 import copy
+import json
 import unittest
+from pathlib import Path
 
 from d07_9_lineage.validator_v2 import validate_lineage_record_v2
 
@@ -164,6 +166,37 @@ class D079V2Tests(unittest.TestCase):
         import json
         schema = json.loads((Path(__file__).parent / "schema.v1.json").read_text())
         self.assertEqual(schema["properties"]["schemaVersion"]["const"], "TARDIS_COLLECTOR_LINEAGE_V1")
+
+
+    def test_current_btcusdt_v2_draft_matches_d07_8_manifest_bytes(self):
+        draft_path = Path(__file__).parent / "drafts" / "btcusdt_20261101_chatgpt_retrieval.v2.draft.json"
+        record = json.loads(draft_path.read_text(encoding="utf-8"))
+        manifest = {
+            "packageId": "d07-8-tardis-btcusdt-20261101-pilot-v4",
+            "files": [
+                {
+                    "path": "raw/BTCUSDT.csv.gz",
+                    "byteLength": 1431960,
+                    "sha256": "71963e8235106ae36fe386ef0fbd52b078df48ea854d09d814469eddeed58a8c"
+                },
+                {
+                    "path": "transforms/field-mapping.json",
+                    "byteLength": 1655,
+                    "sha256": "f7fe5c5aec02ebc209d0523f2de49cc5ac7ce71249740e2b0f5c19f7beb57e0c"
+                }
+            ]
+        }
+        result = validate_lineage_record_v2(record, manifest)
+        self.assertEqual(result["structuralStatus"], "STRUCTURE_VALID")
+        self.assertEqual(result["provenanceStatus"], "NOT_VERIFIED")
+        self.assertEqual(result["byteIntegrity"], "PASS_WITHIN_PACKAGE_BOUNDARY")
+        self.assertEqual(result["custodyCoverage"], "NOT_VERIFIED")
+        self.assertEqual(result["providerAuthenticity"], "NOT_VERIFIED")
+        self.assertEqual(result["collectorIndependence"], "NOT_VERIFIED")
+        self.assertEqual(result["upstreamOrigin"], "NOT_VERIFIED")
+        self.assertEqual(result["globalCompleteness"], "NOT_VERIFIED")
+        self.assertEqual(result["issuerAuthenticity"], "NOT_VERIFIED")
+        self.assertEqual(result["factualTruth"], "NOT_VERIFIED")
 
 
 if __name__ == "__main__":
