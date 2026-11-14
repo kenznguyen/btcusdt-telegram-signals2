@@ -6,6 +6,7 @@ from pathlib import Path
 import time
 
 from paper_execution.ledger import read_account_risk_snapshot
+from core_runtime.ledger_path_guard import validate_ledger_path_isolated
 
 
 _BASE_CONFIG_KEYS = {"mode", "ai_execution_enabled", "ledger_path"}
@@ -52,13 +53,10 @@ def _preflight(config_path, *, now_ms=None, allow_risk_unready=False):
         raise PreflightError("EXCHANGE_CREDENTIALS_FORBIDDEN")
     if os.environ.get("AI_EXECUTION_ENABLED", "false").strip().lower() != "false":
         raise PreflightError("AI_EXECUTION_MUST_BE_DISABLED")
-    market_data_db = os.environ.get("MARKET_DATA_DB")
-    if market_data_db:
-        try:
-            if ledger_path == Path(market_data_db).resolve():
-                raise PreflightError("T0_LEDGER_PATH_FORBIDDEN")
-        except OSError:
-            raise PreflightError("LEDGER_PATH_INVALID") from None
+    try:
+        ledger_path = validate_ledger_path_isolated(ledger_path)
+    except ValueError as exc:
+        raise PreflightError(str(exc)) from None
     if not ledger_path.is_file():
         raise PreflightError("LEDGER_FILE_REQUIRED")
     observed_now = time.time_ns() // 1_000_000 if now_ms is None else now_ms
