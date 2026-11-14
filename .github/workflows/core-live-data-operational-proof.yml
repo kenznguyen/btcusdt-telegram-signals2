@@ -105,7 +105,12 @@ jobs:
           python -m unittest pipeline.test_core_runtime_one_shot -v 2>&1 | tee core-runtime-one-shot-tests.log
           echo "CORE_RUNTIME_ONE_SHOT_TESTS=14_PASS" | tee core-runtime-one-shot-status.txt
 
-      - name: Run Core Runner hardening RED-first contracts\n        run: |\n          set -euo pipefail\n          python -m unittest core_runtime.test_runner_hardening -v 2>&1 | tee core-runner-hardening-tests.log\n\n      - name: Run Continuous Core cadence RED-first tests
+      - name: Run Core Runner hardening RED-first contracts
+        run: |
+          set -euo pipefail
+          python -m unittest core_runtime.test_runner_hardening -v 2>&1 | tee core-runner-hardening-tests.log
+
+      - name: Run Continuous Core cadence RED-first tests
         run: |
           set -euo pipefail
           python -m unittest core_runtime.test_continuous_cadence -v 2>&1 | tee continuous-core-cadence-tests.log
