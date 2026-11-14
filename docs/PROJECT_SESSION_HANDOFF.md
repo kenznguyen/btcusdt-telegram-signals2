@@ -5900,3 +5900,12 @@ Current application:
 - Evidence is owner-pasted terminal output; no SSH session, GitHub Actions workflow or artifact was independently produced/observed by the assistant.
 - Status: Core lifecycle/exit accounting/Kill Switch rejection tests **PASS within this bounded offline fixture scope**. This does not establish persistent PAPER runtime readiness or VPS operational readiness; those remain **NOT VERIFIED / BLOCKED**. AI remains NOT IMPLEMENTED; no live orders.
 - Next: identify the smallest remaining Core First readiness gap and define its bounded verification. Bootstrap/Runner activation remains NOT AUTHORIZED.
+
+## 2026-11-14 — Historical reconciliation: Core PAPER config and persistent Ledger
+
+- Rechecked prior conversation history and the existing evidence register. A historical owner-run broad search on the replacement VPS at checkout/source SHA `e0ba99a0d9874628f853a7453186f7b7dbd504f5` found no persistent Core PAPER Ledger candidates; within the repository, the only remotely related JSON config was `freqai_bridge/config.research.json`, which does not satisfy the Core Runtime PAPER config schema.
+- Earlier VPS Core/PaperLedger/Risk Control/lifecycle tests used disposable SQLite fixtures under temporary paths; they do not establish a persistent operational PaperLedger or its path.
+- Approval of SIMULATED_CAPITAL_V1 (100 USDT) and temporary SQLite tests/CI did not authorize creation of a persistent VPS config/Ledger, Bootstrap activation, Runner/One-shot execution, or preflight.
+- The old runbook's `MARKET_DATA_DB` / T0 market-data path is not evidence of the current independent Core PaperLedger and must not be reused as its target.
+- Status: persistent Core PAPER config/path **NOT FOUND**; persistent Ledger **NOT FOUND / NOT VERIFIED**; `--ledger-preflight` **NOT RUN**. No new VPS search, config/DB creation, Bootstrap, Runner, or runtime action was performed in this increment.
+- Next: keep preflight blocked until a separately authorized and evidenced independent PAPER config plus already-existing Ledger are available. Any creation/bootstrap or VPS runtime step requires its own exact-scope approval. Continue paper-only with `AI_EXECUTION_ENABLED=false`; no live orders.
