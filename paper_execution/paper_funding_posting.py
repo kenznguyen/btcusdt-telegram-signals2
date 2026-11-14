@@ -92,6 +92,8 @@ def post_paper_funding_events(
                     "currency": CURRENCY,
                 }
                 payload_hash = _digest(payload)
+                if len(candidates) >= 100_000:
+                    raise ValueError("FUNDING_POPULATION_EVENTS_INVALID")
                 candidates.append({
                     "eventId": "paper-funding:" + payload_hash[7:],
                     "strategyId": strategy,
@@ -124,7 +126,6 @@ def post_paper_funding_events(
             "eventAtMs": candidate["eventAtMs"],
             "amountQuote": candidate["amountQuote"],
             "payloadHash": candidate["payloadHash"],
-            "idempotent": bool(result.get("recordedAtMs") == recorded
-                               and result.get("fundingEventId") == candidate["eventId"]),
+            "idempotent": result["idempotent"],
         })
     return posted
