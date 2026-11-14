@@ -6035,3 +6035,12 @@ Current application:
 - GitHub Actions evidence: **NOT VERIFIED**.
 - Deployment to replacement VPS / T0 runtime: **NOT AUTHORIZED / NOT PERFORMED**. No service restart, Feeder start, autostart/systemd change, or T0 DB access/mutation is implied by this test PASS.
 - Next: review the final diff and CI coverage; separately request explicit bounded approval before any VPS deployment or runtime validation. Preserve paper-only posture and `AI_EXECUTION_ENABLED=false`; no real orders.
+
+
+## 2026-11-15 — Review gate after T0 Feeder scheduler fix
+
+- Reviewed exact source diffs in `329a94f95aac09ac0fe83381acfbb9ac60d58a15`, `4539fc1fcb4d60d654ea24c7c26a08516404c90f`, and `abc937715816492b37b06f3a4ef9d0345c40c583`, plus the regression test.
+- Review verdict: no correctness/security blocker identified in the bounded implementation; lease is retained through STOPPING/drain and the existing stop path releases only the exact owner/generation. The 56-test owner-reported result supports this scope.
+- Maintainability note (non-blocking): Runtime currently reads scheduler's private `_thread_error`; a public, thread-safe scheduler failure accessor would make this boundary clearer if the scheduler interface is next revised. No additional source edit was made during this review.
+- CI coverage gap: the inspected T0 feeder workflows target the older branch `feature/t0-centralized-data-feeder-p1-20261101`; their path filters do not include `market_data/test_feeder_runtime_regressions.py`. The active-branch Core operational workflow does not cover these T0 feeder files. No matching GitHub Actions run/status/artifact exists for the tested SHA. Therefore automated CI evidence is **NOT VERIFIED**.
+- Next gate: owner decision whether to add a narrowly scoped GitHub Actions workflow on `feature/core-operational-proof-20261112` for the three feeder regression/lifecycle/scheduler suites and upload exact-SHA logs. VPS deployment/runtime validation remains a separate approval gate and has not been performed.
