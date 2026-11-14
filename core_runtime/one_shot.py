@@ -43,10 +43,15 @@ def _runner_policy(config):
         "maxDailyLossUsdt": "PAPER_MAX_DAILY_LOSS_USDT",
         "maxExposureUsdt": "PAPER_MAX_EXPOSURE_USDT",
     }
+    if set(config_limits) - set(env_keys):
+        raise PreflightError("RUNNER_RISK_LIMITS_REQUIRED")
     limits = {}
     for key, env_key in env_keys.items():
         env_value = os.environ.get(env_key)
-        value = env_value.strip() if isinstance(env_value, str) and env_value.strip() else config_limits.get(key)
+        if isinstance(env_value, str) and env_value.strip():
+            value = env_value.strip()
+        else:
+            value = config_limits.get(key)
         if not isinstance(value, str) or not value:
             raise PreflightError("RUNNER_RISK_LIMITS_REQUIRED")
         try:
@@ -245,9 +250,17 @@ def run_once(config_path, bundle_path, *, now_ms=None, on_intent_prepared=None):
         "status": order.get("status"),
     }
     if order.get("status") == "REJECTED":
-        return _result(bundle, "RISK_REJECTED", signal=signal_view,
-                       risk={"decision": "REJECT", "reason": order.get("reason")},
-                       ledger_ref=ledger_ref, reason=order.get("reason", "RISK_REJECTED"))
+        rejection_reason = order.get("reason", "RISK_REJECTED")
+        run_status = (
+            "RISK_UNAVAILABLE"
+            if rejection_reason in {
+                "RISK_INPUTS_UNAVAILABLE", "RISK_INPUTS_STALE_OR_CORRUPT",
+            }
+            else "RISK_REJECTED"
+        )
+        return _result(bundle, run_status, signal=signal_view,
+                       risk={"decision": "REJECT", "reason": rejection_reason},
+                       ledger_ref=ledger_ref, reason=rejection_reason)
     if order.get("status") not in ("FILLED", "OPEN", "PARTIALLY_FILLED"):
         return _result(bundle, "PAPER_COMMIT_FAILED", signal=signal_view,
                        ledger_ref=ledger_ref, reason="PAPER_ORDER_STATUS_INVALID")

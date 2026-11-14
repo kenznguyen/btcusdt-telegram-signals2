@@ -54,6 +54,20 @@ class RunnerHardeningPolicyTest(unittest.TestCase):
             limits, _, _ = _runner_policy(config)
         self.assertEqual(limits, LIMITS)
 
+    def test_unknown_config_risk_limit_key_fails_closed(self):
+        config = {
+            "risk_limits": {**LIMITS, "maxDrawdownPercent": "25"},
+            "max_book_age_ms": 2000,
+            "max_position_base": "0.01",
+        }
+        with patch.dict(os.environ, {
+            "PAPER_MAX_DRAWDOWN_PCT": "",
+            "PAPER_MAX_DAILY_LOSS_USDT": "",
+            "PAPER_MAX_EXPOSURE_USDT": "",
+        }, clear=False):
+            with self.assertRaisesRegex(PreflightError, "RUNNER_RISK_LIMITS_REQUIRED"):
+                _runner_policy(config)
+
     def test_invalid_environment_limit_fails_closed(self):
         config = {
             "risk_limits": dict(LIMITS),

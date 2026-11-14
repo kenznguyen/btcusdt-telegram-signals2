@@ -156,6 +156,18 @@ class CoreOneShotRunnerTest(unittest.TestCase):
         self.assertEqual(result["riskDecision"]["reason"], "KILL_SWITCH")
         self.assertEqual(len(created), 1)
 
+    def test_transactional_risk_input_unavailable_has_distinct_result(self):
+        rejected = {
+            "orderId": "paper-order-risk-unavailable",
+            "reservationId": None,
+            "status": "REJECTED",
+            "reason": "RISK_INPUTS_UNAVAILABLE",
+        }
+        result, created = self.run_patched(producer_report(), order=rejected)
+        self.assertEqual(result["runStatus"], "RISK_UNAVAILABLE")
+        self.assertEqual(result["reasonCode"], "RISK_INPUTS_UNAVAILABLE")
+        self.assertEqual(len(created), 1)
+
     def test_ledger_exception_is_reported_as_commit_failure(self):
         result, created = self.run_patched(
             producer_report(), submit_error=RuntimeError("injected"),
