@@ -5626,3 +5626,16 @@ Next: preserve this proof and do not rerun automatically. Any additional runtime
 - Historical source code, reports, package and CI artifacts are retained. No Git branch, file, data object or artifact was deleted.
 - No tests/CI were run for this documentation-only disposition. No runtime, T0/T1/T2, Runner/One-shot, credentials, live trading, real orders or data deletion occurred.
 - Closure report: `docs/evidence/D07_11_STAGE_A_EVIDENCE_SOURCE_INVENTORY_THREAT_MODEL_2026-11-14.md`, updated with owner decision.
+
+
+## 2026-11-14 — SIMULATED_CAPITAL_V1 approved contract and synthetic CI
+
+- Owner approved SIMULATED_CAPITAL_V1: simulated initial capital 100 USDT; risk limits max drawdown 10%, max daily loss 2 USDT, max order margin 1% of current portfolio equity, max shared exposure 10 USDT.
+- Contract rules: SIMULATED/PAPER/USDT; no reset on restart; no automatic top-up; liveTradingSupported=false; aiExecutionEnabled=false. Core and AI share portfolio-level risk; Smart DCA consumes the same order-margin budget.
+- Added `paper_execution/test_simulated_capital_contract.py` test-first (commit `6e1a230202847816ada66791baf1318245595dc3`); pure validator `paper_execution/simulated_capital.py` (commit `4ca9bf827f266b46c253cb3c47b431508715935c`); machine contract `paper_execution/contracts/simulated_capital_v1.json` (commit `c26023a6b2586a888fa945a13f507da248e84c22`); CI workflow `.github/workflows/simulated-capital-v1-contract.yml` (commit `66cdc68e3beadce31c4f57175ef4b8b80de59e5d`).
+- GitHub Actions run [43601696202](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43601696202), event `push`, branch `feature/core-operational-proof-20261112`, exact checkout/source SHA `66cdc68e3beadce31c4f57175ef4b8b80de59e5d`, job `132467617166`, SUCCESS. `py_compile` PASS; JSON parse PASS; machine-contract/default parity PASS; **6/6 synthetic tests PASS**. No artifact uploaded.
+- Evidence report: `docs/evidence/SIMULATED_CAPITAL_V1_CONTRACT_2026-11-14.md`.
+- Latest evidence-document commit: `017a63c578e968b5c770b96f2a295ecf166a93e7`. Handoff update follows in the next commit.
+- Scope is contract/validator/synthetic tests only. No existing Bootstrap, persisted Ledger schema, order admission, risk engine, Core/AI Runner or runtime config has been wired to these values. Existing Bootstrap still requires its current funding evidence, equity cutover and owner attestation; do not fabricate account funding for simulated capital.
+- Status: owner decision APPROVED; contract/validator/synthetic CI **PASS WITHIN SCOPE**; runtime risk enforcement **NOT IMPLEMENTED / NOT VERIFIED**; Bootstrap compatibility **BLOCKED**; PAPER Ledger readiness **BLOCKED / NOT VERIFIED**; Bootstrap and Runner **NOT AUTHORIZED**.
+- Next permitted step: reconcile current `PaperLedger` risk-limit semantics and design the separate persistent simulated-capital initialization/immutability + atomic 1% margin admission implementation. Keep this separate from Bootstrap activation. No Ledger creation/migration, Bootstrap, Runner, exchange access, live orders, T0 mutation or VPS operation.
