@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "contractId": "SIMULATED_CAPITAL_V1",
+  "capitalMode": "SIMULATED",
+  "tradingMode": "PAPER",
+  "initialCapitalQuote": "100",
+  "quoteCurrency": "USDT",
+  "resetOnRestart": false,
+  "autoTopUp": false,
+  "liveTradingSupported": false,
+  "aiExecutionEnabled": false,
+  "riskLimits": {
+    "maxDrawdownPct": "10",
+    "maxDailyLossUsdt": "2",
+    "maxExposureUsdt": "10",
+    "maxOrderMarginPct": "1"
+  },
+  "riskScope": "SHARED_PORTFOLIO_CORE_AND_AI",
+  "dcaConsumesOrderMarginBudget": true
+}
