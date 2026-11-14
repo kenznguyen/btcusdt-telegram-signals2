@@ -1,0 +1,482 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:btcquant:schema:SOURCE_LINEAGE_RECORD_V2",
+  "title": "SOURCE_LINEAGE_RECORD_V2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "recordId",
+    "packageId",
+    "createdAt",
+    "subject",
+    "retrieval",
+    "provider",
+    "collector",
+    "custody",
+    "dependencies",
+    "assessment",
+    "supersedes"
+  ],
+  "$defs": {
+    "claim": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "value",
+        "basis",
+        "limitation",
+        "evidenceRefs"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "KNOWN",
+            "UNKNOWN",
+            "UNAVAILABLE",
+            "NOT_APPLICABLE"
+          ]
+        },
+        "value": {
+          "type": [
+            "string",
+            "number",
+            "integer",
+            "boolean",
+            "object",
+            "array",
+            "null"
+          ]
+        },
+        "basis": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "OWNER_REPORTED",
+            "LOCAL_OBSERVATION",
+            "CRYPTOGRAPHIC_CHECK",
+            "PROVIDER_ATTESTATION",
+            "INDEPENDENT_ATTESTATION",
+            null
+          ]
+        },
+        "limitation": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "evidenceRefs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "KNOWN"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "value": {
+                "not": {
+                  "type": "null"
+                }
+              },
+              "basis": {
+                "type": "string"
+              },
+              "limitation": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "enum": [
+                  "UNKNOWN",
+                  "UNAVAILABLE"
+                ]
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "value": {
+                "type": "null"
+              },
+              "limitation": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "NOT_APPLICABLE"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "value": {
+                "type": "null"
+              },
+              "limitation": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "properties": {
+    "schemaVersion": {
+      "const": "SOURCE_LINEAGE_RECORD_V2"
+    },
+    "recordId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "packageId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "subject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "byteLength",
+        "sha256",
+        "preservedOriginal",
+        "readback"
+      ],
+      "properties": {
+        "path": {
+          "$ref": "#/$defs/claim"
+        },
+        "byteLength": {
+          "$ref": "#/$defs/claim"
+        },
+        "sha256": {
+          "$ref": "#/$defs/claim"
+        },
+        "preservedOriginal": {
+          "$ref": "#/$defs/claim"
+        },
+        "readback": {
+          "$ref": "#/$defs/claim"
+        }
+      }
+    },
+    "retrieval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "channel",
+        "actor",
+        "retrievedAt",
+        "upstreamOrigin",
+        "otherSourceUsed"
+      ],
+      "properties": {
+        "channel": {
+          "$ref": "#/$defs/claim"
+        },
+        "actor": {
+          "$ref": "#/$defs/claim"
+        },
+        "retrievedAt": {
+          "$ref": "#/$defs/claim"
+        },
+        "upstreamOrigin": {
+          "$ref": "#/$defs/claim"
+        },
+        "otherSourceUsed": {
+          "$ref": "#/$defs/claim"
+        }
+      }
+    },
+    "provider": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "identity",
+        "dataset",
+        "feed",
+        "venue",
+        "requestId"
+      ],
+      "properties": {
+        "identity": {
+          "$ref": "#/$defs/claim"
+        },
+        "dataset": {
+          "$ref": "#/$defs/claim"
+        },
+        "feed": {
+          "$ref": "#/$defs/claim"
+        },
+        "venue": {
+          "$ref": "#/$defs/claim"
+        },
+        "requestId": {
+          "$ref": "#/$defs/claim"
+        }
+      }
+    },
+    "collector": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "identity",
+        "software",
+        "execution",
+        "host",
+        "startedAt",
+        "completedAt",
+        "transport",
+        "networkEgress"
+      ],
+      "properties": {
+        "identity": {
+          "$ref": "#/$defs/claim"
+        },
+        "software": {
+          "$ref": "#/$defs/claim"
+        },
+        "execution": {
+          "$ref": "#/$defs/claim"
+        },
+        "host": {
+          "$ref": "#/$defs/claim"
+        },
+        "startedAt": {
+          "$ref": "#/$defs/claim"
+        },
+        "completedAt": {
+          "$ref": "#/$defs/claim"
+        },
+        "transport": {
+          "$ref": "#/$defs/claim"
+        },
+        "networkEgress": {
+          "$ref": "#/$defs/claim"
+        }
+      }
+    },
+    "custody": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "events",
+        "coverage"
+      ],
+      "properties": {
+        "events": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "eventId",
+              "eventType",
+              "at",
+              "actor",
+              "from",
+              "to",
+              "evidenceRefs"
+            ],
+            "properties": {
+              "eventId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "eventType": {
+                "enum": [
+                  "RECEIVED",
+                  "COPIED",
+                  "READ_BACK",
+                  "TRANSFERRED",
+                  "SEALED"
+                ]
+              },
+              "at": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "actor": {
+                "type": "string",
+                "minLength": 1
+              },
+              "from": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "to": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "evidenceRefs": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "coverage": {
+          "const": "NOT_VERIFIED"
+        }
+      }
+    },
+    "dependencies": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "dependencyId",
+          "category",
+          "identity",
+          "sharedWithBinanceRestCapture",
+          "materialToCollectorSeparation"
+        ],
+        "properties": {
+          "dependencyId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "category": {
+            "enum": [
+              "ISSUER",
+              "COLLECTOR",
+              "STORAGE",
+              "CONTROL_PLANE",
+              "NETWORK",
+              "TRANSFORMATION",
+              "TIME_AUTHORITY"
+            ]
+          },
+          "identity": {
+            "$ref": "#/$defs/claim"
+          },
+          "sharedWithBinanceRestCapture": {
+            "$ref": "#/$defs/claim"
+          },
+          "materialToCollectorSeparation": {
+            "$ref": "#/$defs/claim"
+          }
+        }
+      }
+    },
+    "assessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "declaredBoundary",
+        "unresolvedClaims",
+        "reviewDisposition",
+        "reviewerRef",
+        "reviewedAt",
+        "rationaleRef"
+      ],
+      "properties": {
+        "declaredBoundary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "unresolvedClaims": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "reviewDisposition": {
+          "enum": [
+            "NOT_REVIEWED",
+            "BLOCKED",
+            "SUPPORTED_WITHIN_BOUNDARY"
+          ]
+        },
+        "reviewerRef": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "reviewedAt": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "rationaleRef": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "supersedes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "recordId",
+        "reason"
+      ],
+      "properties": {
+        "recordId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    }
+  }
+}
