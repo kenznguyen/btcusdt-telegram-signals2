@@ -83,7 +83,8 @@ jobs:
           echo "BOOTSTRAP_SCOPE=DISPOSABLE_SQLITE_CI_ONLY" | tee bootstrap-safety.txt
           echo "BOOTSTRAP_EXTERNAL_SERVICES=NONE" | tee -a bootstrap-safety.txt
           echo "BOOTSTRAP_LIVE_ORDERS=FORBIDDEN" | tee -a bootstrap-safety.txt
-          echo "D07_7_SCOPE=OFFLINE_NORMALIZED_FIXTURES_ONLY" | tee -a bootstrap-safety.txt\n          echo "D07_8_SCOPE=OFFLINE_SYNTHETIC_MANIFEST_ONLY" | tee -a bootstrap-safety.txt
+          echo "D07_7_SCOPE=OFFLINE_NORMALIZED_FIXTURES_ONLY" | tee -a bootstrap-safety.txt
+          echo "D07_8_SCOPE=OFFLINE_SYNTHETIC_MANIFEST_ONLY" | tee -a bootstrap-safety.txt
 
       - name: Compile bootstrap implementation and tests
         run: |
@@ -114,6 +115,12 @@ jobs:
         run: |
           set -o pipefail
           python -m unittest paper_execution.test_funding_lineage -v 2>&1 | tee d07-funding-lineage-tests.log
+
+      - name: Run focused D07.8 offline evidence package contract tests
+        shell: bash
+        run: |
+          set -o pipefail
+          python -m unittest paper_execution.test_funding_evidence_package -v 2>&1 | tee d07-funding-evidence-package-tests.log
 
       - name: Run focused D07 PAPER funding model tests
         shell: bash
@@ -173,6 +180,7 @@ jobs:
             d07-funding-persistence-tests.log
             d07-provenance-tests.log
             d07-funding-lineage-tests.log
+            d07-funding-evidence-package-tests.log
             d07-funding-model-tests.log
             d07-binance-public-funding-tests.log
             d07-position-projection-tests.log
