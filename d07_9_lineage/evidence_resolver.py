@@ -202,7 +202,7 @@ def resolve_lineage_record(
                 "sha256": manifest_file.get("sha256"),
             }
             readback = readback_by_path[path]
-            if not isinstance(manifest_file.get("byteLength"), int) or "sha256" not in manifest_file:
+            if "byteLength" not in manifest_file or "sha256" not in manifest_file:
                 raw_errors.append("D07_8_RAW_METADATA_INCOMPLETE:" + path)
                 continue
             if not _valid_descriptor(manifest):
