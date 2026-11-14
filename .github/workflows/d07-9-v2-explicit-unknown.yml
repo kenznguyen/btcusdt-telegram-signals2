@@ -1,0 +1,53 @@
+name: D07.9 V2 Explicit Unknown Contract
+
+on:
+  push:
+    branches:
+      - feature/core-operational-proof-20261112
+    paths:
+      - d07_9_lineage/schema.v2.json
+      - d07_9_lineage/validator_v2.py
+      - d07_9_lineage/test_validator_v2.py
+      - d07_9_lineage/schema.v1.json
+      - d07_9_lineage/validator.py
+      - d07_9_lineage/test_validator.py
+      - .github/workflows/d07-9-v2-explicit-unknown.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  v2-contract-and-v1-compatibility:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pinned validator dependency
+        run: python -m pip install -r d07_9_lineage/requirements.txt
+      - name: Validate V2 JSON Schema
+        run: python -c "import json; from jsonschema import Draft202012Validator; p='d07_9_lineage/schema.v2.json'; s=json.load(open(p)); Draft202012Validator.check_schema(s)"
+      - name: Compile V1 and V2 modules and tests
+        run: |
+          python -m py_compile \
+            d07_9_lineage/validator.py \
+            d07_9_lineage/test_validator.py \
+            d07_9_lineage/validator_v2.py \
+            d07_9_lineage/test_validator_v2.py
+      - name: Run V1 regression and V2 contract tests
+        shell: bash
+        run: |
+          set -o pipefail
+          python -m unittest \
+            d07_9_lineage.test_validator \
+            d07_9_lineage.test_validator_v2 \
+            -v 2>&1 | tee d07-9-v2-contract-tests.log
+      - name: Upload bounded test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: d07-9-v2-explicit-unknown-test-evidence
+          path: d07-9-v2-contract-tests.log
+          if-no-files-found: warn
