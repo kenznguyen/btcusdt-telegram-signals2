@@ -5714,3 +5714,19 @@ Next: preserve this proof and do not rerun automatically. Any additional runtime
 - Existing funded-account Bootstrap/cutover code was not modified or called. Funded-account regression remains **NOT VERIFIED**.
 - Status: design **OWNER APPROVED**; source/test specification **COMMITTED**; atomic behavior **NOT TEST VERIFIED**; CI **NOT VERIFIED**; PAPER Ledger readiness **BLOCKED**; runtime/VPS/DB **NOT AUTHORIZED**.
 - Next: obtain a verifiable Actions run for the exact branch SHA, fix any failures test-first, then add funded-account regression coverage. No operational DB, VPS, Runner, exchange or trading action.
+
+
+## 2026-11-14 — SIMULATED-only Equity Initialization V1 implementation and verification
+
+- Owner approved the additive SIMULATED-only equity-origin/cutover and readiness path. This supersedes the preceding “Next decision required” item in the historical atomic-initialization audit; the funded-account Bootstrap/funding/cutover path remains unchanged.
+- Implementation source HEAD tested: `d083f39e5a1071f4f41c6d6195a8535608c77127`. Evidence report: `docs/evidence/SIMULATED_ONLY_EQUITY_INITIALIZATION_V1_2026-11-14.md`, blob `c99241f1bd4e40ff4432e358824b2fab766c8f05`, created in commit `74b07f5c5529b977aea82c229166fbc752701538`.
+- SIMULATED-only new-account setup seeds `paper_account_config.initial_capital=100` from the validated contract inside the caller-owned `BEGIN IMMEDIATE`; migration, origin, separate seed, equity-origin record, HWM=100 and UTC baseline=100 commit atomically. Existing legacy/funded config without matching immutable simulated origin is rejected. Synthetic seed is not a funding event.
+- Provenance verification gates account marks. A valid first account mark on the initialization UTC day sets simulated `risk_ready=1` without funded-account cutover. Restart preserves the original seed/origin and evolved risk state. Mixed funding/cutover evidence fails closed.
+- Final Simulated Capital V1 CI: run `43604585984`, exact source SHA `d083f39e5a1071f4f41c6d6195a8535608c77127`, job `132476372401`, SUCCESS, 23/23 tests plus `py_compile` and JSON parse PASS; no artifact.
+- Final Paper Ledger compatibility CI: run `43604586001`, same exact source SHA, job `132476372366`, SUCCESS, 135 tests PASS across ledger, dual-ledger, simulated-equity, funded-bootstrap, risk-limit and risk-control suites; no artifact.
+- Current code blobs at tested source: `simulated_equity.py` `34ae0400b93a25fa0694c1e398da10566ccf5b08`; `account_equity.py` `f31ff634a1b89b87ae1bdcc92fa1b9fa6d00068e`; `ledger.py` `33346a4cac9b2b885924784fda8b8768c8235864`; `test_simulated_equity.py` `6d97d0aa75acb6cfe6c6b6cb30cecc7afdcc303b`.
+- Status: SIMULATED-only atomic initialization **PASS WITHIN TEST SCOPE**; initial HWM/UTC baseline **PASS WITHIN TEST SCOPE**; first-mark simulated equity readiness **PASS WITHIN TEST SCOPE**; legacy/funded reclassification guard **PASS WITHIN TEST SCOPE**; funded Bootstrap/risk compatibility **PASS within the 135-test suite**.
+- Explicit limits: simulated UTC daily-baseline rollover is not implemented; the next-day mark fails closed with `ACCOUNT_RISK_DAILY_BASELINE_UNAVAILABLE` (tested). Contract-bound 1% per-order margin admission and complete runtime shared-risk enforcement remain **NOT IMPLEMENTED / NOT VERIFIED**. Overall PAPER Ledger readiness remains **BLOCKED / NOT VERIFIED**. Bootstrap activation and Runner remain **NOT AUTHORIZED**.
+- All tests used disposable temporary SQLite databases. No operational DB, VPS, T0, exchange, credentials, deployment, Bootstrap runtime, Runner, AI execution, live orders or real trading was touched.
+- Next permitted step: design/implement SIMULATED-only daily-baseline rollover with immutable provenance; then separately wire contract risk limits, especially 1% per-order margin, into atomic shared order admission. Preserve funded-account Bootstrap/cutover behavior and do not activate Bootstrap/Runner.
+
