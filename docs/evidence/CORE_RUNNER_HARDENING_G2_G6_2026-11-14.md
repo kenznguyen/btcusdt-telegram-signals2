@@ -37,3 +37,24 @@ Not authorized: VPS/SSH operations, deployment, persistent process/autostart, T0
 ## Next step
 
 Read back run 43571521270 at exact source 34066f4f1d3781c3acc8d597dfcf0cb305882000, verify all jobs, test logs and artifact metadata, then update this report and handoff with final PASS/BLOCKED/NOT VERIFIED. No VPS or live execution is authorized by this approval.
+
+
+## Final exact-SHA acceptance — 2026-11-14
+
+- Core workflow [43571521270](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43571521270), job `132376746126`: **SUCCESS**, all 28 workflow steps succeeded.
+- Exact checked-out code SHA: `34066f4f1d3781c3acc8d597dfcf0cb305882000`.
+- Focused runner-hardening tests: **8/8 PASS**. This includes all three environment risk-limit overrides, invalid value fail-closed, unknown config key fail-closed, explicit risk-unready preflight, ENTRY blocked, valid reducing EXIT allowed, and CLI exit-class mapping.
+- One-shot regression: **15/15 PASS**, including transactional `RISK_INPUTS_UNAVAILABLE` mapping to the distinct risk-unavailable result.
+- Disposable SQLite Core ledger integration: **26/26 PASS**, including OPEN, PARTIALLY_FILLED, FILLED, idempotent retry, Kill Switch, and risk-unready EXIT permitted while DCA is rejected.
+- Additional Core operational, Shared Risk/PaperLedger, read-only risk snapshot, bundle, cadence, journal, orchestration, dry-run and T1/T2 Order Book tests all passed in the same workflow. The Core-First workflow artifact includes the exact source SHA and test logs.
+- Artifact: ID `14104493037`, name `core-first-code-operational-proof-43571521270`, size 11,115 bytes, SHA-256 `205fc3e6108bc86078e4c4b693b40f68de59eefdfd69220f3d76b3462e532ea5`, expires 2026-11-21.
+- Companion T1/T2 workflow [43571521133](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43571521133) also SUCCESS at the same code SHA.
+- Branch HEAD after evidence documentation: `429f03f9bdd903a0319d309c13b711601eb6615a`; compare from tested code SHA reports 1 commit ahead, 0 behind, with only this evidence report and `docs/PROJECT_SESSION_HANDOFF.md` changed. No code/workflow changes occurred after the tested SHA.
+- Final disposition: **G2–G6 PASS (CI/fixture scope)**. This does not establish deployed/runtime readiness.
+
+### Strict remaining boundary
+
+- Continuous Core Runner is still CI-verified, not activated.
+- VPS execution, package installation, service/systemd/autostart, persistent process, exchange connection/credentials, AI execution, live trading and real orders remain **NOT APPROVED / NOT RUN**.
+- T0 remains independent and unmodified. Only disposable SQLite fixtures were used.
+- Keep `AI_EXECUTION_ENABLED=false`. Any VPS activation requires a separate owner approval and independent bounded runtime gate.

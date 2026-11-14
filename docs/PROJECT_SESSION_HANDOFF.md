@@ -5269,3 +5269,15 @@ Next: preserve this proof and do not rerun automatically. Any additional runtime
 - Earlier complete Core-First evidence at source `8b774bd33e7f2199dbf542e4788f35819bc6a26b`: run [43571155276](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43571155276), job `132375787785`, SUCCESS (28/28 steps); hardening tests 7/7 PASS; SQLite ledger integration command 26 tests PASS; artifact `14104865011`, SHA-256 `8a61c397ea30a88a1d9b44766b17297063028718754f4fd025f5b5417c7807ea`.
 - No VPS, SSH, deployment, persistent process/autostart, T0 access/mutation, exchange access/credentials, AI execution, live trading or real orders occurred. `AI_EXECUTION_ENABLED=false`.
 - Next: verify run 43571521270 at exact SHA 34066f4f1d3781c3acc8d597dfcf0cb305882000, then finalize status and evidence. Preserve branch; do not create a parallel PR or activate runtime.
+
+
+## 2026-11-14 — Core Runner hardening G2–G6 final acceptance
+
+- Final exact-SHA Core workflow [43571521270](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43571521270), job `132376746126`: **SUCCESS**, 28/28 workflow steps. Checked-out code SHA: `34066f4f1d3781c3acc8d597dfcf0cb305882000`.
+- G2–G6 final disposition: **PASS within CI/disposable-fixture scope**. Runner hardening tests 8/8 PASS; one-shot regression 15/15 PASS; disposable SQLite Core ledger integration 26/26 PASS. This includes risk-unready ENTRY block / valid reducing EXIT path, validated environment risk-limit overrides, unknown risk-config key rejection, CLI exit classes, transactional risk-input-unavailable classification, OPEN/PARTIALLY_FILLED/FILLED, idempotency and Kill Switch.
+- Companion T1/T2 workflow [43571521133](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43571521133) SUCCESS at the same code SHA.
+- Artifact `14104493037`, `core-first-code-operational-proof-43571521270`, SHA-256 `205fc3e6108bc86078e4c4b693b40f68de59eefdfd69220f3d76b3462e532ea5`, expires 2026-11-21.
+- Code SHA `34066f4f1d3781c3acc8d597dfcf0cb305882000` is followed by documentation-only commit `429f03f9bdd903a0319d309c13b711601eb6615a`; GitHub compare confirms 1 commit ahead, 0 behind, only the evidence report and this handoff changed.
+- Continuous Core Runner remains CI-verified, not activated. VPS execution/deployment, persistent services/autostart, exchange access/credentials, AI execution, live trading and real orders remain **NOT APPROVED / NOT RUN**. `AI_EXECUTION_ENABLED=false`; T0 remains independent and unmodified.
+- Detailed record: `docs/evidence/CORE_RUNNER_HARDENING_G2_G6_2026-11-14.md`.
+- Next gate: no further code hardening is required within G2–G6. Any actual VPS runtime validation or activation must be separately scoped and explicitly approved.
