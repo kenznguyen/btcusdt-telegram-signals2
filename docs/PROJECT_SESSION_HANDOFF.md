@@ -45,14 +45,27 @@ Updated: 2026-11-13 (Asia/Ho_Chi_Minh)
 - PR [#139](https://github.com/kenznguyen/btcusdt-telegram-signals2/pull/139), “Secure Scaleway SSH preflight passphrase handling”, is **CLOSED / NOT MERGED** (closed 2026-11-11 13:02:13Z). Its head was `e6080f7ad8a9bd8b89640f6646ff49215c326602`; base was this active branch. Do not reopen or merge it unless separately approved.
 - Historical G4 CI evidence remains historical: run [42824628084](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42824628084), source `a6d939252f1651c4f8f5478bf49581824cc67cc9`, reported 34/34 disposable contract tests PASS. This does not establish VPS runtime state.
 - Historical SSH preflight run [42814402445](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/42814402445) is retained only as audit history. The workflow feature is retired; do not invoke or restore it.
-- The Scaleway VPS `btcquant-t0-t1-test-01` was fully deleted on 2026-11-11, per owner-provided project update. Its former SSH/ForceCommand, service, process, API and database state cannot be inspected. No replacement VPS is currently established by this handoff.
+- The former Scaleway VPS `btcquant-t0-t1-test-01` was fully deleted on 2026-11-11. Its former SSH/ForceCommand, service, process, API and database state cannot be inspected.
+- A replacement test VPS was subsequently identified by the owner on 2026-11-14; its current identity and bounded D07.6 authorization are recorded below. This does not reinstate the retired SSH Preflight/G4 workstream.
 - Old deployment-path and forced-command dispatcher reviews are historical design records only. They do not authorize implementation, installation, SSH access, remote commands, deployment or provisioning.
 - Current T0/T2 deployment parity: **NOT VERIFIED**. The bounded 2026-11-09 loopback observation remains **HISTORICAL PASS** only; see `docs/evidence/T0_T2_DEPLOYMENT_PARITY_EVIDENCE_RECONCILIATION_2026-11-10.md` and G0.6 evidence.
 
 ### Current boundary
 
-No SSH Preflight restoration, SSH/ForceCommand change, probe installation, remote invocation, service restart, VPS provisioning, T0/T1/T2 deployment, T1 activation, model training, database mutation, or trading is authorized by the retired G4 scope. Any replacement-host work requires a separate bounded approval. Preserve `AI_EXECUTION_ENABLED=false` and paper-only posture.
+The retired G4 scope does not authorize SSH Preflight restoration, SSH/ForceCommand changes, probe installation, service restart, VPS provisioning, T0/T1/T2 deployment, T1 activation, model training, database mutation or trading. The only currently recorded replacement-host exception is the one-time, read-only D07.6 public Binance capture described above; it does not authorize any other remote operation. Preserve `AI_EXECUTION_ENABLED=false` and paper-only posture.
 
+
+### Replacement test VPS — owner-provided details (2026-11-14)
+
+- SSH target identifier: `ubuntu@scw-optimistic-jang`.
+- Repository path: `/home/ubuntu/btcusdt-telegram-signals2`.
+- Working branch: `feature/core-operational-proof-20261112`.
+- Source update evidence supplied by the owner: fast-forward completed successfully to `9aac55b60bec0180cf639086139fc95bf4dabd32` on 2026-11-14; 35 files changed, 6,424 insertions and 128 deletions. The pre-update local SHA was `e0ba99a0d9874628f853a7453186f7b7dbd504f5`. Preserve the existing untracked file; it was not deleted.
+- Python virtual environment path: `/home/ubuntu/.venvs/btcusdt-core-runtime`.
+- These are owner-provided host/session details and pasted command evidence. The assistant has not independently established an SSH session or inspected the host. Do not infer service health, process state, database state, or runtime readiness from the source fast-forward.
+- **One-time D07.6 owner authorization (2026-11-14 03:49 UTC):** use this replacement VPS solely to make one read-only request to Binance's public USDⓈ-M funding-rate endpoint for BTCUSDT: `https://fapi.binance.com/fapi/v1/fundingRate?symbol=BTCUSDT&limit=1000`. No API keys, credentials, private account endpoints, proxy/VPN, alternate routing, regional circumvention, persistent network client, scheduler, T0 access/mutation, Runner/One-shot, ledger/database writes, live execution or orders.
+- Stop and record the exact HTTP status/body if Binance denies access, including HTTP 451. Do not retry via another route or attempt to bypass eligibility restrictions. If HTTP 200 is returned, preserve exact response bytes and retrieval metadata as a separate capture; do not stage or mutate ledger/T0 state until separately authorized.
+- Current D07.6 status remains **BLOCKED / NOT VERIFIED from the replacement VPS** until a real request result and exact evidence are recorded. The earlier HTTP 451 from the public retrieval path remains historical evidence and does not establish the replacement VPS outcome.
 
 ## 5. Session procedure
 
