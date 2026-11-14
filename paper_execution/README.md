@@ -305,3 +305,12 @@ Funding sign convention: `amountQuote = signedPositionBase × markPrice × fundi
 
 
 The position projector now processes sorted settlements incrementally: each event and coverage row is consumed at most once per strategy, and event-to-coverage lookup uses binary search. The daily UTC replay function retains its original UTC-boundary requirement.
+
+
+## D07 PAPER funding posting path — offline fixture only
+
+`paper_execution.paper_funding_posting.post_paper_funding_events(...)` is a separate PAPER settlement-posting path. It reconstructs funding entries from normalized position snapshots and parsed BTCUSDT public funding-rate observations, then persists each event through `record_funding_event(...)`. It does not call the expected-population builder. Deterministic IDs and payload hashes make retries idempotent; first writes return `idempotent=False`, retries return `idempotent=True`.
+
+This is a separate computation path, not an independent data source: the expected model and posting path share projected positions and public market-rate inputs. The D07 reconciliation therefore remains `DECLARED_NOT_VERIFIED` for independence and does not prove global completeness, freshness, issuer authenticity or factual truth.
+
+The offline end-to-end test uses synthetic Binance-shaped JSON bytes and a temporary PAPER SQLite ledger to exercise provenance byte readback, parser, read-only position projection, expected model, posting, observed ledger enumeration, reconciliation and VERIFIED coverage. It does not call Binance or use account-private data, credentials, VPS or production databases.
