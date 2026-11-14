@@ -9,6 +9,7 @@ import sqlite3
 
 from pipeline.values import identity, number, stamp
 from paper_execution import risk_control, equity as equity_history
+from paper_execution.simulated_equity import initialize_simulated_equity
 from risk_policy import CORE_LEVERAGE, ORDER_MARGIN_BUDGET_PCT
 from paper_execution.account_history import (
     MIGRATION_VERSION as ACCOUNT_HISTORY_MIGRATION_VERSION,
@@ -1635,7 +1636,7 @@ def cancel_dual_order(db_path, order_id, now_ms, *, expected_strategy_id=None):
 
 
 class PaperLedger:
-    def __init__(self, db_path, *, max_position_base="0.01", fee_rate="0.0005", max_spread_bps="50", risk_limits=None, require_risk_limits=False, leverage=None, strategy_id="MANUAL", source_sha=None, apply_migrations=True, expected_file_identity=None):
+    def __init__(self, db_path, *, max_position_base="0.01", fee_rate="0.0005", max_spread_bps="50", risk_limits=None, require_risk_limits=False, leverage=None, strategy_id="MANUAL", source_sha=None, apply_migrations=True, expected_file_identity=None, simulated_contract_bytes=None, simulated_initialized_at_ms=None):
         self.path = Path(db_path)
         self.maximum, self.fee_rate, self.spread = number(max_position_base), number(fee_rate), number(max_spread_bps)
         self.risk_limits, self.require_risk_limits = risk_limits, bool(require_risk_limits)
@@ -1723,6 +1724,16 @@ class PaperLedger:
                     migrate_fee_currency_provenance(connection, self.source_sha)
                     migrate_daily_baseline_audit(connection, self.source_sha)
                     migrate_funding_population_reconciliation(connection, self.source_sha)
+                    if simulated_contract_bytes is not None or simulated_initialized_at_ms is not None:
+                        if (self.strategy_id != "STRATEGY_CORE"
+                                or simulated_contract_bytes is None
+                                or simulated_initialized_at_ms is None):
+                            raise ValueError("SIMULATED_INITIALIZATION_ARGUMENTS_INVALID")
+                        initialize_simulated_equity(
+                            connection,
+                            contract_bytes=simulated_contract_bytes,
+                            initialized_at_ms=simulated_initialized_at_ms,
+                        )
                 elif not _dual_ledger_migrations_ready(connection):
                     raise sqlite3.DatabaseError("DUAL_LEDGER_MIGRATION_NOT_READY")
 
