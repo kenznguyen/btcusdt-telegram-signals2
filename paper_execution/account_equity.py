@@ -115,6 +115,7 @@ def record_account_mark(
         _dual_ledger_migrations_ready, _funding_provenance_ready,
         read_account_risk_snapshot, stored_state, text,
     )
+    from paper_execution.simulated_equity import verify_simulated_equity_origin
     if ledger.strategy_id != "MANUAL":
         raise ValueError("ACCOUNT_MARK_REQUIRES_ACCOUNT_SCOPE")
     mark = number(str(mark_price))
@@ -149,6 +150,9 @@ def record_account_mark(
                       mark_observed_at_ms FROM paper_account_equity_cutovers
                WHERE account_id=1 LIMIT 1"""
         ).fetchone()
+        simulated = verify_simulated_equity_origin(connection)
+        if simulated and cutover is not None:
+            raise sqlite3.DatabaseError("SIMULATED_ACCOUNT_FUNDING_MIXED")
         if risk is None or account is None:
             raise sqlite3.DatabaseError("ACCOUNT_RISK_STATE_MISSING_OR_CORRUPT")
         if number(account[0]) != number(str(initial_capital)):
@@ -185,15 +189,19 @@ def record_account_mark(
         if hwm <= 0:
             raise sqlite3.DatabaseError("ACCOUNT_RISK_EQUITY_INVALID")
 
-        funding_ready = bool(cutover) and _funding_provenance_ready(
-            connection, cutover[0], cutover[1], observed_at, observed_at
+        funding_ready = simulated or (
+            bool(cutover) and _funding_provenance_ready(
+                connection, cutover[0], cutover[1], observed_at, observed_at
+            )
         )
         risk_ready = (
-            bool(risk[5]) and funding_ready and bool(cutover)
-            and risk[1] == utc_day and risk[2] is not None
+            simulated or (
+                bool(risk[5]) and funding_ready and bool(cutover)
+                and risk[1] == utc_day and risk[2] is not None
+            )
         )
         unavailable = None if risk_ready else risk[6]
-        if not risk_ready and not cutover:
+        if not risk_ready and not simulated and not cutover:
             unavailable = "ACCOUNT_EQUITY_CUTOVER_NOT_ESTABLISHED"
         elif not risk_ready and not funding_ready:
             unavailable = "FUNDING_PROVENANCE_INCOMPLETE"
@@ -215,7 +223,7 @@ def record_account_mark(
             "reservedNotionalQuote": text(reserved_notional),
             "reservedMarginQuote": text(reserved_margin), "riskReady": risk_ready,
         })
-        if not cutover or risk[1] is None:
+        if (not cutover and not simulated) or risk[1] is None:
             return {
                 "mode": "PAPER", "liveTradingSupported": False, "available": True,
                 "riskReady": False, "unavailableReason": unavailable,
