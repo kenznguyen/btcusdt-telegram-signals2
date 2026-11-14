@@ -125,6 +125,7 @@ class SimulatedEquityInitializationTest(unittest.TestCase):
                WHERE account_id=1""",
             (self.now // 86_400_000 * 86_400_000,),
         )
+        self.db.commit()
         before = self.db.execute(
             """SELECT high_water_mark_quote,daily_baseline_equity_quote,
                       daily_baseline_utc_day_ms,version
@@ -142,6 +143,7 @@ class SimulatedEquityInitializationTest(unittest.TestCase):
 
     def test_funded_or_nonempty_account_is_rejected_without_mixing(self):
         self.db.execute("INSERT INTO paper_funding_events VALUES ('funded')")
+        self.db.commit()
         self.db.execute("BEGIN IMMEDIATE")
         with self.assertRaisesRegex(ValueError, "SIMULATED_ACCOUNT_NOT_PRISTINE"):
             self.initialize()
@@ -157,11 +159,8 @@ class SimulatedEquityInitializationTest(unittest.TestCase):
         self.initialize()
         self.db.commit()
         altered = json.dumps(
-            {**DEFAULT_SIMULATED_CAPITAL_CONTRACT, "riskLimits": {
-                **DEFAULT_SIMULATED_CAPITAL_CONTRACT["riskLimits"],
-                "maxDailyLossUsdt": "3",
-            }}, separators=(",", ":")
-        ).encode()
+            DEFAULT_SIMULATED_CAPITAL_CONTRACT, indent=2
+        ).encode("utf-8")
         self.db.execute("BEGIN IMMEDIATE")
         with self.assertRaisesRegex(ValueError, "SIMULATED_ORIGIN_CONTRACT_MISMATCH"):
             initialize_simulated_equity(
