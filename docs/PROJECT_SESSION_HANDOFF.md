@@ -5818,3 +5818,16 @@ Current application:
 - Bootstrap/One-shot Runner activation remains NOT AUTHORIZED; paper-only posture and `AI_EXECUTION_ENABLED=false` remain unchanged.
 - Status: **PROCESS UPDATE RECORDED**. No CI run or artifact was needed for this documentation-only change.
 - Next: continue the existing Core First gate using the minimum evidence necessary to resolve its current blocker; do not expand scope.
+
+
+## 2026-11-14 — Bootstrap regression follow-up (migration idempotency)
+
+- Active branch remains `feature/core-operational-proof-20261112`.
+- Bootstrap run [43609479824](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43609479824), exact source SHA `b79f27aa9ea85b52370c6601d68ba1c8e6bd04ba`, completed FAILURE after 641 tests with only 2 failures. Both were stale expected migration-history lists in `test_dual_ledger_migration_red.py` that stopped at v10; schema correctly records v11.
+- Test-only correction: add v11 to the two migration idempotency count assertions. No production source changed.
+- Commit/source SHA: `b5822f148c451fbf786bcf24981f672fe9ca49b6`; test blob `6ec693cee45b8d2548a25b7f8cf3f24ca2522fa8`.
+- Bootstrap rerun [43610139453](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43610139453), exact source SHA `b5822f148c451fbf786bcf24981f672fe9ca49b6`, was QUEUED at update time; NOT VERIFIED.
+- Evidence report updated in commit `7951fd4675a4f1fbeff94db81cc26c03bd63996b`, blob `a7f5671899803d8000461e7c559761e8559eccc3`.
+- Status: full Bootstrap regression BLOCKED / NOT VERIFIED pending run 43610139453. Core operational proof job remains PASS only at job level; Decision Cycle and One-shot sub-verdicts remain NOT VERIFIED. Overall PAPER Ledger readiness BLOCKED.
+- No runtime, DB, VPS, T0, Bootstrap activation, Runner, AI execution or live order action.
+- Next: inspect run 43610139453 terminal result. If it passes, work on Core Decision Cycle / One-shot verification using minimal TDD evidence. Bootstrap/Runner activation remains NOT AUTHORIZED.
