@@ -59,7 +59,7 @@ The comparator does not infer missing historical events from a date range, does 
 
 ## 5. Offline test matrix
 
-Synthetic unit tests cover:
+Eleven synthetic unit tests cover:
 
 - exact agreement within an overlap;
 - funding-rate mismatch;
