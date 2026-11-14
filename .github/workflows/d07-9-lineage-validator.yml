@@ -59,12 +59,12 @@ jobs:
         run: python -m json.tool d07_9_lineage/schema.v1.json > /dev/null
       - name: Install isolated schema validator dependency
         run: python -m pip install --disable-pip-version-check -r d07_9_lineage/requirements.txt
-      - name: Run D07.9 synthetic contract suite
+      - name: Run D07.9/D07.11 synthetic contract suite
         shell: bash
         run: |
           set -o pipefail
-          python -m unittest d07_9_lineage.test_validator -v 2>&1 | tee d07-9-validator-tests.log
-      - name: Upload D07.9 synthetic evidence
+          python -m unittest discover -s d07_9_lineage -p 'test_*.py' -v 2>&1 | tee d07-9-validator-tests.log
+      - name: Upload D07.9/D07.11 synthetic evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
