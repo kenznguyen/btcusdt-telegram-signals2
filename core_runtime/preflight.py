@@ -47,7 +47,7 @@ def _load_config(config_path):
     return config, ledger_path.resolve()
 
 
-def _preflight(config_path, *, now_ms=None, allow_risk_unready=False):
+def _preflight(config_path, *, now_ms=None, allow_risk_unready=False, include_file_identity=False):
     config, ledger_path = _load_config(config_path)
     if any(os.environ.get(key) for key in _CREDENTIAL_ENV_KEYS):
         raise PreflightError("EXCHANGE_CREDENTIALS_FORBIDDEN")
@@ -57,18 +57,34 @@ def _preflight(config_path, *, now_ms=None, allow_risk_unready=False):
         ledger_path = validate_ledger_path_isolated(ledger_path)
     except ValueError as exc:
         raise PreflightError(str(exc)) from None
-    if not ledger_path.is_file():
+    if ledger_path.is_symlink() or not ledger_path.is_file():
         raise PreflightError("LEDGER_FILE_REQUIRED")
-    observed_now = time.time_ns() // 1_000_000 if now_ms is None else now_ms
-    risk = read_account_risk_snapshot(ledger_path, now_ms=observed_now)
+    try:
+        before = ledger_path.stat()
+        observed_now = time.time_ns() // 1_000_000 if now_ms is None else now_ms
+        risk = read_account_risk_snapshot(ledger_path, now_ms=observed_now)
+        after = ledger_path.stat()
+    except OSError:
+        raise PreflightError("LEDGER_FILE_REQUIRED") from None
+    before_identity = (before.st_dev, before.st_ino)
+    after_identity = (after.st_dev, after.st_ino)
+    if (
+        ledger_path.is_symlink()
+        or not ledger_path.is_file()
+        or before_identity != after_identity
+    ):
+        raise PreflightError("LEDGER_PATH_REPLACED")
     if risk.get("mode") != "PAPER" or risk.get("liveTradingSupported") is not False:
         raise PreflightError("PAPER_LEDGER_REQUIRED")
     risk_ready = risk.get("riskReady") is True
     if not risk_ready and allow_risk_unready is not True:
         raise PreflightError("RISK_STATE_BLOCKED")
-    return {
+    result = {
         "status": "PREFLIGHT_PASS" if risk_ready else "PREFLIGHT_RISK_UNREADY",
         "mode": "PAPER", "decisionCycle": "NOT_RUN",
         "ledgerPath": str(ledger_path), "riskReady": risk_ready,
         "aiExecutionEnabled": False,
     }
+    if include_file_identity:
+        result["_ledgerFileIdentity"] = before_identity
+    return result
