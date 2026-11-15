@@ -158,7 +158,12 @@ jobs:
           set -euo pipefail
           python -m unittest core_runtime.test_bundle_provider -v 2>&1 | tee core-bundle-provider-tests.log
 
-      - name: Run Continuous Core runtime factory RED-first tests\n        run: |\n          set -euo pipefail\n          python -m unittest core_runtime.test_runtime_factory -v 2>&1 | tee continuous-core-runtime-factory-tests.log\n\n      - name: Run Core producer adapter contract tests
+      - name: Run Continuous Core runtime factory RED-first tests
+        run: |
+          set -euo pipefail
+          python -m unittest core_runtime.test_runtime_factory -v 2>&1 | tee continuous-core-runtime-factory-tests.log
+
+      - name: Run Core producer adapter contract tests
         run: |
           set -euo pipefail
           python -m unittest pipeline.test_core_runtime_adapter_contract -v 2>&1 | tee core-runtime-adapter-contract-tests.log
