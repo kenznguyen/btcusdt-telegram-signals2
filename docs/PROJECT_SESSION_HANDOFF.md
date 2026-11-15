@@ -6428,3 +6428,43 @@ Current application:
 - Runs [43664372302](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43664372302) and [43664372342](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43664372342) remain evidence only for exact source SHA `f9648c40f9fff82f5aef5011be9a2474ddde87a7`; do not transfer their PASS status to the later branch source.
 - The ledger/handoff commits were documentation-only. No source/workflow changes, branch reset/rebase/force-push/merge, runtime, VPS, DB, Feeder, exchange or trading operation was performed by this review.
 - Corrected status: **PARTIAL**; earlier tested source evidence PASS, current branch source parity **NOT VERIFIED**. Next: reconcile the intervening branch commits and establish the exact current code SHA before relying on prior CI evidence.
+
+
+
+## 2026-11-15 — Owner decision: GitHub-only development; VPS use suspended
+
+### Decision and effective scope
+- Owner direction: **temporarily suspend use of VPS and continue development GitHub-only**.
+- Effective immediately for project work: GitHub repositories, the existing approved branches, GitHub Actions CI, repository documentation/evidence, and GitHub Actions artifacts are the development and verification path.
+- This decision supersedes the previously recorded one-time D07.6 replacement-VPS authorization and any earlier permission to use the replacement VPS for project verification. Do not SSH to, issue commands on, test against, deploy to, or otherwise use any VPS for this project unless a new, separately bounded owner approval is recorded.
+- Do not provision a replacement VPS, install packages, activate services, start/stop/restart processes, enable systemd/autostart, connect to exchanges from a VPS, or perform remote data operations.
+- **Suspending use is not an instruction to power off, terminate, delete, or modify the cloud instance.** No provider-side lifecycle/billing action was performed or authorized by this decision. Current provider instance state and billing status are **NOT VERIFIED**. Any stop/deallocate/delete action requires its own explicit scope and confirmation.
+- This is a development/verification environment decision, not a change to the trading or data architecture.
+
+### GitHub-only operating rules
+- Continue on the existing active branches; do not create parallel branches, rebase, force-push, merge, or change default-branch settings without separate approval.
+- Use GitHub Actions for offline unit/contract tests, static checks, builds, and permitted CI integration tests. A CI PASS proves only the exact checked-out SHA and job scope; it does not prove VPS/runtime readiness.
+- Record each meaningful increment in the same branch: scope, exact source SHA, workflow run/event, job conclusions, test counts, artifact IDs/names/digests/expiry, status, next step, and prohibited boundaries.
+- Keep GitHub artifacts as CI outputs/evidence only. Artifact presence does not make GitHub Actions a persistent runtime host and does not replace canonical T0 storage.
+- No secret, API key, credential, token, or private account material may be committed to GitHub. Use only already-approved CI-safe test fixtures and secrets handling; do not introduce new credentials or external exchange access under this decision.
+- Keep CI evidence and owner-provided/manual evidence clearly distinguished. Do not relabel prior VPS-only test results as GitHub CI results.
+
+### Architecture and safety invariants retained
+- T0 remains an independent canonical data asset. Do not move its canonical role into GitHub, commit canonical market data, mutate/recreate/restore its database, or change its storage/transport architecture under this decision.
+- T1 remains NOT ACTIVATED. The separate collector repository may continue offline development and GitHub CI only; no listener activation, runtime operation, VPS deployment, or T1→T2 integration is authorized.
+- Core First remains the active priority on `feature/core-operational-proof-20261112`. Do not start the independent AI Strategy / Dual-Strategy Intelligence implementation until the existing Core First gates are satisfied and the user separately reopens that work.
+- Paper-only posture remains. Keep `AI_EXECUTION_ENABLED=false`; no live trading, real orders, exchange execution, persistent PAPER Ledger initialization, Bootstrap, or actual continuous Runner activation is authorized by this environment decision.
+- Existing owner approval gates for T0 access, data reacquisition, Ledger mutation, runtime activation, secrets, and destructive actions remain in force. This decision does not grant any of them.
+
+### Pending T1 GitHub CI at decision time
+- Separate repository: `kenznguyen/binance-futures-collector`; branch: `feature/t1-connection-sidecar-integration-20261107`; tested source SHA: `492ac7a8f012f74cd6f1803e14c944e8b71bfc97`.
+- Push run [43707751127](https://github.com/kenznguyen/binance-futures-collector/actions/runs/43707751127): **IN_PROGRESS** at the time of this handoff update.
+- Pull-request run [43707756454](https://github.com/kenznguyen/binance-futures-collector/actions/runs/43707756454): **IN_PROGRESS** at the time of this handoff update.
+- These runs are GitHub-hosted CI and may be completed/recorded without using a VPS. Do not infer their eventual conclusions or artifacts here; reconcile exact run metadata when complete.
+
+### Status and next step
+- GitHub-only development direction: **APPROVED by owner**.
+- VPS use for project work: **SUSPENDED**.
+- VPS provider lifecycle (powered on/off, retained/deleted) and billing: **NOT VERIFIED / NOT CHANGED**.
+- Source implementation and runtime architecture: **UNCHANGED**.
+- Next: finish the pending T1 GitHub Actions runs and record their exact results in the T1 evidence report; continue Core First work on its existing branch using GitHub-only verification. Do not use VPS unless separately reauthorized.
