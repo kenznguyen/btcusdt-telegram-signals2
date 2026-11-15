@@ -148,6 +148,11 @@ jobs:
           echo "CORE_INPUT_BUNDLE_V1_TESTS=19_TOTAL_EXPECTED" | tee -a core-input-bundle-status.txt
           echo "CORE_INPUT_BUNDLE_V1_SIDE_EFFECTS=PURE_VALIDATION_ONLY" | tee -a core-input-bundle-status.txt
 
+      - name: Run Core Bundle input normalization RED-first tests
+        run: |
+          set -euo pipefail
+          python -m unittest core_runtime.test_bundle_inputs -v 2>&1 | tee core-bundle-input-tests.log
+
       - name: Run Core producer adapter contract tests
         run: |
           set -euo pipefail
