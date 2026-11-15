@@ -175,5 +175,99 @@ class SimulatedOrderAdmissionTest(unittest.TestCase):
             ).fetchone()[0], 0)
 
 
+    def test_simulated_core_entry_at_exact_one_percent_margin_boundary_is_accepted(self):
+        intent = self.intent("simulated-core-exact-margin-boundary", "0.01")
+        intent["limitPrice"] = "100"
+        book = self.book()
+        book["bids"] = [{"price": "99.9", "quantity": "1"}]
+        book["asks"] = [{"price": "100", "quantity": "1"}]
+
+        result = self.core.submit(
+            intent, book, self.now, strategy_event="ENTRY",
+        )
+
+        self.assertEqual(result["status"], "FILLED", result)
+        with sqlite3.connect(self.path) as connection:
+            reservation = connection.execute(
+                """SELECT reserved_margin_quote,reserved_notional_quote,
+                          leverage,equity_basis_quote,status
+                   FROM paper_risk_reservations WHERE intent_id=?""",
+                ("simulated-core-exact-margin-boundary",),
+            ).fetchone()
+            position = connection.execute(
+                """SELECT position_base FROM paper_strategy_ledgers
+                   WHERE account_id=1 AND strategy_id='STRATEGY_CORE'"""
+            ).fetchone()[0]
+        self.assertEqual(reservation, ("1", "1", "1", "100", "CONSUMED"))
+        self.assertEqual(position, "0.01")
+
+    def test_simulated_daily_loss_boundary_latches_shared_kill_switch(self):
+        with sqlite3.connect(self.path) as connection:
+            connection.execute(
+                """UPDATE paper_strategy_ledgers
+                   SET position_base='0.1',average_entry_price='100'
+                   WHERE account_id=1 AND strategy_id='STRATEGY_CORE'"""
+            )
+        account_scope = PaperLedger(self.path)
+        record_account_mark(
+            account_scope, "80", self.now - 60_000, self.now,
+            "sha256:" + "e" * 64,
+        )
+
+        result = self.core.submit(
+            self.intent("simulated-core-daily-loss-boundary", "0.11"),
+            self.book(), self.now, strategy_event="DCA",
+        )
+
+        self.assertEqual(result["status"], "REJECTED", result)
+        self.assertEqual(result["reason"], "DAILY_LOSS_LIMIT")
+        with sqlite3.connect(self.path) as connection:
+            latch = connection.execute(
+                "SELECT paused,killed,reason FROM paper_risk_control WHERE id=1"
+            ).fetchone()
+            order_count = connection.execute(
+                "SELECT COUNT(*) FROM paper_orders"
+            ).fetchone()[0]
+            reservation_count = connection.execute(
+                "SELECT COUNT(*) FROM paper_risk_reservations"
+            ).fetchone()[0]
+        self.assertEqual(latch, (0, 1, "DAILY_LOSS_LIMIT"))
+        self.assertEqual(order_count, 0)
+        self.assertEqual(reservation_count, 0)
+
+    def test_simulated_drawdown_boundary_latches_shared_kill_switch(self):
+        with sqlite3.connect(self.path) as connection:
+            connection.execute(
+                """UPDATE paper_strategy_ledgers
+                   SET position_base='1',average_entry_price='100'
+                   WHERE account_id=1 AND strategy_id='STRATEGY_CORE'"""
+            )
+        account_scope = PaperLedger(self.path)
+        record_account_mark(
+            account_scope, "90", self.now - 60_000, self.now,
+            "sha256:" + "f" * 64,
+        )
+
+        result = self.core.submit(
+            self.intent("simulated-core-drawdown-boundary", "1.001"),
+            self.book(), self.now, strategy_event="DCA",
+        )
+
+        self.assertEqual(result["status"], "REJECTED", result)
+        self.assertEqual(result["reason"], "MAX_DRAWDOWN_LIMIT")
+        with sqlite3.connect(self.path) as connection:
+            latch = connection.execute(
+                "SELECT paused,killed,reason FROM paper_risk_control WHERE id=1"
+            ).fetchone()
+            order_count = connection.execute(
+                "SELECT COUNT(*) FROM paper_orders"
+            ).fetchone()[0]
+            reservation_count = connection.execute(
+                "SELECT COUNT(*) FROM paper_risk_reservations"
+            ).fetchone()[0]
+        self.assertEqual(latch, (0, 1, "MAX_DRAWDOWN_LIMIT"))
+        self.assertEqual(order_count, 0)
+        self.assertEqual(reservation_count, 0)
+
 if __name__ == "__main__":
     unittest.main()
