@@ -358,7 +358,7 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
             max_position_base="0.01",
             fee_rate="0.001",
             strategy_id="STRATEGY_CORE",
-            source_sha="s" * 40,
+            source_sha="b" * 40,
             risk_limits=limits,
             require_risk_limits=True,
             simulated_contract_bytes=contract_bytes,
