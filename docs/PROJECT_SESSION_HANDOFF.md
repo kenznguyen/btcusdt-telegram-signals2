@@ -6498,3 +6498,24 @@ Current application:
 - Core First remains priority. Do not add offline tests merely to imply operational readiness. The next decision gate remains the owner decision on bounded T0 data availability/reacquisition; T0 stays independent and untouched until separately authorized.
 - The bundle-provider-to-runner wiring evidence gap may be addressed only as a focused offline contract-test increment on the existing branch; it must not invoke persistent runtime, T0, exchange connectivity, Bootstrap, or the actual Runner loop.
 - No independent AI Strategy / Dual-Strategy Intelligence implementation until Core First gates are satisfied and the user separately reopens that work.
+
+
+## 2026-11-15 — Core First wiring verdict closed on exact current branch SHA
+
+- Active branch: `feature/core-operational-proof-20261112`.
+- Final branch HEAD and workflow source SHA: `279173045b94b440ca171dbb14382de9a3345f03`.
+- Commit `279173045b94b440ca171dbb14382de9a3345f03` modifies only `.github/workflows/core-live-data-operational-proof.yml` relative to parent `86657153849d5817671d1e8e8922654bfc94a621`; it corrects shell block indentation in the workflow verdict logic. The branch HEAD was independently checked against this exact commit.
+- Core First operational proof run [43708932382](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43708932382): SUCCESS; job `132796206178`; exact SHA above.
+- The workflow log explicitly records `test_run_continuous_hands_factory_bundle_provider_to_runner_loop ... ok`, `CORE_BUNDLE_PROVIDER_CONTINUOUS_RUNNER_WIRING=PASS`, and `CORE_BUNDLE_PROVIDER_CONTINUOUS_RUNNER_WIRING_TESTS=1_PASS`.
+- The same run records `AI_EXECUTION_ENABLED=false`, `CANONICAL_T0_TOUCHED=false`, `REAL_ORDERS_SENT=false`, and `VPS_OR_PERSISTENT_RUNTIME_USED=false`.
+- Workflow test groups include Core factory 29 tests, Core end-to-end 50 tests, disposable SQLite ledger integration 27 tests, and T1/T2 orderbook/HTTP integration 49 tests; all corresponding steps completed successfully in this run.
+- Artifact: `core-first-code-operational-proof-43708932382`, ID `14159279640`, 12,300 bytes, metadata SHA-256 `c2877e682364454cd13de94c7a1d6321003b370a4f5c1e4472a4edc36786118f`, expires `2026-11-22T11:26:30Z`. Artifact payload has not been independently downloaded/re-hashed.
+- The previous run `43708881569` failed before any job executed because the workflow shell block indentation was invalid; the correction is included in the current successful run.
+- Core First CI: PASS within the declared offline/test scopes, including provider-to-continuous-runner wiring. This does NOT establish persistent PAPER Ledger readiness, live T0 data availability, data-backed PAPER evaluation, or continuous runtime readiness/authorization.
+- No strategy, risk, ledger, canonical T0 data, runtime activation, deployment, or exchange execution was changed or performed.
+
+### Next owner gate
+- Core First code-level CI proof is now complete for the exact branch HEAD.
+- The next substantive gate is a bounded owner decision on T0 data availability/reacquisition and the scope of a read-only PAPER readiness assessment. Until that is separately authorized, T0 remains untouched and data-backed PAPER readiness stays BLOCKED / NOT VERIFIED.
+- Do not initialize or mutate the persistent PAPER Ledger, activate the actual Continuous Runner, perform exchange connectivity, deploy, or begin independent AI Strategy / Dual-Strategy Intelligence without separate explicit authorization.
+- T1 collector remains PARTIAL / NOT ACCEPTED due the recorded security audit blocker; T1 runtime remains NOT VERIFIED and T1→T2 remains BLOCKED.
