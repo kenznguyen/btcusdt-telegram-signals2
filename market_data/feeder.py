@@ -962,6 +962,24 @@ class FeederRuntime:
             raise
         return self.scheduler.run_due()
 
+    def check_background_failure(self):
+        """Promote a terminated scheduler thread to a fail-closed runtime state."""
+        error = getattr(self.scheduler, "_thread_error", None)
+        if error is None:
+            return False
+        with self._lock:
+            if self._state != "RUNNING":
+                return self._state == "FAILED"
+            self._state = "FAILED"
+            self._stop_requested = True
+        self._heartbeat_stop.set()
+        if self.health is not None:
+            mark_not_ready = getattr(self.health, "mark_not_ready", None)
+            if callable(mark_not_ready):
+                mark_not_ready()
+        self._emit("scheduler_failed")
+        return True
+
     def health_snapshot(self, snapshot):
         """Overlay lifecycle truth onto the health evaluator's source snapshot."""
         if not isinstance(snapshot, dict):

@@ -550,5 +550,73 @@ class T2HttpConsumerTest(unittest.TestCase):
         self.assertEqual(session.calls, [])
 
 
+    def _paged_window_responses(self, latest_ingestion_lag_ms):
+        interval = STEP
+        start = START
+        page_sizes = (32, 1)
+        generated = start + 33 * interval + 180_000
+        responses = []
+        cursor = start
+        for page_index, count in enumerate(page_sizes):
+            page_end = cursor + count * interval
+            candles = []
+            for index in range(count):
+                opened = cursor + index * interval
+                closed = opened + interval
+                lag = 300_000 if page_index == 0 else latest_ingestion_lag_ms
+                candles.append(response_envelope()["candles"][0] | {
+                    "openTimeMs": opened,
+                    "closeTimeMs": closed,
+                    "availableAtMs": closed + lag,
+                })
+            latest = candles[-1]
+            payload = response_envelope(
+                startMs=cursor,
+                endMs=page_end,
+                asOfMs=generated,
+                candles=candles,
+                coverage={"expected": count, "returned": count, "complete": True, "gaps": []},
+                generatedAtMs=generated,
+                freshness={
+                    "latestExpectedOpenTimeMs": (generated // interval) * interval - interval,
+                    "latestReturnedOpenTimeMs": latest["openTimeMs"],
+                    "latestCloseTimeMs": latest["closeTimeMs"],
+                    "latestAvailableAtMs": latest["availableAtMs"],
+                    "observationAgeMs": generated - latest["availableAtMs"],
+                    "closeLagMs": generated - latest["closeTimeMs"],
+                    "evaluable": True,
+                },
+            )
+            responses.append(FakeResponse(payload=payload))
+            cursor = page_end
+        return start, cursor, generated, responses
+
+    def test_paged_window_accepts_backfilled_history_when_latest_candle_is_fresh(self):
+        start, end, generated, responses = self._paged_window_responses(10_000)
+        client, session = self._client(responses=responses, clock_ms=generated)
+
+        result = client.fetch(start_ms=start, end_ms=end, as_of_ms=generated)
+
+        self.assertEqual(len(session.calls), 2)
+        self.assertEqual(len(result["candles"]), 33)
+        self.assertEqual(result["coverage"]["complete"], True)
+        self.assertEqual(
+            result["candles"][31]["availableAtMs"] - result["candles"][31]["closeTimeMs"],
+            300_000,
+        )
+        self.assertEqual(
+            result["candles"][-1]["availableAtMs"] - result["candles"][-1]["closeTimeMs"],
+            10_000,
+        )
+
+    def test_paged_window_rejects_when_latest_candle_exceeds_freshness_limit(self):
+        start, end, generated, responses = self._paged_window_responses(120_001)
+        client, _ = self._client(responses=responses, clock_ms=generated)
+
+        _, _, Error = self._adapter()
+        with self.assertRaisesRegex(Error, "FRESHNESS_EXCEEDED"):
+            client.fetch(start_ms=start, end_ms=end, as_of_ms=generated)
+
+
 if __name__ == "__main__":
     unittest.main()

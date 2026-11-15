@@ -348,6 +348,13 @@ def run_service(runtime, stop_event=None, notify=None):
         # recovery, scheduler start and internal readiness have succeeded.
         notify_fn("READY=1")
         while not requested_stop.wait(1):
+            # A background scheduler exception terminates its worker thread.
+            # Promote that failure before deciding whether the service is healthy.
+            check_background_failure = getattr(
+                runtime, "check_background_failure", None
+            )
+            if callable(check_background_failure):
+                check_background_failure()
             if runtime.state in ("LEASE_LOST", "FAILED"):
                 return 3
     finally:

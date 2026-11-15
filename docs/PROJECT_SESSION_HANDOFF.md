@@ -1,6 +1,6 @@
 # Five-Layer System — Session Handoff
 
-Updated: 2026-11-14 (Asia/Ho_Chi_Minh)
+Updated: 2026-11-15 (Asia/Ho_Chi_Minh)
 
 > Start here in every new session. GitHub is the source of truth. Read this short file first; consult the [archived handoff history](archive/PROJECT_SESSION_HANDOFF_HISTORY_2026-11-10.md) only when an older decision or evidence record is needed.
 
@@ -5868,6 +5868,204 @@ Current application:
 - Active branch remains `feature/core-operational-proof-20261112`; no branch or PR created. No source code was changed for this approval record.
 - Next: obtain an authorized SSH execution path or have the owner/operator run the bounded read-only procedure and return its output; only then determine PASS/BLOCKED for VPS source parity.
 
+## 2026-11-14 — Bounded Core First offline tests on replacement VPS
+
+- Active branch: `feature/core-operational-proof-20261112`; VPS checkout exact SHA: `b92bb75b00b6f91c39c1b78fafab5cd1c77d8fde`.
+- Owner-run bounded offline test execution: `pipeline.test_core_signal` 6/6 PASS and `pipeline.test_core_strategy` 6/6 PASS; total 12/12 PASS in 0.040s using the existing `btcusdt-core-runtime` venv and `AI_EXECUTION_ENABLED=false`.
+- Test blobs: `a946716604e2e1a74b0e32f0aae5d07b820f2cbf` and `a0d5b46845d3fde006ed817fe21bdd8b6546c1d1`; producer blob at this SHA: `0be512d99b4302077ab79879184b74949f0feaaa`.
+- Evidence: `docs/evidence/CORE_FIRST_VPS_OFFLINE_TESTS_2026-11-14.md`, recorded in commit `2142a023c3964bbcbd2f267396892a6dcb89b7f2`.
+- Status: bounded offline Core signal/strategy tests **PASS**. Shared Risk Engine, persistent PaperLedger, Kill Switch runtime, Core one-shot runtime readiness and overall VPS runtime readiness remain **NOT VERIFIED**. AI remains not implemented; no AI execution.
+- No workflow or artifact was produced. No DB/T0, package install, Bootstrap/Runner, service/autostart, exchange, live order or real trading action.
+- Next: continue the remaining Core First readiness gap with a separately bounded read-only review; do not activate Bootstrap/Runner.
+
+
+## 2026-11-14 — Bounded Core First VPS PaperLedger and Risk Control tests
+
+- Active branch: `feature/core-operational-proof-20261112`; owner-reported tested VPS checkout SHA: `b92bb75b00b6f91c39c1b78fafab5cd1c77d8fde`.
+- Owner-approved bounded execution completed on `ubuntu@scw-optimistic-jang`: 7/7 `paper_execution.test_risk_control` and 18/18 selected `PaperLedgerTest` cases; total **25/25 PASS** in 1.076s (`Ran 25 tests ... OK`).
+- Test blobs: `paper_execution/test_ledger.py` = `2eaf18956f0cc281a653a74b14a159cf3930bc2e`; `paper_execution/test_risk_control.py` = `5e1fdf60f9c2988d8e44e2019aa12de11c0dde9d`.
+- Execution used the existing venv, `AI_EXECUTION_ENABLED=false`, and disposable SQLite temp files under `/tmp`; T1 compatibility and CLI subprocess tests were excluded.
+- Evidence report: `docs/evidence/CORE_FIRST_VPS_PAPERLEDGER_RISK_CONTROL_TESTS_2026-11-14.md`.
+- This is owner-pasted test output; no SSH session, CI workflow or artifact was independently produced/observed by the assistant.
+- Status: bounded PaperLedger + Risk Control tests **PASS**. Persistent operational ledger readiness, Bootstrap/Runner activation readiness and overall VPS runtime readiness remain **NOT VERIFIED / BLOCKED**. AI Strategy remains NOT IMPLEMENTED; paper-only and no live orders.
+- Next: identify the smallest remaining Core First readiness gap and define its bounded verification. Bootstrap/Runner activation remains NOT AUTHORIZED.
+
+
+## 2026-11-14 — Bounded Core lifecycle and Kill Switch VPS tests
+
+- Active branch: `feature/core-operational-proof-20261112`; owner-reported tested VPS checkout/source SHA: `b92bb75b00b6f91c39c1b78fafab5cd1c77d8fde`.
+- Owner-approved exact two-test execution completed on `ubuntu@scw-optimistic-jang`: `test_full_core_position_lifecycle_exit_pnl_fees_equity_and_post_exit_kill` and `test_kill_switch_rejects_core_entry_without_creating_exposure`; **2/2 PASS**, `Ran 2 tests in 0.436s — OK`.
+- Test file: `paper_execution/test_core_first_operational.py`; blob at tested source SHA: `681f674347b660a6afde093e7dc05538c9881609`; class: `CoreFirstOperationalProofTest`.
+- Execution used the existing `btcusdt-core-runtime` venv, `AI_EXECUTION_ENABLED=false`, and `TMPDIR=/tmp`. The initial invocation used an incorrect class name and failed during unittest test loading (0 tests); corrected invocation then ran exactly the two approved tests successfully.
+- Evidence is owner-pasted terminal output; no SSH session, GitHub Actions workflow or artifact was independently produced/observed by the assistant.
+- Status: Core lifecycle/exit accounting/Kill Switch rejection tests **PASS within this bounded offline fixture scope**. This does not establish persistent PAPER runtime readiness or VPS operational readiness; those remain **NOT VERIFIED / BLOCKED**. AI remains NOT IMPLEMENTED; no live orders.
+- Next: identify the smallest remaining Core First readiness gap and define its bounded verification. Bootstrap/Runner activation remains NOT AUTHORIZED.
+
+## 2026-11-14 — Historical reconciliation: Core PAPER config and persistent Ledger
+
+- Rechecked prior conversation history and the existing evidence register. A historical owner-run broad search on the replacement VPS at checkout/source SHA `e0ba99a0d9874628f853a7453186f7b7dbd504f5` found no persistent Core PAPER Ledger candidates; within the repository, the only remotely related JSON config was `freqai_bridge/config.research.json`, which does not satisfy the Core Runtime PAPER config schema.
+- Earlier VPS Core/PaperLedger/Risk Control/lifecycle tests used disposable SQLite fixtures under temporary paths; they do not establish a persistent operational PaperLedger or its path.
+- Approval of SIMULATED_CAPITAL_V1 (100 USDT) and temporary SQLite tests/CI did not authorize creation of a persistent VPS config/Ledger, Bootstrap activation, Runner/One-shot execution, or preflight.
+- The old runbook's `MARKET_DATA_DB` / T0 market-data path is not evidence of the current independent Core PaperLedger and must not be reused as its target.
+- Status: persistent Core PAPER config/path **NOT FOUND**; persistent Ledger **NOT FOUND / NOT VERIFIED**; `--ledger-preflight` **NOT RUN**. No new VPS search, config/DB creation, Bootstrap, Runner, or runtime action was performed in this increment.
+- Next: keep preflight blocked until a separately authorized and evidenced independent PAPER config plus already-existing Ledger are available. Any creation/bootstrap or VPS runtime step requires its own exact-scope approval. Continue paper-only with `AI_EXECUTION_ENABLED=false`; no live orders.
+
+
+## 2026-11-14 — Owner-approved independent PAPER Ledger and config creation
+
+- Owner approval: create a new independent PAPER config and Ledger on the replacement VPS. Owner confirmed 100 USDT is simulated virtual capital only, not an exchange balance or real trade.
+- Owner-reported VPS source SHA: `b92bb75b00b6f91c39c1b78fafab5cd1c77d8fde`; branch: `feature/core-operational-proof-20261112`.
+- Contract: `paper_execution/contracts/simulated_capital_v1.json`; SHA-256 `101120eb159248201a45a71b4485ce1de5f9aa0e05ab85cd2713266572ce16c2`.
+- Pre-create owner-pasted checks: `PAPER_DB` and `PAPER_TRADING_DB` unset; T0 reference path did not exist at inspection time. Earlier same-checkout output showed exchange credential variables unset and both target files absent.
+- Creation output: **PASS**. Ledger `/home/ubuntu/btcusdt-telegram-signals2/.data/paper-ledger.sqlite3`; config `/home/ubuntu/btcusdt-telegram-signals2/core_runtime/config.paper.json`; SQLite integrity `ok`; simulated PAPER account `100 USDT`.
+- Ledger strategy scopes: `STRATEGY_CORE`, `AI_FREQAI`, `LEGACY_UNATTRIBUTED`. The AI_FREQAI row is schema scope only; AI strategy is NOT IMPLEMENTED and AI execution remains false.
+- Initial risk state: `riskReady=false`, reason `SIMULATED_INITIAL_MARK_REQUIRED`. No market mark was fabricated or recorded.
+- Decision Cycle, One-shot, Bootstrap and Continuous Runner: NOT RUN. No GitHub Actions workflow/artifact. Evidence is owner-pasted terminal output; no independent SSH observation or artifact readback is claimed.
+- Evidence report: `docs/evidence/VPS_PAPER_LEDGER_CONFIG_CREATION_2026-11-14.md`, commit `63f4cacf81fe351b259fda1fdf2a604515cfd2c5`.
+- Status: Ledger/config creation and SQLite/origin checks **PASS within owner-reported command scope**; risk readiness **BLOCKED / NOT READY by design**; persistent PAPER runtime and overall VPS operational readiness **NOT VERIFIED / BLOCKED**.
+- Next: bounded read-only review of the generated config and Ledger risk snapshot, then define the valid market-mark source/freshness contract. Do not record a mark or enable risk readiness without separate bounded approval.
+- Restrictions remain: no T0 access/mutation, Bootstrap, preflight, Decision Cycle, One-shot, Runner, service/autostart, exchange access, AI execution, live trading or real orders. Preserve the existing untracked VPS file and all existing data.
+
+
+## 2026-11-14 — PAPER Ledger read-only state inspection
+
+- Owner-approved read-only inspection completed at owner-reported VPS source SHA `b92bb75b00b6f91c39c1b78fafab5cd1c77d8fde`, branch `feature/core-operational-proof-20261112`.
+- Config SHA-256: `211a29985c6c3b211f50edea87c4371acf69ee339ad513ae722ad289b5ea9bb6`; config explicitly PAPER and `ai_execution_enabled=false`.
+- Owner-pasted output: SQLite integrity `ok`; simulated origin valid; PAPER initial capital 100 USDT; migrations 1–11 all APPLIED; all Core/AI/Legacy ledger positions and accounting values zero; no order rows.
+- Risk state: HWM and daily baseline 100; no last equity, mark price, mark timestamps or dataset version; `risk_ready=0`, reason `SIMULATED_INITIAL_MARK_REQUIRED`.
+- Kill Switch: `paused=0`, `killed=0`, reason null — **not armed**. No change was authorized or performed. The independent `risk_ready=0` state remains a fail-closed readiness blocker.
+- Evidence: `docs/evidence/VPS_PAPER_LEDGER_READONLY_INSPECTION_2026-11-14.md`, commit `b4344208deeb04e3d1ba11a6d8cc09d15f73bbc5`.
+- Evidence provenance: owner-pasted terminal output; no independent SSH observation and no CI workflow/artifact.
+- Status: read-only inspection **PASS** within scope; risk readiness **BLOCKED / NOT READY**; Kill Switch **NOT ARMED**; persistent PAPER runtime and overall VPS operational readiness **NOT VERIFIED / BLOCKED**.
+- Next: design and seek separate approval for the read-only market-data source and first simulated mark ingestion contract (timeframe, freshness, dataset provenance, exact write operation). No mark write, Kill Switch mutation, preflight, Bootstrap, Decision Cycle, One-shot or Runner until separately approved.
+- Restrictions remain: no T0 mutation, no AI execution, no live trading or real orders; preserve existing VPS files and data.
+
+
+## 2026-11-14 — T0 canonical database loopback API read-only test
+
+- Active branch: `feature/core-operational-proof-20261112`; branch HEAD before this handoff update: `1687af6434112628a0d3cd5f376281c5e6aae269`.
+- Owner-reported VPS checkout/source SHA: `b92bb75b00b6f91c39c1b78fafab5cd1c77d8fde`; tested source was the synchronized `market_data` package at this SHA.
+- Owner-approved bounded test ran `python -m market_data.api` as a short-lived local process bound to `127.0.0.1:8788`, with SQLite backend and canonical database `/home/ubuntu/t0/data/market-data.sqlite3`. A temporary in-memory Bearer token was used; no token/config was persisted.
+- Owner-pasted results: API `/health` PASS; authenticated `GET /v1/candles` against the canonical database PASS; empty M15 window returned contract `1.0.0`, 0/1 candles and no data; invalid token rejected with HTTP 401; POST rejected with HTTP 405; `/v1/orders` returned HTTP 404; API process stopped successfully.
+- Owner-pasted integrity evidence: canonical T0 database SHA-256 unchanged across the test; independent PAPER Ledger SHA-256 unchanged across the test. No T0/PAPER database writes were observed in the returned checks.
+- Evidence provenance: owner-pasted terminal output; no independent SSH observation, GitHub Actions workflow, workflow run or artifact. No CI run was requested or produced.
+- Status: **PASS** for the bounded loopback API/read-only access behavior and the supplied unchanged-database hash checks. API empty-window behavior does not prove market-data availability. T0 canonical DB currently has zero candles; Feeder and Binance ingestion remain NOT STARTED; live M15/H1 data readiness remains **NOT VERIFIED**. PAPER Ledger remains unchanged and `risk_ready=0`; persistent PAPER runtime readiness remains **BLOCKED / NOT VERIFIED**.
+- No Feeder, ingestion, exchange API, systemd/autostart, Runner/One-shot, AI execution, live order or real trading action occurred. Paper-only posture and `AI_EXECUTION_ENABLED=false` remain unchanged.
+- Next: perform the separately bounded read-only Feeder configuration/startup-path inspection. Do not start Feeder or ingest/write market data until a separate explicit approval.
+
+
+## 2026-11-15 — T0 Feeder / T0→T2 bounded verification and lifecycle review
+
+### Scope and safety boundary
+- Active repository branch remains `feature/core-operational-proof-20261112`; no new branch or PR.
+- Owner-reported replacement VPS: `ubuntu@scw-optimistic-jang`; repository path `/home/ubuntu/btcusdt-telegram-signals2`; tested VPS checkout/source SHA `b92bb75b00b6f91c39c1b78fafab5cd1c77d8fde`.
+- This update records owner-pasted terminal output and read-only source inspection. The assistant did not establish an SSH session or independently inspect the VPS.
+- Paper-only posture remains. `AI_EXECUTION_ENABLED=false`; no real orders, no AI execution, no Bootstrap/Runner/One-shot/Decision Cycle activation, no systemd/autostart, no credential changes.
+- T0 canonical DB and independent PAPER Ledger were not intentionally mutated by the bounded checks. Preserve the existing untracked VPS file and `core_runtime/config.paper.json`; do not clean or overwrite them.
+- No change to T0 source/runtime, T0 DB, Paper Ledger, freshness threshold, or service configuration was authorized or performed.
+
+### T0→T2 HTTP integration evidence
+- T0 API was started temporarily on loopback `127.0.0.1:8788` for the bounded read-only integration test and stopped afterward.
+- T0 API health: **PASS**.
+- T2 `canonical_context(bars=300, timeframe="15m")`: **PASS**, 300 candles returned; datasetVersion `sha256:0c1d712697a1ec8375154160c9c1d4c44ea04c10e4ba192e64b413981818c512`.
+- T2 `canonical_context(bars=300, timeframe="1h")`: **BLOCKED**, `CandleHttpError FRESHNESS_EXCEEDED`.
+- Owner reported 50 unit tests completed: **50/50 PASS**. No GitHub Actions run or artifact was produced for this owner-run test output.
+- API process was stopped. No T0/PAPER DB mutation was reported.
+
+### T0 data and Feeder state at latest diagnostic
+- Diagnostic time: 2026-11-14 22:38:29.333 UTC.
+- SQLite path: `/home/ubuntu/t0/data/market-data.sqlite3`; integrity check **ok**.
+- Latest M15 candle: open 22:15 UTC, close 22:29:59.999, available 22:30:09.501; ingestion lag 9,502 ms. Its observation age at diagnostic was approximately 499,832 ms.
+- Latest H1 candle: open 21:00 UTC, close 21:59:59.999, available 22:27:28.997; ingestion lag 1,648,998 ms (~27m29s).
+- At that diagnostic there were no missing closed intervals for M15 or H1. Counts: M15 324, H1 306. Lease owner was NULL, generation 3, expiry 0; Feeder process/session was not running.
+- The H1 historical recovery batch assigned a common `available_at_ms` to the candles in the fetched page. This explains the stale availability timestamp; it is not evidence that the exchange candle close time is wrong.
+- Do not rewrite `available_at_ms` to manufacture freshness. `SQLiteWriteGateway.write_batch()` leaves an existing same-OHLCV candle unchanged and rejects conflicting closed-candle history; it does not refresh an existing row's availability timestamp.
+- T0 Feeder was stopped after the bounded recovery run; lease was released. No systemd unit/autostart was found in the owner-pasted inspection. Stale PID files/logs do not prove a live process.
+
+### Read-only source findings requiring disposition
+- `sync_window()` captures `observed_at` after each CCXT page response; all candles from one page can therefore share an `available_at_ms`. Exchange server-time and local observed-time checks are applied to closed candles.
+- `FeederRuntime.start()` currently acquires the lease, opens the WAL keeper, performs `recovery.recover_all()`, starts the scheduler, marks runtime/health READY, and only then starts the lease-heartbeat thread. A recovery taking longer than the configured lease TTL could allow lease expiry before heartbeat begins. Fencing still prevents an expired/stale owner from committing writes, but startup may fail or lose the lease. Effective TTL/heartbeat/recovery configuration must be confirmed before proposing a change; no TTL adjustment is approved.
+- `FeederScheduler._run_background()` catches a background scheduler exception, stores `_thread_error`, and stops its scheduler loop. It does not currently propagate that failure into `FeederRuntime.state` or mark health not-ready.
+- `run_service()` checks only runtime state values `LEASE_LOST` and `FAILED`. Therefore a scheduler thread can stop after a non-lease exception while runtime remains RUNNING/READY and the service loop continues. This is a **potential lifecycle/health defect requiring a focused reproducer and TDD fix proposal**, not yet an implemented or fully tested finding.
+- Shutdown path inspected: scheduler stop/drain precedes lease release; lease release is scoped to the exact owner/generation; WAL keeper closes after drain/release or lease loss. Do not weaken this fencing or shutdown ordering.
+
+### Current status
+- T0 API loopback read-only test: **PASS** within the bounded owner-run scope.
+- T2 M15 300-candle context: **PASS**.
+- T2 H1 300-candle context: **BLOCKED — FRESHNESS_EXCEEDED**.
+- T0 SQLite integrity and lease-release snapshot: **PASS** at the supplied diagnostic point.
+- Ongoing Feeder operation / scheduler health: **NOT RUN / NOT VERIFIED**; Feeder is stopped.
+- T0→T2 end-to-end freshness parity for both timeframes: **PARTIAL / BLOCKED**.
+- Scheduler-error propagation and startup heartbeat timing: **SOURCE FINDINGS / NOT YET REPRODUCED BY TESTS**.
+- No change to `T0_CANDLE_MAX_LAG_MS=120000`; no timestamp rewrite, database migration, cleanup, or data deletion.
+
+### Next permitted step
+1. Complete the pending read-only inspection of effective `FeederConfig` values (lease TTL, heartbeat interval, poll interval, close grace and recovery lookback) and exact runtime-builder wiring.
+2. Build focused deterministic tests for: (a) scheduler background exception must transition runtime/health out of READY and surface a nonzero service result; (b) lease validity during startup recovery and heartbeat activation ordering. Use synthetic/fake clock and in-memory/disposable fixtures; do not start the VPS Feeder.
+3. Follow TDD on the existing branch only. Before changing production lifecycle behavior, report the exact failing tests and proposed minimal scope for owner approval. Do not change T0 runtime, database, lease values, freshness threshold, or VPS state without separate explicit approval.
+4. Re-run the bounded T0→T2 tests only after the timestamp/freshness semantics are resolved without falsifying observation time.
+
+
+
+## 2026-11-15 — T0 Feeder background scheduler failure regression and fix
+
+### Scope and source
+- Active branch: `feature/core-operational-proof-20261112`; branch HEAD at this update: `abc937715816492b37b06f3a4ef9d0345c40c583`.
+- Owner approved a narrowly scoped production fix after the isolated background-scheduler regression demonstrated that a scheduler exception could leave Runtime RUNNING/READY while `run_service()` returned 0.
+- Production changes are limited to `market_data/feeder.py` and `market_data/feeder_service.py`; regression assertions are in `market_data/test_feeder_runtime_regressions.py`.
+- Commits: `329a94f95aac09ac0fe83381acfbb9ac60d58a15` (Runtime failure detection), `4539fc1fcb4d60d654ea24c7c26a08516404c90f` (service propagation), and `abc937715816492b37b06f3a4ef9d0345c40c583` (lease-through-drain regression assertion).
+- Final tested source SHA: `abc937715816492b37b06f3a4ef9d0345c40c583`.
+
+### Fix behavior
+- Runtime exposes `check_background_failure()`: detects the scheduler's recorded background exception, transitions RUNNING to FAILED, requests heartbeat stop, marks health not-ready, and emits the scheduler-failure event.
+- `run_service()` polls this Runtime health method before evaluating lifecycle state; FAILED returns service result 3.
+- Shutdown still announces STOPPING before `runtime.stop()`; the regression verifies the exact lease remains valid at STOPPING and is released only after the runtime drain/stop path completes.
+- No canonical T0 DB, schema, lease TTL/heartbeat configuration, market data, PAPER Ledger, VPS runtime, or trading execution was changed by this code increment.
+
+### Verification and provenance
+- Owner-pasted isolated worktree test output at exact source SHA `abc937715816492b37b06f3a4ef9d0345c40c583`: `Ran 56 tests in 1.457s — OK`.
+- The executed command covered `market_data.test_feeder_runtime_regressions`, `market_data.test_feeder_lifecycle`, and `market_data.test_feeder_scheduler`; result **56/56 PASS**.
+- This is owner-provided terminal evidence. The assistant did not access the VPS or independently execute the tests.
+- GitHub Actions workflow runs and artifacts for this SHA: **NONE returned / NOT VERIFIED**. No CI PASS is claimed.
+- Branch comparison from the prior test commit `0f8c6baef3f1550fbd272bc85586302cda5a8f86`: ahead 3, behind 0; exactly the three intended source/test files changed.
+
+### Status and next gate
+- Focused T0 feeder regression + lifecycle + scheduler tests: **PASS (56/56), owner-pasted isolated-worktree evidence**.
+- Source fix: **COMMITTED** on the existing active branch.
+- GitHub Actions evidence: **NOT VERIFIED**.
+- Deployment to replacement VPS / T0 runtime: **NOT AUTHORIZED / NOT PERFORMED**. No service restart, Feeder start, autostart/systemd change, or T0 DB access/mutation is implied by this test PASS.
+- Next: review the final diff and CI coverage; separately request explicit bounded approval before any VPS deployment or runtime validation. Preserve paper-only posture and `AI_EXECUTION_ENABLED=false`; no real orders.
+
+
+## 2026-11-15 — Review gate after T0 Feeder scheduler fix
+
+- Reviewed exact source diffs in `329a94f95aac09ac0fe83381acfbb9ac60d58a15`, `4539fc1fcb4d60d654ea24c7c26a08516404c90f`, and `abc937715816492b37b06f3a4ef9d0345c40c583`, plus the regression test.
+- Review verdict: no correctness/security blocker identified in the bounded implementation; lease is retained through STOPPING/drain and the existing stop path releases only the exact owner/generation. The 56-test owner-reported result supports this scope.
+- Maintainability note (non-blocking): Runtime currently reads scheduler's private `_thread_error`; a public, thread-safe scheduler failure accessor would make this boundary clearer if the scheduler interface is next revised. No additional source edit was made during this review.
+- CI coverage gap: the inspected T0 feeder workflows target the older branch `feature/t0-centralized-data-feeder-p1-20261101`; their path filters do not include `market_data/test_feeder_runtime_regressions.py`. The active-branch Core operational workflow does not cover these T0 feeder files. No matching GitHub Actions run/status/artifact exists for the tested SHA. Therefore automated CI evidence is **NOT VERIFIED**.
+- Next gate: owner decision whether to add a narrowly scoped GitHub Actions workflow on `feature/core-operational-proof-20261112` for the three feeder regression/lifecycle/scheduler suites and upload exact-SHA logs. VPS deployment/runtime validation remains a separate approval gate and has not been performed.
+
+
+## 2026-11-15 — Dedicated T0 Feeder regression CI
+
+- Owner explicitly approved a narrowly scoped CI workflow for the T0 Feeder background scheduler fix.
+- Added `.github/workflows/t0-feeder-regression-ci.yml` on the existing active branch `feature/core-operational-proof-20261112`; workflow commit/source SHA: `d259c73e419b757dd3166158efc6247e41120ff2`.
+- Workflow scope is restricted to Feeder source/test path changes on this branch and manual dispatch. It checks out the exact pushed SHA, uses Python 3.11, compiles the five relevant modules, and runs `market_data.test_feeder_runtime_regressions`, `market_data.test_feeder_lifecycle`, and `market_data.test_feeder_scheduler`.
+- Safety boundary: temporary test fixtures only; persistent T0/PAPER DB variables and exchange credentials are explicitly empty/guarded; `AI_EXECUTION_ENABLED=false`; no deployment or runtime service action.
+- Evidence artifact is configured to retain exact-SHA provenance, test log, compile verdict, safety scope and final verdict for 14 days.
+- Initial automatic push run: workflow run ID `43653926985`, exact SHA `d259c73e419b757dd3166158efc6247e41120ff2`, URL https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43653926985. At handoff update time the run was **IN_PROGRESS**; final conclusion and artifact availability remain pending.
+- VPS/T0 deployment remains **NOT AUTHORIZED / NOT PERFORMED**. No T0 DB or PAPER Ledger access/mutation, service restart, Feeder activation, autostart/systemd change, or real order is part of this workflow.
+- Next: collect final run conclusion, job logs and artifact metadata; record PASS/FAIL against the exact run SHA. Deployment remains a separate explicit approval gate.
+
+
+### Final CI result — T0 Feeder regression workflow
+
+- Workflow run `43653926985`: **SUCCESS**, job `132628186583`, exact checkout SHA `d259c73e419b757dd3166158efc6247e41120ff2`.
+- Job log confirms Python 3.11.18, `PY_COMPILE=PASS`, `Ran 56 tests in 1.146s — OK`, and `T0_FEEDER_REGRESSION_LIFECYCLE_SCHEDULER=PASS`.
+- All 56 named tests passed: 2 regression tests, 34 lifecycle tests and 20 scheduler tests.
+- Artifact `t0-feeder-regression-d259c73e419b757dd3166158efc6247e41120ff2`, ID `14137655936`, uploaded successfully. SHA-256: `10bd4cca19022b35308ac1c1f69819196ed54388522bdb3c3564a0a8fb032102`. Run URL: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43653926985
+- Initial artifact retention request of 14 days exceeded the repository maximum; GitHub applied 7 days. Workflow was corrected in commit `1679e709cdda8ce108dada5253754513e5bee253` to request 7 days. This metadata-only correction does not change test source or test commands; the successful artifact remains available until its reported expiry.
+- Final status: source fix + focused tests **PASS**; dedicated CI workflow **PASS**; artifact **UPLOADED**; VPS/T0 deployment **NOT AUTHORIZED / NOT PERFORMED**. The successful run tested the exact Feeder source SHA stated above, not the later documentation or retention-only commits.
 ## 2026-11-15 — T0 Feeder regression verification on Python 3.12
 
 - Candidate source: `d259c73e419b757dd3166158efc6247e41120ff2`, retrieved through public GitHub HTTPS and checked out as a detached worktree at `/home/ubuntu/btcusdt-telegram-signals2-candidate`.
