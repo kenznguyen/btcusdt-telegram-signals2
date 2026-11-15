@@ -262,11 +262,11 @@ jobs:
               echo "CORE_BUNDLE_PROVIDER=NOT_VERIFIED"
             fi
             if grep -q "test_run_continuous_hands_factory_bundle_provider_to_runner_loop .* ok" continuous-core-runtime-factory-tests.log; then
-    echo "CORE_BUNDLE_PROVIDER_CONTINUOUS_RUNNER_WIRING=PASS"
-    echo "CORE_BUNDLE_PROVIDER_CONTINUOUS_RUNNER_WIRING_TESTS=1_PASS"
-  else
-    echo "CORE_BUNDLE_PROVIDER_CONTINUOUS_RUNNER_WIRING=NOT_VERIFIED"
-  fi
+              echo "CORE_BUNDLE_PROVIDER_CONTINUOUS_RUNNER_WIRING=PASS"
+              echo "CORE_BUNDLE_PROVIDER_CONTINUOUS_RUNNER_WIRING_TESTS=1_PASS"
+            else
+              echo "CORE_BUNDLE_PROVIDER_CONTINUOUS_RUNNER_WIRING=NOT_VERIFIED"
+            fi
             echo "CORE_ENTRY_PAPER_FLOW=PASS"
             echo "CORE_DCA_END_TO_END=PASS"
             echo "CORE_DCA_MARGIN_BUDGET=PASS_ENTRY_AND_DCA_EACH_WITHIN_1_PERCENT"
