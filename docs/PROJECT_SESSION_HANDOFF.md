@@ -6400,3 +6400,20 @@ Current application:
 - Do not add more offline tests merely to imply operational readiness. First obtain an explicit owner decision on the bounded T0 data availability/reacquisition scope, keeping T0 independent and unchanged until separately authorized.
 - In parallel, any PAPER Ledger readiness investigation must remain strictly read-only unless separately approved. Do not create a simulated initial mark, run Bootstrap, activate the actual Runner, create services/systemd/autostart, connect to an exchange, or place orders.
 - After the data decision and required evidence, prepare a separate, narrowly scoped readiness/activation proposal for owner approval. This handoff records test evidence only and grants no runtime authorization.
+
+
+## 2026-11-15 — Weekly contribution and effort ledger reconciliation
+
+- Scope: documentation-only reconciliation of the contribution ledger against the active Core First handoff, selected GitHub commits, PR metadata, workflow job conclusions and artifact metadata.
+- Active branch: `feature/core-operational-proof-20261112`; pre-update HEAD: `55ac20402909fa72d43f4483cb6b228e95360a1a`.
+- The baseline ledger existed on `main` but was absent from this active branch. Carried forward the existing baseline and appended the 2026-11-15 reconciliation in `docs/PROJECT_CONTRIBUTION_EFFORT_LEDGER.md`.
+- Ledger commit: `2caa364887d0dbd820c3290f23a9907494307cc1`.
+- Core First tested source SHA: `f9648c40f9fff82f5aef5011be9a2474ddde87a7`. Active branch HEAD before this documentation update was 3 commits ahead / 0 behind the tested SHA; the three intervening commits changed only this handoff. No source change was found in that delta.
+- GitHub Actions runs: [43664372302](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43664372302), job `132660376360` SUCCESS, artifact `14141951157`; and [43664372342](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43664372342), job `132660812848` SUCCESS, artifact `14141667068`. Both artifacts remain unexpired in GitHub metadata. Their payload bytes were not independently downloaded and re-hashed in this review.
+- New PRs reviewed: #141 and #142 merged to `main`; #144 merged to `main`. None is the active Core First branch PR; Core First has no PR.
+- Selected VPS offline test evidence recorded from owner-pasted terminal summaries: 130/130 unit/contract tests PASS at `f9648c40f9fff82f5aef5011be9a2474ddde87a7`. This is not proof of persistent PAPER Ledger readiness or continuous runtime behavior. Persistent Ledger/Shared Risk readiness remains NOT VERIFIED; T0 data availability remains BLOCKED / NOT VERIFIED; AI remains deferred and `AI_EXECUTION_ENABLED=false`.
+- Attribution: USER for owner decisions and owner-reported VPS test execution; CHATGPT for this reconciliation/documentation assistance; source implementation split UNKNOWN where commit/session evidence does not distinguish manual from AI-assisted authorship. No JOINT allocation was inferred.
+- Time accounting: no new measured or user-estimated project hours. Effort remains UNKNOWN / UNMEASURED; test runtimes are not labor time.
+- Tests/CI were not rerun for this documentation-only update. No source, strategy, workflow, trading setting, credential, VPS, database, Feeder, exchange connectivity or runtime state changed.
+- Status: **PARTIAL**. GitHub job and artifact metadata verified; artifact payload rehash and complete repository-wide PR/workflow inventory NOT VERIFIED. VPS results remain owner-reported, not independently observed.
+- Next: follow the existing Core First handoff gate. No simulated initial mark, Bootstrap, actual Runner, service/autostart, T0 access/mutation, exchange access, AI execution or live trading is authorized by this ledger update.
