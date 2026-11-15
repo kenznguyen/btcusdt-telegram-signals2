@@ -6315,3 +6315,33 @@ Current application:
 ### Next step
 - Run only `core_runtime.test_continuous_runner` as the next bounded offline unit-test module. If it passes, record its result before proceeding to `core_runtime.test_continuous_dry_run`.
 - Do not activate a persistent or long-running Runner, initialize or mutate the PAPER Ledger, or infer runtime readiness from unit/contract PASS. Those remain separate approval and evidence gates.
+
+
+## 2026-11-15 — Core First Continuous Runner VPS offline verification
+
+### Scope and provenance
+- Scope: one bounded offline unit-test module for the Continuous Core Runner contract; no persistent or long-running Runner activation.
+- Evidence provenance: owner-pasted terminal summary from the VPS. No independent SSH observation, retained full test log, GitHub Actions run, or GitHub artifact was produced by this VPS test.
+- Repository: `kenznguyen/btcusdt-telegram-signals2`; branch: `feature/core-operational-proof-20261112`.
+- Tested source SHA: `f9648c40f9fff82f5aef5011be9a2474ddde87a7`.
+- Runtime: Python 3.12.3, isolated virtualenv `.venv-core-verify`.
+- Test command explicitly set `AI_EXECUTION_ENABLED=false`; T0/market-data/PAPER DB and Binance/OKX credential environment variables were empty.
+
+### Result
+- Module: `core_runtime.test_continuous_runner`.
+- Result: **23/23 PASS**, reported duration **2.868 seconds**.
+- Combined selected VPS offline tests: **121/121 PASS** across nine groups, comprising the previously recorded 98/98 plus Continuous Runner 23/23. No repeated test group is double-counted.
+- No new GitHub Actions workflow run or artifact was created by this VPS test. Do not infer run IDs, job IDs, artifact IDs, or digests.
+
+### Status and limits
+- Selected offline unit/contract tests, including Continuous Cadence, Durable Journal, and Continuous Runner contracts: **PASS (121/121)** at tested source SHA `f9648c40f9fff82f5aef5011be9a2474ddde87a7`.
+- Continuous dry-run test module: **NOT YET RUN**.
+- Persistent PAPER Ledger readiness and actual Shared Risk readiness: **NOT VERIFIED**.
+- Actual continuous runtime activation, long-running stability, real-data-backed PAPER evaluation, and predictive/OOS value: **NOT VERIFIED**.
+- These owner-pasted test summaries do not independently verify VPS checkout/runtime parity.
+- No T0 access/mutation, persistent PAPER Ledger mutation, simulated initial mark, Bootstrap, actual Runner activation, service/systemd/autostart change, exchange connection, AI execution, live order, or real trading occurred.
+- AI remains disabled; independent AI Strategy remains deferred until Core First gates and evidence requirements are satisfied.
+
+### Next step
+- Run only `core_runtime.test_continuous_dry_run` as the next bounded offline test module. Record its result before considering any further step.
+- Do not infer that a passing dry-run test authorizes a persistent/long-running Runner, PAPER Ledger initialization, Bootstrap, or trading. Those remain separate explicit approval and evidence gates.
