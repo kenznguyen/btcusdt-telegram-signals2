@@ -6095,3 +6095,42 @@ Current application:
 - Status: Git merge and HTTPS branch synchronization **PASS**. Focused Feeder regression/lifecycle/scheduler verification **PASS** on the recorded source SHA and runtimes. Merge-commit CI **NOT VERIFIED / no status entries returned**.
 - Safety boundary unchanged: no VPS runtime deployment/restart, no T0 DB or Feeder runtime mutation, no PAPER Ledger mutation, no systemd/autostart, no live trading, and `AI_EXECUTION_ENABLED=false`.
 - Next: preserve this synchronized checkpoint. Before any subsequent source or runtime work, inspect the current handoff and active branch state. Any VPS runtime action remains a separate explicit approval gate.
+
+
+## 2026-11-15 — Bounded VPS PAPER config and Ledger read-only inspection
+
+### Scope and provenance
+- Owner-approved scope: inspect VPS branch/HEAD/working-tree state, allowlisted PAPER config fields, and PAPER Ledger metadata using read-only commands only.
+- Evidence source: terminal output pasted by the owner in ChatGPT. No independent SSH observation or remote-shell access was available to the assistant.
+- VPS checkout: `/home/ubuntu/btcusdt-telegram-signals2`.
+- Branch: `feature/core-operational-proof-20261112`.
+- VPS HEAD: `7441657fd0049feff95b28200cf21881fe39e606`. This is the local documentation commit recorded as the first parent of merge checkpoint `19d70419016fd47d22b79562fcb9794e015e645f`; it is not the later merge checkpoint or the tested Core Runner R0–R3 source SHA `482477b4b694af5c812170d11012e9aba29e089f`.
+- `git status --short` reported three modified tracked files (`docs/PROJECT_SESSION_HANDOFF.md`, `freqai_bridge/http_candles.py`, `freqai_bridge/test_http_candles.py`) and two untracked paths (`core_runtime/config.paper.json` and a path literally named `s PaperLedger|def __init__|sqlite3.connect|CREATE TABLE|CREATE INDEX|executescript|mkdir|makedirs|migration' `).
+- Origin remote was reported as SSH URL `git@github.com:kenznguyen/btcusdt-telegram-signals2.git`; no remote fetch/push was attempted. Preserve all dirty and untracked paths; do not reset, clean, delete, or overwrite them as part of this inspection.
+
+### PAPER config
+- `core_runtime/config.paper.json` exists.
+- SHA-256: `211a29985c6c3b211f50edea87c4371acf69ee339ad513ae722ad289b5ea9bb6`, matching the previously recorded 2026-11-14 config evidence.
+- Allowlisted fields observed: `mode=PAPER`, `ai_execution_enabled=False`, `ledger_path=/home/ubuntu/btcusdt-telegram-signals2/.data/paper-ledger.sqlite3`.
+- The inspection did not print `account_type` or `initial_capital`; do not infer those values from this output.
+
+### PAPER Ledger
+- `.data/paper-ledger.sqlite3` exists and was opened with SQLite URI `mode=ro`.
+- `PRAGMA integrity_check`: `ok`.
+- Tables observed: `paper_account_adjustments`, `paper_account_config`, `paper_account_cutover_ledger_snapshots`, `paper_account_equity_cutovers`, `paper_account_event_journal`, `paper_account_history_coverage`, `paper_account_risk_state`, `paper_accounts`, `paper_audit`, `paper_book_level_reservations`, `paper_books`, `paper_daily_baselines`, `paper_daily_equity_baseline_audit`, `paper_daily_equity_baselines`, `paper_equity_history`, `paper_funding_coverage`, `paper_funding_events`, `paper_funding_reconciliations`, `paper_legacy_book_consumptions`, `paper_market_mark_history`, `paper_orders`, `paper_risk_control`, `paper_risk_reservations`, `paper_schema_migrations`, `paper_simulated_capital_origin`, `paper_simulated_capital_seed_events`, `paper_simulated_daily_baseline_events`, `paper_simulated_equity_origin`, `paper_state`, `paper_strategy_ledgers`, `paper_strategy_state`, and `sqlite_sequence`.
+- Row counts: `paper_account_adjustments=2`; `paper_account_config=1`; `paper_account_risk_state=1`; `paper_accounts=1`; `paper_risk_control=1`; `paper_schema_migrations=11`; `paper_simulated_capital_origin=1`; `paper_simulated_capital_seed_events=1`; `paper_simulated_equity_origin=1`; `paper_state=1`; `paper_strategy_ledgers=3`; `paper_strategy_state=1`. All other listed application tables had zero rows; `sqlite_sequence=0`.
+- `paper_orders=0`; `paper_market_mark_history=0`; `paper_equity_history=0`.
+- This inspection did not query current `risk_ready`, `unavailable_reason`, Kill Switch state, simulated capital values, or position-level fields. The prior 2026-11-14 inspection reported risk not ready due to `SIMULATED_INITIAL_MARK_REQUIRED` and Kill Switch not armed; those values are historical and must not be treated as a fresh 2026-11-15 observation.
+
+### Status
+- Config existence/hash and allowlisted PAPER mode / AI-disabled fields: **PASS** (owner-pasted read-only evidence).
+- Ledger existence, SQLite integrity, schema inventory and row counts: **PASS** (owner-pasted read-only evidence).
+- Source parity with current approved Core First candidate: **BLOCKED / NOT VERIFIED**. VPS HEAD is the pre-merge local parent `7441657...`; the working tree has five dirty/untracked paths. Do not treat this as Core Runner source parity.
+- Current risk readiness and Kill Switch state: **NOT VERIFIED** in this inspection; previous evidence remains risk-not-ready / Kill Switch-not-armed.
+- Persistent PAPER runtime and Core Runner execution: **NOT VERIFIED / NOT RUN**.
+- AI strategy remains deferred; `ai_execution_enabled=false`. No live trading or real orders.
+
+### Safety boundary and next step
+- No source sync, checkout, reset, cleanup, file deletion, config write, Ledger write, migration, Preflight, Bootstrap, Decision Cycle, One-shot, Runner, service operation, Kill Switch mutation, T0 access/mutation, exchange access, or order submission was performed or authorized.
+- Preserve the dirty/untracked paths exactly as found. Do not use the SSH remote without a separately approved HTTPS-based synchronization plan.
+- Next bounded evidence step, if needed: a read-only query of the existing `paper_account_risk_state` and `paper_risk_control` records to report only `risk_ready`, `unavailable_reason`, `paused`, and `killed`; do not alter rows or initialize a market mark.
