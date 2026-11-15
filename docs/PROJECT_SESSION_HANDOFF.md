@@ -6417,3 +6417,14 @@ Current application:
 - Tests/CI were not rerun for this documentation-only update. No source, strategy, workflow, trading setting, credential, VPS, database, Feeder, exchange connectivity or runtime state changed.
 - Status: **PARTIAL**. GitHub job and artifact metadata verified; artifact payload rehash and complete repository-wide PR/workflow inventory NOT VERIFIED. VPS results remain owner-reported, not independently observed.
 - Next: follow the existing Core First handoff gate. No simulated initial mark, Bootstrap, actual Runner, service/autostart, T0 access/mutation, exchange access, AI execution or live trading is authorized by this ledger update.
+
+
+## 2026-11-15 — Branch movement and source-provenance correction
+
+- After the weekly ledger commits, a fresh compare against the active branch ref showed that the branch had advanced beyond the earlier observed snapshot `55ac20402909fa72d43f4483cb6b228e95360a1a`.
+- Current branch HEAD verified by branch-ref comparison: `020dfb2910fe282c8a9114d1836f00f2f8189dda`.
+- GitHub compare reports 31 commits ahead of the earlier snapshot and a net diff including `.github/workflows/core-live-data-operational-proof.yml`, `core_runtime/__main__.py`, `core_runtime/bundle_inputs.py`, `core_runtime/bundle_provider.py`, `core_runtime/runtime_factory.py`, `core_runtime/test_bundle_inputs.py`, `core_runtime/test_bundle_provider.py`, and `core_runtime/test_runtime_factory.py`, plus documentation. Against the previously tested SHA `f9648c40f9fff82f5aef5011be9a2474ddde87a7`, the branch is 34 commits ahead.
+- This supersedes any interpretation that the current branch tip is only documentation-ahead of the tested source. The intervening source/workflow changes have not been reviewed or verified in this ledger task. Current code-source SHA / branch-tip test coverage: **NOT VERIFIED**.
+- Runs [43664372302](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43664372302) and [43664372342](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43664372342) remain evidence only for exact source SHA `f9648c40f9fff82f5aef5011be9a2474ddde87a7`; do not transfer their PASS status to the later branch source.
+- The ledger/handoff commits were documentation-only. No source/workflow changes, branch reset/rebase/force-push/merge, runtime, VPS, DB, Feeder, exchange or trading operation was performed by this review.
+- Corrected status: **PARTIAL**; earlier tested source evidence PASS, current branch source parity **NOT VERIFIED**. Next: reconcile the intervening branch commits and establish the exact current code SHA before relying on prior CI evidence.
