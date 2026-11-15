@@ -6555,3 +6555,32 @@ This is an isolated T1 collector repository increment. The active Core First sou
 2. Complete reverse-dependency/reachability analysis for `quinn-udp` and `rustix`; request explicit approval before dependency remediation.
 3. Close remaining P0 HTTP transport/fail-closed test gaps offline.
 4. Only after those gates, request separate approval for an actual loopback T1→T2 integration test or runtime activation. Do not infer runtime authorization from source/CI compatibility.
+
+
+## 2026-11-15 — T1 Order Book API transport hardening follow-up
+
+This supersedes the earlier T1 progress snapshot in this handoff for current T1 branch/source evidence; it does not change the Core First priority or any T2 source.
+
+- T1 repository: `kenznguyen/binance-futures-collector`.
+- T1 active branch: `feature/t1-connection-sidecar-integration-20261107`.
+- T1 branch HEAD after evidence/specification-only commits: `361eddfbe34c7f0c9dc0bc3934a7ef9fdc8c5e57`.
+- Exact T1 source SHA checked by CI: `23c5bc975f3d495ec5c482a33c9c192f6a8c0c3f`. Compare confirms the two commits after this source SHA modify only the P3 evidence and test-spec documents.
+- T1 push workflow [#685](https://github.com/kenznguyen/binance-futures-collector/actions/runs/43711013002), run ID `43711013002`, exact source SHA above:
+  - Collector fmt/Clippy/release build/all tests: PASS; 111 library tests, 27 P3 Order Book HTTP contract integration tests and all other targets passed.
+  - Native ARM64 build/test and AArch64 ELF verification: PASS; same 111 library tests and 27 P3 integration tests passed.
+  - Dashboard backend/frontend and Docker: PASS.
+  - Security job: FAIL due Rust advisories; npm audit steps skipped.
+- New HTTP boundary tests cover bearer length/content mismatch, empty/overlong token startup, non-loopback listener, oversized headers, body/Transfer-Encoding, incomplete-header I/O timeout, concurrent-capacity 503, oversized-snapshot 503 without truncation, and security response headers. The implementation uses a fixed 4 KiB bearer comparison loop, caps the configured token, and bounds overload response tasks.
+- T1 test-first RED run [43710799427](https://github.com/kenznguyen/binance-futures-collector/actions/runs/43710799427), exact test SHA `7c20bb031bafb540648a5a14922bf6f760465fe3`: 110 passed, 1 failed because an overlong token was accepted. Fix commit `23c5bc975f3d495ec5c482a33c9c192f6a8c0c3f); run #685 passes.
+- T1 PR workflow [#686](https://github.com/kenznguyen/binance-futures-collector/actions/runs/43711017167), PR #1: collector, ARM64, dashboard and Docker jobs PASS; security job FAIL. The collector job checked out synthetic merge SHA `faf2b9410ef7054167946afa4d377e6eb480f01b` against base `45218c694af01602e39966d4668630323b4f8333`. PR remains OPEN / DRAFT / NOT MERGED.
+- T1 x86_64 artifact ID `14160770490`, metadata digest `sha256:b6e3bd1f8d08d5f3d597bf44bd3d3968106b9eb436bd07b551b3793648ba9f0a`; ARM64 artifact ID `14160044298`, metadata digest `sha256:f3d2c1424d95e6968b53eeef16708b548298c7eb7fead820745748edc35f66d2`. Both expire 2026-11-22. Artifact payloads not independently downloaded/re-hashed.
+- Security findings remain `quinn-proto 0.11.18` (RUSTSEC-2026-0524/0523), `quinn-udp 0.5.15` (RUSTSEC-2026-0538), and `rustix 1.1.4` (RUSTSEC-2026-0486 unsound warning). `quinn-proto` has `NO_PATH_EMITTED` in default/all-target diagnostics; `quinn-udp` and `rustix` reachability remain NOT VERIFIED. No dependency change or advisory suppression is authorized by this work.
+- T1 V1 wire contract and canonical SHA-256 `snapshotId`: **PASS at source/CI contract level**. T2 source remains unchanged and its separate 49-test contract/HTTP/loopback suite remains PASS at its recorded exact source SHA.
+- T1 P3 full acceptance: **PARTIAL / NOT ACCEPTED**; security gate is red and the full P0 publisher/environment fail-closed matrix is not complete.
+- T1 runtime/listener: **NOT VERIFIED / NOT AUTHORIZED**. T1→T2 live runtime integration: **BLOCKED / NOT RUN**. No VPS, T0, T2 source, Core First source, persistent runtime, exchange or live-order action occurred.
+
+### Next permitted T1 work
+- Preserve the current T1 branch/PR and the snapshot identity/transport hardening changes; no parallel branch/PR or merge.
+- Finish remaining P0 environment-disabled and publisher fail-closed state tests offline.
+- Complete reverse-dependency/reachability analysis for `quinn-udp` and `rustix`; ask for explicit bounded approval before dependency remediation.
+- Request separate approval before any live loopback T1→T2 integration or runtime activation.
