@@ -5867,3 +5867,19 @@ Current application:
 - Before any synchronization, operator must confirm the VPS checkout target/path and preserve a rollback copy; transfer only the approved repository source at an exact pinned commit on the existing branch. Then inspect `git rev-parse HEAD`, `git status --short`, tracked-file hashes and the intended source manifest read-only; do not execute application code or migrations. Record exact local/VPS commit and hash comparison, and stop on dirty state, mismatch, unexpected files or path overlap.
 - Active branch remains `feature/core-operational-proof-20261112`; no branch or PR created. No source code was changed for this approval record.
 - Next: obtain an authorized SSH execution path or have the owner/operator run the bounded read-only procedure and return its output; only then determine PASS/BLOCKED for VPS source parity.
+
+## 2026-11-15 — T0 Feeder regression verification on Python 3.12
+
+- Candidate source: `d259c73e419b757dd3166158efc6247e41120ff2`, retrieved through public GitHub HTTPS and checked out as a detached worktree at `/home/ubuntu/btcusdt-telegram-signals2-candidate`.
+- GitHub Actions run [43653926985](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43653926985), job `132628186583`: SUCCESS. Python 3.11.18, compile PASS, 56/56 Feeder regression/lifecycle/scheduler tests PASS.
+- CI artifact `14137655936`, `t0-feeder-regression-d259c73e419b757dd3166158efc6247e41120ff2`; SHA-256 `10bd4cca19022b35308ac1c1f69819196ed54388522bdb3c3564a0a8fb032102`.
+- VPS compatibility test: Python 3.12.3, compile PASS, 56/56 tests PASS in 1.421 seconds. Evidence directory `/tmp/t0-regression-py312-d259c73`.
+- VPS evidence SHA-256:
+  - `compile-verdict.txt`: `710cd703576efb710fada11f121022420a9140829c9aa12f5a18129459e2ecea`
+  - `source-sha.txt`: `8da4e0f1dec627f396760fd4c1dd09a355c95a4547fee12b2297982714c54331`
+  - `test-verdict.txt`: `c8cc5b494f114ba3850d1d2126145411e36a6ba8650716b6cfc6c97a3083448d`
+  - `tests.log`: `bcdf4d2979948d5eff17cdfe11f890737a9f690e45d1e4b4969bbc47f0d52c43`
+- Candidate worktree was clean after testing. Original worktree remained at `b92bb75b00b6f91c39c1b78fafab5cd1c77d8fde` with its two modified and two untracked items preserved.
+- Status: Feeder regression/lifecycle/scheduler tests PASS on Python 3.11 CI and Python 3.12 VPS. This is isolated test evidence only; it does not establish runtime readiness or authorize deployment.
+- No source merge/cherry-pick, runtime cutover, Feeder start, T0/PAPER Ledger mutation, exchange access, AI execution or real orders.
+- Next: retain the candidate as test evidence; any source integration or runtime action requires separate approval.
