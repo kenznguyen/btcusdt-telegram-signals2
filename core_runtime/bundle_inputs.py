@@ -193,9 +193,26 @@ def build_core_bundle(*, decision_at_ms, m15_payload, h1_payload,
             or risk.get("riskReady") is not True):
         _fail("RISK_NOT_READY")
     kill_switch = risk.get("killSwitch")
-    if (not isinstance(kill_switch, dict)
-            or type(kill_switch.get("enabled")) is not bool
-            or kill_switch["enabled"] is not False):
+    if not isinstance(kill_switch, dict):
+        _fail("KILL_SWITCH_NOT_CLEAR")
+    if "enabled" in kill_switch:
+        # Compatibility with the original frozen test fixture shape.
+        clear_latch = (
+            type(kill_switch.get("enabled")) is bool
+            and kill_switch["enabled"] is False
+        )
+    else:
+        # Production read_account_risk_snapshot() exposes the persisted
+        # paused/killed latch. Preserve that native snapshot byte-for-byte.
+        clear_latch = (
+            type(kill_switch.get("killed")) is bool
+            and kill_switch["killed"] is False
+            and type(kill_switch.get("paused")) is bool
+            and kill_switch["paused"] is False
+            and kill_switch.get("mode") == "PAPER"
+            and kill_switch.get("liveTradingSupported") is False
+        )
+    if not clear_latch:
         _fail("KILL_SWITCH_NOT_CLEAR")
 
     m15 = normalize_candle_window(m15_payload, timeframe="15m")
