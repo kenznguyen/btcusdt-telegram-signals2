@@ -244,6 +244,19 @@ jobs:
             echo "CORE_RUNTIME_ADAPTER_TESTS=6_PASS"
             echo "CORE_INPUT_BUNDLE_V1_VALIDATOR=PASS"
             echo "CORE_INPUT_BUNDLE_V1_TESTS=19_TOTAL_EXPECTED"
+            if grep -q "^OK$" core-bundle-input-tests.log && grep -q "Ran 6 tests" core-bundle-input-tests.log; then
+              echo "CORE_BUNDLE_INPUT_NORMALIZATION=PASS"
+              echo "CORE_BUNDLE_INPUT_NORMALIZATION_TESTS=6_PASS"
+            else
+              echo "CORE_BUNDLE_INPUT_NORMALIZATION=NOT_VERIFIED"
+            fi
+            if grep -q "^OK$" core-bundle-provider-tests.log && grep -q "Ran 4 tests" core-bundle-provider-tests.log; then
+              echo "CORE_BUNDLE_PROVIDER=PASS"
+              echo "CORE_BUNDLE_PROVIDER_TESTS=4_PASS"
+            else
+              echo "CORE_BUNDLE_PROVIDER=NOT_VERIFIED"
+            fi
+            echo "CORE_BUNDLE_PROVIDER_CONTINUOUS_RUNNER_WIRING=NOT_VERIFIED"
             echo "CORE_ENTRY_PAPER_FLOW=PASS"
             echo "CORE_DCA_END_TO_END=PASS"
             echo "CORE_DCA_MARGIN_BUDGET=PASS_ENTRY_AND_DCA_EACH_WITHIN_1_PERCENT"
@@ -291,6 +304,8 @@ jobs:
             core-runtime-adapter-contract-tests.log
             core-runtime-adapter-status.txt
             core-input-bundle-tests.log
+            core-bundle-input-tests.log
+            core-bundle-provider-tests.log
             t1-t2-orderbook-tests.log
             t1-t2-orderbook-status.txt
             core-input-bundle-status.txt
