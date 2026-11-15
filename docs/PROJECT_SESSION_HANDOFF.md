@@ -6134,3 +6134,26 @@ Current application:
 - No source sync, checkout, reset, cleanup, file deletion, config write, Ledger write, migration, Preflight, Bootstrap, Decision Cycle, One-shot, Runner, service operation, Kill Switch mutation, T0 access/mutation, exchange access, or order submission was performed or authorized.
 - Preserve the dirty/untracked paths exactly as found. Do not use the SSH remote without a separately approved HTTPS-based synchronization plan.
 - Next bounded evidence step, if needed: a read-only query of the existing `paper_account_risk_state` and `paper_risk_control` records to report only `risk_ready`, `unavailable_reason`, `paused`, and `killed`; do not alter rows or initialize a market mark.
+
+
+## 2026-11-15 — PAPER Risk State and Kill Switch read-only verification
+
+### Scope and provenance
+- Follow-up to the owner-approved bounded VPS read-only inspection. Evidence is terminal output pasted by the owner; no independent SSH/remote-shell observation was available.
+- Read-only SQLite connection used URI `mode=ro`; queried only the existing `paper_account_risk_state` and `paper_risk_control` fields. No writes, mark initialization, preflight, bootstrap, runner, or service action.
+
+### Observed state
+- `paper_account_risk_state`: `risk_ready=0`; `unavailable_reason=SIMULATED_INITIAL_MARK_REQUIRED`; `last_equity_quote=null`; `last_mark_price=null`; `mark_observed_at_ms=null`; `mark_candle_close_ms=null`; `dataset_version=null`.
+- `paper_risk_control`: `paused=0`; `killed=0`; `reason=null`.
+- Interpretation: the PAPER Ledger is structurally readable, but Shared Risk is **NOT READY** because the required simulated initial mark is absent. Kill Switch is currently neither paused nor killed; this does not imply trading readiness and must not be treated as an armed safety stop.
+
+### Status
+- Current risk readiness: **BLOCKED / NOT READY**.
+- Kill Switch state: **NOT ARMED** (`paused=0`, `killed=0`).
+- Config and SQLite integrity remain PASS only within the previously recorded read-only evidence scope.
+- VPS source parity remains **BLOCKED / NOT VERIFIED** because HEAD `7441657fd0049feff95b28200cf21881fe39e606` and the dirty/untracked worktree reported above have not been reconciled against tested Core Runner R0–R3 source SHA `482477b4b694af5c812170d11012e9aba29e089f`.
+- Persistent PAPER runtime / Core Runner: **NOT VERIFIED / NOT RUN**. AI remains deferred and disabled. No live trading or real orders.
+
+### Next step and limits
+- Do not initialize a simulated mark, modify risk state, arm/disarm Kill Switch, write to the Ledger, synchronize source, or execute Core Runner under this evidence step.
+- Next work should first preserve and investigate the dirty/untracked VPS paths, then establish an approved source-parity plan. Any mark initialization or runtime readiness procedure requires separate explicit approval and a documented deterministic input/provenance contract.
