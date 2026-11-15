@@ -200,3 +200,13 @@ This baseline does **not** claim:
 - VPS test results are owner-pasted summaries; no independently observed SSH session, retained full verbose logs, or separate VPS artifact was available to this review.
 - Artifact metadata was verified from GitHub; independent payload-byte rehash was not performed.
 - Next: follow the handoff's next authorized decision gate for T0 data availability/read-only Ledger readiness. Do not initialize a simulated mark, run Bootstrap or actual Runner, create services/autostart, access/mutate T0, connect to an exchange, enable AI, or trade without separate explicit approval.
+
+
+### 2026-11-15 — Branch movement / source-provenance correction
+- Post-commit comparison against the branch ref showed that the branch advanced beyond the earlier observed snapshot `55ac20402909fa72d43f4483cb6b228e95360a1a`.
+- Current branch HEAD at this correction: `020dfb2910fe282c8a9114d1836f00f2f8189dda`.
+- Compared with the earlier snapshot, GitHub reports 31 additional commits and net changes to `.github/workflows/core-live-data-operational-proof.yml`, `core_runtime/__main__.py`, `core_runtime/bundle_inputs.py`, `core_runtime/bundle_provider.py`, `core_runtime/runtime_factory.py`, and three corresponding test modules, in addition to the two documentation files. Compared with tested SHA `f9648c40f9fff82f5aef5011be9a2474ddde87a7`, GitHub reports 34 commits ahead.
+- Therefore the earlier statement that the active branch delta remained documentation-only is valid only for the snapshot at `55ac204...`; it does **not** describe the current branch tip. The newly present source/workflow delta has not been inspected or tested in this weekly review. Current code-source SHA / exact source tested at branch HEAD: **NOT VERIFIED**.
+- The two recorded GitHub Actions runs still apply only to exact SHA `f9648c40f9fff82f5aef5011be9a2474ddde87a7`; they do not validate the later source/workflow changes.
+- No source files or workflow were modified by this ledger review. No reset, rebase, force-push, merge, or runtime operation was performed.
+- Status remains **PARTIAL / NOT VERIFIED** for current branch source parity. Next: reconcile the intervening commits and exact current code SHA before relying on any prior CI evidence.
