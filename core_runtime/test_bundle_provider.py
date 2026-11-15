@@ -73,7 +73,8 @@ class CoreBundleProviderTest(unittest.TestCase):
 
     def test_fetches_aligned_closed_m15_and_h1_windows_and_reads_paper_state(self):
         candle_open = ((NOW - 1) // INTERVAL_M15) * INTERVAL_M15 - INTERVAL_M15
-        self.assertEqual(self.provider(candle_open), self.provider(candle_open))
+        output_path = self.provider(candle_open)
+        self.assertTrue(Path(output_path).is_file())
         m15_start = candle_open - 99 * INTERVAL_M15
         m15_end = candle_open + INTERVAL_M15
         h1_end = (candle_open // INTERVAL_H1) * INTERVAL_H1
