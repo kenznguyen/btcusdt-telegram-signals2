@@ -6468,3 +6468,33 @@ Current application:
 - VPS provider lifecycle (powered on/off, retained/deleted) and billing: **NOT VERIFIED / NOT CHANGED**.
 - Source implementation and runtime architecture: **UNCHANGED**.
 - Next: finish the pending T1 GitHub Actions runs and record their exact results in the T1 evidence report; continue Core First work on its existing branch using GitHub-only verification. Do not use VPS unless separately reauthorized.
+
+
+## 2026-11-15 — GitHub-only reconciliation: T1 CI completion and Core First exact-SHA proof
+
+### T1 collector CI completion
+- Separate repository: `kenznguyen/binance-futures-collector`; branch: `feature/t1-connection-sidecar-integration-20261107`.
+- Tested source SHA: `492ac7a8f012f74cd6f1803e14c944e8b71bfc97`; PR #1 base SHA: `bc4f0ef633fbeee4a49defd72827f17162693805`.
+- Push run [43707751127](https://github.com/kenznguyen/binance-futures-collector/actions/runs/43707751127): FAILURE. Collector fmt/Clippy/build/tests, native ARM64 build/tests, dashboard backend/frontend and Docker jobs PASS. Security job FAIL at cargo-audit; npm audit steps SKIPPED.
+- PR run [43707756454](https://github.com/kenznguyen/binance-futures-collector/actions/runs/43707756454): FAILURE. Same security blocker; build/test/dashboard/Docker jobs PASS. Artifact uploads were skipped for the pull_request event.
+- Push artifacts: x86_64 ID `14159391816`, 4,310,901 bytes, metadata digest `sha256:65d265e450c074db6081650abe192bdc62dc168ca1a57ffbcc87c8cfdee72e56`, expiry `2026-11-22T11:14:14Z`; ARM64 ID `14159356865`, 4,022,090 bytes, metadata digest `sha256:df380cc227787334f1f7abae81fef60c6d98db38886eeeca91e1432c7fa77a71`, expiry `2026-11-22T11:14:16Z`. Payload bytes were not downloaded/re-hashed; payload verification remains NOT VERIFIED.
+- Security findings: `quinn-proto 0.11.18` (RUSTSEC-2026-0524, RUSTSEC-2026-0523); `quinn-udp 0.5.15` (RUSTSEC-2026-0538); `rustix 1.1.4` (RUSTSEC-2026-0486 unsound warning). No dependency update or advisory suppression was made. npm audit did not run.
+- T1 evidence report updated at `docs/T1_ORDERBOOK_PUBLISHER_API_V1_P3_EVIDENCE_2026-11-15.md`, commit `26715c22a4db7d3dcb49653d0fb95a85dafa5c6f`, blob `b55e4e55867ba7d5ea1d441bf3ddb5997e6692aa`.
+- T1 P3: PARTIAL / NOT ACCEPTED. T1 runtime: NOT VERIFIED. T1→T2: BLOCKED. No T1 runtime, listener, VPS, deployment, or integration activation.
+
+### Core First current source and CI reconciliation
+- Active branch remains `feature/core-operational-proof-20261112`; current branch HEAD before this documentation update: `54b724f852080058880fe3fea7c69985175e6968`.
+- Exact source SHA checked by the latest Core First code-level workflows: `8c21b01abca2ebc34eb2b0e2090a6e1a1c305489`.
+- GitHub compare confirms the five commits from source SHA `8c21b01abca2ebc34eb2b0e2090a6e1a1c305489` to branch HEAD `54b724f852080058880fe3fea7c69985175e6968` are documentation-only; no source or workflow files changed in that interval. Thus the current branch source tree matches the tested source SHA.
+- Core operational proof run [43688231886](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43688231886): SUCCESS; job `132733351760`; exact source SHA above. Artifact `core-first-code-operational-proof-43688231886`, ID `14151691097`, 12,300 bytes, metadata SHA-256 `e228a03e8e2f8288eff06c910606d881ccebfc045eb8d9b87e6ca7636228ec06`, expiry `2026-11-22T07:03:46Z`. Payload not independently downloaded/re-hashed.
+- T1/T2 orderbook contract run [43688231909](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43688231909): SUCCESS; job `132733162056`; exact same source SHA. 49 tests PASS (32 T1 orderbook contract, 16 T2 HTTP reader, 1 loopback integration). Artifact `t1-t2-orderbook-green-43688231909`, ID `14150983211`, 2,248 bytes, metadata SHA-256 `0dcbf724929fd968b06faf35de8a813d3af4ab50ef0365f9d8d8b82e1b0d6c3c`, expiry `2026-11-22T07:03:46Z`. Payload not independently downloaded/re-hashed.
+- Core operational job log confirms `AI_EXECUTION_ENABLED=false`, canonical T0 untouched, no exchange credentials, no real orders, and no VPS/persistent runtime used. The recorded Core, Continuous, bundle validator/input/provider, Risk/Ledger, and account-risk contract jobs passed in their declared test scopes.
+- Explicit unresolved item in the generated verdict: `CORE_BUNDLE_PROVIDER_CONTINUOUS_RUNNER_WIRING=NOT_VERIFIED`. Static source inspection shows the explicit CLI path constructs the provider/runner pair and passes the provider to `run_forever`, but this is not yet a separately asserted end-to-end CI contract. Do not promote this status without a focused test and exact-SHA CI evidence.
+- Core First CI status: PASS within the workflow's tested scopes; bundle-provider-to-continuous-runner end-to-end proof: NOT VERIFIED; persistent PAPER Ledger/Shared Risk readiness: NOT VERIFIED; T0 data availability and data-backed PAPER evaluation: BLOCKED / NOT VERIFIED; continuous runtime activation: NOT AUTHORIZED.
+- No source, strategy, risk, ledger, T0, runtime, deployment, or trading changes were made by this reconciliation.
+
+### Next permitted step
+- Preserve T1 security as BLOCKED; do not change dependencies or suppress advisories without a separately approved bounded scope.
+- Core First remains priority. Do not add offline tests merely to imply operational readiness. The next decision gate remains the owner decision on bounded T0 data availability/reacquisition; T0 stays independent and untouched until separately authorized.
+- The bundle-provider-to-runner wiring evidence gap may be addressed only as a focused offline contract-test increment on the existing branch; it must not invoke persistent runtime, T0, exchange connectivity, Bootstrap, or the actual Runner loop.
+- No independent AI Strategy / Dual-Strategy Intelligence implementation until Core First gates are satisfied and the user separately reopens that work.
