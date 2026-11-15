@@ -1,5 +1,6 @@
 """Test-first contracts for the read-only Core Bundle Provider orchestration."""
 
+import copy
 import hashlib
 import json
 import tempfile
@@ -125,6 +126,95 @@ class CoreBundleProviderTest(unittest.TestCase):
             self.provider(123)
         self.candle.fetch_one_page.assert_not_called()
         self.book.fetch.assert_not_called()
+
+
+class CoreBundleProviderSQLiteIntegrationTest(unittest.TestCase):
+    """Exercise the provider against real read-only PAPER SQLite readers."""
+
+    def test_builds_valid_bundle_from_disposable_sqlite_without_mutating_ledger(self):
+        from core_runtime.input_bundle import validate_bundle
+        from core_runtime.test_input_bundle_contract import valid_bundle
+        from paper_execution.test_core_first_operational import CoreFirstOperationalProofTest
+
+        fixture = CoreFirstOperationalProofTest(
+            "test_core_signal_flows_through_shared_risk_into_paper_ledger"
+        )
+        fixture.setUp()
+        self.addCleanup(fixture.doCleanups)
+        root = Path(fixture.temp.name)
+        ledger_path = fixture.path
+        config_path = root / "provider-paper-config.json"
+        config_path.write_text(json.dumps({
+            "mode": "PAPER",
+            "ai_execution_enabled": False,
+            "ledger_path": str(ledger_path),
+        }), encoding="utf-8")
+
+        template = valid_bundle()
+        windows = {}
+        for key, timeframe in (("m15", "15m"), ("h1", "1h")):
+            payload = copy.deepcopy(template["marketData"][key])
+            payload["source"] = "ccxt.binanceusdm"
+            for candle in payload["candles"]:
+                candle.update({
+                    "exchange": "binance",
+                    "marketType": "USDT_PERPETUAL",
+                    "symbol": "BTCUSDT",
+                    "timeframe": timeframe,
+                })
+            windows[timeframe] = payload
+
+        class FixtureCandleClient:
+            def fetch_one_page(self, start_ms, end_ms, as_of_ms, *, timeframe):
+                return copy.deepcopy(windows[timeframe])
+
+        class FixtureOrderbookClient:
+            def fetch(self, *, decision_at_ms):
+                return copy.deepcopy(template["orderBook"])
+
+        env = {
+            "AI_EXECUTION_ENABLED": "false",
+            "MARKET_DATA_DB": "",
+            "T0_FEEDER_LEASE_DB": "",
+            "PAPER_DB": "",
+            "PAPER_TRADING_DB": "",
+            "BINANCE_API_KEY": "",
+            "BINANCE_API_SECRET": "",
+            "OKX_API_KEY": "",
+            "OKX_API_SECRET": "",
+        }
+        before = hashlib.sha256(ledger_path.read_bytes()).hexdigest()
+        provider = CoreBundleProvider(
+            candle_client=FixtureCandleClient(),
+            orderbook_client=FixtureOrderbookClient(),
+            config_path=config_path,
+            bundle_store_dir=root / "provider-bundles",
+            clock_ms=lambda: fixture.now,
+            settlement_ms=0,
+            environ=env,
+        )
+
+        candle_open = fixture.now - INTERVAL_M15
+        output_path = Path(provider(candle_open))
+        bundle = json.loads(output_path.read_text(encoding="utf-8"))
+        verdict = validate_bundle(bundle, max_book_age_ms=2_000)
+
+        self.assertEqual(verdict["status"], "BUNDLE_VALID")
+        self.assertEqual(bundle["strategyId"], "STRATEGY_CORE")
+        self.assertIs(bundle["aiExecutionEnabled"], False)
+        self.assertEqual(bundle["marketData"]["m15"]["datasetVersion"],
+                         windows["15m"]["datasetVersion"])
+        self.assertEqual(bundle["marketData"]["h1"]["datasetVersion"],
+                         windows["1h"]["datasetVersion"])
+        self.assertIs(bundle["accountRisk"]["snapshot"]["riskReady"], True)
+        self.assertIs(bundle["accountRisk"]["snapshot"]["killSwitch"]["killed"], False)
+        self.assertIs(bundle["accountRisk"]["snapshot"]["killSwitch"]["paused"], False)
+        self.assertEqual(bundle["paperState"]["strategyState"]["strategyId"],
+                         "STRATEGY_CORE")
+        self.assertEqual(
+            hashlib.sha256(ledger_path.read_bytes()).hexdigest(), before,
+            "CoreBundleProvider must not mutate the PAPER SQLite ledger",
+        )
 
 
 if __name__ == "__main__":
