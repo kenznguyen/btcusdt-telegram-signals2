@@ -5,12 +5,14 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from core_runtime.runtime_factory import (
     RuntimeFactoryError,
     build_continuous_runtime,
 )
 from paper_execution.test_core_first_operational import CoreFirstOperationalProofTest
+from core_runtime.__main__ import main as core_main
 
 
 class ContinuousRuntimeFactoryTest(unittest.TestCase):
@@ -36,6 +38,7 @@ class ContinuousRuntimeFactoryTest(unittest.TestCase):
         }), encoding="utf-8")
         self.journal = self.root / "runner-state" / "journal.sqlite3"
         self.bundle_store = self.root / "runner-state" / "bundles"
+        self.journal.parent.mkdir()
         self.env = {
             "AI_EXECUTION_ENABLED": "false",
             "MARKET_DATA_DB": "",
@@ -140,6 +143,29 @@ class ContinuousRuntimeFactoryTest(unittest.TestCase):
                 clock_ms=lambda: self.fixture.now,
             )
         self.assertFalse(self.bundle_store.exists())
+
+
+    def test_cli_requires_journal_and_bundle_store_for_explicit_continuous_mode(self):
+        with self.assertRaises(SystemExit) as raised:
+            core_main([
+                "--config", str(self.config), "--run-continuous",
+            ])
+        self.assertEqual(raised.exception.code, 2)
+
+    def test_cli_dispatches_continuous_mode_only_when_explicitly_requested(self):
+        with patch("core_runtime.__main__.run_continuous", return_value="STOPPED") as run:
+            result = core_main([
+                "--config", str(self.config),
+                "--run-continuous",
+                "--journal-path", str(self.journal),
+                "--bundle-store-dir", str(self.bundle_store),
+            ])
+        self.assertEqual(result, 0)
+        run.assert_called_once_with(
+            config_path=str(self.config),
+            journal_path=str(self.journal),
+            bundle_store_dir=str(self.bundle_store),
+        )
 
 
 if __name__ == "__main__":
