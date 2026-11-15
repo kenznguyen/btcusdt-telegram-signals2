@@ -108,6 +108,39 @@ class CoreBundleInputsTest(unittest.TestCase):
         self.assertEqual(result["aiExecutionEnabled"], False)
         self.assertEqual(result["strategyId"], "STRATEGY_CORE")
 
+    def test_native_readonly_paper_risk_control_shape_is_preserved(self):
+        risk = copy.deepcopy(self.bundle["accountRisk"]["snapshot"])
+        risk["killSwitch"] = {
+            "paused": False, "killed": False, "reason": None,
+            "updatedAtMs": self.bundle["decisionAtMs"],
+            "mode": "PAPER", "liveTradingSupported": False,
+        }
+        paper = {
+            "positionBase": "0", "averageEntryPrice": "0",
+            "strategyState": {
+                "owner": None, "dcaUsed": False,
+                "strategyId": "STRATEGY_CORE",
+            },
+        }
+        book = self.bundle["orderBook"]
+        native_book = {
+            "contractVersion": book["t1Evidence"]["contractVersion"],
+            "symbol": book["symbol"],
+            "market": book["t1Evidence"]["market"],
+            "bids": [[row["price"], row["quantity"]] for row in book["bids"]],
+            "asks": [[row["price"], row["quantity"]] for row in book["asks"]],
+            **book["t1Evidence"],
+        }
+        result = build_core_bundle(
+            decision_at_ms=self.bundle["decisionAtMs"],
+            m15_payload=self.api_window("m15"),
+            h1_payload=self.api_window("h1"),
+            orderbook_snapshot=native_book,
+            paper_snapshot=paper,
+            account_risk_snapshot=risk,
+        )
+        self.assertEqual(result["accountRisk"]["snapshot"], risk)
+
     def test_risk_unready_snapshot_is_rejected_before_bundle_creation(self):
         risk = copy.deepcopy(self.bundle["accountRisk"]["snapshot"])
         risk["riskReady"] = False
