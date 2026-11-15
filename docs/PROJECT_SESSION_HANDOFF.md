@@ -6169,3 +6169,20 @@ Current application:
 - Core First is not complete merely because CI passes: data-backed PAPER evaluation and any operational readiness claims require their own evidence and approval gates. AI Strategy remains deferred; `AI_EXECUTION_ENABLED=false`; no live orders.
 - VPS synchronization is a later, separate phase. Before it begins, prepare a preservation/reconciliation plan for the dirty VPS worktree and existing PAPER Ledger/config; use HTTPS rather than the VPS SSH origin; verify exact source SHA and post-sync state. Do not overwrite local changes or mutate the Ledger/T0.
 - This priority decision does not authorize VPS synchronization, source writes on VPS, simulated mark initialization, preflight/bootstrap/Decision Cycle/One-shot/Runner execution, service/autostart changes, T0 mutation, exchange access, or order submission.
+
+## 2026-11-15 — SIMULATED Core risk-boundary regression on GitHub
+
+- Scope: add three disposable-SQLite regression cases to `paper_execution/test_simulated_order_admission.py`: exact 1% per-order margin boundary accepted; daily-loss threshold at 2 USDT latches the shared Kill Switch; drawdown threshold at 10% latches the shared Kill Switch.
+- Test-only commit sequence on the existing branch:
+  - Initial coverage commit `c58231741bb0fa822a1614c2cfa72f5709fb3350`.
+  - First CI exposed two incorrect test expectations: rejected intents are deliberately persisted in `paper_orders` for audit/idempotency. This was not a production-code failure. Assertions were corrected to require the exact intent's `REJECTED` audit record and no reservation/FILL, while verifying the shared Kill Switch latch and unchanged position.
+  - Corrected test commit / current source SHA: `90a0366d30925837f790fee907805ae4abb31f6c`; test blob `2b40f4c5623ba76740df21db7c261b56f1356618`.
+- Exact-source GitHub Actions:
+  - Simulated Capital V1 Contract run [43664092689](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43664092689), job `132659542075`: **SUCCESS**, Python 3.12 compile + JSON parse PASS, 35/35 tests PASS.
+  - Paper Ledger T1 Compatibility run [43664092693](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43664092693), job `132659542253`: **SUCCESS**, 147/147 tests PASS.
+  - Both runs checked out exact SHA `90a0366d30925837f790fee907805ae4abb31f6c`. Neither workflow uploaded an artifact.
+- Verified within disposable fixtures: simulated first-mark readiness; immutable simulated origin/seed; UTC baseline rollover and provenance checks; Core ENTRY/DCA shared admission; exact 1% order-margin boundary; above-limit rejection; daily-loss and drawdown Kill Switch latching; explicit Kill Switch rejection; funded PaperLedger compatibility.
+- Status: these simulated risk-boundary and PaperLedger regression gates **PASS WITHIN EXACT-SHA CI TEST SCOPE**. This is not proof that the existing VPS Ledger is risk-ready or that a persistent PAPER runtime is authorized/operational.
+- No production source, schema, workflow, operational database, VPS, T0, Bootstrap runtime, Runner, service, AI execution, exchange connection or real order was changed or used. `AI_EXECUTION_ENABLED=false`; AI remains deferred.
+- Next: continue the GitHub-only Core First integration audit, specifically verify whether the one-shot Core Runner is tested end-to-end against a disposable SIMULATED_CAPITAL_V1 account with an accepted first mark. If that integration is absent, add a narrowly scoped test-first case and run the existing Core operational workflow. Do not synchronize VPS or activate Bootstrap/Runner runtime.
+
