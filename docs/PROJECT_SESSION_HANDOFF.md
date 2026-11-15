@@ -6081,3 +6081,17 @@ Current application:
 - Status: Feeder regression/lifecycle/scheduler tests PASS on Python 3.11 CI and Python 3.12 VPS. This is isolated test evidence only; it does not establish runtime readiness or authorize deployment.
 - No source merge/cherry-pick, runtime cutover, Feeder start, T0/PAPER Ledger mutation, exchange access, AI execution or real orders.
 - Next: retain the candidate as test evidence; any source integration or runtime action requires separate approval.
+
+
+## 2026-11-15 — Merge and HTTPS synchronization completion
+
+- Existing branch: `feature/core-operational-proof-20261112`; no new branch or PR created.
+- Local documentation commit preserved: `7441657fd0049feff95b28200cf21881fe39e606`.
+- Remote branch tip before merge: `f9925213e5650b3d97999df836af09318011a8e7`.
+- Merge commit: `19d70419016fd47d22b79562fcb9794e015e645f`; parents, in order: local `7441657fd0049feff95b28200cf21881fe39e606`, remote `f9925213e5650b3d97999df836af09318011a8e7`.
+- Merge scope: 12 files, 786 insertions and 6 deletions. Conflict resolution was limited to `docs/PROJECT_SESSION_HANDOFF.md`; no unmerged paths, no unstaged changes, and `git diff --cached --check` passed before commit. Merge worktree was clean after commit.
+- HTTPS push to `https://github.com/kenznguyen/btcusdt-telegram-signals2.git` updated `feature/core-operational-proof-20261112` from `f9925213...` to `19d70419016fd47d22b79562fcb9794e015e645f`. `git ls-remote` returned the exact same SHA: **PUSH_VERIFICATION=PASS**.
+- Combined status query for merge commit `19d70419016fd47d22b79562fcb9794e015e645f` returned no status entries; do not claim a new CI run for the merge commit. Existing focused CI evidence remains tied to source SHA `d259c73e419b757dd3166158efc6247e41120ff2`, run `43653926985`, job `132628186583`, artifact `14137655936`. Python 3.12.3 VPS isolated test evidence remains as recorded above.
+- Status: Git merge and HTTPS branch synchronization **PASS**. Focused Feeder regression/lifecycle/scheduler verification **PASS** on the recorded source SHA and runtimes. Merge-commit CI **NOT VERIFIED / no status entries returned**.
+- Safety boundary unchanged: no VPS runtime deployment/restart, no T0 DB or Feeder runtime mutation, no PAPER Ledger mutation, no systemd/autostart, no live trading, and `AI_EXECUTION_ENABLED=false`.
+- Next: preserve this synchronized checkpoint. Before any subsequent source or runtime work, inspect the current handoff and active branch state. Any VPS runtime action remains a separate explicit approval gate.
