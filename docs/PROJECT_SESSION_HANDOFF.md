@@ -6345,3 +6345,33 @@ Current application:
 ### Next step
 - Run only `core_runtime.test_continuous_dry_run` as the next bounded offline test module. Record its result before considering any further step.
 - Do not infer that a passing dry-run test authorizes a persistent/long-running Runner, PAPER Ledger initialization, Bootstrap, or trading. Those remain separate explicit approval and evidence gates.
+
+
+## 2026-11-15 — Core First Continuous Dry Run VPS offline verification
+
+### Scope and provenance
+- Scope: one bounded offline unit-test module for the Continuous Core dry-run contract; no persistent or long-running Runner activation.
+- Evidence provenance: owner-pasted terminal summary from the VPS. No independent SSH observation, retained full test log, GitHub Actions run, or GitHub artifact was produced by this VPS test.
+- Repository: `kenznguyen/btcusdt-telegram-signals2`; branch: `feature/core-operational-proof-20261112`.
+- Tested source SHA: `f9648c40f9fff82f5aef5011be9a2474ddde87a7`.
+- Runtime: Python 3.12.3, isolated virtualenv `.venv-core-verify`.
+- Test command explicitly set `AI_EXECUTION_ENABLED=false`; T0/market-data/PAPER DB and Binance/OKX credential environment variables were empty.
+
+### Result
+- Module: `core_runtime.test_continuous_dry_run`.
+- Result: **9/9 PASS**, reported duration **0.131 seconds**.
+- Combined selected VPS offline tests: **130/130 PASS** across ten groups, comprising the previously recorded 121/121 plus Continuous Dry Run 9/9. No repeated test group is double-counted.
+- All four Continuous contract groups passed: Cadence 5/5, Journal 15/15, Runner 23/23, and Dry Run 9/9.
+- No new GitHub Actions workflow run or artifact was created by this VPS test. Do not infer run IDs, job IDs, artifact IDs, or digests.
+
+### Status and limits
+- Selected offline unit/contract tests, including all four Continuous contract groups: **PASS (130/130)** at tested source SHA `f9648c40f9fff82f5aef5011be9a2474ddde87a7`.
+- Persistent PAPER Ledger readiness and actual Shared Risk readiness: **NOT VERIFIED**.
+- Actual continuous runtime activation, long-running stability under real process conditions, real-data-backed PAPER evaluation, and predictive/OOS value: **NOT VERIFIED**.
+- These owner-pasted test summaries do not independently verify VPS checkout/runtime parity.
+- No T0 access/mutation, persistent PAPER Ledger mutation, simulated initial mark, Bootstrap, actual Runner activation, service/systemd/autostart change, exchange connection, AI execution, live order, or real trading occurred.
+- AI remains disabled; independent AI Strategy remains deferred until Core First gates and evidence requirements are satisfied.
+
+### Next assessment
+- The four Continuous offline contract modules are now complete. Reconcile the remaining Core First readiness gates from the architecture decision and handoff before proposing another action.
+- Do not treat 130/130 offline PASS as authorization or proof of persistent Ledger readiness, Bootstrap, actual Runner activation, continuous operational readiness, or trading. Each requires separate evidence and explicit approval. T0 remains an independent data asset; no T0 action is authorized by these test results.
