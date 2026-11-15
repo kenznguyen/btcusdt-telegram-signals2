@@ -250,9 +250,9 @@ jobs:
             else
               echo "CORE_BUNDLE_INPUT_NORMALIZATION=NOT_VERIFIED"
             fi
-            if grep -q "^OK$" core-bundle-provider-tests.log && grep -q "Ran 4 tests" core-bundle-provider-tests.log; then
+            if grep -q "^OK$" core-bundle-provider-tests.log && grep -q "Ran 5 tests" core-bundle-provider-tests.log; then
               echo "CORE_BUNDLE_PROVIDER=PASS"
-              echo "CORE_BUNDLE_PROVIDER_TESTS=4_PASS"
+              echo "CORE_BUNDLE_PROVIDER_TESTS=5_PASS"
             else
               echo "CORE_BUNDLE_PROVIDER=NOT_VERIFIED"
             fi
