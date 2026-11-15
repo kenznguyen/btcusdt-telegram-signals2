@@ -6519,3 +6519,39 @@ Current application:
 - The next substantive gate is a bounded owner decision on T0 data availability/reacquisition and the scope of a read-only PAPER readiness assessment. Until that is separately authorized, T0 remains untouched and data-backed PAPER readiness stays BLOCKED / NOT VERIFIED.
 - Do not initialize or mutate the persistent PAPER Ledger, activate the actual Continuous Runner, perform exchange connectivity, deploy, or begin independent AI Strategy / Dual-Strategy Intelligence without separate explicit authorization.
 - T1 collector remains PARTIAL / NOT ACCEPTED due the recorded security audit blocker; T1 runtime remains NOT VERIFIED and T1→T2 remains BLOCKED.
+
+
+## 2026-11-15 — T1 Order Book API snapshot identity aligned with T2
+
+This is an isolated T1 collector repository increment. The active Core First source tree, strategy, risk engine, ledgers, T0 and deployment posture were not changed.
+
+### T1 source and CI evidence
+- T1 repository: `kenznguyen/binance-futures-collector`.
+- T1 branch: `feature/t1-connection-sidecar-integration-20261107`.
+- T1 current HEAD after its evidence-only documentation commit: `093eaad076530546a41c557a81bc7855750c101a`.
+- Exact T1 source SHA checked by CI: `36eced798558a1809e780f03aff5347dac6f02b3`. GitHub compare confirms the only commit after that tested SHA modifies the T1 P3 evidence document; no source, workflow or build files changed.
+- T1 implementation commit: `900914a82fdb234dccd8f7fdbc22f65669f8e879`; follow-up formatting/documentation commit: `36eced798558a1809e780f03aff5347dac6f02b3`.
+- T1 RED test: push run [43709712802](https://github.com/kenznguyen/binance-futures-collector/actions/runs/43709712802), exact SHA `d77ea4d89a4e6d0d43613b955cc743a3e38d11ae`, failed the new canonical snapshot identity assertion (102 passed, 1 failed), reproducing the mismatch between the old generation/watermark ID and T2's SHA-256 requirement.
+- T1 GREEN source/build/test run [43710121719](https://github.com/kenznguyen/binance-futures-collector/actions/runs/43710121719), run #675, exact checked-out SHA `36eced798558a1809e780f03aff5347dac6f02b3`:
+  - Collector fmt, Clippy, release build and all tests: PASS; 103 library tests and 27 P3 Order Book HTTP contract integration tests passed, plus all other reported targets.
+  - Native ARM64 build/tests and ELF identity: PASS.
+  - Dashboard backend/frontend and Docker build: PASS.
+  - Security audit: FAIL due existing Rust advisories; npm audit steps skipped.
+- T1 PR run [43710125366](https://github.com/kenznguyen/binance-futures-collector/actions/runs/43710125366), PR #1, checked out synthetic merge SHA `ecb3f928474627792225ef64385c032c873be379`; all build/test/Docker jobs passed, security job failed. PR #1 remains open/draft/not merged.
+- Artifacts from push run #675: x86_64 ID `14160277053`, metadata digest `sha256:4a88cb51eaa03dfc77f64d5fbb09e30332cd899632a5290077d2fd5ffd7874ac`; ARM64 ID `14160167371`, metadata digest `sha256:f46fef5a5ad6260ea5105bd3db3f99b9bd31629bc51e2d9d4c972675ce876ec7`. Both expire 2026-11-22; payloads not independently downloaded/re-hashed.
+
+### Contract outcome and limits
+- T1 now computes `snapshotId` as `sha256:` + lowercase SHA-256 over compact UTF-8 canonical JSON with sorted object keys and the `snapshotId` field omitted. The builder emits it and `SnapshotPublisher` rejects mismatched/tampered IDs.
+- T1 V1 route remains `GET /internal/v1/orderbook/btcusdt`, loopback-only at `127.0.0.1:8787`, bearer-authenticated. No `/status` endpoint is required by the actual T2 reader.
+- T2 source remains on this branch at Core First tested source SHA `279173045b94b440ca171dbb14382de9a3345f03`; its separate 49-test T1/T2 contract/HTTP/loopback suite passed in run [43708932382](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/43708932382). No T2 source changes were made for the T1 fix.
+- T1 snapshot identity compatibility: **PASS at source/CI contract level**. This is not evidence of a live T1 server consumed by T2; no cross-repository live runtime test was run.
+- T1 P3 full acceptance: **PARTIAL / NOT ACCEPTED**; security gate remains red and the remaining P0 HTTP transport/fail-closed matrix is not fully evidenced.
+- T1 runtime/listener activation: **NOT VERIFIED / NOT AUTHORIZED**. T1→T2 live runtime integration: **BLOCKED / NOT RUN**.
+- Security audit repeated the existing advisories: `quinn-proto 0.11.18` (RUSTSEC-2026-0524, 0523), `quinn-udp 0.5.15` (RUSTSEC-2026-0538), and `rustix 1.1.4` (RUSTSEC-2026-0486 allowed unsound warning). `quinn-proto` had no emitted reverse path in default/all-target diagnostics; `quinn-udp` and `rustix` reachability remain NOT VERIFIED. Do not upgrade dependencies or suppress advisories without separate bounded approval.
+- T0 remains independent and untouched. No VPS/listener activation, systemd/autostart, exchange connectivity, persistent runtime, real orders, strategy, risk, ledger, or Core First source changes occurred. Paper-only posture and `AI_EXECUTION_ENABLED=false` remain unchanged.
+
+### Next steps
+1. Preserve the T1 snapshot identity fix and current T1 branch/PR; do not create a parallel branch or merge.
+2. Complete reverse-dependency/reachability analysis for `quinn-udp` and `rustix`; request explicit approval before dependency remediation.
+3. Close remaining P0 HTTP transport/fail-closed test gaps offline.
+4. Only after those gates, request separate approval for an actual loopback T1→T2 integration test or runtime activation. Do not infer runtime authorization from source/CI compatibility.
