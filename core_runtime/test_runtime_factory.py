@@ -168,5 +168,43 @@ class ContinuousRuntimeFactoryTest(unittest.TestCase):
         )
 
 
+    def test_run_continuous_hands_factory_bundle_provider_to_runner_loop(self):
+        from types import SimpleNamespace
+        from core_runtime.__main__ import run_continuous
+
+        provider_calls = []
+
+        def bundle_provider(candle_open_ms):
+            provider_calls.append(candle_open_ms)
+            return "/disposable/bundle.json"
+
+        class CapturingRunner:
+            def run_forever(self, **kwargs):
+                self.received_provider = kwargs["bundle_provider"]
+                self.bundle_path = self.received_provider(1234567890000)
+                return "STOPPED"
+
+        runner = CapturingRunner()
+        runtime = SimpleNamespace(
+            runner=runner,
+            bundle_provider=bundle_provider,
+        )
+
+        with patch(
+            "core_runtime.runtime_factory.build_continuous_runtime",
+            return_value=runtime,
+        ):
+            result = run_continuous(
+                config_path="/disposable/config.json",
+                journal_path="/disposable/journal.sqlite3",
+                bundle_store_dir="/disposable/bundles",
+            )
+
+        self.assertEqual(result, "STOPPED")
+        self.assertIs(runner.received_provider, bundle_provider)
+        self.assertEqual(runner.bundle_path, "/disposable/bundle.json")
+        self.assertEqual(provider_calls, [1234567890000])
+
+
 if __name__ == "__main__":
     unittest.main()
