@@ -333,6 +333,153 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
         self.assertEqual(replay["runStatus"], "INPUT_REJECTED", replay)
         self.assertEqual(self.core.snapshot()["positionBase"], "0.0001")
 
+    def test_one_shot_runner_submits_core_order_on_simulated_account_after_first_mark(self):
+        from core_runtime.input_bundle import compute_bundle_id
+        from core_runtime.__main__ import main as runtime_main
+        from core_runtime.test_input_bundle_contract import valid_bundle
+        from paper_execution.account_equity import record_account_mark
+        from paper_execution.ledger import read_account_risk_snapshot, read_snapshot
+        from paper_execution.simulated_capital import DEFAULT_SIMULATED_CAPITAL_CONTRACT
+
+        bundle = valid_bundle()
+        root = Path(self.temp.name) / "simulated-one-shot"
+        root.mkdir()
+        ledger_path = root / "simulated-paper.sqlite3"
+        limits = {
+            "maxDrawdownPct": "10",
+            "maxDailyLossUsdt": "2",
+            "maxExposureUsdt": "10",
+        }
+        contract_bytes = json.dumps(
+            DEFAULT_SIMULATED_CAPITAL_CONTRACT, separators=(",", ":")
+        ).encode("utf-8")
+        PaperLedger(
+            ledger_path,
+            max_position_base="0.01",
+            fee_rate="0.001",
+            strategy_id="STRATEGY_CORE",
+            source_sha="s" * 40,
+            risk_limits=limits,
+            require_risk_limits=True,
+            simulated_contract_bytes=contract_bytes,
+            simulated_initialized_at_ms=self.now,
+        )
+        account_scope = PaperLedger(ledger_path)
+        record_account_mark(
+            account_scope,
+            "50000",
+            self.now - 60_000,
+            self.now,
+            bundle["marketData"]["m15"]["datasetVersion"],
+        )
+
+        risk = read_account_risk_snapshot(ledger_path, now_ms=self.now)
+        self.assertTrue(risk["riskReady"], risk)
+        self.assertEqual(risk["accountEquityQuote"], "100")
+        paper = read_snapshot(ledger_path, strategy_id="STRATEGY_CORE")
+        bundle["accountRisk"]["snapshot"] = risk
+        bundle["accountRisk"]["snapshotDigest"] = (
+            "sha256:" + hashlib.sha256(rfc8785.dumps(risk)).hexdigest()
+        )
+        bundle["paperState"] = {
+            "positionBase": paper["positionBase"],
+            "averageEntryPrice": paper["averageEntryPrice"],
+            "strategyState": {
+                "owner": paper["strategyState"]["owner"],
+                "dcaUsed": paper["strategyState"]["dcaUsed"],
+                "strategyId": "STRATEGY_CORE",
+            },
+        }
+        bundle["bundleId"] = compute_bundle_id(bundle)
+
+        config_path = root / "one-shot-paper-config.json"
+        bundle_path = root / "one-shot-bundle-v1.json"
+        config_path.write_text(json.dumps({
+            "mode": "PAPER",
+            "ai_execution_enabled": False,
+            "ledger_path": str(ledger_path),
+            "risk_limits": limits,
+            "max_book_age_ms": 2_000,
+            "max_position_base": "0.01",
+        }), encoding="utf-8")
+        bundle_path.write_text(json.dumps(bundle), encoding="utf-8")
+
+        report = {
+            "action": "BUY",
+            "reason": "RSI_ADX_ENTRY",
+            "intent": {
+                "schemaVersion": 1,
+                "source": "STRATEGY_CORE",
+                "exchange": "binance",
+                "marketType": "USDT_PERPETUAL",
+                "symbol": "BTCUSDT",
+                "timeframe": "15m",
+                "action": "LONG",
+                "reason": "RSI_ADX_ENTRY",
+                "strategyVersion": "rsi-adx-smart-dca-v1",
+                "datasetVersion": bundle["marketData"]["m15"]["datasetVersion"],
+                "inputSnapshotId": "simulated-core-one-shot-integration",
+                "decisionAtMs": self.now,
+                "validUntilMs": self.now + 30_000,
+                "targetPositionBase": "0.000019",
+                "limitPrice": "50001",
+                "initialMarginQuote": "1",
+                "candleOpenTimeMs": bundle["marketData"]["m15"]["candles"][-1]["openTimeMs"],
+            },
+        }
+        output = io.StringIO()
+        with patch.dict(os.environ, {
+            "AI_EXECUTION_ENABLED": "false",
+            "MARKET_DATA_DB": "",
+            "T0_FEEDER_LEASE_DB": "",
+            "PAPER_DB": "",
+            "PAPER_TRADING_DB": "",
+            "BINANCE_API_KEY": "",
+            "BINANCE_API_SECRET": "",
+            "OKX_API_KEY": "",
+            "OKX_API_SECRET": "",
+        }, clear=False), patch(
+            "pipeline.core_strategy.produce", return_value=report
+        ), redirect_stdout(output):
+            exit_code = runtime_main([
+                "--config", str(config_path), "--run-once", "--bundle", str(bundle_path),
+            ], now_ms=self.now)
+
+        result = json.loads(output.getvalue())
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(result["runStatus"], "PAPER_ACCEPTED", result)
+        self.assertEqual(result["riskDecision"]["decision"], "ACCEPT")
+        self.assertEqual(result["paperLedgerReference"]["status"], "FILLED")
+        self.assertEqual(
+            read_snapshot(ledger_path, strategy_id="STRATEGY_CORE")["positionBase"],
+            "0.000019",
+        )
+        with sqlite3.connect(ledger_path) as connection:
+            origin_count = connection.execute(
+                "SELECT COUNT(*) FROM paper_simulated_capital_origin"
+            ).fetchone()[0]
+            seed_count = connection.execute(
+                "SELECT COUNT(*) FROM paper_simulated_capital_seed_events"
+            ).fetchone()[0]
+            cutover_count = connection.execute(
+                "SELECT COUNT(*) FROM paper_account_equity_cutovers"
+            ).fetchone()[0]
+            funding_count = connection.execute(
+                "SELECT COUNT(*) FROM paper_funding_events"
+            ).fetchone()[0]
+            orders = connection.execute(
+                "SELECT status,strategy_id FROM paper_orders"
+            ).fetchall()
+            risk_ready = connection.execute(
+                "SELECT risk_ready FROM paper_account_risk_state WHERE account_id=1"
+            ).fetchone()[0]
+        self.assertEqual(origin_count, 1)
+        self.assertEqual(seed_count, 1)
+        self.assertEqual(cutover_count, 0)
+        self.assertEqual(funding_count, 0)
+        self.assertEqual(orders, [("FILLED", "STRATEGY_CORE")])
+        self.assertEqual(risk_ready, 1)
+
     def test_core_signal_flows_through_shared_risk_into_paper_ledger(self):
         signal = self.decide()
         self.assertEqual(signal["source"], "STRATEGY_CORE", signal)
