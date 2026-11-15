@@ -225,15 +225,30 @@ class SimulatedOrderAdmissionTest(unittest.TestCase):
             latch = connection.execute(
                 "SELECT paused,killed,reason FROM paper_risk_control WHERE id=1"
             ).fetchone()
-            order_count = connection.execute(
-                "SELECT COUNT(*) FROM paper_orders"
-            ).fetchone()[0]
+            order = connection.execute(
+                "SELECT status,document FROM paper_orders WHERE intent_id=?",
+                ("simulated-core-daily-loss-boundary",),
+            ).fetchone()
             reservation_count = connection.execute(
-                "SELECT COUNT(*) FROM paper_risk_reservations"
+                "SELECT COUNT(*) FROM paper_risk_reservations WHERE intent_id=?",
+                ("simulated-core-daily-loss-boundary",),
+            ).fetchone()[0]
+            fill_count = connection.execute(
+                """SELECT COUNT(*) FROM paper_account_event_journal
+                   WHERE intent_id=? AND event_type='FILL'""",
+                ("simulated-core-daily-loss-boundary",),
+            ).fetchone()[0]
+            position = connection.execute(
+                """SELECT position_base FROM paper_strategy_ledgers
+                   WHERE account_id=1 AND strategy_id='STRATEGY_CORE'"""
             ).fetchone()[0]
         self.assertEqual(latch, (0, 1, "DAILY_LOSS_LIMIT"))
-        self.assertEqual(order_count, 0)
+        self.assertIsNotNone(order)
+        self.assertEqual(order[0], "REJECTED")
+        self.assertEqual(json.loads(order[1])["reason"], "DAILY_LOSS_LIMIT")
         self.assertEqual(reservation_count, 0)
+        self.assertEqual(fill_count, 0)
+        self.assertEqual(position, "0.1")
 
     def test_simulated_drawdown_boundary_latches_shared_kill_switch(self):
         with sqlite3.connect(self.path) as connection:
@@ -259,15 +274,30 @@ class SimulatedOrderAdmissionTest(unittest.TestCase):
             latch = connection.execute(
                 "SELECT paused,killed,reason FROM paper_risk_control WHERE id=1"
             ).fetchone()
-            order_count = connection.execute(
-                "SELECT COUNT(*) FROM paper_orders"
-            ).fetchone()[0]
+            order = connection.execute(
+                "SELECT status,document FROM paper_orders WHERE intent_id=?",
+                ("simulated-core-drawdown-boundary",),
+            ).fetchone()
             reservation_count = connection.execute(
-                "SELECT COUNT(*) FROM paper_risk_reservations"
+                "SELECT COUNT(*) FROM paper_risk_reservations WHERE intent_id=?",
+                ("simulated-core-drawdown-boundary",),
+            ).fetchone()[0]
+            fill_count = connection.execute(
+                """SELECT COUNT(*) FROM paper_account_event_journal
+                   WHERE intent_id=? AND event_type='FILL'""",
+                ("simulated-core-drawdown-boundary",),
+            ).fetchone()[0]
+            position = connection.execute(
+                """SELECT position_base FROM paper_strategy_ledgers
+                   WHERE account_id=1 AND strategy_id='STRATEGY_CORE'"""
             ).fetchone()[0]
         self.assertEqual(latch, (0, 1, "MAX_DRAWDOWN_LIMIT"))
-        self.assertEqual(order_count, 0)
+        self.assertIsNotNone(order)
+        self.assertEqual(order[0], "REJECTED")
+        self.assertEqual(json.loads(order[1])["reason"], "MAX_DRAWDOWN_LIMIT")
         self.assertEqual(reservation_count, 0)
+        self.assertEqual(fill_count, 0)
+        self.assertEqual(position, "1")
 
 if __name__ == "__main__":
     unittest.main()
