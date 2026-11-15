@@ -6219,3 +6219,39 @@ Current application:
 - Owner-pasted VPS baseline remains the 2026-11-15 evidence: branch feature/core-operational-proof-20261112, HEAD 7441657fd0049feff95b28200cf21881fe39e606, dirty/untracked paths present. Preserve all of them; do not reset, clean, overwrite, or delete.
 - This approval does not authorize simulated initial-mark creation, preflight/bootstrap, One-shot/Runner invocation, systemd/service/autostart, T0 changes, AI execution, exchange access, or live orders. Those remain separate gates.
 - Next: owner must provide a controlled VPS terminal session or run the approved read-only pre-sync inspection commands and return the outputs. Only then can the exact-SHA HTTPS candidate-sync steps be guided and verified. Do not claim VPS sync completion until exact VPS HEAD/source parity and preservation checks are evidenced.
+
+## 2026-11-15 — Core First bounded offline verification on VPS
+
+### Scope and provenance
+- Scope: bounded, isolated offline tests on the synchronized VPS checkout; no Runner/Bootstrap/runtime activation.
+- Evidence provenance: terminal output pasted by the owner in ChatGPT. No independent SSH observation, retained VPS test log, or separate VPS artifact was available for this record.
+- Repository: `kenznguyen/btcusdt-telegram-signals2`.
+- VPS checkout branch: `feature/core-operational-proof-20261112`.
+- VPS tested source HEAD: `f9648c40f9fff82f5aef5011be9a2474ddde87a7` (the exact Core First source SHA covered by GitHub Actions runs 43664372302 and 43664372342).
+- GitHub branch tip at this handoff update: `55ac20402909fa72d43f4483cb6b228e95360a1a`; comparison shows it is 3 commits ahead of the tested source SHA, with changes limited to `docs/PROJECT_SESSION_HANDOFF.md`. VPS checkout therefore matches the tested code SHA, but does not yet contain the later documentation-only commits.
+- Runtime: Ubuntu VPS, Python 3.12.3, isolated virtualenv `.venv-core-verify`.
+- Installed only `requirements-web.txt` into that virtualenv. Installation succeeded. No packages were installed into system Python; no `pytest` installation was needed because CI uses `unittest`.
+- Test command environment explicitly set `AI_EXECUTION_ENABLED=false`; market-data DB, T0 lease DB, PAPER DB variables, and Binance/OKX API credential variables were empty.
+
+### VPS offline test results
+- `pipeline.test_core_strategy` + `pipeline.test_core_signal`: **12/12 PASS** (0.039 s).
+- `pipeline.test_core_runtime_contract`: **5/5 PASS** (0.393 s).
+- `pipeline.test_core_runtime_adapter_contract`: **6/6 PASS** (0.001 s).
+- `pipeline.test_core_runtime_one_shot`: **15/15 PASS** (0.242 s). This is a contract/unit test; the actual One-shot Runner was not invoked.
+- `core_runtime.test_paper_ledger_preflight`: **27/27 PASS** (47.747 s). This tests the preflight contract; it did not run a preflight against the persistent PAPER Ledger.
+- Aggregate selected VPS offline tests: **65/65 PASS** across the five modules above.
+- The terminal output provided the test summaries only; full verbose logs were piped through `tail` and were not retained as a durable VPS artifact. No GitHub Actions run was triggered by these VPS tests.
+
+### Status
+- Isolated environment creation and `requirements-web.txt` installation: **PASS**.
+- Selected Strategy Core, Signal, Runtime Contract, Runtime Adapter, One-shot Contract, and Paper Ledger Preflight unit/contract tests: **PASS (65/65)** on VPS Python 3.12.3 at exact source SHA `f9648c40f9fff82f5aef5011be9a2474ddde87a7`.
+- Runner hardening tests: **NOT RUN**; next bounded offline test group.
+- Persistent PAPER Ledger readiness / Shared Risk readiness: **NOT VERIFIED** by these tests. No persistent Ledger was opened or changed in this test sequence.
+- Continuous Core runtime behavior: **NOT VERIFIED**.
+- Real-data-backed PAPER evaluation and predictive/OOS value: **NOT VERIFIED**.
+- GitHub CI evidence remains separate and exact-SHA scoped: Core operational proof run `43664372302`, job `132660376360`, artifact `14141951157`; Dual Ledger Bootstrap Contract regression run `43664372342`, job `132660812848`, artifact `14141667068`. Their previously recorded digests and limitations remain unchanged.
+
+### Safety boundary and next step
+- No production source or schema was edited by this test sequence. No T0 DB/feeder access or mutation, PAPER Ledger mutation, simulated initial-mark creation, Bootstrap invocation, actual One-shot/Runner invocation, systemd/service/autostart change, exchange API access, AI execution, live order, or real trading occurred.
+- AI remains disabled (`AI_EXECUTION_ENABLED=false`); AI Strategy remains deferred until Core First gates and subsequent evidence requirements are satisfied.
+- Next: run the isolated `core_runtime.test_runner_hardening` unit-test module, then record its exact result. Continue to distinguish offline unit/contract PASS from persistent Ledger readiness and continuous runtime readiness. No runtime action is authorized by this test evidence.
