@@ -48,7 +48,7 @@ _REQUIRED_ENDPOINT_ENV = (
     "T1_ORDERBOOK_API_BASE_URL",
     "T1_ORDERBOOK_API_TOKEN",
 )
-_SOURCE_SHA = re.compile(r"[0-9a-f]{40}\\Z")
+_SOURCE_SHA = re.compile(r"[0-9a-f]{40}\Z")
 
 
 def _required(env, key):
