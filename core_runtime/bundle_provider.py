@@ -191,14 +191,16 @@ class CoreBundleProvider:
             preflight = self.preflight_fn(
                 self.config_path, now_ms=decision_at_ms, environ=self.environ
             )
+            preflight_latch = (
+                preflight.get("killSwitch")
+                if isinstance(preflight, dict) else None
+            )
             if (not isinstance(preflight, dict)
                     or preflight.get("status") != "PAPER_LEDGER_READY"
                     or preflight.get("riskReady") is not True
-                    or preflight.get("killSwitch") != {
-                        "killed": False, "paused": False,
-                        "updatedAtMs": preflight.get("killSwitch", {}).get("updatedAtMs")
-                        if isinstance(preflight.get("killSwitch"), dict) else None,
-                    }):
+                    or not isinstance(preflight_latch, dict)
+                    or preflight_latch.get("killed") is not False
+                    or preflight_latch.get("paused") is not False):
                 raise BundleProviderError("PAPER_LEDGER_NOT_READY")
 
             _, ledger_path = _load_config(self.config_path)
