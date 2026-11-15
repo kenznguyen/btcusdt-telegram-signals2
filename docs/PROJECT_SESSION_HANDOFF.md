@@ -6157,3 +6157,15 @@ Current application:
 ### Next step and limits
 - Do not initialize a simulated mark, modify risk state, arm/disarm Kill Switch, write to the Ledger, synchronize source, or execute Core Runner under this evidence step.
 - Next work should first preserve and investigate the dirty/untracked VPS paths, then establish an approved source-parity plan. Any mark initialization or runtime readiness procedure requires separate explicit approval and a documented deterministic input/provenance contract.
+
+
+## 2026-11-15 — Owner priority decision: GitHub completion before VPS synchronization
+
+- Owner direction: prioritize completing Core First on GitHub first; only after GitHub source, tests, CI evidence, and required readiness gates are complete should VPS synchronization be planned and performed.
+- Work continues on the existing branch `feature/core-operational-proof-20261112`; do not create a parallel branch or PR.
+- GitHub is the source-of-truth workstream during this phase. Do not use the VPS checkout as a source of changes or synchronize partial/unverified source to VPS.
+- Preserve the VPS worktree exactly as previously observed: HEAD `7441657fd0049feff95b28200cf21881fe39e606`, modified tracked files, untracked PAPER config, and the anomalously named untracked path. Do not reset, clean, delete, overwrite, or attempt ad-hoc repair during GitHub completion.
+- GitHub completion sequence: inspect the current branch/handoff and source state; complete Core Strategy → Shared Risk Engine → PaperLedger → Core Runner integration; add/execute isolated deterministic tests; verify simulated initial-mark contract and Risk/Kill Switch behavior in disposable fixtures; run GitHub Actions; record exact source SHA, workflow run/job, artifact and digest where available, test evidence, PASS/BLOCKED/NOT VERIFIED, next step, and prohibited actions.
+- Core First is not complete merely because CI passes: data-backed PAPER evaluation and any operational readiness claims require their own evidence and approval gates. AI Strategy remains deferred; `AI_EXECUTION_ENABLED=false`; no live orders.
+- VPS synchronization is a later, separate phase. Before it begins, prepare a preservation/reconciliation plan for the dirty VPS worktree and existing PAPER Ledger/config; use HTTPS rather than the VPS SSH origin; verify exact source SHA and post-sync state. Do not overwrite local changes or mutate the Ledger/T0.
+- This priority decision does not authorize VPS synchronization, source writes on VPS, simulated mark initialization, preflight/bootstrap/Decision Cycle/One-shot/Runner execution, service/autostart changes, T0 mutation, exchange access, or order submission.
