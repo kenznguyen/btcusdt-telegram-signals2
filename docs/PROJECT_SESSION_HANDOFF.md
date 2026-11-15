@@ -6584,3 +6584,13 @@ This supersedes the earlier T1 progress snapshot in this handoff for current T1 
 - Finish remaining P0 environment-disabled and publisher fail-closed state tests offline.
 - Complete reverse-dependency/reachability analysis for `quinn-udp` and `rustix`; ask for explicit bounded approval before dependency remediation.
 - Request separate approval before any live loopback T1→T2 integration or runtime activation.
+
+
+## 2026-11-15 — T1 PR review constraint and final documentation head
+
+- T1 branch documentation/evidence HEAD: `8a623a7fcbb7f448e30a56ecab74425114384460`.
+- T1 tested source remains `23c5bc975f3d495ec5c482a33c9c192f6a8c0c3f`; GitHub compare confirms the three commits after that source SHA are documentation-only (P3 evidence, test specification and PR review constraint). No source/workflow changes occurred after the tested SHA.
+- Existing T1 PR #1 remains OPEN / DRAFT / NOT MERGED. It retains a review comment from 2026-11-07 on `crates/connection-sidecar/src/lib.rs`: after `fs::hard_link` publishes a manifest, later temp cleanup or parent-directory sync can fail while the writer remains usable; the review requests poisoning the writer and a regression test. This is outside the Order Book API increment and was not changed here. Do not merge PR #1 until this existing finding is separately resolved or the owner changes the merge gate.
+- This PR review constraint is independent of the T1 Order Book API source/CI compatibility PASS and independent of the cargo-audit blocker.
+- Current T1 disposition remains: wire/snapshot identity and HTTP transport boundary subset PASS at source/CI; full P3 acceptance PARTIAL / NOT ACCEPTED; security gate FAIL; remaining P0 publisher/environment tests incomplete; T1 runtime NOT VERIFIED; T1→T2 live runtime integration BLOCKED / NOT RUN.
+- Preserve T1 branch/PR. No merge, runtime, VPS, T0, T2 source, Core First source, persistent runtime, exchange connectivity or live orders were performed.
