@@ -36,7 +36,7 @@ _T1_FIELDS = {
     "sourceTimestampMs", "observedAtMs", "decisionWatermark", "generation",
     "snapshotId", "continuity", "freshness", "depth", "complete",
 }
-_T1_EVIDENCE_FIELDS = _T1_FIELDS - {"symbol", "market", "bids", "asks"}
+_T1_EVIDENCE_FIELDS = _T1_FIELDS - {"symbol", "bids", "asks"}
 _SAFE_INTEGER = 9_007_199_254_740_991
 
 
