@@ -339,28 +339,20 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
         from core_runtime.test_input_bundle_contract import valid_bundle
         from paper_execution.account_equity import record_account_mark
         from paper_execution.ledger import read_account_risk_snapshot, read_snapshot
-        from paper_execution.simulated_capital import DEFAULT_SIMULATED_CAPITAL_CONTRACT
-
         bundle = valid_bundle()
         root = Path(self.temp.name) / "simulated-one-shot"
         root.mkdir()
         ledger_path = root / "simulated-paper.sqlite3"
-        limits = {
-            "maxDrawdownPct": "10",
-            "maxDailyLossUsdt": "2",
-            "maxExposureUsdt": "10",
-        }
-        contract_bytes = json.dumps(
-            DEFAULT_SIMULATED_CAPITAL_CONTRACT, separators=(",", ":")
-        ).encode("utf-8")
+        contract_bytes = (
+            Path(__file__).resolve().parent
+            / "contracts" / "simulated_capital_v1.json"
+        ).read_bytes()
         PaperLedger(
             ledger_path,
             max_position_base="0.01",
             fee_rate="0.001",
             strategy_id="STRATEGY_CORE",
             source_sha="b" * 40,
-            risk_limits=limits,
-            require_risk_limits=True,
             simulated_contract_bytes=contract_bytes,
             simulated_initialized_at_ms=self.now,
         )
@@ -398,7 +390,6 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
             "mode": "PAPER",
             "ai_execution_enabled": False,
             "ledger_path": str(ledger_path),
-            "risk_limits": limits,
             "max_book_age_ms": 2_000,
             "max_position_base": "0.01",
         }), encoding="utf-8")
