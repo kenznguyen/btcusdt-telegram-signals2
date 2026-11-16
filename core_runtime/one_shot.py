@@ -152,16 +152,16 @@ def run_once(config_path, bundle_path, *, now_ms=None, on_intent_prepared=None):
     bundle = {}
     try:
         config, ledger_path = _load_config(config_path)
+        preflight = _preflight(
+            config_path, now_ms=now, allow_risk_unready=True,
+            include_file_identity=True,
+        )
         from paper_execution.simulated_equity import is_simulated_account
         simulated_account = is_simulated_account(ledger_path)
         limits, max_book_age_ms, max_position_base = _runner_policy(
             config, simulated=simulated_account,
         )
         contract_bytes = _load_simulated_contract_bytes() if simulated_account else None
-        preflight = _preflight(
-            config_path, now_ms=now, allow_risk_unready=True,
-            include_file_identity=True,
-        )
         bundle = _strict_json(bundle_path)
         validation = validate_bundle(bundle, max_book_age_ms=max_book_age_ms)
         if validation["strategyId"] != "STRATEGY_CORE":
