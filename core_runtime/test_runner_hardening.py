@@ -25,7 +25,25 @@ class RunnerHardeningPolicyTest(unittest.TestCase):
             "PAPER_MAX_DAILY_LOSS_USDT": "",
             "PAPER_MAX_EXPOSURE_USDT": "",
         }, clear=False):
-            self.assertEqual(_runner_policy(config), (2000, "0.01"))
+            self.assertEqual(_runner_policy(config, simulated=True), (None, 2000, "0.01"))
+
+    def test_funded_account_keeps_its_existing_risk_policy_path(self):
+        limits = {
+            "maxDrawdownPct": "50",
+            "maxDailyLossUsdt": "50",
+            "maxExposureUsdt": "1000",
+        }
+        config = {
+            "risk_limits": limits,
+            "max_book_age_ms": 2000,
+            "max_position_base": "0.01",
+        }
+        with patch.dict(os.environ, {
+            "PAPER_MAX_DRAWDOWN_PCT": "",
+            "PAPER_MAX_DAILY_LOSS_USDT": "",
+            "PAPER_MAX_EXPOSURE_USDT": "",
+        }, clear=False):
+            self.assertEqual(_runner_policy(config), (limits, 2000, "0.01"))
 
     def test_independent_config_risk_limits_are_rejected(self):
         config = {
@@ -40,7 +58,7 @@ class RunnerHardeningPolicyTest(unittest.TestCase):
         with self.assertRaisesRegex(
             PreflightError, "RUNNER_RISK_LIMITS_OVERRIDE_FORBIDDEN"
         ):
-            _runner_policy(config)
+            _runner_policy(config, simulated=True)
 
     def test_environment_risk_limit_override_is_rejected(self):
         config = {
@@ -53,7 +71,7 @@ class RunnerHardeningPolicyTest(unittest.TestCase):
             with self.assertRaisesRegex(
                 PreflightError, "RUNNER_RISK_LIMITS_OVERRIDE_FORBIDDEN"
             ):
-                _runner_policy(config)
+                _runner_policy(config, simulated=True)
 
     def test_malformed_environment_risk_limit_override_is_also_rejected(self):
         config = {
@@ -64,7 +82,7 @@ class RunnerHardeningPolicyTest(unittest.TestCase):
             with self.assertRaisesRegex(
                 PreflightError, "RUNNER_RISK_LIMITS_OVERRIDE_FORBIDDEN"
             ):
-                _runner_policy(config)
+                _runner_policy(config, simulated=True)
 
     def test_readiness_false_is_returned_only_for_explicit_exit_aware_preflight(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -119,6 +137,11 @@ class RunnerRiskUnreadyDecisionTest(unittest.TestCase):
             "mode": "PAPER",
             "ai_execution_enabled": False,
             "ledger_path": str(self.ledger_path),
+            "risk_limits": {
+                "maxDrawdownPct": "50",
+                "maxDailyLossUsdt": "50",
+                "maxExposureUsdt": "1000",
+            },
             "max_book_age_ms": 2000,
             "max_position_base": "0.01",
         }), encoding="utf-8")
