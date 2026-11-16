@@ -33,34 +33,15 @@ def _strict_json(path):
 
 
 def _runner_policy(config):
-    config_limits = config.get("risk_limits")
-    if config_limits is None:
-        config_limits = {}
-    if not isinstance(config_limits, dict):
-        raise PreflightError("RUNNER_RISK_LIMITS_REQUIRED")
-    env_keys = {
-        "maxDrawdownPct": "PAPER_MAX_DRAWDOWN_PCT",
-        "maxDailyLossUsdt": "PAPER_MAX_DAILY_LOSS_USDT",
-        "maxExposureUsdt": "PAPER_MAX_EXPOSURE_USDT",
-    }
-    if set(config_limits) - set(env_keys):
-        raise PreflightError("RUNNER_RISK_LIMITS_REQUIRED")
-    limits = {}
-    for key, env_key in env_keys.items():
-        env_value = os.environ.get(env_key)
-        if isinstance(env_value, str) and env_value.strip():
-            value = env_value.strip()
-        else:
-            value = config_limits.get(key)
-        if not isinstance(value, str) or not value:
-            raise PreflightError("RUNNER_RISK_LIMITS_REQUIRED")
-        try:
-            parsed = Decimal(value)
-        except (DecimalException, TypeError, ValueError):
-            raise PreflightError("RUNNER_RISK_LIMIT_INVALID") from None
-        if not parsed.is_finite() or parsed <= 0:
-            raise PreflightError("RUNNER_RISK_LIMIT_INVALID")
-        limits[key] = value
+    risk_override_env = (
+        "PAPER_MAX_DRAWDOWN_PCT",
+        "PAPER_MAX_DAILY_LOSS_USDT",
+        "PAPER_MAX_EXPOSURE_USDT",
+    )
+    if "risk_limits" in config or any(
+        os.environ.get(key, "").strip() for key in risk_override_env
+    ):
+        raise PreflightError("RUNNER_RISK_LIMITS_OVERRIDE_FORBIDDEN")
     max_age = config.get("max_book_age_ms")
     if type(max_age) is not int or not 0 < max_age <= 5_000:
         raise PreflightError("RUNNER_BOOK_AGE_POLICY_INVALID")
@@ -73,7 +54,21 @@ def _runner_policy(config):
         raise PreflightError("RUNNER_POSITION_LIMIT_INVALID") from None
     if not parsed_position.is_finite() or parsed_position <= 0:
         raise PreflightError("RUNNER_POSITION_LIMIT_INVALID")
-    return limits, max_age, max_position
+    return max_age, max_position
+
+
+def _load_simulated_contract_bytes():
+    contract_path = (
+        Path(__file__).resolve().parents[1]
+        / "paper_execution" / "contracts" / "simulated_capital_v1.json"
+    )
+    try:
+        contract_bytes = contract_path.read_bytes()
+        from paper_execution.simulated_origin import validate_simulated_contract_bytes
+        validate_simulated_contract_bytes(contract_bytes)
+    except (OSError, ValueError):
+        raise PreflightError("RUNNER_SIMULATED_RISK_CONTRACT_INVALID") from None
+    return contract_bytes
 
 
 def _state_matches(bundle_state, ledger_state):
@@ -129,7 +124,8 @@ def run_once(config_path, bundle_path, *, now_ms=None, on_intent_prepared=None):
     bundle = {}
     try:
         config, ledger_path = _load_config(config_path)
-        limits, max_book_age_ms, max_position_base = _runner_policy(config)
+        max_book_age_ms, max_position_base = _runner_policy(config)
+        contract_bytes = _load_simulated_contract_bytes()
         preflight = _preflight(
             config_path, now_ms=now, allow_risk_unready=True,
             include_file_identity=True,
@@ -231,8 +227,7 @@ def run_once(config_path, bundle_path, *, now_ms=None, on_intent_prepared=None):
         ledger = PaperLedger(
             ledger_path,
             strategy_id="STRATEGY_CORE",
-            risk_limits=limits,
-            require_risk_limits=True,
+            simulated_contract_bytes=contract_bytes,
             apply_migrations=False,
             expected_file_identity=preflight.get("_ledgerFileIdentity"),
         )
