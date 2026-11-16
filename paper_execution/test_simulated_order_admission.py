@@ -413,3 +413,51 @@ class SimulatedOrderAdmissionTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+    def test_simulated_risk_policy_public_attributes_cannot_be_replaced(self):
+        replacement_limits = {
+            "maxDrawdownPct": "100",
+            "maxDailyLossUsdt": "100",
+            "maxExposureUsdt": "100000",
+            "maxOrderMarginPct": "100",
+        }
+        protected_assignments = (
+            ("risk_limits", replacement_limits),
+            ("require_risk_limits", False),
+            ("order_margin_budget_fraction", 1),
+            ("leverage", 100),
+            ("simulated_contract_active", False),
+        )
+        for attribute, replacement in protected_assignments:
+            with self.subTest(attribute=attribute):
+                with self.assertRaises(AttributeError):
+                    setattr(self.core, attribute, replacement)
+
+        self.assertEqual(dict(self.core.risk_limits), {
+            "maxDrawdownPct": "10",
+            "maxDailyLossUsdt": "2",
+            "maxExposureUsdt": "10",
+            "maxOrderMarginPct": "1",
+        })
+        self.assertTrue(self.core.require_risk_limits)
+        self.assertEqual(str(self.core.order_margin_budget_fraction), "0.01")
+        self.assertEqual(str(self.core.leverage), "1")
+        self.assertTrue(self.core.simulated_contract_active)
+
+        result = self.core.submit(
+            self.intent("simulated-core-policy-replacement-blocked", "0.011"),
+            self.book(),
+            self.now,
+            strategy_event="ENTRY",
+        )
+        self.assertEqual(result["status"], "REJECTED", result)
+        self.assertEqual(result["reason"], "MARGIN_RESERVATION_EXCEEDED")
+        with sqlite3.connect(self.path) as connection:
+            self.assertEqual(connection.execute(
+                "SELECT COUNT(*) FROM paper_risk_reservations"
+            ).fetchone()[0], 0)
+            self.assertEqual(connection.execute(
+                """SELECT position_base FROM paper_strategy_ledgers
+                   WHERE account_id=1 AND strategy_id='STRATEGY_CORE'"""
+            ).fetchone()[0], "0")
