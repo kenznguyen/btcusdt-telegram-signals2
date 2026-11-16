@@ -411,10 +411,6 @@ class SimulatedOrderAdmissionTest(unittest.TestCase):
             )
 
 
-if __name__ == "__main__":
-    unittest.main()
-
-
     def test_simulated_risk_policy_public_attributes_cannot_be_replaced(self):
         replacement_limits = {
             "maxDrawdownPct": "100",
@@ -461,3 +457,6 @@ if __name__ == "__main__":
                 """SELECT position_base FROM paper_strategy_ledgers
                    WHERE account_id=1 AND strategy_id='STRATEGY_CORE'"""
             ).fetchone()[0], "0")
+
+if __name__ == "__main__":
+    unittest.main()

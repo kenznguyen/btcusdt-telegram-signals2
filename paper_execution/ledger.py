@@ -1659,9 +1659,7 @@ class PaperLedger:
     def __init__(self, db_path, *, max_position_base="0.01", fee_rate="0.0005", max_spread_bps="50", risk_limits=None, require_risk_limits=False, leverage=None, strategy_id="MANUAL", source_sha=None, apply_migrations=True, expected_file_identity=None, simulated_contract_bytes=None, simulated_initialized_at_ms=None):
         self.path = Path(db_path)
         self.maximum, self.fee_rate, self.spread = number(max_position_base), number(fee_rate), number(max_spread_bps)
-        self._risk_limits = (
-            MappingProxyType(dict(risk_limits)) if risk_limits is not None else None
-        )
+        self._risk_limits = risk_limits
         self._require_risk_limits = bool(require_risk_limits)
         self._simulated_contract_active = False
         self._order_margin_budget_fraction = ORDER_MARGIN_BUDGET_PCT
