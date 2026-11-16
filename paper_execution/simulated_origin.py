@@ -52,6 +52,12 @@ def _contract(contract_bytes):
     return validated, hashlib.sha256(contract_bytes).hexdigest()
 
 
+
+def validate_simulated_contract_bytes(contract_bytes):
+    """Validate exact canonical contract bytes and return normalized data plus digest."""
+    return _contract(contract_bytes)
+
+
 def _schema_objects(connection):
     return {
         (kind, name) for kind, name in connection.execute(
