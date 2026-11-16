@@ -1659,9 +1659,12 @@ class PaperLedger:
     def __init__(self, db_path, *, max_position_base="0.01", fee_rate="0.0005", max_spread_bps="50", risk_limits=None, require_risk_limits=False, leverage=None, strategy_id="MANUAL", source_sha=None, apply_migrations=True, expected_file_identity=None, simulated_contract_bytes=None, simulated_initialized_at_ms=None):
         self.path = Path(db_path)
         self.maximum, self.fee_rate, self.spread = number(max_position_base), number(fee_rate), number(max_spread_bps)
-        self.risk_limits, self.require_risk_limits = risk_limits, bool(require_risk_limits)
+        self._risk_limits = (
+            MappingProxyType(dict(risk_limits)) if risk_limits is not None else None
+        )
+        self._require_risk_limits = bool(require_risk_limits)
         self._simulated_contract_active = False
-        self.order_margin_budget_fraction = ORDER_MARGIN_BUDGET_PCT
+        self._order_margin_budget_fraction = ORDER_MARGIN_BUDGET_PCT
         simulated_contract_supplied = simulated_contract_bytes is not None
         simulated_initialization_requested = simulated_initialized_at_ms is not None
         if simulated_contract_supplied and risk_limits is not None:
@@ -1670,7 +1673,7 @@ class PaperLedger:
             raise ValueError("SIMULATED_RISK_CONTRACT_STRATEGY_INVALID")
         if leverage is None:
             leverage = "1" if strategy_id == "STRATEGY_CORE" else "13"
-        self.leverage = number(leverage)
+        self._leverage = number(leverage)
         if strategy_id not in {"MANUAL", *DUAL_STRATEGIES}:
             raise ValueError("Invalid paper ledger strategy scope")
         self.strategy_id = strategy_id
@@ -1789,6 +1792,27 @@ class PaperLedger:
                     raise sqlite3.DatabaseError("DUAL_LEDGER_MIGRATION_NOT_READY")
                 self._bind_simulated_risk_contract(connection, simulated_contract_bytes)
 
+    @property
+    def risk_limits(self):
+        """Read-only view of the risk policy bound at ledger construction."""
+        return self._risk_limits
+
+    @property
+    def require_risk_limits(self):
+        return self._require_risk_limits
+
+    @property
+    def order_margin_budget_fraction(self):
+        return self._order_margin_budget_fraction
+
+    @property
+    def leverage(self):
+        return self._leverage
+
+    @property
+    def simulated_contract_active(self):
+        return self._simulated_contract_active
+
     def _bind_simulated_risk_contract(self, connection, contract_bytes):
         simulated_tables = {
             "paper_simulated_capital_origin",
@@ -1809,10 +1833,10 @@ class PaperLedger:
         limits = load_simulated_risk_limits(
             connection, contract_bytes=contract_bytes,
         )
-        self.risk_limits = MappingProxyType(limits)
-        self.require_risk_limits = True
+        self._risk_limits = MappingProxyType(dict(limits))
+        self._require_risk_limits = True
         self._simulated_contract_active = True
-        self.order_margin_budget_fraction = (
+        self._order_margin_budget_fraction = (
             Decimal(str(limits["maxOrderMarginPct"])) / Decimal("100")
         )
 
@@ -2051,8 +2075,8 @@ class PaperLedger:
                     if self._simulated_contract_active else
                     ("maxDrawdownPct", "maxDailyLossUsdt", "maxExposureUsdt")
                 )
-                if reason is None and (self.risk_limits is None or not all(
-                    key in self.risk_limits for key in required_risk_fields
+                if reason is None and (self._risk_limits is None or not all(
+                    key in self._risk_limits for key in required_risk_fields
                 )):
                     reason = "RISK_LIMITS_UNCONFIGURED"
                 if reason is None and (
@@ -2109,10 +2133,10 @@ class PaperLedger:
                         else:
                             drawdown_pct = max(ZERO, hwm-equity) / hwm * Decimal(100)
                             daily_loss = max(ZERO, daily_baseline-equity)
-                            if drawdown_pct >= Decimal(str(self.risk_limits["maxDrawdownPct"])):
+                            if drawdown_pct >= Decimal(str(self._risk_limits["maxDrawdownPct"])):
                                 reason = "MAX_DRAWDOWN_LIMIT"
                                 risk_control.set_kill(connection, True, now, reason)
-                            elif daily_loss >= Decimal(str(self.risk_limits["maxDailyLossUsdt"])):
+                            elif daily_loss >= Decimal(str(self._risk_limits["maxDailyLossUsdt"])):
                                 reason = "DAILY_LOSS_LIMIT"
                                 risk_control.set_kill(connection, True, now, reason)
                             else:
@@ -2127,10 +2151,10 @@ class PaperLedger:
                                     projected_gross += abs(target)*mark
                                 else:
                                     projected_gross += increase_quantity*mark
-                                if projected_gross > Decimal(str(self.risk_limits["maxExposureUsdt"])):
+                                if projected_gross > Decimal(str(self._risk_limits["maxExposureUsdt"])):
                                     reason = "MAX_EXPOSURE_LIMIT"
                                 else:
-                                    admission_margin = equity * self.order_margin_budget_fraction
+                                    admission_margin = equity * self._order_margin_budget_fraction
                                     admission_notional = admission_margin * self.leverage
                                     requested_notional = increase_quantity * limit
                                     if requested_notional > admission_notional:
@@ -2312,7 +2336,7 @@ class PaperLedger:
                     "limits": {key: str(value) for key, value in self.risk_limits.items()}
                     if self.risk_limits else None,
                     "leverage": text(self.leverage),
-                    "orderMarginBudgetPct": str(self.order_margin_budget_fraction),
+                    "orderMarginBudgetPct": str(self._order_margin_budget_fraction),
                     "policyVersion": "shared-order-margin-v1",
                 })
                 connection.execute(
