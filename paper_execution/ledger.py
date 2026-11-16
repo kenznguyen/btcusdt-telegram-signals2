@@ -6,12 +6,13 @@ import json
 import hashlib
 from pathlib import Path
 import sqlite3
+from types import MappingProxyType
 
 from pipeline.values import identity, number, stamp
 from paper_execution import risk_control, equity as equity_history
 from paper_execution.simulated_equity import (
     initialize_simulated_equity, prepare_simulated_account_config,
-    verify_simulated_equity_origin,
+    verify_simulated_equity_origin, load_simulated_risk_limits,
 )
 from risk_policy import CORE_LEVERAGE, ORDER_MARGIN_BUDGET_PCT
 from paper_execution.account_history import (
@@ -1659,6 +1660,14 @@ class PaperLedger:
         self.path = Path(db_path)
         self.maximum, self.fee_rate, self.spread = number(max_position_base), number(fee_rate), number(max_spread_bps)
         self.risk_limits, self.require_risk_limits = risk_limits, bool(require_risk_limits)
+        self._simulated_contract_active = False
+        self.order_margin_budget_fraction = ORDER_MARGIN_BUDGET_PCT
+        simulated_contract_supplied = simulated_contract_bytes is not None
+        simulated_initialization_requested = simulated_initialized_at_ms is not None
+        if simulated_contract_supplied and risk_limits is not None:
+            raise ValueError("SIMULATED_RISK_LIMITS_OVERRIDE_FORBIDDEN")
+        if simulated_contract_supplied and strategy_id not in DUAL_STRATEGIES:
+            raise ValueError("SIMULATED_RISK_CONTRACT_STRATEGY_INVALID")
         if leverage is None:
             leverage = "1" if strategy_id == "STRATEGY_CORE" else "13"
         self.leverage = number(leverage)
@@ -1674,14 +1683,9 @@ class PaperLedger:
             raise ValueError("AI_LEVERAGE_OUT_OF_RANGE")
         if self.maximum <= 0 or self.fee_rate > 1 or not 0 < self.spread <= 10_000:
             raise ValueError("Invalid paper risk configuration")
-        simulated_requested = (
-            simulated_contract_bytes is not None
-            or simulated_initialized_at_ms is not None
-        )
-        if simulated_requested and (
+        if simulated_initialization_requested and (
             self.strategy_id != "STRATEGY_CORE"
             or simulated_contract_bytes is None
-            or simulated_initialized_at_ms is None
             or not apply_migrations
         ):
             raise ValueError("SIMULATED_INITIALIZATION_ARGUMENTS_INVALID")
@@ -1746,7 +1750,7 @@ class PaperLedger:
             equity_history.ensure(connection)
             if self.strategy_id in DUAL_STRATEGIES:
                 if apply_migrations:
-                    if simulated_requested:
+                    if simulated_initialization_requested:
                         account_exists = connection.execute(
                             "SELECT 1 FROM sqlite_master WHERE type='table' AND name='paper_accounts'"
                         ).fetchone()
@@ -1774,7 +1778,7 @@ class PaperLedger:
                     migrate_daily_baseline_audit(connection, self.source_sha)
                     migrate_funding_population_reconciliation(connection, self.source_sha)
                     migrate_simulated_daily_baseline_rollover(connection, self.source_sha)
-                    if simulated_requested:
+                    if simulated_initialization_requested:
                         initialize_simulated_equity(
                             connection,
                             contract_bytes=simulated_contract_bytes,
@@ -1782,6 +1786,36 @@ class PaperLedger:
                         )
                 elif not _dual_ledger_migrations_ready(connection):
                     raise sqlite3.DatabaseError("DUAL_LEDGER_MIGRATION_NOT_READY")
+                self._bind_simulated_risk_contract(connection, simulated_contract_bytes)
+                return
+            self._bind_simulated_risk_contract(connection, simulated_contract_bytes)
+
+    def _bind_simulated_risk_contract(self, connection, contract_bytes):
+        simulated_tables = {
+            "paper_simulated_capital_origin",
+            "paper_simulated_capital_seed_events",
+            "paper_simulated_equity_origin",
+        }
+        existing = {
+            row[0] for row in connection.execute(
+                "SELECT name FROM sqlite_master WHERE type='table'"
+            )
+        }
+        if not (simulated_tables & existing):
+            if contract_bytes is not None:
+                raise ValueError("SIMULATED_RISK_CONTRACT_ORIGIN_REQUIRED")
+            return
+        if contract_bytes is None:
+            raise ValueError("SIMULATED_RISK_CONTRACT_REQUIRED")
+        limits = load_simulated_risk_limits(
+            connection, contract_bytes=contract_bytes,
+        )
+        self.risk_limits = MappingProxyType(limits)
+        self.require_risk_limits = True
+        self._simulated_contract_active = True
+        self.order_margin_budget_fraction = (
+            Decimal(str(limits["maxOrderMarginPct"])) / Decimal("100")
+        )
 
     def connect(self, *, create=None):
         if create is None:
@@ -2012,9 +2046,14 @@ class PaperLedger:
                     reason = "LEGACY_UNATTRIBUTED_STATE_CORRUPT"
                 if reason is None and legacy_quantity != 0:
                     reason = "LEGACY_UNATTRIBUTED_EXPOSURE"
-                if reason is None and (self.risk_limits is None or not all(
-                    key in self.risk_limits for key in
+                required_risk_fields = (
+                    ("maxDrawdownPct", "maxDailyLossUsdt", "maxExposureUsdt",
+                     "maxOrderMarginPct")
+                    if self._simulated_contract_active else
                     ("maxDrawdownPct", "maxDailyLossUsdt", "maxExposureUsdt")
+                )
+                if reason is None and (self.risk_limits is None or not all(
+                    key in self.risk_limits for key in required_risk_fields
                 )):
                     reason = "RISK_LIMITS_UNCONFIGURED"
                 if reason is None and (
@@ -2092,7 +2131,7 @@ class PaperLedger:
                                 if projected_gross > Decimal(str(self.risk_limits["maxExposureUsdt"])):
                                     reason = "MAX_EXPOSURE_LIMIT"
                                 else:
-                                    admission_margin = equity * ORDER_MARGIN_BUDGET_PCT
+                                    admission_margin = equity * self.order_margin_budget_fraction
                                     admission_notional = admission_margin * self.leverage
                                     requested_notional = increase_quantity * limit
                                     if requested_notional > admission_notional:
@@ -2274,7 +2313,7 @@ class PaperLedger:
                     "limits": {key: str(value) for key, value in self.risk_limits.items()}
                     if self.risk_limits else None,
                     "leverage": text(self.leverage),
-                    "orderMarginBudgetPct": str(ORDER_MARGIN_BUDGET_PCT),
+                    "orderMarginBudgetPct": str(self.order_margin_budget_fraction),
                     "policyVersion": "shared-order-margin-v1",
                 })
                 connection.execute(
