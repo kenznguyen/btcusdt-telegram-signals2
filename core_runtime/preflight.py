@@ -30,8 +30,10 @@ def _load_config(config_path):
         config = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, UnicodeError, json.JSONDecodeError):
         raise PreflightError("CONFIG_INVALID") from None
-    if not isinstance(config, dict) or set(config) not in (
-        _BASE_CONFIG_KEYS, _RUNNER_CONFIG_KEYS,
+    if (
+        not isinstance(config, dict)
+        or not _BASE_CONFIG_KEYS.issubset(config)
+        or set(config) - _RUNNER_CONFIG_KEYS
     ):
         raise PreflightError("CONFIG_SCHEMA_INVALID")
     if config.get("mode") != "PAPER":
