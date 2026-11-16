@@ -367,7 +367,11 @@ class SimulatedOrderAdmissionTest(unittest.TestCase):
             leverage="3",
             simulated_contract_bytes=self.contract,
         )
-        self.core.set_killed(True, self.now, "CORE_SHARED_KILL_SWITCH")
+        with sqlite3.connect(self.path) as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            risk_control.set_kill(
+                connection, True, self.now, "CORE_SHARED_KILL_SWITCH"
+            )
         result = ai.submit(
             self.intent("simulated-ai-shared-kill", "0.01"),
             self.book(),
