@@ -4,8 +4,10 @@ The caller must invoke this inside the same BEGIN IMMEDIATE transaction that
 creates the dual-ledger account. This path is intentionally separate from
 funded-account funding reconciliation and daily-baseline replay.
 """
+from contextlib import closing
 import hashlib
 import json
+from pathlib import Path
 import sqlite3
 from decimal import Decimal, DecimalException
 
@@ -288,6 +290,15 @@ def load_simulated_risk_limits(connection, *, contract_bytes):
     if origin is None or origin[0] != contract_hash:
         raise ValueError("SIMULATED_RISK_CONTRACT_MISMATCH")
     return dict(contract["riskLimits"])
+
+
+
+def is_simulated_account(db_path):
+    """Read and verify the account's persisted simulated origin without mutation."""
+    path = Path(db_path).resolve(strict=True)
+    with closing(sqlite3.connect(path.as_uri() + "?mode=ro", uri=True, timeout=10)) as connection:
+        connection.execute("PRAGMA query_only=ON")
+        return verify_simulated_equity_origin(connection)
 
 
 def prepare_simulated_account_config(connection, *, contract_bytes):
