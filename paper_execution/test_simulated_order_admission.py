@@ -16,12 +16,7 @@ class SimulatedOrderAdmissionTest(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.path = Path(self.temp.name) / "simulated-order-admission.sqlite3"
         self.now = 1_800_000_000_000
-        self.limits = {
-            "maxDrawdownPct": "10",
-            "maxDailyLossUsdt": "2",
-            "maxExposureUsdt": "10",
-        }
-        contract = json.dumps(
+        self.contract = json.dumps(
             DEFAULT_SIMULATED_CAPITAL_CONTRACT, separators=(",", ":")
         ).encode("utf-8")
         self.core = PaperLedger(
@@ -30,9 +25,7 @@ class SimulatedOrderAdmissionTest(unittest.TestCase):
             fee_rate="0.001",
             strategy_id="STRATEGY_CORE",
             source_sha="a" * 40,
-            risk_limits=self.limits,
-            require_risk_limits=True,
-            simulated_contract_bytes=contract,
+            simulated_contract_bytes=self.contract,
             simulated_initialized_at_ms=self.now,
         )
         account_scope = PaperLedger(self.path)
@@ -298,6 +291,37 @@ class SimulatedOrderAdmissionTest(unittest.TestCase):
         self.assertEqual(reservation_count, 0)
         self.assertEqual(fill_count, 0)
         self.assertEqual(position, "1")
+
+
+    def test_simulated_ledger_rejects_independent_risk_limits(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "override.sqlite3"
+            with self.assertRaisesRegex(
+                ValueError, "SIMULATED_RISK_LIMITS_OVERRIDE_FORBIDDEN"
+            ):
+                PaperLedger(
+                    path,
+                    strategy_id="STRATEGY_CORE",
+                    source_sha="b" * 40,
+                    risk_limits={
+                        "maxDrawdownPct": "1",
+                        "maxDailyLossUsdt": "0.1",
+                        "maxExposureUsdt": "1",
+                    },
+                    simulated_contract_bytes=self.contract,
+                    simulated_initialized_at_ms=self.now,
+                )
+
+    def test_existing_simulated_core_ledger_requires_validated_contract(self):
+        with self.assertRaisesRegex(
+            ValueError, "SIMULATED_RISK_CONTRACT_REQUIRED"
+        ):
+            PaperLedger(
+                self.path,
+                strategy_id="STRATEGY_CORE",
+                source_sha="c" * 40,
+            )
+
 
 if __name__ == "__main__":
     unittest.main()
