@@ -6594,3 +6594,13 @@ This supersedes the earlier T1 progress snapshot in this handoff for current T1 
 - This PR review constraint is independent of the T1 Order Book API source/CI compatibility PASS and independent of the cargo-audit blocker.
 - Current T1 disposition remains: wire/snapshot identity and HTTP transport boundary subset PASS at source/CI; full P3 acceptance PARTIAL / NOT ACCEPTED; security gate FAIL; remaining P0 publisher/environment tests incomplete; T1 runtime NOT VERIFIED; T1→T2 live runtime integration BLOCKED / NOT RUN.
 - Preserve T1 branch/PR. No merge, runtime, VPS, T0, T2 source, Core First source, persistent runtime, exchange connectivity or live orders were performed.
+
+## 2026-11-16 — SIMULATED_CAPITAL_V1 single-source risk contract RED specification
+
+- Scope: test-only increment on the existing Core First branch. Updated `paper_execution/test_simulated_order_admission.py` to construct the simulated Core Ledger without a caller-supplied `risk_limits` object, and added negative contracts requiring rejection of independent risk-limit overrides and requiring a validated contract for an existing simulated Core Ledger.
+- Test-spec commit: `8f3dc716cb994c10fca641ac3771b85805b05ef0`; changed file only: `paper_execution/test_simulated_order_admission.py`.
+- Baseline source under test: `279173045b94b440ca171dbb14382de9a3345f03`. Audit found `PaperLedger.__init__` accepts independent `risk_limits`; simulated admission still reads `ORDER_MARGIN_BUDGET_PCT` from `risk_policy.py` rather than the validated contract's `maxOrderMarginPct`. Machine contract blob: `fa2d02fa6b47429896df1faec674728151820b04`; validator blob: `b3d23a212ba8c75cb49b7967654dfe6a67167cb6`; Ledger blob: `4eca46c42a54d48afe067c3acd14fe305fc188c1`.
+- GitHub combined commit status returned no checks; the available commit-workflow lookup returned no workflow runs (that lookup covers PR-triggered runs only). Exact RED test execution and automatic push-workflow result: **NOT VERIFIED**. No claim that RED has been observed.
+- No production source, schema, runtime, persistent Ledger, Bootstrap, Runner, T0, VPS, exchange, AI execution or trading behavior changed. Existing funded-account risk-limit compatibility remains a required regression.
+- Status: test specification **COMMITTED**; RED execution **NOT VERIFIED**; implementation **NOT STARTED**.
+- Next: obtain exact-source execution evidence for the focused simulated-capital workflow; only after confirming the expected failures, implement contract-derived limits and digest binding on this branch. Keep all tests on disposable SQLite; preserve funded-account behavior and paper-only boundaries.
