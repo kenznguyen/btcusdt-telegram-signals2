@@ -11,7 +11,7 @@ from core_runtime.ledger_path_guard import validate_ledger_path_isolated
 
 _BASE_CONFIG_KEYS = {"mode", "ai_execution_enabled", "ledger_path"}
 _RUNNER_CONFIG_KEYS = _BASE_CONFIG_KEYS | {
-    "max_book_age_ms", "max_position_base",
+    "risk_limits", "max_book_age_ms", "max_position_base",
 }
 _CREDENTIAL_ENV_KEYS = (
     "BINANCE_API_KEY", "BINANCE_API_SECRET", "OKX_API_KEY", "OKX_API_SECRET",
