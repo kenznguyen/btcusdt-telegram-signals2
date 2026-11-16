@@ -1714,9 +1714,10 @@ class PaperLedger:
                 connection.execute("PRAGMA query_only=ON")
                 if not _dual_ledger_migrations_ready(connection):
                     raise sqlite3.DatabaseError("DUAL_LEDGER_MIGRATION_NOT_READY")
+                self._bind_simulated_risk_contract(connection, simulated_contract_bytes)
                 return
             connection.execute("PRAGMA journal_mode=WAL")
-            if simulated_requested:
+            if simulated_initialization_requested:
                 connection.execute("BEGIN IMMEDIATE")
             initialized = connection.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='paper_state'").fetchone()
             connection.execute("""CREATE TABLE IF NOT EXISTS paper_state (
@@ -1787,8 +1788,6 @@ class PaperLedger:
                 elif not _dual_ledger_migrations_ready(connection):
                     raise sqlite3.DatabaseError("DUAL_LEDGER_MIGRATION_NOT_READY")
                 self._bind_simulated_risk_contract(connection, simulated_contract_bytes)
-                return
-            self._bind_simulated_risk_contract(connection, simulated_contract_bytes)
 
     def _bind_simulated_risk_contract(self, connection, contract_bytes):
         simulated_tables = {
