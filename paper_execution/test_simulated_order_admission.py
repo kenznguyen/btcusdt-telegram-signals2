@@ -323,5 +323,56 @@ class SimulatedOrderAdmissionTest(unittest.TestCase):
             )
 
 
+    def test_simulated_ai_ledger_uses_same_contract_limits_and_its_leverage(self):
+        ai = PaperLedger(
+            self.path,
+            max_position_base="1",
+            fee_rate="0.001",
+            strategy_id="AI_FREQAI",
+            source_sha="a" * 40,
+            leverage="3",
+            simulated_contract_bytes=self.contract,
+        )
+        self.assertEqual(dict(ai.risk_limits), {
+            "maxDrawdownPct": "10",
+            "maxDailyLossUsdt": "2",
+            "maxExposureUsdt": "10",
+            "maxOrderMarginPct": "1",
+        })
+        result = ai.submit(
+            self.intent("simulated-ai-contract-entry", "0.0299"),
+            self.book(),
+            self.now,
+            strategy_event="ENTRY",
+        )
+        self.assertEqual(result["status"], "FILLED", result)
+        with sqlite3.connect(self.path) as connection:
+            reservation = connection.execute(
+                """SELECT reserved_margin_quote,reserved_notional_quote,
+                          leverage,equity_basis_quote,status
+                   FROM paper_risk_reservations WHERE intent_id=?""",
+                ("simulated-ai-contract-entry",),
+            ).fetchone()
+        self.assertEqual(reservation[2:], ("3", "100", "CONSUMED"))
+        self.assertLessEqual(float(reservation[0]), 1.0)
+
+    def test_simulated_risk_limits_are_immutable_after_contract_binding(self):
+        with self.assertRaises(TypeError):
+            self.core.risk_limits["maxExposureUsdt"] = "1000"
+
+    def test_simulated_reopen_rejects_contract_bytes_with_different_digest(self):
+        contract = json.loads(self.contract)
+        different_encoding = json.dumps(contract, indent=2).encode("utf-8")
+        with self.assertRaisesRegex(
+            ValueError, "SIMULATED_RISK_CONTRACT_MISMATCH"
+        ):
+            PaperLedger(
+                self.path,
+                strategy_id="STRATEGY_CORE",
+                source_sha="d" * 40,
+                simulated_contract_bytes=different_encoding,
+            )
+
+
 if __name__ == "__main__":
     unittest.main()
