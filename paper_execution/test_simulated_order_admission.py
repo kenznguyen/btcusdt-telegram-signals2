@@ -356,6 +356,39 @@ class SimulatedOrderAdmissionTest(unittest.TestCase):
         self.assertEqual(reservation[2:], ("3", "100", "CONSUMED"))
         self.assertLessEqual(float(reservation[0]), 1.0)
 
+
+    def test_simulated_ai_entry_is_blocked_by_core_shared_kill_switch(self):
+        ai = PaperLedger(
+            self.path,
+            max_position_base="1",
+            fee_rate="0.001",
+            strategy_id="AI_FREQAI",
+            source_sha="a" * 40,
+            leverage="3",
+            simulated_contract_bytes=self.contract,
+        )
+        self.core.set_killed(True, self.now, "CORE_SHARED_KILL_SWITCH")
+        result = ai.submit(
+            self.intent("simulated-ai-shared-kill", "0.01"),
+            self.book(),
+            self.now,
+            strategy_event="ENTRY",
+        )
+        self.assertEqual(result["status"], "REJECTED", result)
+        self.assertIn("KILL", result["reason"])
+        with sqlite3.connect(self.path) as connection:
+            reservation_count = connection.execute(
+                "SELECT COUNT(*) FROM paper_risk_reservations WHERE intent_id=?",
+                ("simulated-ai-shared-kill",),
+            ).fetchone()[0]
+            position = connection.execute(
+                """SELECT position_base FROM paper_strategy_ledgers
+                   WHERE account_id=1 AND strategy_id='AI_FREQAI'"""
+            ).fetchone()[0]
+        self.assertEqual(reservation_count, 0)
+        self.assertEqual(position, "0")
+
+
     def test_simulated_risk_limits_are_immutable_after_contract_binding(self):
         with self.assertRaises(TypeError):
             self.core.risk_limits["maxExposureUsdt"] = "1000"
