@@ -14,35 +14,9 @@ from pipeline.test_core_runtime_one_shot import NOW, producer_report
 import core_runtime.__main__ as cli
 
 
-LIMITS = {
-    "maxDrawdownPct": "50",
-    "maxDailyLossUsdt": "50",
-    "maxExposureUsdt": "1000",
-}
-
-
 class RunnerHardeningPolicyTest(unittest.TestCase):
-    def test_environment_limits_override_config_limits(self):
+    def test_contract_config_does_not_supply_independent_risk_limits(self):
         config = {
-            "risk_limits": dict(LIMITS),
-            "max_book_age_ms": 2000,
-            "max_position_base": "0.01",
-        }
-        with patch.dict(os.environ, {
-            "PAPER_MAX_DRAWDOWN_PCT": "12.5",
-            "PAPER_MAX_DAILY_LOSS_USDT": "7.25",
-            "PAPER_MAX_EXPOSURE_USDT": "250",
-        }, clear=False):
-            limits, _, _ = _runner_policy(config)
-        self.assertEqual(limits, {
-            "maxDrawdownPct": "12.5",
-            "maxDailyLossUsdt": "7.25",
-            "maxExposureUsdt": "250",
-        })
-
-    def test_unset_environment_limits_preserve_config_values(self):
-        config = {
-            "risk_limits": dict(LIMITS),
             "max_book_age_ms": 2000,
             "max_position_base": "0.01",
         }
@@ -51,31 +25,45 @@ class RunnerHardeningPolicyTest(unittest.TestCase):
             "PAPER_MAX_DAILY_LOSS_USDT": "",
             "PAPER_MAX_EXPOSURE_USDT": "",
         }, clear=False):
-            limits, _, _ = _runner_policy(config)
-        self.assertEqual(limits, LIMITS)
+            self.assertEqual(_runner_policy(config), (2000, "0.01"))
 
-    def test_unknown_config_risk_limit_key_fails_closed(self):
+    def test_independent_config_risk_limits_are_rejected(self):
         config = {
-            "risk_limits": {**LIMITS, "maxDrawdownPercent": "25"},
+            "risk_limits": {
+                "maxDrawdownPct": "1",
+                "maxDailyLossUsdt": "0.1",
+                "maxExposureUsdt": "1",
+            },
+            "max_book_age_ms": 2000,
+            "max_position_base": "0.01",
+        }
+        with self.assertRaisesRegex(
+            PreflightError, "RUNNER_RISK_LIMITS_OVERRIDE_FORBIDDEN"
+        ):
+            _runner_policy(config)
+
+    def test_environment_risk_limit_override_is_rejected(self):
+        config = {
             "max_book_age_ms": 2000,
             "max_position_base": "0.01",
         }
         with patch.dict(os.environ, {
-            "PAPER_MAX_DRAWDOWN_PCT": "",
-            "PAPER_MAX_DAILY_LOSS_USDT": "",
-            "PAPER_MAX_EXPOSURE_USDT": "",
+            "PAPER_MAX_EXPOSURE_USDT": "1000000",
         }, clear=False):
-            with self.assertRaisesRegex(PreflightError, "RUNNER_RISK_LIMITS_REQUIRED"):
+            with self.assertRaisesRegex(
+                PreflightError, "RUNNER_RISK_LIMITS_OVERRIDE_FORBIDDEN"
+            ):
                 _runner_policy(config)
 
-    def test_invalid_environment_limit_fails_closed(self):
+    def test_malformed_environment_risk_limit_override_is_also_rejected(self):
         config = {
-            "risk_limits": dict(LIMITS),
             "max_book_age_ms": 2000,
             "max_position_base": "0.01",
         }
         with patch.dict(os.environ, {"PAPER_MAX_EXPOSURE_USDT": "NaN"}, clear=False):
-            with self.assertRaisesRegex(PreflightError, "RUNNER_RISK_LIMIT_INVALID"):
+            with self.assertRaisesRegex(
+                PreflightError, "RUNNER_RISK_LIMITS_OVERRIDE_FORBIDDEN"
+            ):
                 _runner_policy(config)
 
     def test_readiness_false_is_returned_only_for_explicit_exit_aware_preflight(self):
@@ -88,7 +76,6 @@ class RunnerHardeningPolicyTest(unittest.TestCase):
                 "mode": "PAPER",
                 "ai_execution_enabled": False,
                 "ledger_path": str(ledger),
-                "risk_limits": dict(LIMITS),
                 "max_book_age_ms": 2000,
                 "max_position_base": "0.01",
             }), encoding="utf-8")
@@ -119,7 +106,6 @@ class RunnerHardeningPolicyTest(unittest.TestCase):
                 self.assertEqual(cli._exit_code_for_run_result(result), expected)
 
 
-
 class RunnerRiskUnreadyDecisionTest(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
@@ -133,7 +119,6 @@ class RunnerRiskUnreadyDecisionTest(unittest.TestCase):
             "mode": "PAPER",
             "ai_execution_enabled": False,
             "ledger_path": str(self.ledger_path),
-            "risk_limits": dict(LIMITS),
             "max_book_age_ms": 2000,
             "max_position_base": "0.01",
         }), encoding="utf-8")
