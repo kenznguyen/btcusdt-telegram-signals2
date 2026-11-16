@@ -276,6 +276,20 @@ def verify_simulated_equity_origin(connection):
     return True
 
 
+
+def load_simulated_risk_limits(connection, *, contract_bytes):
+    """Return immutable-contract limits only when persisted origin matches its bytes."""
+    contract, contract_hash = _contract(contract_bytes)
+    if not verify_simulated_equity_origin(connection):
+        raise ValueError("SIMULATED_RISK_CONTRACT_ORIGIN_REQUIRED")
+    origin = connection.execute(
+        "SELECT contract_sha256 FROM paper_simulated_capital_origin WHERE account_id=1"
+    ).fetchone()
+    if origin is None or origin[0] != contract_hash:
+        raise ValueError("SIMULATED_RISK_CONTRACT_MISMATCH")
+    return dict(contract["riskLimits"])
+
+
 def prepare_simulated_account_config(connection, *, contract_bytes):
     """Seed the legacy migration input only for a genuinely new simulated ledger.
 
