@@ -484,46 +484,40 @@ def application(environ, start_response):
                 result = ledger().reset_kill(True, True, timestamp)
             elif path == "/v1/paper/evaluate" and (not payload or payload in ({"source": "AI"}, {"source": "CORE"})):
                 source = payload.get("source", "AI")
-                source_id = "STRATEGY_CORE" if source == "CORE" else "AI_FREQAI"
-                from paper_execution.ledger import dual_ledger_ready
-                dual_active = dual_ledger_ready(os.environ["MARKET_DATA_DB"])
-                # AI must decide before an AI-scoped ledger can be constructed.
-                # Core retains its existing strategy-scoped writer path.
-                strategy_ledger = (
-                    ledger(strategy_id=source_id) if dual_active else ledger()
-                ) if source == "CORE" or not dual_active else None
                 if source == "CORE":
-                    data = {"book": book_snapshot(timestamp)}
-                    decision = core_decide(timestamp, data["book"])
+                    result = core_runtime_evaluate(timestamp)
                 else:
+                    source_id = "AI_FREQAI"
+                    from paper_execution.ledger import dual_ledger_ready
+                    dual_active = dual_ledger_ready(os.environ["MARKET_DATA_DB"])
+                    strategy_ledger = (
+                        ledger(strategy_id=source_id) if dual_active else ledger()
+                    ) if not dual_active else None
                     data = context(timestamp)
                     decision = decide(data, timestamp)
                     decision["source"] = "AI_FREQAI"
-                timestamp = now_ms()
-                order = None
-                if source == "AI" and dual_active and decision.get("intent"):
-                    # No authoritative Trusted Admission Context / admitted leverage
-                    # provider is currently wired into this API. Never turn a raw
-                    # candidate into a ledger write or submit using a fixture/default.
-                    return response("409 Conflict", {
-                        "error": "AI_ADMISSION_NOT_ESTABLISHED",
-                    })
-                if decision.get("intent"):
-                    end = timestamp // 900_000 * 900_000
-                    mark_window = market_window("BTCUSDT","15m",
-                                              end-900_000,end,as_of_ms=timestamp)
-                    if mark_window["candles"] and mark_window["coverage"]["complete"]:
-                        mark = mark_window["candles"][-1]
-                        ledger().record_account_mark(mark["close"],mark["closeTimeMs"],timestamp,
-                            mark_window["datasetVersion"],os.environ.get("PAPER_INITIAL_CAPITAL","100"))
-                    reason = decision.get("reason")
-                    event = "ENTRY" if reason in ("RSI_ADX_ENTRY","ALIGNED_PAPER_SIGNAL") else "DCA" if reason == "DCA" else "EXIT" if reason in ("EMERGENCY_SL","SOFT_SL","TAKE_PROFIT","CLOSE") else None
-                    order = strategy_ledger.submit(decision["intent"], data["book"], timestamp,
-                        strategy_id=source_id, strategy_event=event)
-                    if mark_window["candles"] and mark_window["coverage"]["complete"]:
-                        ledger().record_account_mark(mark["close"],mark["closeTimeMs"],timestamp,
-                            mark_window["datasetVersion"],os.environ.get("PAPER_INITIAL_CAPITAL","100"))
-                result = {"decision": decision, "order": order}
+                    timestamp = now_ms()
+                    order = None
+                    if dual_active and decision.get("intent"):
+                        # AI candidates remain blocked until Trusted Admission Context
+                        # and the admitted leverage provider are established.
+                        return response("409 Conflict", {
+                            "error": "AI_ADMISSION_NOT_ESTABLISHED",
+                        })
+                    if decision.get("intent"):
+                        end = timestamp // 900_000 * 900_000
+                        mark_window = market_window("BTCUSDT","15m",
+                                                  end-900_000,end,as_of_ms=timestamp)
+                        if mark_window["candles"] and mark_window["coverage"]["complete"]:
+                            mark = mark_window["candles"][-1]
+                            ledger().record_account_mark(mark["close"],mark["closeTimeMs"],timestamp,
+                                mark_window["datasetVersion"],os.environ.get("PAPER_INITIAL_CAPITAL","100"))
+                        order = strategy_ledger.submit(decision["intent"], data["book"], timestamp,
+                            strategy_id=source_id)
+                        if mark_window["candles"] and mark_window["coverage"]["complete"]:
+                            ledger().record_account_mark(mark["close"],mark["closeTimeMs"],timestamp,
+                                mark_window["datasetVersion"],os.environ.get("PAPER_INITIAL_CAPITAL","100"))
+                    result = {"decision": decision, "order": order}
             else:
                 raise ValueError("Invalid control payload")
         elif path == "/v1/candles":
