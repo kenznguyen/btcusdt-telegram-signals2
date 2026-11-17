@@ -9,6 +9,7 @@ from contextlib import closing
 import os
 from pathlib import Path
 import sqlite3
+import time
 
 
 class CycleConflict(ValueError):
@@ -64,10 +65,28 @@ class ContinuousJournal:
         connection.execute("PRAGMA foreign_keys=ON")
         return connection
 
+    def _enable_wal(self, connection):
+        deadline = time.monotonic() + (_BUSY_TIMEOUT_MS / 1000)
+        delay_seconds = 0.01
+        while True:
+            try:
+                connection.execute("PRAGMA journal_mode=WAL")
+                return
+            except sqlite3.OperationalError as exc:
+                error_code = getattr(exc, "sqlite_errorcode", None)
+                base_error_code = error_code & 0xFF if isinstance(error_code, int) else None
+                if base_error_code not in {sqlite3.SQLITE_BUSY, sqlite3.SQLITE_LOCKED}:
+                    raise
+                remaining_seconds = deadline - time.monotonic()
+                if remaining_seconds <= 0:
+                    raise
+                time.sleep(min(delay_seconds, remaining_seconds))
+                delay_seconds = min(delay_seconds * 2, 0.2)
+
     def _initialize(self):
         try:
             with closing(self._connect()) as connection:
-                connection.execute("PRAGMA journal_mode=WAL")
+                self._enable_wal(connection)
                 connection.execute("BEGIN IMMEDIATE")
                 try:
                     connection.execute(
