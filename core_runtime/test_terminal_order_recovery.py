@@ -79,5 +79,58 @@ class TerminalOrderRecoveryTest(unittest.TestCase):
             fixture.doCleanups()
 
 
+    def _assert_interrupted_order_reconciles_without_replay(self, order_status):
+        fixture = ContinuousCoreRunnerTest()
+        fixture.setUp()
+        calls = []
+        try:
+            def crash_after_intent(config_path, bundle_path, *, now_ms, on_intent_prepared):
+                bundle = __import__("json").loads(
+                    __import__("pathlib").Path(bundle_path).read_text(encoding="utf-8")
+                )
+                intent_id = "intent:" + bundle["bundleId"]
+                on_intent_prepared({"intentId": intent_id})
+                calls.append(intent_id)
+                raise RuntimeError("simulated crash after ledger commit")
+
+            runner = fixture.make_runner(run_once_fn=crash_after_intent)
+            interrupted = runner.process_bundle(fixture.bundle_path, now_ms=NOW)
+            self.assertEqual(interrupted["status"], "UNKNOWN_REQUIRES_RECONCILIATION")
+            cycle = fixture.journal.get_cycle(interrupted["cycleKey"])
+            order_id = "paper:terminal-" + order_status.lower()
+            fixture.audit_events = {
+                "events": [{
+                    "id": 13,
+                    "atMs": NOW + 1,
+                    "kind": "ORDER_UPDATE",
+                    "document": {
+                        "intentId": cycle["intentId"],
+                        "orderId": order_id,
+                        "status": order_status,
+                    },
+                }],
+                "nextBeforeId": None,
+            }
+
+            recovered = runner.recover_incomplete(now_ms=NOW + 2)
+
+            self.assertEqual(recovered, [{
+                "cycleKey": cycle["cycleKey"],
+                "status": "PAPER_ACCEPTED",
+            }])
+            persisted = fixture.journal.get_cycle(cycle["cycleKey"])
+            self.assertEqual(persisted["status"], "PAPER_ACCEPTED")
+            self.assertEqual(persisted["orderId"], order_id)
+            self.assertEqual(calls, [cycle["intentId"]])
+        finally:
+            fixture.doCleanups()
+
+    def test_interrupted_cycle_reconciles_canceled_order_without_replay(self):
+        self._assert_interrupted_order_reconciles_without_replay("CANCELED")
+
+    def test_interrupted_cycle_reconciles_expired_order_without_replay(self):
+        self._assert_interrupted_order_reconciles_without_replay("EXPIRED")
+
+
 if __name__ == "__main__":
     unittest.main()
