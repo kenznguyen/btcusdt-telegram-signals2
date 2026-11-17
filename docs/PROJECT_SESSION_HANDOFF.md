@@ -1941,3 +1941,63 @@ Next: use ordinary non-SSH T0 validation on the exact active branch SHA if workf
 - No tests were executed in this increment. Existing Core operational workflow run `44145473515` on source SHA `78d9fcb25b5f700cf43389915c2793e2f14ca519` remains the last recorded CI evidence; it is not a fresh test of the findings above.
 - Status: T0/T1 HTTP components individually show fail-closed boundaries by source review; complete Core call graph **BLOCKED / NOT VERIFIED** due the reachable legacy common-API path and unmerged T1 server PR. Overall Core First remains **PARTIAL / NOT VERIFIED**. Branch promotion/merge remains BLOCKED; Dual-Strategy AI remains DEFERRED.
 - Next: obtain owner decision on the single authoritative Core decision path and authorize a separately scoped migration/removal of the legacy direct API path. Keep the current review branch and all runtime/AI/live-trading gates unchanged until approved.
+
+
+## 2026-11-18 — Authoritative Core Bundle V1 API migration (PARTIAL)
+
+**Owner decision**
+- Owner approved making CoreBundleProvider → Bundle V1 validation → Core Runtime the only authoritative Core decision/submission path.
+- Scope: Common API/Dashboard Core Evaluate, /v1/signals, and /v1/quality Core projections.
+- Preserve RSI + ADX + Smart DCA, Core/AI ledger separation, shared risk controls, 1% per-order margin cap, Core leverage 1x, AI execution disabled, and paper-only behavior.
+- No T0/T1 runtime, VPS, systemd, autostart, exchange credentials, or live-order changes were authorized or performed.
+
+**Implementation**
+- pipeline/api.py no longer exports or calls the legacy core_decide path.
+- POST /v1/paper/evaluate with source=CORE now calls core_runtime_evaluate, which uses the Continuous Core Runner, Bundle Provider, Bundle V1 validation, and Paper Ledger risk admission.
+- /v1/signals and the Core portion of /v1/quality now use core_runtime_preview; the preview uses the one-shot Core producer and returns a non-submitting SIGNAL_READY result with riskDecision=NOT_EVALUATED at the one-shot layer.
+- Quality projection now exposes T1 Order Book V1 snapshot evidence separately from the Hummingbot book stream used by the AI/common context.
+- core_runtime/one_shot.py added submit=False preview behavior. It validates the same Bundle V1 and Core signal but returns before PaperLedger construction/submission.
+- core_runtime/api_facade.py validates explicit runtime paths, pinned source SHA, T0/T1 endpoint configuration and PAPER runtime preflight. Missing/invalid configuration fails closed; no local-T0 or Hummingbot fallback is provided for Core decisions.
+- The old operational test helper was moved to direct pipeline.core_strategy.produce + pipeline.core_signal.validate fixture evaluation. Dual-strategy API tests now verify delegation through core_runtime_preview, rather than the removed legacy evaluator.
+- Dashboard request/response route names remain compatible; no dashboard build/deployment was performed.
+
+**Branch and source**
+- Existing branch: feature/core-operational-proof-20261112.
+- Branch HEAD at this handoff update: 20b6df0f1d51ca85ca1a00a2381af0ba78d767b1.
+- Core API implementation and operational-proof source SHA: 26b912b57436f421af566ed08caee590eeed375b.
+- No branch creation, PR creation, merge, rebase, reset, cherry-pick, force-push, or default-branch change.
+
+**CI evidence**
+1. Core-First code-level operational proof:
+   - Workflow run 44196676227: SUCCESS.
+   - Source SHA: 26b912b57436f421af566ed08caee590eeed375b.
+   - Job ID: 134439844334.
+   - Artifact: core-first-code-operational-proof-44196676227.
+   - Artifact ID: 14380106217.
+   - Artifact ZIP SHA-256: 82b9d74bca276ed3fb487de7b78db38e4a5b4bc289c8f26e2e18fb93bba5cfff.
+   - Common API facade tests: 7 PASS; Core one-shot tests: 16 PASS.
+   - Core Entry/DCA, long/short lifecycle, entry/DCA 1% margin assertions, mixed-writer stress and repeated mixed-writer stress: PASS.
+   - T1/T2 Order Book V1 32 PASS; T2 HTTP Reader 16 PASS; loopback integration included in the 49-test invocation: PASS.
+   - Safety markers: AI_EXECUTION_ENABLED=false, CANONICAL_T0_TOUCHED=false, EXCHANGE_CREDENTIALS_USED=false, REAL_ORDERS_SENT=false, VPS_OR_PERSISTENT_RUNTIME_USED=false.
+2. Dual Ledger Bootstrap Contract:
+   - Workflow run 44197428108: SUCCESS.
+   - Source SHA: 20b6df0f1d51ca85ca1a00a2381af0ba78d767b1.
+   - Job ID: 134442401316.
+   - Full PaperLedger regression: 667 tests PASS.
+   - Artifact: dual-ledger-bootstrap-proof-20b6df0f1d51ca85ca1a00a2381af0ba78d767b1.
+   - Artifact ID: 14379607022.
+   - Artifact ZIP SHA-256: 92c841ec9498279d766540c0a4bf8fb0cbe1bf631bd2e596184a10ca4fc801ad.
+
+**Limits and remaining verification**
+- The two CI workflows are isolated code-level/PAPER proofs. They do not certify production, a deployed Common API, or end-to-end live T0/T1 connectivity.
+- T1 collector server remains on PR #1 Draft / not merged. The runtime still requires explicit CORE_RUNTIME_CONFIG_PATH, CORE_RUNTIME_JOURNAL_PATH, CORE_RUNTIME_BUNDLE_STORE_DIR, CORE_RUNTIME_SOURCE_SHA, T0 Candle HTTP endpoint/token/lag and T1 Order Book HTTP endpoint/token. No deployment environment was changed.
+- core_runtime/api_facade.preview_core currently constructs the full Continuous Runtime and invokes the Bundle Provider's persistent path. This means a read-only Signals/Quality request can initialize the Continuous Journal and persist an immutable bundle. This is an architecture/performance issue to resolve before sign-off: introduce a provider-only preflight constructor and an ephemeral, non-persisted preview bundle path.
+- evaluate_core calls recover_incomplete before each Core evaluation. Terminal accepted cycles currently expect only FILLED/OPEN/PARTIALLY_FILLED order states; later CANCELED/EXPIRED lifecycle states need an explicit recovery regression and safe reconciliation rule before repeated Core Evaluate can be considered fully verified.
+- The earlier targeted crash-during-partial-fill transaction recovery gap remains NOT VERIFIED.
+- Overall Core First remains PARTIAL / NOT VERIFIED. Promotion/merge remains blocked; Dual-Strategy AI work remains deferred.
+
+**Next authorized engineering increments**
+1. Add TDD coverage and a non-persistent Bundle V1 preview path so GET projections do not create Continuous Journal state or durable bundle artifacts.
+2. Add recovery tests for accepted cycles whose PaperLedger order later becomes CANCELED or EXPIRED; change recovery only if the tests prove the current terminal-status check is too strict.
+3. Re-run Core operational and Dual Ledger workflows, then complete independent architecture review and update this handoff with exact source/run/artifact evidence.
+4. Keep T0/T1 deployment, runtime/autostart, AI execution, and live trading unchanged.
