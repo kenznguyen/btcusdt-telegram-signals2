@@ -533,8 +533,16 @@ class ContinuousCoreRunner:
                     return "BLOCKED"
                 if bundle_path is not None:
                     try:
-                        self.process_bundle(bundle_path, now_ms=wall_clock_ms())
+                        outcome = self.process_bundle(
+                            bundle_path, now_ms=wall_clock_ms()
+                        )
                     except (ContinuousInputError, CycleNotReady):
+                        return "BLOCKED"
+                    status = outcome.get("status") if isinstance(outcome, dict) else None
+                    if status not in {
+                        "NO_SIGNAL", "PAPER_ACCEPTED", "RISK_REJECTED",
+                        "INPUT_REJECTED", "DUPLICATE_CYCLE",
+                    }:
                         return "BLOCKED"
             return "STOPPED"
         finally:
