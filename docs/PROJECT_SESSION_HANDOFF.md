@@ -2001,3 +2001,61 @@ Next: use ordinary non-SSH T0 validation on the exact active branch SHA if workf
 2. Add recovery tests for accepted cycles whose PaperLedger order later becomes CANCELED or EXPIRED; change recovery only if the tests prove the current terminal-status check is too strict.
 3. Re-run Core operational and Dual Ledger workflows, then complete independent architecture review and update this handoff with exact source/run/artifact evidence.
 4. Keep T0/T1 deployment, runtime/autostart, AI execution, and live trading unchanged.
+
+
+## 2026-11-18 Follow-up — ephemeral Core preview and terminal-order recovery verified
+
+This follow-up supersedes the earlier pending items for persistent preview artifacts and CANCELED/EXPIRED recovery in the preceding Core API migration section.
+
+**Final implementation state**
+- Existing branch: feature/core-operational-proof-20261112.
+- Branch HEAD / final code-level verification SHA: 20586231f018f76b943a6ab86ec4109ec9c6928f.
+- Core POST /v1/paper/evaluate continues through core_runtime_evaluate → Continuous Core Runner → validated Bundle V1 → Paper Ledger admission.
+- Core GET /v1/signals and the Core projection in /v1/quality use the read-only preview facade. The preview:
+  - Uses build_core_bundle_provider, not the durable Continuous Runtime builder.
+  - Runs the same T0 Candle HTTP + T1 Order Book HTTP Bundle V1 provider and PAPER preflight.
+  - Requests the bundle in memory with persist=False.
+  - Writes only a temporary canonical Bundle V1 file for one-shot validation, then deletes the temporary directory.
+  - Does not initialize Continuous Journal, persist a bundle artifact, construct PaperLedger, or submit an order.
+- Core API view now preserves riskDecision. A preview candidate explicitly carries NOT_EVALUATED / PREVIEW_ONLY; it is not represented as a Shared Risk Engine admission.
+- Core quality projection includes T1 Order Book V1 snapshot evidence separately from the Hummingbot stream.
+- Continuous recovery now accepts CANCELED and EXPIRED as valid later lifecycle states for a known, matching accepted/ambiguous order. It still requires matching intent/order identity and ledger audit evidence. Unknown or unmatched order status remains BLOCKED; no blind replay is allowed.
+- Core Strategy behavior, Shared Risk Engine, Kill Switch, account-risk contract, Core/AI ledger separation, 1% order margin cap, and Core 1x leverage were not changed.
+- No T0/T1 runtime, VPS, systemd, autostart, exchange credential, AI execution, or live-order changes were performed.
+
+**Latest CI evidence**
+1. Core First operational proof:
+   - Workflow run 44200894064: SUCCESS.
+   - URL: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/44200894064
+   - Exact source SHA: 20586231f018f76b943a6ab86ec4109ec9c6928f.
+   - Job ID: 134454363974.
+   - Artifact ID: 14381182732.
+   - Artifact ZIP SHA-256: a9ba9076a89c6dcf227b22f6f06e18654235e5c9ab62e32f039e4ee20642ac7b.
+   - Selected suites: Common API facade 5 PASS; Bundle Provider 14 PASS; Runtime Factory 15 PASS; terminal/restart recovery 53 PASS; Core First end-to-end operational proof 50 PASS; T1/T2 HTTP and integration invocation 49 PASS.
+   - Remaining workflow test invocations also PASS, including shared risk/PaperLedger and scoped reservation ownership.
+   - Safety markers: AI_EXECUTION_ENABLED=false, CANONICAL_T0_TOUCHED=false, EXCHANGE_CREDENTIALS_USED=false, REAL_ORDERS_SENT=false, VPS_OR_PERSISTENT_RUNTIME_USED=false.
+2. Dual Ledger Bootstrap Contract:
+   - Workflow run 44197428108: SUCCESS.
+   - Exact source SHA: 20b6df0f1d51ca85ca1a00a2381af0ba78d767b1.
+   - Job ID: 134442401316.
+   - Full PaperLedger regression: 667 tests PASS.
+   - Artifact ID: 14379607022.
+   - Artifact ZIP SHA-256: 92c841ec9498279d766540c0a4bf8fb0cbe1bf631bd2e596184a10ca4fc801ad.
+3. Terminal-order recovery RED/GREEN evidence:
+   - RED run 44198823632 reproduced CANCELED/EXPIRED terminal recovery mismatch.
+   - RED run 44199692231 reproduced interrupted-submit recovery returning LEDGER_ORDER_STATUS_UNKNOWN for CANCELED/EXPIRED.
+   - GREEN coverage is included in Core run 44200894064; recovery suite has 53 PASS, including interrupted recovery without duplicate submission and unknown-status fail-closed behavior.
+
+**Remaining gates / limits**
+- These are isolated code-level/PAPER proofs, not production certification or deployed end-to-end T0/T1 runtime proof.
+- T1 collector server remains on PR #1 Draft / not merged. No matching T1 server deployment was verified.
+- Common API runtime configuration was not deployed or changed. T0/T1 Bearer tokens, endpoint URLs, source SHA, runtime paths and journal paths remain explicit deployment gates.
+- pipeline/api.py still uses the configured local T0 store for the separate equity-mark endpoint and some M15/H1 quality-health projections. These are not the Core signal/decision path migrated here, but they remain a separate T0 isolation boundary to review before claiming the entire Common API is HTTP-only.
+- Targeted process crash during an actual partial-fill transaction remains NOT VERIFIED; the prior journal/order/reservation/position atomicity tests do not substitute for that exact crash checkpoint test.
+- No dashboard build/deployment or VPS runtime validation was performed.
+- Overall Core First remains PARTIAL / NOT VERIFIED. Promotion/merge remains blocked. Dual-Strategy AI implementation remains deferred.
+
+**Next steps**
+1. Perform independent review of the final branch diff and confirm the single authoritative Core path, fail-closed runtime configuration, ephemeral preview behavior, and recovery state transitions.
+2. Decide separately whether to migrate the equity-mark and quality-health T0 reads to the T0 HTTP client.
+3. Keep T1 deployment, Core runtime deployment, AI Strategy activation, and live trading disabled until their separate approval and verification gates are satisfied.
