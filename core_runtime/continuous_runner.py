@@ -360,7 +360,9 @@ class ContinuousCoreRunner:
                         continue
                     expected_status = (
                         "REJECTED" if cycle["status"] == "RISK_REJECTED"
-                        else ("FILLED", "OPEN", "PARTIALLY_FILLED")
+                        else (
+                            "FILLED", "OPEN", "PARTIALLY_FILLED", "CANCELED", "EXPIRED"
+                        )
                     )
                     order_status = order.get("status") if order else None
                     status_matches = (
