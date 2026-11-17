@@ -617,6 +617,8 @@ class ContinuousCoreRunnerTest(unittest.TestCase):
 
         def provider(candle_open_ms):
             provider_calls.append(candle_open_ms)
+            if len(provider_calls) >= 2:
+                stop[0] = True
             return self.bundle_path
 
         self.runner.process_bundle = lambda *_args, **_kwargs: {
