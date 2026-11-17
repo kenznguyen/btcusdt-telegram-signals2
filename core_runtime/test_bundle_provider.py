@@ -101,6 +101,15 @@ class CoreBundleProviderTest(unittest.TestCase):
             },
         })
 
+    def test_preview_returns_bundle_in_memory_without_persistent_store_write(self):
+        candle_open = ((NOW - 1) // INTERVAL_M15) * INTERVAL_M15 - INTERVAL_M15
+        bundle = self.provider(candle_open, persist=False)
+
+        self.assertIsInstance(bundle, dict)
+        self.assertEqual(bundle["contract"], "CORE_DECISION_INPUT_BUNDLE")
+        self.assertFalse((self.root / "bundles").exists())
+        self.builder.assert_called_once()
+
     def test_persists_bundle_immutably_and_reuses_identical_content(self):
         candle_open = ((NOW - 1) // INTERVAL_M15) * INTERVAL_M15 - INTERVAL_M15
         first = Path(self.provider(candle_open))
