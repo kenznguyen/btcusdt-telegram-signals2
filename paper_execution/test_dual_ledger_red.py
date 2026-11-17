@@ -3030,5 +3030,198 @@ os._exit(0)
         self.assertAlmostEqual(used, 0.00015)
 
 
+    def _create_expired_partial_core_order(self, suffix):
+        partial = self.core.submit(
+            self.intent(f"core-expiry-ownership-{suffix}", "0.12", "100.1", f"expiry-owner-{suffix}"),
+            {**self.book(self.now), "asks": [{"price": "100.1", "quantity": "0.05"}]},
+            self.now,
+        )
+        self.assertEqual(partial["status"], "PARTIALLY_FILLED", partial)
+        with sqlite3.connect(self.path) as connection:
+            connection.execute(
+                "UPDATE paper_risk_reservations SET expires_at_ms=? WHERE reservation_id=?",
+                (self.now + 10, partial["reservationId"]),
+            )
+        return partial
+
+    def _trigger_scoped_expiry(self, suffix):
+        later = self.now + 20
+        intent = self.intent(f"core-expiry-trigger-{suffix}", "0.13", "100.1", f"expiry-trigger-{suffix}")
+        intent["decisionAtMs"] = later - 100
+        intent["validUntilMs"] = later + 30_000
+        return self.core.submit(intent, self.book(later), later)
+
+    def test_scoped_submit_expiry_fails_closed_for_every_order_reservation_ownership_mismatch(self):
+        mutations = {
+            "reservation_account_id": (
+                "UPDATE paper_risk_reservations SET account_id=2 WHERE reservation_id=?",
+                "reservation",
+            ),
+            "reservation_intent_id": (
+                "UPDATE paper_risk_reservations SET intent_id='orphan-intent' WHERE reservation_id=?",
+                "reservation",
+            ),
+            "reservation_strategy_id": (
+                "UPDATE paper_risk_reservations SET strategy_id='AI_FREQAI' WHERE reservation_id=?",
+                "reservation",
+            ),
+            "order_account_id": (
+                "UPDATE paper_orders SET account_id=2 WHERE order_id=?",
+                "order",
+            ),
+            "order_strategy_id": (
+                "UPDATE paper_orders SET strategy_id='AI_FREQAI' WHERE order_id=?",
+                "order",
+            ),
+            "order_reservation_id": (
+                "UPDATE paper_orders SET reservation_id='reservation:forged' WHERE order_id=?",
+                "order",
+            ),
+            "order_id_column": (
+                "UPDATE paper_orders SET order_id='paper:forged' WHERE order_id=?",
+                "order",
+            ),
+        }
+        for name, (statement, target) in mutations.items():
+            with self.subTest(ownership_field=name):
+                self.path = self.fresh_account_db(f"expiry-owner-{name}.sqlite3")
+                partial = self._create_expired_partial_core_order(name)
+                with sqlite3.connect(self.path) as connection:
+                    connection.execute("PRAGMA foreign_keys=OFF")
+                    connection.execute(statement, (
+                        partial["reservationId"] if target == "reservation" else partial["orderId"],
+                    ))
+                    before_audit = connection.execute(
+                        "SELECT COUNT(*) FROM paper_audit"
+                    ).fetchone()[0]
+                with self.assertRaises(sqlite3.DatabaseError):
+                    self._trigger_scoped_expiry(name)
+                with sqlite3.connect(self.path) as connection:
+                    order_status = connection.execute(
+                        "SELECT status FROM paper_orders WHERE intent_id=?",
+                        (partial["intentId"],),
+                    ).fetchone()
+                    reservation = connection.execute(
+                        "SELECT status,remaining_notional_quote FROM paper_risk_reservations WHERE reservation_id=?",
+                        (partial["reservationId"],),
+                    ).fetchone()
+                    after_audit = connection.execute(
+                        "SELECT COUNT(*) FROM paper_audit"
+                    ).fetchone()[0]
+                self.assertEqual(order_status, ("PARTIALLY_FILLED",))
+                self.assertEqual(reservation[0], "PARTIAL")
+                self.assertGreater(Decimal(reservation[1]), Decimal("0"))
+                self.assertEqual(after_audit, before_audit)
+
+    def test_scoped_submit_expiry_fails_closed_for_order_document_ownership_mismatch(self):
+        document_fields = {
+            "intentId": "forged-intent",
+            "orderId": "paper:forged",
+            "strategyId": "AI_FREQAI",
+            "reservationId": "reservation:forged",
+            "status": "OPEN",
+        }
+        for field, value in document_fields.items():
+            with self.subTest(document_field=field):
+                self.path = self.fresh_account_db(f"expiry-doc-{field}.sqlite3")
+                partial = self._create_expired_partial_core_order(f"doc-{field}")
+                with sqlite3.connect(self.path) as connection:
+                    row = connection.execute(
+                        "SELECT document FROM paper_orders WHERE order_id=?",
+                        (partial["orderId"],),
+                    ).fetchone()
+                    document = json.loads(row[0])
+                    document[field] = value
+                    connection.execute(
+                        "UPDATE paper_orders SET document=? WHERE order_id=?",
+                        (json.dumps(document), partial["orderId"]),
+                    )
+                    before_audit = connection.execute(
+                        "SELECT COUNT(*) FROM paper_audit"
+                    ).fetchone()[0]
+                with self.assertRaises(sqlite3.DatabaseError):
+                    self._trigger_scoped_expiry(f"doc-{field}")
+                with sqlite3.connect(self.path) as connection:
+                    status = connection.execute(
+                        "SELECT status FROM paper_orders WHERE order_id=?",
+                        (partial["orderId"],),
+                    ).fetchone()
+                    reservation = connection.execute(
+                        "SELECT status,remaining_notional_quote FROM paper_risk_reservations WHERE reservation_id=?",
+                        (partial["reservationId"],),
+                    ).fetchone()
+                    after_audit = connection.execute(
+                        "SELECT COUNT(*) FROM paper_audit"
+                    ).fetchone()[0]
+                self.assertEqual(status, ("PARTIALLY_FILLED",))
+                self.assertEqual(reservation[0], "PARTIAL")
+                self.assertGreater(Decimal(reservation[1]), Decimal("0"))
+                self.assertEqual(after_audit, before_audit)
+
+    def test_scoped_submit_expiry_requires_exact_order_update_rowcount(self):
+        partial = self._create_expired_partial_core_order("order-rowcount")
+        with sqlite3.connect(self.path) as connection:
+            connection.execute(
+                """CREATE TRIGGER suppress_expiry_order_update
+                   BEFORE UPDATE OF status ON paper_orders
+                   WHEN OLD.intent_id=?
+                   BEGIN SELECT RAISE(IGNORE); END""",
+                (partial["intentId"],),
+            )
+            before_audit = connection.execute(
+                "SELECT COUNT(*) FROM paper_audit"
+            ).fetchone()[0]
+        with self.assertRaises(sqlite3.DatabaseError):
+            self._trigger_scoped_expiry("order-rowcount")
+        with sqlite3.connect(self.path) as connection:
+            order_status = connection.execute(
+                "SELECT status FROM paper_orders WHERE intent_id=?",
+                (partial["intentId"],),
+            ).fetchone()
+            reservation = connection.execute(
+                "SELECT status,remaining_notional_quote FROM paper_risk_reservations WHERE reservation_id=?",
+                (partial["reservationId"],),
+            ).fetchone()
+            after_audit = connection.execute(
+                "SELECT COUNT(*) FROM paper_audit"
+            ).fetchone()[0]
+        self.assertEqual(order_status, ("PARTIALLY_FILLED",))
+        self.assertEqual(reservation[0], "PARTIAL")
+        self.assertGreater(Decimal(reservation[1]), Decimal("0"))
+        self.assertEqual(after_audit, before_audit)
+
+    def test_scoped_submit_expiry_requires_exact_reservation_update_rowcount(self):
+        partial = self._create_expired_partial_core_order("reservation-rowcount")
+        with sqlite3.connect(self.path) as connection:
+            connection.execute(
+                """CREATE TRIGGER suppress_expiry_reservation_update
+                   BEFORE UPDATE OF status ON paper_risk_reservations
+                   WHEN OLD.reservation_id=?
+                   BEGIN SELECT RAISE(IGNORE); END""",
+                (partial["reservationId"],),
+            )
+            before_audit = connection.execute(
+                "SELECT COUNT(*) FROM paper_audit"
+            ).fetchone()[0]
+        with self.assertRaises(sqlite3.DatabaseError):
+            self._trigger_scoped_expiry("reservation-rowcount")
+        with sqlite3.connect(self.path) as connection:
+            order_status = connection.execute(
+                "SELECT status FROM paper_orders WHERE intent_id=?",
+                (partial["intentId"],),
+            ).fetchone()
+            reservation = connection.execute(
+                "SELECT status,remaining_notional_quote FROM paper_risk_reservations WHERE reservation_id=?",
+                (partial["reservationId"],),
+            ).fetchone()
+            after_audit = connection.execute(
+                "SELECT COUNT(*) FROM paper_audit"
+            ).fetchone()[0]
+        self.assertEqual(order_status, ("PARTIALLY_FILLED",))
+        self.assertEqual(reservation[0], "PARTIAL")
+        self.assertGreater(Decimal(reservation[1]), Decimal("0"))
+        self.assertEqual(after_audit, before_audit)
+
+
 if __name__ == "__main__":
     unittest.main()
