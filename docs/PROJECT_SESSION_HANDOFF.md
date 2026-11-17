@@ -1755,3 +1755,13 @@ Next: use ordinary non-SSH T0 validation on the exact active branch SHA if workf
 - Verdict: Core First code-level operational workflow **PASS** at exact source SHA `728c6cce53357d72df20d07eee60a74b16266894`; merge/promotion **BLOCKED** by branch divergence and pending full independent review. Dual-Strategy AI implementation remains deferred.
 - Next: inspect the 82 main-only commits' workflow/configuration differences and produce a minimal safe reconciliation plan on this existing branch. No runtime activation, T0 change, AI execution, or real trading.
 
+
+
+## 2026-11-18 — branch divergence scope inspection
+
+- After the preceding handoff commit, current branch HEAD is `42dc51a3c4465140f974cada3a76a96f01292ae3`; main remains `b9b938b4c78f143ca63330d047a8a799ef450a13`.
+- Exact compare (main → current branch): **4,416 ahead / 82 behind**, merge base `f5b74affb8777953fa66d241784965fbb0e577ba`, status `diverged`.
+- The branch-only compare contains a broad historical/source set, including multiple CI workflows, `core-live-data-operational-proof.yml`, Android application sources, and other project files. This is not a narrowly scoped Core First promotion candidate.
+- Workflow readback: `core-live-data-operational-proof.yml` exists on this branch (blob `805a4c87864e8dd09f17a85f40c1a9b3737c8665`) and is absent from `main`; `t0-manual-validation.yml` differs substantially (branch blob `e298db15ce16f1deb72dbce466513037319b0f6f`, 533 lines; main blob `e4d5ecc712bf590d5b4f7587fa649cbc94d4f8e2`, 126 lines); `t0-signature-a2-2-stage-i.yml` is identical on both refs (blob `5fa94939181af5f1f33686c3444bc6f8a0326962`). No SSH preflight script/test path is present on either tree.
+- No source, workflow, runtime, T0, or AI changes were made in this inspection. No PR targets the Core First branch.
+- Promotion remains **BLOCKED**. Do not merge/rebase/reset/cherry-pick/force-push or create a parallel PR. Continue Core First verification on the existing branch; prepare a minimal promotion/reconciliation proposal only after the owner explicitly authorizes the intended promotion target and scope.
