@@ -45,6 +45,17 @@ class FakeRunner:
         return self.process_result
 
 
+class FakePreviewProvider:
+    def __init__(self, events):
+        self.events = events
+
+    def __call__(self, candle_open, *, persist=True):
+        self.events.append(("provide", candle_open, persist))
+        if persist:
+            return "/bundles/core.json"
+        return {"bundleId": "preview-bundle", "mode": "PAPER"}
+
+
 class FakeRuntime:
     def __init__(self, events, process_result=None):
         self.runner = FakeRunner(events, process_result)
@@ -69,26 +80,40 @@ class CoreApiFacadeTest(unittest.TestCase):
         self.events = []
         self.runtime = FakeRuntime(self.events)
 
-    def test_preview_uses_bundle_provider_and_one_shot_without_submitting(self):
-        with (
-            patch("core_runtime.api_facade.build_continuous_runtime",
-                  return_value=self.runtime) as build,
-            patch("core_runtime.api_facade.latest_eligible_m15_open_ms",
-                  return_value=NOW - 900_000),
-            patch("core_runtime.one_shot.run_once", return_value={
+    def test_preview_uses_non_persistent_bundle_and_one_shot_without_submitting(self):
+        provider = FakePreviewProvider(self.events)
+        captured = {}
+
+        def inspect_preview(config_path, bundle_path, *, now_ms, submit):
+            captured["path"] = Path(bundle_path)
+            self.assertTrue(captured["path"].is_file())
+            self.assertEqual(
+                json.loads(captured["path"].read_text(encoding="utf-8")),
+                {"bundleId": "preview-bundle", "mode": "PAPER"},
+            )
+            return {
                 "runStatus": "SIGNAL_READY",
                 "signal": {"action": "BUY", "reason": "RSI_ADX_ENTRY"},
-            }) as run_once,
+                "riskDecision": {"decision": "NOT_EVALUATED"},
+            }
+
+        with (
+            patch("core_runtime.api_facade.build_core_bundle_provider",
+                  return_value=provider) as build_provider,
+            patch("core_runtime.api_facade.build_continuous_runtime") as build_runtime,
+            patch("core_runtime.api_facade.latest_eligible_m15_open_ms",
+                  return_value=NOW - 900_000),
+            patch("core_runtime.one_shot.run_once", side_effect=inspect_preview) as run_once,
         ):
             result = preview_core(now_ms=NOW, environ=self.environ)
 
         self.assertEqual(result["runStatus"], "SIGNAL_READY")
-        build.assert_called_once()
-        run_once.assert_called_once_with(
-            "/paper/config.json", "/bundles/core.json",
-            now_ms=NOW, submit=False,
-        )
-        self.assertEqual(self.events, [("provide", NOW - 900_000)])
+        build_provider.assert_called_once()
+        build_runtime.assert_not_called()
+        self.assertEqual(run_once.call_args.args[0], "/paper/config.json")
+        self.assertEqual(run_once.call_args.kwargs, {"now_ms": NOW, "submit": False})
+        self.assertFalse(captured["path"].exists())
+        self.assertEqual(self.events, [("provide", NOW - 900_000, False)])
 
     def test_evaluation_recovers_then_processes_bundle_through_continuous_runner(self):
         with (
@@ -109,7 +134,7 @@ class CoreApiFacadeTest(unittest.TestCase):
     def test_missing_runtime_configuration_fails_closed_before_factory(self):
         invalid = dict(self.environ)
         invalid.pop("T1_ORDERBOOK_API_TOKEN")
-        with patch("core_runtime.api_facade.build_continuous_runtime") as build:
+        with patch("core_runtime.api_facade.build_core_bundle_provider") as build:
             with self.assertRaises(CoreApiFacadeError):
                 preview_core(now_ms=NOW, environ=invalid)
         build.assert_not_called()

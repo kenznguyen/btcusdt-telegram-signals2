@@ -169,7 +169,9 @@ class CoreBundleProvider:
         except OSError:
             raise BundleProviderError("BUNDLE_STORE_WRITE_FAILED") from None
 
-    def __call__(self, candle_open_ms):
+    def __call__(self, candle_open_ms, *, persist=True):
+        if type(persist) is not bool:
+            raise BundleProviderError("BUNDLE_PERSIST_FLAG_INVALID")
         candle_open_ms = self._timestamp(
             candle_open_ms, "M15_CANDLE_OPEN_INVALID"
         )
@@ -233,7 +235,7 @@ class CoreBundleProvider:
                 paper_snapshot=paper,
                 account_risk_snapshot=risk,
             )
-            return str(self._persist_immutable(bundle))
+            return str(self._persist_immutable(bundle)) if persist else bundle
         except BundleProviderError:
             raise
         except Exception as exc:

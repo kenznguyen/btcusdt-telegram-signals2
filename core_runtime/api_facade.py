@@ -2,9 +2,16 @@
 
 import os
 import re
+import tempfile
+from pathlib import Path
+
+import rfc8785
 
 from core_runtime.continuous_cadence import latest_eligible_m15_open_ms
-from core_runtime.runtime_factory import build_continuous_runtime
+from core_runtime.runtime_factory import (
+    build_continuous_runtime,
+    build_core_bundle_provider,
+)
 
 
 class CoreApiFacadeError(RuntimeError):
@@ -74,17 +81,37 @@ def _bundle_path(runtime, now_ms):
 
 
 def preview_core(*, now_ms, environ=None):
-    """Build and validate a T0/T1 Bundle-v1, then preview without ledger writes."""
-    runtime = _runtime(now_ms, environ)
-    bundle_path = _bundle_path(runtime, now_ms)
+    """Validate a Bundle v1 preview without journal or durable bundle writes."""
+    env = os.environ if environ is None else environ
+    values = _runtime_options(env)
+    if type(now_ms) is not int or now_ms < 0:
+        raise CoreApiFacadeError("CORE_RUNTIME_TIMESTAMP_INVALID")
     try:
-        from core_runtime.one_shot import run_once
-        result = run_once(
-            runtime.runner.config_path,
-            bundle_path,
-            now_ms=now_ms,
-            submit=False,
+        provider = build_core_bundle_provider(
+            config_path=values["CORE_RUNTIME_CONFIG_PATH"],
+            journal_path=values["CORE_RUNTIME_JOURNAL_PATH"],
+            bundle_store_dir=values["CORE_RUNTIME_BUNDLE_STORE_DIR"],
+            environ=env,
+            clock_ms=lambda: now_ms,
         )
+        candle_open_ms = latest_eligible_m15_open_ms(
+            now_ms, settlement_ms=0
+        )
+        bundle = provider(candle_open_ms, persist=False)
+        if not isinstance(bundle, dict):
+            raise CoreApiFacadeError("CORE_PREVIEW_BUNDLE_INVALID")
+        from core_runtime.one_shot import run_once
+        with tempfile.TemporaryDirectory(prefix="core-api-preview-") as directory:
+            bundle_path = Path(directory) / "bundle.json"
+            bundle_path.write_bytes(rfc8785.dumps(bundle))
+            result = run_once(
+                values["CORE_RUNTIME_CONFIG_PATH"],
+                bundle_path,
+                now_ms=now_ms,
+                submit=False,
+            )
+    except CoreApiFacadeError:
+        raise
     except Exception:
         raise CoreApiFacadeError("CORE_PREVIEW_FAILED") from None
     if not isinstance(result, dict):

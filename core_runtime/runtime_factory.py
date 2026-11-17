@@ -58,6 +58,85 @@ def _required(env, key):
     return value.strip()
 
 
+def _build_bundle_provider(
+    *, config_path, journal_path, bundle_store_dir, environ, clock
+):
+    """Share static/path/PAPER/endpoint checks without creating a journal."""
+    static = inspect_continuous_dry_run(
+        config_path,
+        journal_path=journal_path,
+        bundle_store_dir=bundle_store_dir,
+        environ=environ,
+    )
+    now_ms = clock()
+    if type(now_ms) is not int or now_ms < 0:
+        raise RuntimeFactoryError("CLOCK_INVALID")
+    inspect_paper_ledger_preflight(
+        config_path, now_ms=now_ms, environ=environ
+    )
+
+    endpoint = {key: _required(environ, key) for key in _REQUIRED_ENDPOINT_ENV}
+    try:
+        max_lag_ms = int(endpoint["T0_CANDLE_MAX_LAG_MS"], 10)
+    except (TypeError, ValueError):
+        raise RuntimeFactoryError("T0_MAX_LAG_CONFIG_INVALID") from None
+    if str(max_lag_ms) != endpoint["T0_CANDLE_MAX_LAG_MS"]:
+        raise RuntimeFactoryError("T0_MAX_LAG_CONFIG_INVALID")
+
+    candle_client = CandleHttpClient(CandleHttpConfig(
+        base_url=endpoint["T0_CANDLE_API_BASE_URL"],
+        token=endpoint["T0_CANDLE_API_TOKEN"],
+        max_lag_ms=max_lag_ms,
+    ))
+    orderbook_client = OrderBookHttpClient(OrderBookHttpConfig(
+        base_url=endpoint["T1_ORDERBOOK_API_BASE_URL"],
+        token=endpoint["T1_ORDERBOOK_API_TOKEN"],
+    ))
+    config, _ = _load_config(config_path)
+    provider = CoreBundleProvider(
+        candle_client=candle_client,
+        orderbook_client=orderbook_client,
+        config_path=config_path,
+        bundle_store_dir=bundle_store_dir,
+        clock_ms=clock,
+        settlement_ms=0,
+        environ=environ,
+    )
+    return static, config, provider
+
+
+def _factory_error(exc):
+    if isinstance(exc, RuntimeFactoryError):
+        return exc
+    if isinstance(exc, (ContinuousDryRunError, PaperLedgerPreflightError)):
+        return RuntimeFactoryError(str(exc) or "RUNTIME_PREFLIGHT_FAILED")
+    if isinstance(exc, (CandleHttpError, OrderBookHttpError, BundleProviderError)):
+        return RuntimeFactoryError("RUNTIME_ENDPOINT_CONFIG_INVALID")
+    return RuntimeFactoryError("RUNTIME_FACTORY_FAILED")
+
+
+def build_core_bundle_provider(
+    *, config_path, journal_path, bundle_store_dir, environ=None, clock_ms=None
+):
+    """Construct a read-only provider without creating the durable journal."""
+    env = os.environ if environ is None else environ
+    clock = clock_ms if clock_ms is not None else lambda: time.time_ns() // 1_000_000
+    if not callable(clock):
+        raise RuntimeFactoryError("CLOCK_INVALID")
+    try:
+        _, _, provider = _build_bundle_provider(
+            config_path=config_path,
+            journal_path=journal_path,
+            bundle_store_dir=bundle_store_dir,
+            environ=env,
+            clock=clock,
+        )
+        return provider
+    except Exception as exc:
+        error = _factory_error(exc)
+        raise error from None
+
+
 def build_continuous_runtime(
     *,
     config_path,
@@ -69,9 +148,9 @@ def build_continuous_runtime(
 ):
     """Validate all gates, then construct a PAPER-only provider/runner pair.
 
-    The function performs read-only static/path and PAPER Ledger preflight
-    checks before creating the durable Continuous Journal. It never invokes
-    the provider, One-shot Runner, or Continuous Runner loop.
+    Static/path and PAPER Ledger preflight checks run before the durable
+    Continuous Journal is created. Construction never invokes the provider,
+    One-shot Runner, or Continuous Runner loop.
     """
     env = os.environ if environ is None else environ
     clock = clock_ms if clock_ms is not None else lambda: time.time_ns() // 1_000_000
@@ -82,48 +161,14 @@ def build_continuous_runtime(
         raise RuntimeFactoryError("CLOCK_INVALID")
 
     try:
-        static = inspect_continuous_dry_run(
-            config_path,
+        static, config, bundle_provider = _build_bundle_provider(
+            config_path=config_path,
             journal_path=journal_path,
             bundle_store_dir=bundle_store_dir,
             environ=env,
+            clock=clock,
         )
-        now_ms = clock()
-        if type(now_ms) is not int or now_ms < 0:
-            raise RuntimeFactoryError("CLOCK_INVALID")
-        inspect_paper_ledger_preflight(
-            config_path, now_ms=now_ms, environ=env
-        )
-
-        endpoint = {key: _required(env, key) for key in _REQUIRED_ENDPOINT_ENV}
-        try:
-            max_lag_ms = int(endpoint["T0_CANDLE_MAX_LAG_MS"], 10)
-        except (TypeError, ValueError):
-            raise RuntimeFactoryError("T0_MAX_LAG_CONFIG_INVALID") from None
-        if str(max_lag_ms) != endpoint["T0_CANDLE_MAX_LAG_MS"]:
-            raise RuntimeFactoryError("T0_MAX_LAG_CONFIG_INVALID")
-
-        candle_client = CandleHttpClient(CandleHttpConfig(
-            base_url=endpoint["T0_CANDLE_API_BASE_URL"],
-            token=endpoint["T0_CANDLE_API_TOKEN"],
-            max_lag_ms=max_lag_ms,
-        ))
-        orderbook_client = OrderBookHttpClient(OrderBookHttpConfig(
-            base_url=endpoint["T1_ORDERBOOK_API_BASE_URL"],
-            token=endpoint["T1_ORDERBOOK_API_TOKEN"],
-        ))
-
-        config, _ = _load_config(config_path)
         journal = ContinuousJournal(journal_path)
-        bundle_provider = CoreBundleProvider(
-            candle_client=candle_client,
-            orderbook_client=orderbook_client,
-            config_path=config_path,
-            bundle_store_dir=bundle_store_dir,
-            clock_ms=clock,
-            settlement_ms=0,
-            environ=env,
-        )
         runner = ContinuousCoreRunner(
             config_path=config_path,
             journal=journal,
@@ -137,11 +182,6 @@ def build_continuous_runtime(
             runner=runner,
             bundle_provider=bundle_provider,
         )
-    except RuntimeFactoryError:
-        raise
-    except (ContinuousDryRunError, PaperLedgerPreflightError) as exc:
-        raise RuntimeFactoryError(str(exc) or "RUNTIME_PREFLIGHT_FAILED") from None
-    except (CandleHttpError, OrderBookHttpError, BundleProviderError):
-        raise RuntimeFactoryError("RUNTIME_ENDPOINT_CONFIG_INVALID") from None
-    except Exception:
-        raise RuntimeFactoryError("RUNTIME_FACTORY_FAILED") from None
+    except Exception as exc:
+        error = _factory_error(exc)
+        raise error from None
