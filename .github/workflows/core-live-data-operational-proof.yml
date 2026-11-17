@@ -192,6 +192,16 @@ jobs:
           python -m unittest paper_execution.test_risk_control paper_execution.test_ledger paper_execution.test_dual_ledger_red.DualLedgerRedTest.test_entry_and_dca_reserve_one_percent_of_admission_time_equity_per_ledger paper_execution.test_dual_ledger_red.DualLedgerRedTest.test_core_kill_latch_is_visible_to_ai_snapshot_without_ai_admission -v 2>&1 | tee shared-risk-paper-ledger-tests.log
 
 
+      - name: Run scoped reservation expiry ownership regressions
+        run: |
+          set -euo pipefail
+          python -m unittest \
+            paper_execution.test_dual_ledger_red.DualLedgerRedTest.test_scoped_submit_expiry_fails_closed_for_every_order_reservation_ownership_mismatch \
+            paper_execution.test_dual_ledger_red.DualLedgerRedTest.test_scoped_submit_expiry_fails_closed_for_order_document_ownership_mismatch \
+            paper_execution.test_dual_ledger_red.DualLedgerRedTest.test_scoped_submit_expiry_requires_exact_order_update_rowcount \
+            paper_execution.test_dual_ledger_red.DualLedgerRedTest.test_scoped_submit_expiry_requires_exact_reservation_update_rowcount \
+            -v 2>&1 | tee scoped-reservation-expiry-regressions.log
+
       - name: Run T1 T2 Order Book contract, HTTP reader and integration tests
         run: |
           set -euo pipefail
