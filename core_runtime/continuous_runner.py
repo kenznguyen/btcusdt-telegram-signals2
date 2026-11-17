@@ -399,7 +399,7 @@ class ContinuousCoreRunner:
                         terminal = (
                             "RISK_REJECTED" if order_status == "REJECTED"
                             else "PAPER_ACCEPTED"
-                            if order_status in ("FILLED", "OPEN", "PARTIALLY_FILLED")
+                            if order_status in ("FILLED", "OPEN", "PARTIALLY_FILLED", "CANCELED", "EXPIRED")
                             else None
                         )
                         if terminal is None:
