@@ -3042,6 +3042,16 @@ os._exit(0)
                 "UPDATE paper_risk_reservations SET expires_at_ms=? WHERE reservation_id=?",
                 (self.now + 10, partial["reservationId"]),
             )
+            row = connection.execute(
+                "SELECT document FROM paper_orders WHERE order_id=?",
+                (partial["orderId"],),
+            ).fetchone()
+            document = json.loads(row[0])
+            document["validUntilMs"] = self.now + 10
+            connection.execute(
+                "UPDATE paper_orders SET document=? WHERE order_id=?",
+                (json.dumps(document), partial["orderId"]),
+            )
         return partial
 
     def _trigger_scoped_expiry(self, suffix):
