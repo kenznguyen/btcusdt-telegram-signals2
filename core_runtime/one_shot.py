@@ -213,7 +213,11 @@ def run_once(config_path, bundle_path, *, now_ms=None, on_intent_prepared=None, 
         if adapted.get("action") == "WAIT":
             return _result(
                 bundle, "NO_SIGNAL",
-                signal={"action": "WAIT", "reason": adapted.get("reason")},
+                signal={
+                    "action": "WAIT",
+                    "reason": adapted.get("reason"),
+                    "indicators": report.get("indicators"),
+                },
                 reason=adapted.get("reason", "CORE_NO_SIGNAL"),
             )
         signal = validate_signal(adapted, now)
