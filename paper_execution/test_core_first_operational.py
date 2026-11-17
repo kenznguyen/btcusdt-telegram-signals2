@@ -15,7 +15,6 @@ from unittest.mock import patch
 
 from paper_execution import ledger as ledger_module
 from paper_execution.ledger import PaperLedger
-from pipeline.api import core_decide
 import rfc8785
 
 
@@ -220,18 +219,41 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
         return m15_values, h1_values
 
     def decide(self, *, m15=None, book=None, adx=30.0, indicator_values=None, now_ms=None):
+        from paper_execution.ledger import read_account_risk_snapshot, read_snapshot
+        from pipeline.core_signal import validate
+        from pipeline.core_strategy import produce
+
         decision_at = self.now if now_ms is None else now_ms
         with patch.dict(os.environ, {
             "MARKET_DATA_DB": str(self.path),
             "PAPER_MAX_POSITION_BASE": "1",
             "AI_EXECUTION_ENABLED": "false",
         }, clear=False), patch(
-            "pipeline.api.market_window", side_effect=[m15 or self.m15, self.h1]
-        ), patch(
             "pipeline.core_strategy.indicators",
             side_effect=indicator_values if indicator_values is not None else self.core_indicators(adx)
         ):
-            return core_decide(decision_at, book or self.book)
+            paper = read_snapshot(self.path, strategy_id="STRATEGY_CORE")
+            risk = read_account_risk_snapshot(self.path, now_ms=decision_at)
+            account_equity = (
+                risk["accountEquityQuote"] if risk.get("riskReady") is True else None
+            )
+            report = produce(
+                m15 or self.m15, self.h1, paper, paper["strategyState"],
+                book or self.book, decision_at,
+                account_equity_quote=account_equity,
+                max_position_base="1",
+            )
+            if not isinstance(report.get("intent"), dict):
+                return {
+                    "source": "STRATEGY_CORE",
+                    "action": report.get("action", "WAIT"),
+                    "reason": report.get("reason", "CORE_NO_SIGNAL"),
+                    "intent": None,
+                    "indicators": report.get("indicators"),
+                }
+            result = validate(report["intent"], decision_at)
+            result["indicators"] = report.get("indicators")
+            return result
 
     def test_one_shot_runner_submits_only_validated_bundle_v1_to_core_paper_ledger(self):
         from core_runtime.input_bundle import compute_bundle_id
