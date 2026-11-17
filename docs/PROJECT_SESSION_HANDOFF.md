@@ -2009,7 +2009,7 @@ This follow-up supersedes the earlier pending items for persistent preview artif
 
 **Final implementation state**
 - Existing branch: feature/core-operational-proof-20261112.
-- Branch HEAD / final code-level verification SHA: 20586231f018f76b943a6ab86ec4109ec9c6928f.
+- Final code-level verification source SHA: 20586231f018f76b943a6ab86ec4109ec9c6928f.
 - Core POST /v1/paper/evaluate continues through core_runtime_evaluate → Continuous Core Runner → validated Bundle V1 → Paper Ledger admission.
 - Core GET /v1/signals and the Core projection in /v1/quality use the read-only preview facade. The preview:
   - Uses build_core_bundle_provider, not the durable Continuous Runtime builder.
@@ -2059,3 +2059,9 @@ This follow-up supersedes the earlier pending items for persistent preview artif
 1. Perform independent review of the final branch diff and confirm the single authoritative Core path, fail-closed runtime configuration, ephemeral preview behavior, and recovery state transitions.
 2. Decide separately whether to migrate the equity-mark and quality-health T0 reads to the T0 HTTP client.
 3. Keep T1 deployment, Core runtime deployment, AI Strategy activation, and live trading disabled until their separate approval and verification gates are satisfied.
+
+
+**Workflow-only follow-up**
+- Commit 13389d9b6345d5b7ddad08f2bd8ccb9973bed5ae changes only expected test-count markers in .github/workflows/core-live-data-operational-proof.yml; no application source changed.
+- Workflow run 44200958119 is running against that workflow-only commit. The last completed code-level proof remains run 44200894064 at source SHA 20586231f018f76b943a6ab86ec4109ec9c6928f.
+- Handoff update commit before this correction: ad3fe1694c3cba80e67970e2064c8b8830b5423c.
