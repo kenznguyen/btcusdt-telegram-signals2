@@ -610,5 +610,34 @@ class ContinuousCoreRunnerTest(unittest.TestCase):
         self.assertEqual(self.journal.list_cycles(), [])
 
 
+    def test_unknown_reconciliation_outcome_blocks_before_next_cycle(self):
+        provider_calls = []
+        monotonic_value = [0.0]
+        stop = [False]
+
+        def provider(candle_open_ms):
+            provider_calls.append(candle_open_ms)
+            return self.bundle_path
+
+        self.runner.process_bundle = lambda *_args, **_kwargs: {
+            "cycleKey": "injected-cycle",
+            "status": "UNKNOWN_REQUIRES_RECONCILIATION",
+        }
+
+        result = self.runner.run_forever(
+            bundle_provider=provider,
+            wall_clock_ms=lambda: NOW,
+            monotonic=lambda: monotonic_value[0],
+            sleep=lambda seconds: monotonic_value.__setitem__(
+                0, monotonic_value[0] + seconds
+            ),
+            stop_requested=lambda: stop[0],
+            max_sleep_seconds=1_000_000,
+        )
+
+        self.assertEqual(result, "BLOCKED")
+        self.assertEqual(len(provider_calls), 1)
+
+
 if __name__ == "__main__":
     unittest.main()
