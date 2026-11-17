@@ -1795,3 +1795,27 @@ Next: use ordinary non-SSH T0 validation on the exact active branch SHA if workf
 - Remaining review scope: full scoped ledger submit/reservation/cancel lifecycle and account-risk snapshot validation; risk contract loader and account risk update path; Core signal/producer and Smart DCA semantics; kill-switch failure/recovery paths; complete T0/T1 isolation and no-fallback call graph; relevant regression tests and workflow evidence. Full review verdict remains **NOT VERIFIED**.
 - No tests were executed in this increment. No source/workflow/runtime/T0/T1/AI changes, no database access, no exchange connection, and no trading action. Only this handoff documentation is being updated.
 - Next: continue read-only review of account-risk contract loading, reservation accounting, and kill-switch transactional behavior on the same branch. Do not merge/rebase/reset/cherry-pick/force-push or create a parallel PR; keep Dual-Strategy AI deferred.
+
+
+## 2026-11-18 — Core First independent source review (increment 2)
+
+- Continued on the same branch after handoff commit `65364b9097eba6691ca5f5db9be90822acce15bb`; no source changes.
+- Additional read-only review:
+  - `paper_execution/simulated_origin.py` blob `ae93276d86eb01695ea363a337eafbbed44de227`;
+  - `paper_execution/simulated_equity.py` blob `24e17df782d90a229097fb0244c5d37877c756c7`;
+  - `paper_execution/simulated_capital.py` blob `b3d23a212ba8c75cb49b7967654dfe6a67167cb6`;
+  - `paper_execution/account_equity.py` blob `701bcc25e8c5850fdb9052fd7481996debb2e019`;
+  - `paper_execution/test_simulated_equity.py` blob `e2aacddc899102a89f8aee19337ecaf35465513a`;
+  - `paper_execution/test_risk_control.py` blob `5e1fdf60f9c2988d8e44e2019aa12de11c0dde9d`;
+  - `core_runtime/test_runtime_factory.py` blob `33d7dbfce750f2e16764cbf293fc280255a874df`;
+  - `core_runtime/test_bundle_provider.py` blob `6f98e0d513a90e851b0f7e0755a8d57c02466874`.
+- Risk contract findings:
+  - Simulated capital contract is closed-schema and validates exact approved values: simulated PAPER mode, 100 USDT initial capital, no reset/auto-top-up, no live/AI execution, shared Core+AI risk scope, DCA consumes the order-margin budget, and limits 10% drawdown / 2 USDT daily loss / 10 USDT exposure / 1% order margin.
+  - Risk limits are loaded only after exact contract bytes hash-match the immutable persisted origin and the origin/seed/equity provenance verifies. The ledger rejects a separate risk-limit override when simulated contract bytes are supplied.
+  - Simulated account initialization is transaction-bound, one-time, immutable, idempotent on restart, and explicitly rejects pre-existing/non-pristine or mixed funded accounts. First valid mark is required before `riskReady=true`.
+  - Account mark reconciliation runs in `BEGIN IMMEDIATE`, aggregates Core + AI + legacy-unattributed positions/PnL/fees/funding and active reservations, enforces monotonic mark timestamps, and keeps simulated daily-baseline rollover evidence.
+  - Focused tests read include contract mismatch, immutable origin, no reclassification of legacy account, funded-account mixing rejection, rollback on initialization failure, restart non-reset, first-mark readiness, daily baseline rollover, persistent kill latch, missing/corrupt kill state, and explicit reset acknowledgement/readiness.
+- No confirmed Critical/Required finding in this additional subset. This remains source/test inspection only; the tests were not executed in this increment.
+- Review status remains **PARTIAL / NOT VERIFIED**: full PaperLedger reservation lifecycle, Core producer/Smart DCA semantics, and the complete T0/T1 boundary/call graph still need review. CI evidence from run `44107216012` remains the prior exact-source workflow evidence; this review did not rerun it.
+- No runtime, database, exchange, T0/T1 service, or trading action. No source/workflow modification. Only this handoff document is updated.
+- Next: inspect Core producer/signal sizing and DCA invariants, then close the PaperLedger reservation/cancel/expiry review and relevant test coverage. Keep AI Strategy deferred and promotion blocked pending full review and branch reconciliation.
