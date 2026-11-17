@@ -80,36 +80,20 @@ class DualStrategyApiScopeRedTest(unittest.TestCase):
         self.assertEqual(constructor.call_args.kwargs["strategy_id"], "AI_FREQAI")
         self.assertFalse(constructor.call_args.kwargs["apply_migrations"])
 
-    def test_core_decision_reads_only_the_core_ledger(self):
-        from paper_execution import ledger as ledger_module
-        from pipeline import core_strategy
-
-        self.activate_dual_schema()
-        complete = {
-            "coverage": {"complete": True},
-            "candles": [],
-            "datasetVersion": "sha256:" + "a" * 64,
+    def test_core_signal_snapshot_delegates_to_bundle_runtime_without_ledger_construction(self):
+        core_wait = {
+            "source": "STRATEGY_CORE", "action": "WAIT",
+            "reason": "CORE_NO_ENTRY", "intent": None,
         }
-        with patch.object(api, "market_window", side_effect=[complete, complete]), \
-             patch.object(ledger_module, "read_snapshot", return_value={
-                 "strategyState": {"owner": "STRATEGY_CORE", "dcaUsed": False,
-                                   "initialMarginQuote": "0"},
-                 "positionBase": "0", "averageEntryPrice": "0",
-                 "realizedPnlQuote": "0", "feesQuote": "0",
-             }) as read_snapshot, \
-             patch.object(ledger_module, "read_account_risk_snapshot", return_value={
-                 "riskReady": True, "accountEquityQuote": "123.45",
-             }) as account_risk, \
-             patch.object(core_strategy, "produce", return_value={
-                 "action": "WAIT", "reason": "CORE_NO_ENTRY", "intent": None,
-             }) as producer:
-            result = api.core_decide(1_800_000_000_000, book={})
+        with patch.object(api, "context", return_value={"book": None}), \
+             patch.object(api, "decide", return_value={"action": "WAIT"}), \
+             patch.object(api, "core_runtime_preview", return_value=core_wait) as preview, \
+             patch.object(api, "ledger") as ledger_factory:
+            result = api.signal_snapshot(1_800_000_000_000)
 
-        self.assertNotEqual(result["reason"], "CORE_INPUTS_UNAVAILABLE", result)
-        self.assertEqual(result["source"], "STRATEGY_CORE")
-        read_snapshot.assert_called_once_with(str(self.db), strategy_id="STRATEGY_CORE")
-        account_risk.assert_called_once_with(str(self.db), now_ms=1_800_000_000_000)
-        self.assertEqual(producer.call_args.kwargs["account_equity_quote"], "123.45")
+        self.assertEqual(result["strategyCore"], core_wait)
+        preview.assert_called_once_with(1_800_000_000_000)
+        ledger_factory.assert_not_called()
 
     def test_cancel_route_uses_cancel_only_transaction_without_ai_ledger_construction(self):
         self.activate_dual_schema()
@@ -182,35 +166,22 @@ class DualStrategyApiScopeRedTest(unittest.TestCase):
         self.assertEqual(risk, ("100", "100", "100", observed, 0, None))
 
 
-    def test_core_decision_does_not_activate_dual_ledger_migration(self):
-        from paper_execution import ledger as ledger_module
-        from pipeline import core_strategy
-
-        complete = {
-            "coverage": {"complete": True},
-            "candles": [],
-            "datasetVersion": "sha256:" + "a" * 64,
+    def test_core_signal_snapshot_does_not_activate_dual_ledger_migration(self):
+        core_wait = {
+            "source": "STRATEGY_CORE", "action": "WAIT",
+            "reason": "CORE_NO_ENTRY", "intent": None,
         }
-        with patch.object(api, "market_window", side_effect=[complete, complete]), \
-             patch.object(ledger_module, "read_snapshot", return_value={
-                 "strategyState": {"owner": None, "dcaUsed": False,
-                                   "initialMarginQuote": "0"},
-                 "positionBase": "0", "averageEntryPrice": "0",
-                 "realizedPnlQuote": "0", "feesQuote": "0",
-             }) as read_snapshot, \
-             patch.object(core_strategy, "produce", return_value={
-                 "action": "WAIT", "reason": "CORE_NO_ENTRY", "intent": None,
-             }):
-            result = api.core_decide(1_800_000_000_000, book={})
+        with patch.object(api, "context", return_value={"book": None}), \
+             patch.object(api, "decide", return_value={"action": "WAIT"}), \
+             patch.object(api, "core_runtime_preview", return_value=core_wait):
+            result = api.signal_snapshot(1_800_000_000_000)
 
-        self.assertEqual(result["reason"], "CORE_NO_ENTRY")
-        read_snapshot.assert_called_once_with(str(self.db))
+        self.assertEqual(result["strategyCore"]["reason"], "CORE_NO_ENTRY")
         with sqlite3.connect(self.db) as connection:
             migration_table = connection.execute(
                 "SELECT 1 FROM sqlite_master WHERE type='table' AND name='paper_schema_migrations'"
             ).fetchone()
         self.assertIsNone(migration_table)
-
 
     def test_paper_read_api_separates_account_and_both_strategy_ledgers(self):
         self.activate_dual_schema()
@@ -469,7 +440,7 @@ class DualStrategyApiScopeRedTest(unittest.TestCase):
         with patch.object(api, "now_ms", return_value=timestamp), \
              patch.object(api, "context", return_value={"book": book}), \
              patch.object(api, "decide", return_value=decision), \
-             patch.object(api, "core_decide", return_value=core_wait), \
+             patch.object(api, "core_runtime_preview", return_value=core_wait), \
              patch.object(api, "control_permit", return_value=True), \
              patch.object(api, "market_window", return_value=empty_mark), \
              patch.object(api, "ledger") as ledger_factory:
