@@ -12,6 +12,7 @@ on:
       - "paper_execution/test_dual_ledger_bootstrap.py"
       - "paper_execution/test_dual_ledger_migration_red.py"
       - "paper_execution/test_dual_ledger_red.py"
+      - "paper_execution/test_dual_strategy_api_red.py"
       - "paper_execution/test_core_first_operational.py"
       - "paper_execution/test_daily_baseline_persistence.py"
       - "paper_execution/funding_reconciliation.py"
