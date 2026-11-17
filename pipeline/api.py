@@ -190,6 +190,7 @@ def _core_runtime_view(result):
         "action": action,
         "reason": result.get("reasonCode") or signal.get("reason") or result.get("runStatus") or "CORE_SIGNAL_UNAVAILABLE",
         "intent": signal.get("intent"),
+        "riskDecision": result.get("riskDecision"),
         "indicators": signal.get("indicators"),
         "runStatus": result.get("runStatus"),
         "bundleId": result.get("bundleId"),

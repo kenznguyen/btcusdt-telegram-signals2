@@ -157,6 +157,25 @@ class CoreApiFacadeTest(unittest.TestCase):
         core_preview.assert_called_once_with(NOW)
         self.assertFalse(hasattr(common_api, "core_decide"))
 
+    def test_common_api_preserves_preview_risk_decision_for_signal_display(self):
+        preview = {
+            "runStatus": "SIGNAL_READY",
+            "signal": {
+                "action": "BUY",
+                "reason": "RSI_ADX_ENTRY",
+                "intent": {"mode": "PAPER"},
+            },
+            "riskDecision": {
+                "decision": "NOT_EVALUATED",
+                "reason": "PREVIEW_ONLY",
+            },
+        }
+        with patch("core_runtime.api_facade.preview_core", return_value=preview):
+            result = common_api.core_runtime_preview(NOW)
+
+        self.assertEqual(result["action"], "BUY")
+        self.assertEqual(result["riskDecision"], preview["riskDecision"])
+
     def test_quality_projection_uses_bundle_preview_and_t1_book_evidence(self):
         window = {
             "coverage": {"complete": True},
