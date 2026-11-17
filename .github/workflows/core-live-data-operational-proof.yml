@@ -236,6 +236,12 @@ jobs:
             echo "EXCHANGE_CREDENTIALS_USED=false"
             echo "REAL_ORDERS_SENT=false"
             echo "VPS_OR_PERSISTENT_RUNTIME_USED=false"
+            if grep -q "Ran 4 tests" scoped-reservation-expiry-regressions.log && grep -q "^OK$" scoped-reservation-expiry-regressions.log; then
+              echo "SCOPED_RESERVATION_EXPIRY=PASS"
+              echo "SCOPED_RESERVATION_EXPIRY_TESTS=4_PASS"
+            else
+              echo "SCOPED_RESERVATION_EXPIRY=NOT_VERIFIED"
+            fi
             echo "CORE_RUNTIME_PREFLIGHT=PASS"
             echo "CORE_RUNTIME_PREFLIGHT_TESTS=5_PASS"
             if grep -q "^OK$" continuous-core-cadence-tests.log && grep -q "^OK$" continuous-core-journal-tests.log && grep -q "^OK$" continuous-core-runner-tests.log; then
@@ -329,5 +335,6 @@ jobs:
             t1-t2-orderbook-status.txt
             core-input-bundle-status.txt
             shared-risk-paper-ledger-tests.log
+            scoped-reservation-expiry-regressions.log
             core-first-operational-tests.log
             core-operational-verdict.txt
