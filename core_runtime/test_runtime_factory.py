@@ -10,6 +10,7 @@ from unittest.mock import patch
 from core_runtime.runtime_factory import (
     RuntimeFactoryError,
     build_continuous_runtime,
+    build_core_bundle_provider,
 )
 from paper_execution.test_core_first_operational import CoreFirstOperationalProofTest
 from core_runtime.__main__ import main as core_main
@@ -85,6 +86,19 @@ class ContinuousRuntimeFactoryTest(unittest.TestCase):
         )
         self.assertEqual(runtime.runner.settlement_ms, 0)
         self.assertEqual(runtime.runner.max_book_age_ms, 2_000)
+
+    def test_read_only_provider_factory_does_not_create_journal_or_bundle_store(self):
+        provider = build_core_bundle_provider(
+            config_path=self.config,
+            journal_path=self.journal,
+            bundle_store_dir=self.bundle_store,
+            environ=self.env,
+            clock_ms=lambda: self.fixture.now,
+        )
+
+        self.assertEqual(provider.config_path, self.config.resolve())
+        self.assertFalse(self.journal.exists())
+        self.assertFalse(self.bundle_store.exists())
 
     def test_missing_t0_or_t1_endpoint_configuration_fails_before_journal_creation(self):
         for key in (
