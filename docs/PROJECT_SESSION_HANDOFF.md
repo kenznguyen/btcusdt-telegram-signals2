@@ -1819,3 +1819,29 @@ Next: use ordinary non-SSH T0 validation on the exact active branch SHA if workf
 - Review status remains **PARTIAL / NOT VERIFIED**: full PaperLedger reservation lifecycle, Core producer/Smart DCA semantics, and the complete T0/T1 boundary/call graph still need review. CI evidence from run `44107216012` remains the prior exact-source workflow evidence; this review did not rerun it.
 - No runtime, database, exchange, T0/T1 service, or trading action. No source/workflow modification. Only this handoff document is updated.
 - Next: inspect Core producer/signal sizing and DCA invariants, then close the PaperLedger reservation/cancel/expiry review and relevant test coverage. Keep AI Strategy deferred and promotion blocked pending full review and branch reconciliation.
+
+
+## 2026-11-18 — Core Strategy / Smart DCA review (increment 3)
+
+- Continued read-only review on the existing branch. Source HEAD before this handoff update: `f8b9f94338a1c1c684b72826c1f478cb7f85e996`.
+- Files reviewed:
+  - `pipeline/core_strategy.py` blob `0be512d99b4302077ab79879184b74949f0feaaa`;
+  - `pipeline/core_signal.py` blob `df5fbb59611bdd4fbb8224665f79655dd4433455`;
+  - `pipeline/test_core_strategy.py` blob `a0d5b46845d3fde006ed817fe21bdd8b6546c1d1`;
+  - `pipeline/test_core_signal.py` blob `a946716604e2e1a74b0e32f0aae5d07b820f2cbf`;
+  - `pipeline/test_core_sizing.py` blob `0ec23eecaf0f1b130b9dce51ff9cee16cad35cfb`;
+  - `risk_policy.py` blob `823d04748105b2996a28f2b09e3ce77bea073dce`;
+  - `paper_execution/ledger.py` blob `4c3db303f6696bd75d2c1e4bf278a2c0038c8154`;
+  - `paper_execution/test_core_first_operational.py` blob `91c0c8e4c705203810b14c3628e7b4e20410ee9c`;
+  - `pipeline/api.py` blob `d0217944bbfa9b864b0f259e0091daf9a989d180`;
+  - `core_runtime/input_bundle.py` blob `19fb3065da1e7d40c8b4376fe3b51e11c8cc8f87`;
+  - `.github/workflows/core-live-data-operational-proof.yml` blob `805a4c87864e8dd09f17a85f40c1a9b3737c8665`.
+- Strategy findings:
+  - Core entry is an M15 RSI threshold cross gated by the last fully closed H1 ADX/DI direction. Candle windows require >=100 contiguous closed candles and complete coverage; Bundle v1 separately validates candle provenance, OHLC, freshness, coverage and T1 book evidence.
+  - Smart DCA is restricted to a Core-owned position, one-time `dcaUsed=false`, adverse ROE threshold, M15 ADX threshold and side-specific RSI recovery. Entry/DCA quantity uses reconciled account equity, a 1% order-margin budget and `CORE_LEVERAGE=1`; quantities/margin are rounded down. Missing/unready equity blocks intent. The Ledger marks DCA consumed on fill in the same transaction; full close resets owner/DCA state. Operational tests exercise real Core entry → DCA → exit and assert reservation margin <= 1% of admission-time equity.
+  - Exit checks prioritize emergency SL, then conditional soft SL, then RSI+ROE take profit. Core signal adapter validates source, market, direction, provenance, timestamp window and signed target before converting to paper intent.
+  - Workflow `core-live-data-operational-proof.yml` explicitly runs `pipeline.test_core_strategy` and `pipeline.test_core_signal`, as well as Core operational lifecycle tests. It does **not** run `pipeline.test_core_sizing`.
+- **Maintenance finding (not a runtime blocker):** `pipeline/test_core_sizing.py` is stale and inconsistent with the approved 1x Core policy. It imports `LEVERAGE` from `pipeline.core_strategy` (the current producer imports `CORE_LEVERAGE` and does not define that alias), and asserts Core leverage is 13x. The canonical `risk_policy.py` sets `CORE_LEVERAGE=1`; the operational test asserts 1x and explicitly rejects 13x. Static inspection indicates invoking the stale sizing test module would fail import before test execution. This test is excluded from the current Core operational workflow, so the passing workflow does not validate it. Do not silently edit or remove it in this review; reconcile the obsolete test under a separately scoped source-change/TDD increment.
+- No tests executed in this increment. No confirmed strategy logic blocker found in the reviewed paths. Core Strategy review is **PARTIAL PASS**; stale sizing test maintenance gap is **OPEN**. Full PaperLedger reservation/cancel/expiry and full T0/T1 boundary review remain outstanding.
+- No source, workflow, runtime, T0/T1, database or AI changes; no exchange access or trading. Only this handoff update is being made.
+- Next: continue reviewing reservation/cancel/expiry and partial-fill recovery, then T0/T1 complete call graph. If authorized later, repair the stale sizing test with TDD and add it to the relevant CI gate; do not change Core policy from 1x.
