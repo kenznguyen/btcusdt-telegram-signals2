@@ -1891,3 +1891,27 @@ Next: use ordinary non-SSH T0 validation on the exact active branch SHA if workf
 - Scope: source change limited to scoped expiry validation/conditional updates; tests and existing Core operational workflow updated; no T0/T1 runtime, account contract, risk limits, strategy policy, or live execution changes.
 - Status: scoped reservation expiry required finding **FIXED + CI PASS**. Overall Core First independent review remains **PARTIAL / NOT VERIFIED** until remaining partial-fill recovery/restart and T0/T1 boundary/call-graph reviews are completed. Branch promotion/merge remains BLOCKED; Dual-Strategy AI remains DEFERRED.
 - Next: continue read-only review of partial-fill recovery/restart and T0/T1 boundary/call graph on this branch. Preserve the exact workflow SHA/artifact above as the evidence for this fix; do not promote or activate runtime/AI/live execution.
+
+
+## 2026-11-18 — PaperLedger partial-fill and restart review (increment 6)
+
+- Read-only review continued on existing branch `feature/core-operational-proof-20261112`; no source, workflow, runtime, T0/T1, database or AI changes.
+- Reviewed exact branch file blobs:
+  - `paper_execution/ledger.py` blob `62457820db3f127c76efe494c30a0d70b6b5fef9`, including `_submit_scoped`, `_expire_scoped_reservations`, and `cancel_dual_order`;
+  - `paper_execution/test_dual_ledger_red.py` blob `8b71e8364b7476fb9454f5fd959a8df96a685c7c`;
+  - `paper_execution/test_core_first_operational.py` blob `91c0c8e4c705203810b14c3628e7b4e20410ee9c`;
+  - `paper_execution/test_ledger.py` blob `2eaf18956f0cc281a653a74b14a159cf3930bc2e`.
+- Positive source/test evidence:
+  - `_submit_scoped` runs expiry sweep, order admission, fill simulation, per-level account-event journal insertion, Order persistence, Reservation persistence, strategy position update, risk-state update and audit within one `BEGIN IMMEDIATE` transaction. This makes those writes commit/rollback together.
+  - Each visible-depth fill level gets a deterministic event identity/payload hash; journal insertion and position/order/reservation updates share the same transaction.
+  - `test_core_partial_fills_are_journaled_per_level_in_the_order_transaction` checks per-level journal rows, aggregate fill quantity and fees. `test_journal_failure_rolls_back_core_order_and_position_atomically` injects a journal insert failure and checks no Order, position or journal row survives.
+  - `test_partial_reservation_survives_reopen_and_reduces_other_strategy_capacity` reopens Core Ledger and verifies the partial Order and positive remaining Reservation still exist; a subsequent AI admission is blocked by shared exposure.
+  - `test_partial_reservation_expires_after_restart_and_releases_remaining_capacity` checks that after reopening, expiry preserves already-filled position/quantity while expiring the remaining order quantity and zeroing remaining reservation capacity; replay returns the terminal expired order without another fill.
+  - `test_active_reservation_with_unknown_expiry_remains_blocking_after_restart` confirms unknown expiry is not guessed or silently released and the pending order continues blocking new exposure.
+  - `cancel_dual_order` validates order/reservation ownership, uses conditional updates and requires exact rowcounts; partial-fill cancellation keeps filled exposure and marks the reservation CONSUMED with remaining capacity zero.
+  - Existing generic interrupted-writer test checks SQLite rollback/integrity after process termination, but its interrupted write is a probe table write, not a partial-fill transaction.
+- No confirmed correctness defect found in the reviewed normal partial-fill, reopen, expiry or cancel paths.
+- **Verification gap — targeted process-crash recovery of partial fill is NOT VERIFIED:** current tests cover transaction rollback on injected journal failure, generic SQLite writer interruption, and reopening a committed partial fill. They do not terminate a process at controlled points during the actual partial-fill transaction (e.g. after journal insert / before Order or Reservation persistence, and after all writes but before commit), then reopen and assert journal, Order, Reservation, position and risk state reconcile together. Do not infer this scenario is covered by the generic writer test.
+- No tests were executed in this read-only increment; reviewed test names and assertions are source evidence, not a fresh PASS run.
+- Status: partial-fill/restart lifecycle review **PARTIAL**; ordinary reopen/expiry/cancel paths are supported by existing tests, while targeted crash-point recovery remains **NOT VERIFIED**. No Required source finding established from this review.
+- Next: continue the outstanding read-only T0/T1 boundary and complete call-graph review. Preserve paper-only posture; no runtime activation, live execution, branch promotion or merge. Dual-Strategy AI remains deferred until Core First sign-off.
