@@ -1866,3 +1866,28 @@ Next: use ordinary non-SSH T0 validation on the exact active branch SHA if workf
 - Status: reservation lifecycle review **PARTIAL / BLOCKED on required expiry binding fix**. Cancel path itself has stronger ownership checks; no confirmed defect found in its normal transactional path. Partial-fill recovery/restart behavior and full expiry regression remain NOT VERIFIED.
 - No source/workflow/runtime/T0/T1/AI changes, no database or exchange access, and no trading action. Only this handoff documentation is updated.
 - Next: use TDD to add regression tests for each order↔reservation mismatch and conditional update conflict; then harden `_expire_scoped_reservations` to verify persisted row + document identities and exact update rowcounts inside the existing transaction. Preserve account-wide expiry behavior, fail closed on mismatch, and add tests to Core operational CI. This source fix is not performed in this review increment; keep Core First sign-off and branch promotion BLOCKED until green evidence on the exact resulting SHA. Dual-Strategy AI remains deferred.
+
+
+## 2026-11-18 — Scoped reservation expiry ownership hardening (increment 5)
+
+- Authorized scope completed on existing branch `feature/core-operational-proof-20261112`; no branch creation, merge, rebase, reset, cherry-pick or force-push.
+- TDD sequence and exact commits:
+  1. Regression tests first: `d9da0ab7b490d5328f329113391f38e4688bea10` (`paper_execution/test_dual_ledger_red.py`). Initial RED evidence is Core workflow run `44142481760`, source SHA `f17ae883ebba052ab8f4bb04bcbd51d04fa44739`: the new four regression methods ran and failed with 12 failing subcases against the old expiry implementation (ownership columns/document and zero-rowcount updates).
+  2. CI registration: `b109ce95a372fc67d6206867164aea4c9e8f5c27` adds a dedicated regression step to `.github/workflows/core-live-data-operational-proof.yml`.
+  3. SQLite-compatible rowcount trigger fixture: `f17ae883ebba052ab8f4bb04bcbd51d04fa44739`.
+  4. Source fix: `faeacda56089c8224f6cb2b01d47d6ae07e9e4f7`, updating only `PaperLedger._expire_scoped_reservations`.
+  5. Fixture integrity correction: `f56ef7fda03a4942a0fee74609e3e2bfe2c5408e`, synchronizing the test Order document `validUntilMs` with the test Reservation expiry so the new tests exercise ownership and rowcount checks rather than an unrelated expiry mismatch.
+  6. Artifact evidence wiring: `78d9fcb25b5f700cf43389915c2793e2f14ca519`, adds `SCOPED_RESERVATION_EXPIRY` verdict markers and includes `scoped-reservation-expiry-regressions.log` in the Core operational artifact.
+- Source behavior now fails closed:
+  - Validates persisted Reservation identity/status and matching Order columns: account, intent, strategy, reservation, order identity and active state.
+  - Validates Order document identity/status fields against persisted columns and the Reservation expiry.
+  - Performs conditional Order and Reservation updates bound to all ownership fields and prior states; requires `rowcount == 1` for each update.
+  - Any mismatch or zero-row update raises a database error inside the caller's existing transaction, rolling back order, reservation and audit changes.
+- Final Core operational CI: **PASS**. Workflow run `44145473515`, job `134259299270`, exact checked-out source SHA `78d9fcb25b5f700cf43389915c2793e2f14ca519`.
+  - Dedicated regression step: `Ran 4 tests`, `OK`; all four test methods pass, including subtests for reservation/order account and strategy ownership, reservation/intent/order ID binding, Order document identity/status, and suppressed Order/Reservation updates with rowcount zero.
+  - Exact-SHA evidence reports `SCOPED_RESERVATION_EXPIRY=PASS` and `SCOPED_RESERVATION_EXPIRY_TESTS=4_PASS`.
+  - Artifact: `core-first-code-operational-proof-44145473515`, ID `14356122882`, 12,732 bytes, expires `2026-11-24T18:13:20Z`; downloaded ZIP SHA-256 `196284e910c0e22a65b4419b29f3d3ba9064d37c99891b141be346645846df11`. Verified archive contains both `scoped-reservation-expiry-regressions.log` and `core-operational-verdict.txt`; source SHA inside evidence is exact.
+- Safety evidence: `AI_EXECUTION_ENABLED=false`; `CANONICAL_T0_TOUCHED=false`; `EXCHANGE_CREDENTIALS_USED=false`; `REAL_ORDERS_SENT=false`; `VPS_OR_PERSISTENT_RUNTIME_USED=false`. This is isolated CI paper-only proof, not live runtime/production certification.
+- Scope: source change limited to scoped expiry validation/conditional updates; tests and existing Core operational workflow updated; no T0/T1 runtime, account contract, risk limits, strategy policy, or live execution changes.
+- Status: scoped reservation expiry required finding **FIXED + CI PASS**. Overall Core First independent review remains **PARTIAL / NOT VERIFIED** until remaining partial-fill recovery/restart and T0/T1 boundary/call-graph reviews are completed. Branch promotion/merge remains BLOCKED; Dual-Strategy AI remains DEFERRED.
+- Next: continue read-only review of partial-fill recovery/restart and T0/T1 boundary/call graph on this branch. Preserve the exact workflow SHA/artifact above as the evidence for this fix; do not promote or activate runtime/AI/live execution.
