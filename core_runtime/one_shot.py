@@ -146,10 +146,12 @@ def _result(bundle, run_status, *, signal=None, risk=None, ledger_ref=None, reas
     }
 
 
-def run_once(config_path, bundle_path, *, now_ms=None, on_intent_prepared=None):
+def run_once(config_path, bundle_path, *, now_ms=None, on_intent_prepared=None, submit=True):
     """Validate inputs and submit at most once; journal actionable intent before submit."""
     now = time.time_ns() // 1_000_000 if now_ms is None else now_ms
     bundle = {}
+    if type(submit) is not bool:
+        return _result(bundle, "INPUT_REJECTED", reason="SUBMIT_FLAG_INVALID")
     try:
         config, ledger_path = _load_config(config_path)
         preflight = _preflight(
@@ -242,6 +244,19 @@ def run_once(config_path, bundle_path, *, now_ms=None, on_intent_prepared=None):
     except Exception:
         return _result(bundle, "RUN_FAILED", reason="CORE_PRODUCER_FAILED")
 
+    signal_view = {
+        "action": signal["action"],
+        "reason": signal.get("reason"),
+        "intent": signal["intent"],
+        "indicators": report.get("indicators"),
+    }
+    if not submit:
+        return _result(
+            bundle, "SIGNAL_READY", signal=signal_view,
+            risk={"decision": "NOT_EVALUATED", "reason": "PREVIEW_ONLY"},
+            reason=signal.get("reason"),
+        )
+
     if on_intent_prepared is not None:
         try:
             if not callable(on_intent_prepared):
@@ -276,7 +291,6 @@ def run_once(config_path, bundle_path, *, now_ms=None, on_intent_prepared=None):
             "action": signal["action"], "reason": signal.get("reason"),
         }, reason="PAPER_LEDGER_SUBMIT_FAILED")
 
-    signal_view = {"action": signal["action"], "reason": signal.get("reason")}
     ledger_ref = {
         "orderId": order.get("orderId"),
         "reservationId": order.get("reservationId"),
