@@ -3164,9 +3164,8 @@ os._exit(0)
             connection.execute(
                 """CREATE TRIGGER suppress_expiry_order_update
                    BEFORE UPDATE OF status ON paper_orders
-                   WHEN OLD.intent_id=?
+                   WHEN OLD.intent_id IS NOT NULL
                    BEGIN SELECT RAISE(IGNORE); END""",
-                (partial["intentId"],),
             )
             before_audit = connection.execute(
                 "SELECT COUNT(*) FROM paper_audit"
@@ -3196,9 +3195,8 @@ os._exit(0)
             connection.execute(
                 """CREATE TRIGGER suppress_expiry_reservation_update
                    BEFORE UPDATE OF status ON paper_risk_reservations
-                   WHEN OLD.reservation_id=?
+                   WHEN OLD.reservation_id IS NOT NULL
                    BEGIN SELECT RAISE(IGNORE); END""",
-                (partial["reservationId"],),
             )
             before_audit = connection.execute(
                 "SELECT COUNT(*) FROM paper_audit"
