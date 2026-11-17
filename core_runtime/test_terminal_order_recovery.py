@@ -51,6 +51,33 @@ class TerminalOrderRecoveryTest(unittest.TestCase):
     def test_expired_order_reconciles_as_terminal_after_restart(self):
         self._assert_terminal_order_is_reconciled("EXPIRED")
 
+    def test_unknown_order_status_remains_blocked(self):
+        fixture = ContinuousCoreRunnerTest()
+        fixture.setUp()
+        try:
+            result = fixture.runner.process_bundle(fixture.bundle_path, now_ms=NOW)
+            cycle = fixture.journal.get_cycle(result["cycleKey"])
+            fixture.audit_events = {
+                "events": [{
+                    "id": 12,
+                    "atMs": NOW + 1,
+                    "kind": "ORDER_UPDATE",
+                    "document": {
+                        "intentId": cycle["intentId"],
+                        "orderId": cycle["orderId"],
+                        "status": "PENDING_UNKNOWN",
+                    },
+                }],
+                "nextBeforeId": None,
+            }
+            recovered = fixture.runner.recover_incomplete(now_ms=NOW + 2)
+            self.assertEqual(recovered[0]["status"], "BLOCKED")
+            self.assertEqual(recovered[0]["reason"], "TERMINAL_LEDGER_DISAGREEMENT")
+            self.assertEqual(fixture.journal.get_cycle(cycle["cycleKey"])["status"], "PAPER_ACCEPTED")
+            self.assertEqual(len(fixture.calls), 1)
+        finally:
+            fixture.doCleanups()
+
 
 if __name__ == "__main__":
     unittest.main()
