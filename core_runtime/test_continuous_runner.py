@@ -494,6 +494,30 @@ class ContinuousCoreRunnerTest(unittest.TestCase):
         self.assertEqual(recovered[0]["status"], "BLOCKED")
         self.assertEqual(self.calls, [])
 
+    def _assert_terminal_order_lifecycle_recoverable(self, order_status):
+        result = self.runner.process_bundle(self.bundle_path, now_ms=NOW)
+        cycle = self.journal.get_cycle(result["cycleKey"])
+        document = {
+            "intentId": cycle["intentId"],
+            "orderId": cycle["orderId"],
+            "status": order_status,
+        }
+        self.runner.audit_reader = lambda *_args, **_kwargs: {
+            "events": [{"document": document}],
+            "nextBeforeId": None,
+        }
+
+        recovered = self.runner.recover_incomplete(now_ms=NOW + 1)
+
+        self.assertEqual(recovered[0]["status"], "VERIFIED")
+        self.assertEqual(cycle["status"], "PAPER_ACCEPTED")
+
+    def test_terminal_accepted_cycle_remains_recoverable_after_order_cancellation(self):
+        self._assert_terminal_order_lifecycle_recoverable("CANCELED")
+
+    def test_terminal_accepted_cycle_remains_recoverable_after_order_expiry(self):
+        self._assert_terminal_order_lifecycle_recoverable("EXPIRED")
+
     def test_terminal_ledger_audit_disagreement_blocks_recovery(self):
         result = self.runner.process_bundle(self.bundle_path, now_ms=NOW)
         self.runner.audit_reader = lambda *_args, **_kwargs: {
