@@ -178,62 +178,77 @@ def decide(data, timestamp):
                     target_base=os.environ.get("PAPER_TARGET_BASE", "0.001"))
 
 
-def core_decide(timestamp, book=None):
-    from pipeline.core_signal import validate
-    from pipeline.core_strategy import produce
-    end15 = timestamp // 900_000 * 900_000
-    end1h = timestamp // 3_600_000 * 3_600_000
+def _core_runtime_view(result):
+    result = result if isinstance(result, dict) else {}
+    signal = result.get("signal")
+    signal = signal if isinstance(signal, dict) else {}
+    action = signal.get("action")
+    if action not in ("BUY", "SELL", "CLOSE", "WAIT"):
+        action = "WAIT"
+    return {
+        "source": "STRATEGY_CORE",
+        "action": action,
+        "reason": result.get("reasonCode") or signal.get("reason") or result.get("runStatus") or "CORE_SIGNAL_UNAVAILABLE",
+        "intent": signal.get("intent"),
+        "indicators": signal.get("indicators"),
+        "runStatus": result.get("runStatus"),
+        "bundleId": result.get("bundleId"),
+        "decisionAtMs": result.get("decisionAtMs"),
+        "sourceEvidence": result.get("sourceEvidence"),
+    }
+
+
+def core_runtime_preview(timestamp):
+    """Read-only Core preview from a fresh, validated T0/T1 Bundle v1."""
+    from core_runtime.api_facade import CoreApiFacadeError, preview_core
     try:
-        m15 = market_window("BTCUSDT", "15m",
-                          end15-500*900_000, end15, as_of_ms=timestamp)
-        h1 = market_window("BTCUSDT", "1h",
-                         end1h-500*3_600_000, end1h, as_of_ms=timestamp)
-        if not m15.get("coverage", {}).get("complete") or not h1.get("coverage", {}).get("complete"):
-            return produce(
-                m15, h1, {}, {"owner":None,"dcaUsed":False,"initialMarginQuote":"0"},
-                book, timestamp, account_equity_quote=None,
-                max_position_base=os.environ.get("PAPER_MAX_POSITION_BASE", "0.01"),
-            )
-        from paper_execution.ledger import (
-            dual_ledger_ready, read_snapshot, read_account_risk_snapshot,
+        return _core_runtime_view(
+            preview_core(now_ms=timestamp, environ=os.environ)
         )
-        db_path = os.environ.get("MARKET_DATA_DB", "")
-        dual_ready = dual_ledger_ready(db_path)
-        paper = (
-            read_snapshot(db_path, strategy_id="STRATEGY_CORE")
-            if dual_ready else read_snapshot(db_path)
-        )
-        account_equity_quote = None
-        if dual_ready:
-            try:
-                account_risk = read_account_risk_snapshot(db_path, now_ms=timestamp)
-            except (ValueError, OSError, sqlite3.Error, TypeError, KeyError):
-                account_risk = None
-            if account_risk and account_risk.get("riskReady") is True:
-                account_equity_quote = account_risk["accountEquityQuote"]
-        state = paper["strategyState"]
-        book = book_snapshot(timestamp) if book is None else book
-        report = produce(
-            m15, h1, paper, state, book, timestamp,
-            account_equity_quote=account_equity_quote,
-            max_position_base=os.environ.get("PAPER_MAX_POSITION_BASE", "0.01"),
-        )
-    except (ValueError, OSError, sqlite3.Error, TypeError, KeyError):
-        return {"source":"STRATEGY_CORE","action":"WAIT","reason":"CORE_INPUTS_UNAVAILABLE","intent":None}
-    if report.get("intent") is None:
-        return {"source":"STRATEGY_CORE","action":report.get("action","WAIT"),
-                "reason":report.get("reason","CORE_NO_SIGNAL"),"intent":None,
-                "indicators":report.get("indicators")}
-    result = validate(report["intent"], timestamp)
-    result["indicators"] = report.get("indicators")
-    return result
+    except CoreApiFacadeError as error:
+        return {
+            "source": "STRATEGY_CORE",
+            "action": "WAIT",
+            "reason": str(error),
+            "intent": None,
+            "indicators": None,
+            "runStatus": "INPUT_UNAVAILABLE",
+        }
+
+
+def core_runtime_evaluate(timestamp):
+    """Submit Core only through Continuous Runner and its validated Bundle v1."""
+    from core_runtime.api_facade import CoreApiFacadeError, evaluate_core
+    try:
+        cycle = evaluate_core(now_ms=timestamp, environ=os.environ)
+    except CoreApiFacadeError as error:
+        raise OSError(str(error)) from None
+    if cycle.get("status") == "DUPLICATE_CYCLE":
+        return {
+            "decision": {
+                "source": "STRATEGY_CORE",
+                "action": "WAIT",
+                "reason": "CORE_CYCLE_ALREADY_PROCESSED",
+                "intent": None,
+                "runStatus": "DUPLICATE_CYCLE",
+            },
+            "order": None,
+        }
+    result = cycle.get("result")
+    if not isinstance(result, dict):
+        raise OSError("CORE_RUNTIME_RESULT_UNAVAILABLE")
+    decision = _core_runtime_view(result)
+    return {
+        "decision": decision,
+        "order": result.get("paperLedgerReference"),
+    }
 
 
 def signal_snapshot(timestamp):
     data = context(timestamp)
     ai = decide(data, timestamp)
     ai["source"] = "AI_FREQAI"
-    return {"strategyCore": core_decide(timestamp), "aiStrategy": ai,
+    return {"strategyCore": core_runtime_preview(timestamp), "aiStrategy": ai,
             "mode": "PAPER", "liveTradingSupported": False}
 
 
