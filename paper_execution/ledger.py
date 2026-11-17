@@ -1883,43 +1883,103 @@ class PaperLedger:
 
     def _expire_scoped_reservations(self, connection, now):
         rows = connection.execute(
-            """SELECT reservation_id,intent_id,expires_at_ms
+            """SELECT reservation_id,account_id,intent_id,strategy_id,status,expires_at_ms
                FROM paper_risk_reservations
                WHERE status IN ('ACTIVE','PARTIAL')"""
         ).fetchall()
-        for reservation_id, intent_id, expires_at in rows:
+        for (
+            reservation_id, reservation_account_id, intent_id,
+            reservation_strategy_id, reservation_status, expires_at,
+        ) in rows:
             if expires_at is None:
                 continue
             if type(expires_at) is not int or expires_at <= 0:
                 raise sqlite3.DatabaseError("RISK_RESERVATION_EXPIRY_CORRUPT")
             if expires_at >= now:
                 continue
+            if (
+                not isinstance(reservation_id, str) or not reservation_id
+                or type(reservation_account_id) is not int
+                or reservation_account_id <= 0
+                or not isinstance(intent_id, str) or not intent_id
+                or reservation_strategy_id not in DUAL_STRATEGIES
+                or reservation_status not in ("ACTIVE", "PARTIAL")
+            ):
+                raise sqlite3.DatabaseError("RISK_RESERVATION_OWNERSHIP_MISMATCH")
+
             order_row = connection.execute(
-                "SELECT order_id,status,document FROM paper_orders WHERE intent_id=?",
+                """SELECT intent_id,order_id,status,document,account_id,
+                          strategy_id,reservation_id
+                   FROM paper_orders WHERE intent_id=?""",
                 (intent_id,),
             ).fetchone()
-            if order_row is None or order_row[1] not in ACTIVE:
+            if order_row is None:
                 raise sqlite3.DatabaseError("RISK_RESERVATION_ORDER_STATE_MISMATCH")
+            (
+                order_intent_id, order_id, order_status, raw_document,
+                order_account_id, order_strategy_id, order_reservation_id,
+            ) = order_row
+            if (
+                order_intent_id != intent_id
+                or order_status not in ACTIVE
+                or type(order_account_id) is not int
+                or order_account_id <= 0
+                or order_strategy_id not in DUAL_STRATEGIES
+                or order_reservation_id != reservation_id
+                or reservation_account_id != order_account_id
+                or reservation_strategy_id != order_strategy_id
+            ):
+                raise sqlite3.DatabaseError("RISK_RESERVATION_OWNERSHIP_MISMATCH")
+
             try:
-                order = json.loads(order_row[2])
-                if order.get("intentId") != intent_id or order.get("status") not in ACTIVE:
+                order = json.loads(raw_document)
+                if not isinstance(order, dict):
+                    raise ValueError
+                document_expiry = stamp(order.get("validUntilMs"))
+                if (
+                    order.get("intentId") != order_intent_id
+                    or order.get("orderId") != order_id
+                    or order.get("status") != order_status
+                    or order.get("strategyId") != order_strategy_id
+                    or order.get("reservationId") != order_reservation_id
+                    or document_expiry != expires_at
+                ):
                     raise ValueError
             except (TypeError, ValueError, json.JSONDecodeError):
-                raise sqlite3.DatabaseError("RISK_RESERVATION_ORDER_DOCUMENT_CORRUPT") from None
+                raise sqlite3.DatabaseError(
+                    "RISK_RESERVATION_ORDER_DOCUMENT_CORRUPT"
+                ) from None
+
             order.update(status="EXPIRED", updatedAtMs=now, reason="INTENT_EXPIRED")
-            connection.execute(
-                "UPDATE paper_orders SET status='EXPIRED',document=? WHERE intent_id=?",
-                (json.dumps(order, allow_nan=False), intent_id),
+            changed_order = connection.execute(
+                """UPDATE paper_orders SET status='EXPIRED',document=?
+                   WHERE intent_id=? AND order_id=? AND account_id=?
+                     AND strategy_id=? AND reservation_id=? AND status=?""",
+                (
+                    json.dumps(order, allow_nan=False),
+                    order_intent_id, order_id, order_account_id,
+                    order_strategy_id, order_reservation_id, order_status,
+                ),
             )
-            connection.execute(
+            if changed_order.rowcount != 1:
+                raise sqlite3.DatabaseError("RISK_RESERVATION_ORDER_STATE_MISMATCH")
+
+            changed_reservation = connection.execute(
                 """UPDATE paper_risk_reservations
                    SET status='EXPIRED',remaining_margin_quote='0',
                        remaining_notional_quote='0',updated_at_ms=?
-                   WHERE reservation_id=?""",
-                (now, reservation_id),
+                   WHERE reservation_id=? AND account_id=? AND intent_id=?
+                     AND strategy_id=? AND status=? AND expires_at_ms=?""",
+                (
+                    now, reservation_id, reservation_account_id, intent_id,
+                    reservation_strategy_id, reservation_status, expires_at,
+                ),
             )
+            if changed_reservation.rowcount != 1:
+                raise sqlite3.DatabaseError("RISK_RESERVATION_OWNERSHIP_MISMATCH")
+
             self.audit(connection, now, "EXPIRE", {
-                "orderId": order_row[0], "intentId": intent_id,
+                "orderId": order_id, "intentId": intent_id,
                 "reservationId": reservation_id, "expiresAtMs": expires_at,
             })
 
