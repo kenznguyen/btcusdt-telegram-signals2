@@ -117,7 +117,8 @@ class CoreOneShotRunnerTest(unittest.TestCase):
         self.assertEqual(result["runStatus"], "SIGNAL_READY", result)
         self.assertEqual(result["signal"]["action"], "BUY")
         self.assertEqual(result["riskDecision"]["decision"], "NOT_EVALUATED")
-        self.assertEqual(result["signal"]["intent"]["source"], "STRATEGY_CORE")
+        self.assertEqual(result["signal"]["intent"]["mode"], "PAPER")
+        self.assertEqual(result["signal"]["intent"]["targetPositionBase"], "0.0001")
         self.assertEqual(len(created), 0)
 
     def test_no_signal_does_not_construct_or_write_paper_ledger(self):
