@@ -1,7 +1,14 @@
 """Contract tests for the common API's authoritative Bundle-v1 Core facade."""
 
+import io
+import json
+import os
+import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import patch
+
+import pipeline.api as common_api
 
 from core_runtime.api_facade import (
     CoreApiFacadeError,
@@ -106,6 +113,104 @@ class CoreApiFacadeTest(unittest.TestCase):
             with self.assertRaises(CoreApiFacadeError):
                 preview_core(now_ms=NOW, environ=invalid)
         build.assert_not_called()
+
+    def test_common_signals_projection_uses_bundle_preview_for_core(self):
+        preview = {
+            "source": "STRATEGY_CORE",
+            "action": "BUY",
+            "reason": "RSI_ADX_ENTRY",
+            "intent": {"source": "STRATEGY_CORE"},
+        }
+        with (
+            patch.object(common_api, "context", return_value={}),
+            patch.object(common_api, "decide", return_value={"action": "WAIT"}),
+            patch.object(common_api, "core_runtime_preview", return_value=preview) as core_preview,
+        ):
+            result = common_api.signal_snapshot(NOW)
+
+        self.assertIs(result["strategyCore"], preview)
+        core_preview.assert_called_once_with(NOW)
+        self.assertFalse(hasattr(common_api, "core_decide"))
+
+    def test_quality_projection_uses_bundle_preview_and_t1_book_evidence(self):
+        window = {
+            "coverage": {"complete": True},
+            "candles": [{} for _ in range(500)],
+            "datasetVersion": "dataset-v1",
+        }
+        preview = {
+            "action": "WAIT",
+            "reason": "CORE_NO_ENTRY",
+            "indicators": {
+                "rsiM15": "45", "adxM15": "20",
+                "plusDiH1": "22", "minusDiH1": "18", "adxH1": "25",
+            },
+            "sourceEvidence": {"t1SnapshotId": "sha256:" + "b" * 64},
+        }
+        with (
+            patch.object(common_api, "context", return_value={
+                "intelligence": None, "book": None, "prediction": None, "errors": {},
+            }),
+            patch.object(common_api, "market_window", return_value=window),
+            patch.object(common_api, "core_runtime_preview", return_value=preview) as core_preview,
+        ):
+            result = common_api.quality_snapshot(NOW)
+
+        streams = {item["name"]: item for item in result["streams"]}
+        self.assertEqual(streams["Strategy Core producer"]["status"], "READY")
+        self.assertEqual(streams["T1 Order Book V1"]["status"], "READY")
+        self.assertEqual(
+            streams["T1 Order Book V1"]["snapshotId"],
+            preview["sourceEvidence"]["t1SnapshotId"],
+        )
+        core_preview.assert_called_once_with(NOW)
+
+    def test_core_evaluate_route_never_uses_legacy_local_decision_or_hummingbot_path(self):
+        with tempfile.TemporaryDirectory() as directory:
+            db_path = Path(directory) / "paper.sqlite3"
+            db_path.touch()
+            body = json.dumps({"source": "CORE"}).encode()
+            environ = {
+                "REQUEST_METHOD": "POST",
+                "PATH_INFO": "/v1/paper/evaluate",
+                "CONTENT_LENGTH": str(len(body)),
+                "wsgi.input": io.BytesIO(body),
+                "HTTP_AUTHORIZATION": "Bearer control-secret",
+            }
+            response_meta = {}
+            def start_response(status, headers):
+                response_meta["status"] = status
+                response_meta["headers"] = headers
+
+            expected = {
+                "decision": {
+                    "source": "STRATEGY_CORE",
+                    "action": "WAIT",
+                    "reason": "CORE_NO_ENTRY",
+                    "intent": None,
+                },
+                "order": None,
+            }
+            with (
+                patch.dict(os.environ, {
+                    "CONTROL_TOKEN": "control-secret",
+                    "MARKET_DATA_TOKEN": "read-secret",
+                    "MARKET_DATA_DB": str(db_path),
+                }, clear=False),
+                patch.object(common_api, "now_ms", return_value=NOW),
+                patch.object(common_api, "control_permit", return_value=True),
+                patch.object(common_api, "core_runtime_evaluate", return_value=expected) as evaluate,
+                patch.object(common_api, "market_window", side_effect=AssertionError("legacy T0 read")),
+                patch.object(common_api, "book_snapshot", side_effect=AssertionError("legacy Hummingbot read")),
+                patch.object(common_api, "context", side_effect=AssertionError("legacy context")),
+                patch.object(common_api, "ledger", side_effect=AssertionError("legacy ledger writer")),
+            ):
+                payload = b"".join(common_api.application(environ, start_response))
+
+        self.assertEqual(response_meta["status"], "200 OK")
+        self.assertEqual(json.loads(payload), expected)
+        evaluate.assert_called_once_with(NOW)
+        self.assertFalse(hasattr(common_api, "core_decide"))
 
     def test_invalid_pinned_source_sha_fails_closed_before_factory(self):
         invalid = dict(self.environ)
