@@ -1765,3 +1765,33 @@ Next: use ordinary non-SSH T0 validation on the exact active branch SHA if workf
 - Workflow readback: `core-live-data-operational-proof.yml` exists on this branch (blob `805a4c87864e8dd09f17a85f40c1a9b3737c8665`) and is absent from `main`; `t0-manual-validation.yml` differs substantially (branch blob `e298db15ce16f1deb72dbce466513037319b0f6f`, 533 lines; main blob `e4d5ecc712bf590d5b4f7587fa649cbc94d4f8e2`, 126 lines); `t0-signature-a2-2-stage-i.yml` is identical on both refs (blob `5fa94939181af5f1f33686c3444bc6f8a0326962`). No SSH preflight script/test path is present on either tree.
 - No source, workflow, runtime, T0, or AI changes were made in this inspection. No PR targets the Core First branch.
 - Promotion remains **BLOCKED**. Do not merge/rebase/reset/cherry-pick/force-push or create a parallel PR. Continue Core First verification on the existing branch; prepare a minimal promotion/reconciliation proposal only after the owner explicitly authorizes the intended promotion target and scope.
+
+
+## 2026-11-18 — Core First independent source review (increment 1)
+
+- Review branch: `feature/core-operational-proof-20261112`; branch HEAD before this documentation update: `7c5c53f81606929176d79a8f97ad390567c08082`.
+- Fresh GitHub compare against `main`: status `diverged`, **4,417 ahead / 82 behind**, merge base `f5b74affb8777953fa66d241784965fbb0e577ba`; main SHA `b9b938b4c78f143ca63330d047a8a799ef450a13`. Promotion remains BLOCKED.
+- Read-only source review completed for:
+  - `core_runtime/continuous_runner.py` blob `09c4e3239403814beaa112edbfcc9b16504e4a01`;
+  - `core_runtime/one_shot.py` blob `ea9eb870f5a3871657d9dc6f6ca1ccf55a0b3f8d`;
+  - `core_runtime/runtime_factory.py` blob `6c960cad5cd0749ae825480ed143bb12e01883c2`;
+  - `core_runtime/bundle_provider.py` blob `67e7f3027481a922b648e2a2ec004decd54edb85`;
+  - `core_runtime/paper_ledger_preflight.py` blob `e5d4b26bc1a48a765d16a8cd6708dfdc83b12a88`;
+  - `paper_execution/ledger.py` blob `4c3db303f6696bd75d2c1e4bf278a2c0038c8154`;
+  - `paper_execution/risk_control.py` blob `2309e1b31872cbbbc99ee2aade79d4f73ea42ace`;
+  - `paper_execution/simulated_equity.py` blob `24e17df782d90a229097fb0244c5d37877c756c7`;
+  - `core_runtime/orderbook_http.py` blob `89e5129eea4c9e7ceaa4439a546daf112d15c3e3`;
+  - `core_runtime/orderbook_contract.py` blob `1620c9f21b1f3df3c2fb65833f2afd80374bf6a5`;
+  - `freqai_bridge/http_candles.py` blob `e166835e3fe7b6f0019b28a77da9a78f8266400f`;
+  - `core_runtime/continuous_journal.py` blob `ea91dd382c14704b489d2cc872f73bc83c800e8d`;
+  - `risk_policy.py` blob `823d04748105b2996a28f2b09e3ce77bea073dce`.
+- Preliminary positive evidence:
+  - Continuous Runner claims immutable cycle inputs once, records intent before paper submission, and routes ambiguous post-intent exceptions to `UNKNOWN_REQUIRES_RECONCILIATION`; recovery checks persisted bundle digest/source/config identity and reconciles against the ledger before accepting terminal state.
+  - One-shot Core path validates Bundle v1, compares fresh account-risk and Core ledger snapshots with the bundle, rejects risk-unready increases, and submits only through `PaperLedger`.
+  - Scoped PaperLedger performs account-wide risk evaluation and reservation admission inside `BEGIN IMMEDIATE`; kill/pause blocks exposure increases while allowing risk-reducing exits; simulated risk limits are bound from the verified immutable simulated-capital contract, with the order margin fraction derived from `maxOrderMarginPct`. Core leverage is constrained by `CORE_LEVERAGE=1`; `ORDER_MARGIN_BUDGET_PCT=0.01`.
+  - Kill state is persistent, read inside the ledger transaction, fails closed when missing/corrupt, and cannot be cleared by generic resume; reset requires explicit acknowledgement and readiness booleans.
+  - T0 Candle client is read-only, validates bounded candle windows/provenance/coverage/freshness and has no fallback. T1 Order Book client is loopback-only, Bearer-authenticated, bounded, no-redirect/no-retry, and validates the complete V1 snapshot. Bundle Provider reads PaperLedger/risk snapshots read-only and builds immutable content-addressed bundles from T0/T1 inputs.
+- No confirmed Critical/Required finding in this inspected subset. This is a partial source review, not a complete independent architecture/security audit.
+- Remaining review scope: full scoped ledger submit/reservation/cancel lifecycle and account-risk snapshot validation; risk contract loader and account risk update path; Core signal/producer and Smart DCA semantics; kill-switch failure/recovery paths; complete T0/T1 isolation and no-fallback call graph; relevant regression tests and workflow evidence. Full review verdict remains **NOT VERIFIED**.
+- No tests were executed in this increment. No source/workflow/runtime/T0/T1/AI changes, no database access, no exchange connection, and no trading action. Only this handoff documentation is being updated.
+- Next: continue read-only review of account-risk contract loading, reservation accounting, and kill-switch transactional behavior on the same branch. Do not merge/rebase/reset/cherry-pick/force-push or create a parallel PR; keep Dual-Strategy AI deferred.
