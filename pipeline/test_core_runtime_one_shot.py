@@ -73,7 +73,7 @@ class CoreOneShotRunnerTest(unittest.TestCase):
             },
         }
 
-    def run_patched(self, report, order=None, *, risk=None, paper_state=None, submit_error=None):
+    def run_patched(self, report, order=None, *, risk=None, paper_state=None, submit_error=None, submit=True):
         created = []
         class FakeLedger:
             def __init__(self, *args, **kwargs):
@@ -100,7 +100,7 @@ class CoreOneShotRunnerTest(unittest.TestCase):
             patch("pipeline.core_strategy.produce", return_value=report),
             patch("paper_execution.ledger.PaperLedger", FakeLedger),
         ):
-            result = run_once(self.config_path, self.bundle_path, now_ms=NOW)
+            result = run_once(self.config_path, self.bundle_path, now_ms=NOW, submit=submit)
         return result, created
 
     def test_actionable_core_signal_is_submitted_once_to_paper_ledger(self):
@@ -111,6 +111,14 @@ class CoreOneShotRunnerTest(unittest.TestCase):
         self.assertEqual(result["paperLedgerReference"]["orderId"], "paper-order-1")
         self.assertEqual(len(created), 1)
         self.assertEqual(created[0].submit_calls, 1)
+
+    def test_preview_returns_validated_signal_without_paper_ledger_write(self):
+        result, created = self.run_patched(producer_report(), submit=False)
+        self.assertEqual(result["runStatus"], "SIGNAL_READY", result)
+        self.assertEqual(result["signal"]["action"], "BUY")
+        self.assertEqual(result["riskDecision"]["decision"], "NOT_EVALUATED")
+        self.assertEqual(result["signal"]["intent"]["source"], "STRATEGY_CORE")
+        self.assertEqual(len(created), 0)
 
     def test_no_signal_does_not_construct_or_write_paper_ledger(self):
         result, created = self.run_patched(producer_report("WAIT"))
