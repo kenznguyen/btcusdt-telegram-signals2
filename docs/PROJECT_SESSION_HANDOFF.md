@@ -3341,3 +3341,15 @@ Additional payload inspection:
 - Status: G0.52 documentary reconciliation **PASS**; S2 remains **BLOCKED / NOT READY FOR IMPLEMENTATION**; G0.53 ratification **NOT VERIFIED / NOT RATIFIED**; no implementation authority.
 - No tests/CI, workflow dispatch, runtime/VPS/T0/key/provider operation, source/workflow changes, merge/rebase/reset/force-push, AI execution or real orders.
 - Next: assemble the bounded integration map from findings F-01–F-10 and R-01–R-04; identify preserve/reconcile/defer items and required gates. Do not execute integration or workflow corrections without separate approval.
+
+
+## 2026-11-18 — Bounded main integration map prepared (pass 4)
+
+- Prepared `docs/evidence/MAIN_INTEGRATION_MAP_BOUNDED_2026-11-18.md` in commit `1c425566932d8851cb5f5a47a71d6088c2de451e`.
+- Exact comparison: main `6bff2aff91657238297848ef644a0cb4112ab428`; merge base `f5b74affb8777953fa66d241784965fbb0e577ba`; branch HEAD before map `4b0d045fcbf67060612f2dd67269061609fc9963`; 4,591 ahead / 85 behind.
+- Map covers all 16 main-side changed paths and groups the 85 commits into contribution/handoff docs, P1.38/T0-T2 historical evidence, PR140 SSH preflight lifecycle/retirement, T0 signature/A2.2 docs/workflow, G0.52 audit, and Common API code/test.
+- Key dispositions: preserve branch Common API and Paper/T0 isolation; do not replace branch `pipeline/api.py` with main's version; preserve branch Core workflow additions (Dual Ledger bootstrap and Kill Reset); retain branch T0 workflow only as a richer candidate pending F-07/F-08/F-10; preserve branch A1 under the controlling owner-approved v1 addendum; treat main-only G0.52 as supplementary/duplicative; preserve SSH/T0-T2/P1.38 records as historical evidence only.
+- `.github/workflows/t0-signature-a2-2-stage-i.yml` is identical on main and branch. The Stage I owner decision authorizes synthetic offline Stage I only and explicitly does not authorize CI/workflow execution absent separate approval; do not dispatch based on workflow presence.
+- Main-only `pipeline/api.py` static defect and test implications remain F-01/F-02. No source or workflow change is proposed/applied by this map.
+- Status: bounded map **PASS WITH CONDITIONS**; full semantic review of all 85 main-side commits **NOT COMPLETE**; merged-tree validation **NOT RUN**; merge **BLOCKED / NOT AUTHORIZED**.
+- Next: request explicit owner decision on whether to correct F-07/F-08/F-10 in the existing branch workflow and run approved exact-SHA validation. Until then, preserve branch state; no merge/rebase/reset/cherry-pick/force-push, workflow dispatch, VPS/T0/runtime access, AI execution or real orders.
