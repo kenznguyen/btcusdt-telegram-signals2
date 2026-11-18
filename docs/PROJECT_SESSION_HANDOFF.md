@@ -3119,3 +3119,18 @@ Additional payload inspection:
 - Full Core operational workflow: PASS on exact checked-out SHA 50d6f775ff3c1cd9fe5a20144874f4ee5f4c2b95; artifact and digest recorded above.
 - Separate Dual Ledger Bootstrap and Owner Attestation runs: PASS at SHA 61065dbec75f20c197b6f3f2ff22fd4447567b60; supporting artifacts recorded above.
 - Next: preserve this exact-SHA evidence for independent Core First review and the user's next approval gate. This CI pass alone does not authorize merge, Dual-Strategy implementation, VPS/runtime activation, or real trading.
+
+
+## P5 Core First — Independent Review Pass 1 (2026-11-18)
+
+- Review report: `docs/evidence/CORE_FIRST_INDEPENDENT_REVIEW_2026-11-18.md`.
+- Reviewed branch HEAD: `ff74d10aba0bdd60c14bebbe07746452571213fb`; operational code/test SHA: `50d6f775ff3c1cd9fe5a20144874f4ee5f4c2b95`.
+- Existing workflow `44256822798` remains PASS for its exact source SHA and artifact `14405604108` (SHA-256 `e0a0ef6bc491e63bc1886383c3983680532d06b2e416fbcf30c02578e0337367`).
+- Independent static review verdict: **PARTIAL / REQUEST CHANGES; merge blocked**.
+- Blocker B1: branch compare against main reports 4,560 commits ahead / 85 behind (merge base `f5b74affb8777953fa66d241784965fbb0e577ba`); the proposed merge is not a bounded/reviewable change set.
+- Blocker B2: Core-First policy defers AI paper execution, but `pipeline/api.py` retains an AI-default paper-evaluate route and legacy AI submit path. The current decision evaluator lacks admission context and returns WAIT, but this is not a durable API boundary.
+- Required R3: Core-First architecture/readiness documents remain stale relative to the later operational proof.
+- Workflow copy note R4: branch workflow blob `0c2d86d76d4d3281e3d7ffb9904a820cf30df547` differs from main blob `1c0d9e7b6c8355264aa509342175d72931b64cc4`; run 44256822798 validates the branch copy.
+- Positive static observations and exact required corrections are documented in the review report.
+- No source code, runtime, database, branch history, or trading behavior was changed in this review increment. No tests were run during the review session.
+- Next: obtain approval for B2 API hardening, then regression-first implementation on the same branch; keep merge, Dual-Strategy implementation, VPS/runtime and real trading blocked.
