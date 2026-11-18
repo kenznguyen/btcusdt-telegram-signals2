@@ -124,7 +124,10 @@ _FIXTURE_ROWS = (
     ("B-A", "bootstrap.authorization.issuer", "NEW_ROOT_ONLY", "BLOCKED", "ROOT_BOOTSTRAP_SELF_AUTHORIZATION_FORBIDDEN", "Self-authorization BLOCKED"),
     ("B-A", "bootstrap.owner_pin.source", "PRODUCER_SUPPLIED", "BLOCKED", "ROOT_BOOTSTRAP_PRODUCER_INPUT_UNTRUSTED", "Trust-source BLOCKED"),
     ("B-A", "bootstrap.path_evidence", ["PATH_A", "PATH_B"], "BLOCKED", "ROOT_BOOTSTRAP_PATH_MIXING_FORBIDDEN", "Path mixing BLOCKED"),
-)def _profile_binding() -> dict[str, object]:
+)
+
+
+def _profile_binding() -> dict[str, object]:
     return {"signature_profile_id": PROFILE_ID, "signature_profile_version": PROFILE_VERSION}
 
 
