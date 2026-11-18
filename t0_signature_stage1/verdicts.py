@@ -58,7 +58,6 @@ class FixtureSpec:
     mutation_value: object = None
     schema_version: str = FIXTURE_SCHEMA_VERSION
     dimension_results: Mapping[str, str] | None = None
-    derived_paths: tuple[str, ...] = ()
 
 
 # The profile/purpose cases precede the A2.2 §17 bootstrap first-match table.
@@ -450,6 +449,8 @@ def _dimension_results_for(fixture: Mapping[str, object], facts: Mapping[str, bo
               for key, value in facts.items()):
         dimensions["bootstrap_authorization"] = result.verdict
     return dimensions
+
+
 def evaluate_stage1_facts(facts: Mapping[str, bool]) -> FixtureResult:
     """Evaluate synthetic facts in deterministic profile then bootstrap order."""
     for key, verdict, reason, dimension in _PROFILE_RULES:
@@ -534,6 +535,8 @@ def evaluate_fixture_content(
                                dimension_results={}, state_s0=state, state_s1=state,
                                forbidden_transitions={key: True for key in _FORBIDDEN_TRANSITIONS})
     return state, result
+
+
 def validate_profile_bindings(bindings: Mapping[str, Mapping[str, object]]) -> FixtureResult:
     """Check exact profile ID/version across every modeled normative location."""
     required = (
