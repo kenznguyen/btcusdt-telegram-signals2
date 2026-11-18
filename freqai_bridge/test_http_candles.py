@@ -132,6 +132,15 @@ class T2HttpConsumerTest(unittest.TestCase):
         self.assertEqual(result["datasetVersion"], "sha256:" + "a" * 64)
         self.assertEqual(result["candles"][0]["open"], "100.00")
 
+    def test_optional_as_of_preserves_unbounded_t0_dataset_identity(self):
+        client, session = self._client(envelope=response_envelope(asOfMs=None))
+        result = client.fetch(
+            start_ms=START, end_ms=END, as_of_ms=None, timeframe="15m",
+        )
+        self.assertIsNone(result["asOfMs"])
+        self.assertEqual(result["datasetVersion"], "sha256:" + "a" * 64)
+        self.assertNotIn("asOfMs", session.calls[0][1]["params"])
+
     def test_request_uses_exact_market_range_and_as_of_parameters(self):
         client, session = self._client()
         self._fetch(client)
