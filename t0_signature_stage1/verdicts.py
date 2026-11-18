@@ -225,6 +225,71 @@ _BASELINES = {
 }
 
 
+def _get_existing_path(value: Mapping[str, object], dotted_path: str) -> object:
+    cursor: object = value
+    for part in dotted_path.split("."):
+        if not isinstance(cursor, Mapping) or part not in cursor:
+            raise KeyError(dotted_path)
+        cursor = cursor[part]
+    return cursor
+
+
+def _set_existing_path(value: dict[str, object], dotted_path: str, new_value: object) -> None:
+    _get_existing_path(value, dotted_path)
+    parts = dotted_path.split(".")
+    cursor: dict[str, object] = value
+    for part in parts[:-1]:
+        child = cursor[part]
+        if not isinstance(child, dict):
+            raise KeyError(dotted_path)
+        cursor = child
+    cursor[parts[-1]] = copy.deepcopy(new_value)
+
+
+def _leaf_values(value: object, prefix: str = "") -> dict[str, object]:
+    if isinstance(value, Mapping):
+        leaves: dict[str, object] = {}
+        for key, child in value.items():
+            path = f"{prefix}.{key}" if prefix else str(key)
+            leaves.update(_leaf_values(child, path))
+        return leaves
+    return {prefix: value}
+
+
+def fixture_catalog() -> tuple[FixtureSpec, ...]:
+    fixtures = []
+    for index, (baseline, mutation_path, mutation_value, verdict, reason, dimension) in enumerate(_FIXTURE_ROWS, start=1):
+        baseline_bytes = canonicalize(_BASELINES[baseline])
+        fixtures.append(FixtureSpec(
+            case_id=f"A2.2-NV-{index:02d}",
+            baseline=baseline,
+            mutations=(mutation_path,),
+            expected_verdict=verdict,
+            expected_reason=reason,
+            dimension_result=dimension,
+            baseline_digest=hashlib.sha256(baseline_bytes).hexdigest(),
+            mutation_path=mutation_path,
+            mutation_value=copy.deepcopy(mutation_value),
+            schema_version=FIXTURE_SCHEMA_VERSION,
+            dimension_results=_expected_dimensions(mutation_path, verdict),
+        ))
+    return tuple(fixtures)
+
+
+def build_fixture(case_id: str) -> tuple[dict[str, object], dict[str, object], FixtureSpec]:
+    fixture = next((item for item in fixture_catalog() if item.case_id == case_id), None)
+    if fixture is None:
+        raise KeyError(case_id)
+    baseline = copy.deepcopy(_BASELINES[fixture.baseline])
+    mutated = copy.deepcopy(baseline)
+    _set_existing_path(mutated, fixture.mutation_path, fixture.mutation_value)
+    before, after = _leaf_values(baseline), _leaf_values(mutated)
+    changed = {key for key in before if before[key] != after[key]}
+    if set(before) != set(after) or changed != {fixture.mutation_path}:
+        raise ValueError(f"{case_id}: fixture must change exactly its declared existing leaf")
+    return baseline, mutated, fixture
+
+
 def _expected_dimensions(mutation_path: str, verdict: str) -> dict[str, str]:
     dimensions = {key: "NOT_APPLICABLE" for key in _REQUIRED_DIMENSIONS}
     dimensions.update({"parsing_canonicalization": "PASS", "object_binding": "PASS",
