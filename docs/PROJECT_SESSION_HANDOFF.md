@@ -797,8 +797,7 @@ Current status:
 - Next: trace the parallel variant's imports and packaged classes/resources, create a keep/move/remove manifest, then isolate a five-layer-owned Android module/application ID. Keep Chart Pro source in its separate repository. Do not mix cleanup into PR #134's T0 scope; no branch/PR deletion or merge without separate approval.
 
 
-### BTC Chart Pro separation — Android dependency-map increment
-- Extended docs/evidence/CHART_PRO_SEPARATION_AUDIT_2026-11-05.md with file-level disposition and source-set findings; update commit e7f0537a981d67c5a1037866f02326a80057fc89.
+### BTC Chart Pro separation — Android dependency-map increment- Extended docs/evidence/CHART_PRO_SEPARATION_AUDIT_2026-11-05.md with file-level disposition and source-set findings; update commit e7f0537a981d67c5a1037866f02326a80057fc89.
 - Android source line reviewed at PR #65 head 51f4edf5776b06b927db980faac4ca0ca91c44ce. PR #65 is OPEN / DRAFT / NOT MERGED; its seven changed files are only FiveLayer API/panel/candles/presentation and associated tests. Keep its PnL/freshness scope separate.
 - Confirmed MainActivity runtime branch alone is insufficient isolation: parallel build type inherits debug and compiles common src/main; no Chart Pro source-set exclusion is defined. AndroidManifest still declares StrategyMonitorService and foreground-service permissions for both variants.
 - FiveLayerStandaloneDashboard -> FiveLayerPanel subtree has no direct source references to CompleteDashboard, MarketEngine, MultiSymbolScanner, StrategyMonitorService or direct Binance OrderBookEngine. FiveLayer-specific API/candle/paper/Hummingbot snapshot components can remain.
@@ -1596,7 +1595,6 @@ This section supersedes the earlier PR #140 next-step note that requested implem
 - PR #140 remains **OPEN / DRAFT / NOT MERGED**; GitHub reports `mergeable=false`. Current comparison against main: **42 commits ahead / 2 behind**, merge base `9cb38cdd995158704fe2993e277396bb9bf4b50a`. Merge remains blocked pending reconciliation of divergence/mergeability and independent review.
 - No SSH connection, VPS command, secret/credential change, deployment, runtime/service/database/data change, exchange connection, market-data sync, or trading action occurred.
 - Next: inspect the two commits behind main and resolve ancestry/conflict risk on the existing PR branch without changing protected runtime scope; rerun exact-head CI if source changes. Do not dispatch `scaleway-ssh-preflight` without separate explicit approval.
-
 
 ## 2026-11-10 — PR #140 reset and merge closeout (supersedes prior PR #140 OPEN/BLOCKED notes)
 
@@ -2397,8 +2395,7 @@ This follow-up supersedes the earlier pending items for persistent preview artif
 - Simulated Ledger rejects caller-supplied independent `risk_limits` when contract bytes are supplied; persisted contract origin/hash is verified before limits are bound.
 - Paper admission enforces shared exposure/margin controls and Kill Switch inside the Ledger transaction; tests cover ENTRY, DCA, exact 1% boundary, over-budget rejection and kill/drawdown/daily-loss latches.- Bundle V1 enforces strict schema, closed contiguous candles, provenance, freshness, order-book evidence and account-risk snapshot contracts.
 - Continuous Runner claims one cycle atomically, persists intent before One-shot submission, and recovery reconciles existing order state rather than blindly replaying an intent.
-- Paper preflight checks explicit `AI_EXECUTION_ENABLED=false`, absence of exchange credentials, PAPER-only state and clear Kill Switch; ledger path isolation rejects overlap with T0 data paths.
-- These are static observations of the inspected source and tests, not a full review sign-off.
+- Paper preflight checks explicit `AI_EXECUTION_ENABLED=false`, absence of exchange credentials, PAPER-only state and clear Kill Switch; ledger path isolation rejects overlap with T0 data paths.- These are static observations of the inspected source and tests, not a full review sign-off.
 
 **Next code-level action**
 - Add a RED-first test using a real disposable simulated-origin Ledger and contract-only config. Prove the expected config is accepted consistently by static dry-run, runtime factory and One-shot policy without independent risk overrides; also prove injected config/env risk limits remain rejected.
@@ -2695,4 +2692,37 @@ This follow-up supersedes the earlier pending items for persistent preview artif
 - Continue read-only review of the remaining PaperLedger transaction/risk methods and T0/T1 HTTP client contracts, then reconcile review findings against existing CI tests. If a concrete defect is found, stop review and open a TDD-scoped fix on this same branch before sign-off.
 - Core First overall: **PARTIAL / NOT VERIFIED** pending broader independent review.
 - Runtime Verification: **NOT STARTED**. Dual-Strategy Intelligence: **DEFERRED**.
+- `AI_EXECUTION_ENABLED=false`; PAPER-only. No canonical T0 DB, T1 runtime, VPS, exchange connection, AI Strategy execution, real orders, merge/promotion, rebase/reset/cherry-pick/force push, or default-branch change.
+
+## 2026-11-18 — Independent review: PaperLedger, Kill Switch reset boundary, and HTTP clients
+
+**Read-only review scope**
+- Reviewed `paper_execution/ledger.py` write/read paths including scoped submit, account-wide risk snapshot, reservation expiry, cancel, legacy submit, pause/kill/reset methods.
+- Reviewed `paper_execution/risk_control.py`.
+- Reviewed `freqai_bridge/http_candles.py` (T0 Candle Contract V1 consumer) and `core_runtime/orderbook_http.py` (T1 Order Book V1 consumer).
+- Reviewed targeted tests: `paper_execution/test_ledger.py` (34 tests), `paper_execution/test_risk_control.py` (7 tests), `freqai_bridge/test_http_candles.py` (114 test methods), `core_runtime/test_orderbook_http.py` (87 test methods), and relevant reset-kill cases in `pipeline/test_api.py`.
+- No source code or tests were changed or executed during this review increment. All observations below are static source/test review, not a new CI verdict.
+
+**Positive controls observed**
+- Scoped ledger submit uses `BEGIN IMMEDIATE`; risk inputs, kill/pause latch, exposure checks, reservation, fill journal, order state and audit writes are handled in the same SQLite write transaction.
+- Account risk snapshot opens read-only/query-only transaction, checks migration checksums, reconciles equity and positions, validates reservations, daily baseline and funding provenance, and reports the persistent kill state.
+- Kill/pause latch is read inside the submit transaction; kill blocks exposure increases while valid reductions remain possible. Kill state is not cleared by generic resume.
+- T0 Candle HTTP consumer uses Bearer auth, TLS verification for HTTPS, no redirects, bounded body (256 KiB), bounded connect/read timeouts and retries, strict JSON/contract/identity/coverage validation, and no local fallback.
+- T1 Order Book HTTP consumer is loopback-only, uses Bearer auth, disables environment proxy trust for its default session, does not retry or fall back, and bounds connect/read/total time and response body (64 KiB) before strict snapshot validation.
+- Existing tests cover duplicate intent idempotency, concurrent submissions/snapshot reuse, partial fills, corrupt ledger state, persistent kill behavior, malformed/reset API requests, HTTP auth/redirect/size/timeout/identity/coverage and T1 provenance.
+
+**Finding — kill reset readiness is caller-asserted at the Ledger boundary**
+- `PaperLedger.reset_kill(acknowledge, ready, now_ms)` passes the caller-supplied `ready` boolean to `risk_control.reset_kill`; that helper checks only that both booleans are exactly `True`.
+- Current API route calls `control_readiness(timestamp)` before opening the separate `reset_kill` transaction, then invokes `ledger().reset_kill(True, True, timestamp)`. The readiness checks include closed candles, order book, no pending paper orders, and account risk readiness.
+- This leaves a TOCTOU window between readiness evaluation and kill reset, and any internal caller that can invoke the Ledger method directly can assert `ready=True` without executing server-side readiness checks.
+- Existing `pipeline/test_api.py` verifies route-level readiness rejection and API reset success, but does not test direct Ledger bypass or a readiness change between preflight and reset.
+- Classification: **Required review finding / NOT VERIFIED as runtime exploit**. This is a contract-enforcement gap in the code boundary, not evidence of an observed production event. No source fix was applied.
+- Required TDD follow-up: design the reset contract so readiness is not a caller-controlled boolean; keep acknowledgement explicit, revalidate database-dependent conditions under the same write transaction, and define how fresh external market/book readiness evidence is bound to the reset attempt. Add tests for direct Ledger invocation and concurrent readiness/state change before reset. Preserve kill latch on any missing, stale, malformed or failed evidence.
+
+**Review status and next step**
+- PaperLedger and HTTP-client review: **PARTIAL**; the finding above remains open. Other controls listed above are positive static observations, not full certification.
+- Do not close independent review or accept Core First until the reset finding is addressed with TDD, exact-SHA CI, and a follow-up independent review.
+- Next action: prepare a narrowly scoped TDD fix proposal for the kill-reset readiness boundary on the same branch. No unrelated production changes.
+- Existing tested code SHA remains `c6b453c02201974b91526a196b6c15ce7395c08b`; this review increment made no source/test changes.
+- Core First overall: **PARTIAL / NOT VERIFIED**. Runtime Verification: **NOT STARTED**. Dual-Strategy Intelligence: **DEFERRED**.
 - `AI_EXECUTION_ENABLED=false`; PAPER-only. No canonical T0 DB, T1 runtime, VPS, exchange connection, AI Strategy execution, real orders, merge/promotion, rebase/reset/cherry-pick/force push, or default-branch change.
