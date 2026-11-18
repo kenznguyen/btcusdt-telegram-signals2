@@ -358,6 +358,31 @@ def _dimension_results_for(fixture: Mapping[str, object], facts: Mapping[str, bo
               for key, value in facts.items()):
         dimensions["bootstrap_authorization"] = result.verdict
     return dimensions
+def evaluate_stage1_facts(facts: Mapping[str, bool]) -> FixtureResult:
+    """Evaluate synthetic facts in deterministic profile then bootstrap order."""
+    for key, verdict, reason, dimension in _PROFILE_RULES:
+        if facts.get(key, False) is True:
+            return FixtureResult(verdict, reason, dimension)
+    for key, verdict, reason, dimension in _BOOTSTRAP_RULES:
+        if facts.get(key, False) is True:
+            return FixtureResult(verdict, reason, dimension)
+    return FixtureResult("BLOCKED", "ROOT_BOOTSTRAP_PATH_NOT_ENABLED", "Path unavailable")
+
+
+def evaluate_stage1_fixture(case_id: str, state: StageStateSnapshot) -> tuple[StageStateSnapshot, FixtureResult]:
+    baseline, mutated, _fixture = build_fixture(case_id)
+    return evaluate_fixture_content(baseline, mutated, state)
+
+
+class MockSignatureVerifier:
+    """A routing stub only. Never represents cryptographic verification."""
+
+    classification = MOCK_LABEL
+
+    def verify(self, _message: bytes, mock_result: bytes) -> str:
+        return MOCK_ACCEPTED if mock_result == b"mock-ok" else MOCK_REJECTED
+
+
 def evaluate_fixture_content(
     baseline: Mapping[str, object],
     mutated: Mapping[str, object],
