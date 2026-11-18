@@ -3370,3 +3370,23 @@ Additional payload inspection:
 - No source/runtime/T0 canonical DB/exchange/credentials changes; no merge/rebase/reset/cherry-pick/force-push; paper-only and `AI_EXECUTION_ENABLED=false`.
 - Status: **PARTIAL** — workflow edit committed; static checks PASS; exact-SHA CI NOT VERIFIED.
 - Next: retrieve the GitHub Actions run for final workflow commit `89c129fd3c68740398fd70792e46d376910859d1`; verify checked-out SHA, all relevant job results, and artifacts/digests. Do not merge or proceed to Dual-Strategy Intelligence based on this workflow change.
+
+
+## 2026-11-18 — T0 workflow exact-SHA CI results and P3 block
+
+- Workflow source SHA under test: `0d792a1cba0ea4482d186e5c4a443b3f193cf733`; final workflow blob SHA at that commit is the workflow content with the P3 detector including `.github/workflows/t0-manual-validation.yml`.
+- Run `44275608239` on SHA `89c129fd3c68740398fd70792e46d376910859d1`: overall SUCCESS. Lease/fencing, recovery, T0→T2 data-flow and G4 jobs PASS; P3 automatic job SKIPPED because no P3 path changed. Artifact IDs/digests are recorded in `docs/evidence/T0_MANUAL_VALIDATION_WORKFLOW_F07_F08_F10_FIX_2026-11-18.md`.
+- To exercise the P3 automatic job, the detector was changed to include the workflow file path. This is a workflow-only change, not an application-source change.
+- Run `44275967382` on exact head SHA `0d792a1cba0ea4482d186e5c4a443b3f193cf733`: overall FAILURE.
+  - PASS: lease/fencing, recovery, data-flow, G4, all scope detectors.
+  - FAILURE: automatic P3 retry/health component test command (exit code 1).
+  - SKIPPED: manual gate, expected for push.
+  - P3 artifact ID `14414252914`; provider-reported digest `879beefcbbf49df52806a7ce9500fbcee7178e1393c71d31664dedc8ba0044ff`. Other artifact IDs/digests are in the report.
+- Detailed P3 raw logs were not available through the connected read-only GitHub view; exact failing test/root cause **NOT VERIFIED**. Do not change application source by guess. Diagnose only within an approved scope; current P3 status BLOCKED.
+- F-07: dependency decoupling exercised successfully by data-flow and G4 jobs on run `44275967382`; required lease/fencing prerequisite remains enforced.
+- F-08: push trigger on active branch exercised successfully. PR trigger to main has not yet been exercised by a PR run.
+- F-10: trigger and automatic P3 job are now exercised; test command failure means F-10 is **NOT PASS / BLOCKED** pending diagnosis.
+- Updated evidence report: `docs/evidence/T0_MANUAL_VALIDATION_WORKFLOW_F07_F08_F10_FIX_2026-11-18.md`; latest report update commit `005ab75aaeb57625c03372b2acf596a4bffae7b9`.
+- Safety unchanged: no source/runtime/T0 canonical DB/VPS/exchange/credentials changes; paper-only; `AI_EXECUTION_ENABLED=false`; no merge/deployment/trading.
+- Overall status: **PARTIAL / BLOCKED ON P3**. Do not claim workflow fully green, merge, or proceed to Dual-Strategy Intelligence based on this work.
+- Next: obtain the detailed P3 job output, identify the exact failed test/command, propose the smallest correction, and obtain scoped approval before modifying application tests/source. Then rerun CI on the exact new SHA.
