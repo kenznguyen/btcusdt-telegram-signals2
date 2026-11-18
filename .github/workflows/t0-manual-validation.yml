@@ -547,7 +547,6 @@ jobs:
           path: |
             p3-component-source-sha.txt
             p3-component-scope.txt
-            p3-component-changed-files.txt
             p3-component-tests.log
             p3-component-verdict.txt
 
