@@ -2456,3 +2456,37 @@ This follow-up supersedes the earlier pending items for persistent preview artif
 - `AI_EXECUTION_ENABLED=false`; PAPER-only.
 - Runtime Verification remains a separate workstream and was not started.
 - No merge, branch promotion, rebase, reset, cherry-pick, force push, or default-branch change.
+
+
+## 2026-11-18 — Simulated-origin Continuous Runtime integration regression added
+
+**Scope and source**
+- Added three integration regression tests to `core_runtime/test_runtime_factory.py`:
+  - `test_simulated_origin_runtime_accepts_contract_only_policy`;
+  - `test_simulated_origin_runtime_rejects_config_risk_limit_override_before_journal`;
+  - `test_simulated_origin_runtime_rejects_environment_risk_limit_override_before_journal`.
+- Tests construct a disposable simulated-origin Ledger using the canonical `DEFAULT_SIMULATED_CAPITAL_CONTRACT`, record a valid initial account mark, and exercise the actual Runtime Factory with no independent risk-limit config.
+- Rejection tests require both config and environment risk-limit overrides to fail before journal or bundle-store creation.
+- Production source was not changed. No canonical T0 DB, VPS, T1 runtime, exchange, or real order was accessed.
+- Existing branch retained: `feature/core-operational-proof-20261112`.
+- Test-only commit/source SHA: `09cef950b70b4a3cf1b106aa88a2d60cd1785763`.
+- Parent verified by compare: `bcf4537ba6857927754644d232554e5d8fef79c4`; branch is ahead by exactly one commit, behind by zero.
+- Test file blob SHA: `337f2a289be9d035fb4a048f3eadb84f0fa9f98e`.
+
+**Verification status**
+- Regression tests have been committed but have not yet been independently observed running in GitHub Actions.
+- Commit-associated workflow lookup returned no PR-triggered workflow runs; combined commit status returned no status entries. These endpoints do not establish whether a push-triggered workflow ran.
+- Targeted test result: **NOT VERIFIED** (no test log/run ID available yet).
+- Do not describe these tests as RED-confirmed until the exact source SHA has a corresponding failing test log.
+- Existing RED evidence remains the separate static dry-run test in run `44229893677`, source SHA `d40217a26bf3a5cd45b8925203822184e4423001`.
+
+**Next action**
+- Retrieve the exact-head GitHub Actions run for `09cef950b70b4a3cf1b106aa88a2d60cd1785763` and inspect the Runtime Factory test step/log. If no push run exists, use the existing Core First GitHub Actions workflow on this same branch/source; do not migrate to Codemagic.
+- Confirm RED behavior for the three new tests before production changes.
+- Then implement the smallest consistent contract: static dry-run stays side-effect-free; Runtime Factory validates persisted account origin read-only before journal creation; simulated accounts omit independent `risk_limits`; funded accounts retain their approved risk source; simulated config/environment overrides remain rejected.
+- Continue targeted tests and full Core First CI only after RED is evidenced.
+
+**Safety and separation**
+- `AI_EXECUTION_ENABLED=false`; PAPER-only.
+- Runtime Verification remains **NOT STARTED**.
+- No AI Strategy execution, VPS/runtime activation, T0/T1 access, exchange connection, live trading, merge, branch promotion, rebase, reset, cherry-pick, force push, or default-branch change.
