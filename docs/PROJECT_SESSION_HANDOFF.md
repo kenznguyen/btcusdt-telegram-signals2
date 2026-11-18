@@ -3260,3 +3260,17 @@ Additional payload inspection:
 - Audit is **PARTIAL PASS / READ-ONLY**. No source move/rename/delete, workflow edit, test or CI run. The available code-search endpoint indexes the default branch, so it was not used to claim exact-branch caller completeness.
 - Next: complete exact-branch entrypoint/caller trace for `app.py`, research backtest and dashboard surfaces; then consider a docs index. No source relocation until this is complete and approved.
 - No merge/rebase/reset/force-push, branch creation, deployment, VPS/runtime/T0 database access, exchange access, AI execution or real order.
+
+
+## 2026-11-18 — Repository entrypoint and caller trace (second pass)
+
+- Extended read-only repository audit at source snapshot `fa48bb56a9b353256fa967ee780bee90455e794d`; report updated in commit `6ffc5d198f354a34de48226dbdaef8cac5393215`.
+- `app.py` is a Flask health/dashboard facade: `/dashboard`, `/health/live`, `/health/ready`, `/health/data`, `/health`. `market_data/test_feeder_health_api.py` imports it directly; T0 manual GitHub workflow runs the health API test and compiles `app.py`. Production `app:app` hosting remains **NOT VERIFIED**.
+- Do not conflate `app.py` with canonical T0 Candle API `market_data.api:application`, or with React T4 `control_dashboard/`.
+- `dashboard/index.html` is file-only/manual JSON/CSV viewer, served by `app.py` at `/dashboard`; it does not call APIs or dispatch workflows in inspected source.
+- React T4 is separately served by `pipeline/api.py` under `/control`, from `CONTROL_DIST_PATH` or `control_dashboard/dist`.
+- `backtest_rsi_percent_b_h1_adx.py` is an independent CLI research script, writes summary/trade/equity files for manual viewing, and is documented outside T0–T4. No direct invocation was found in inspected GitHub T0/Core workflows or Codemagic; external/manual callers NOT VERIFIED.
+- `requirements.txt` supports both the standalone research script and Flask app/test import; do not split/move it based on current evidence.
+- Verdict: targeted entrypoint trace **PARTIAL PASS**; complete repo-wide caller/import graph **NOT VERIFIED**; no source move warranted.
+- Next safe task: prepare a documentation navigation index (architecture, decisions, runbooks, evidence and reviews), without moving source/evidence files. Source changes remain gated by separate approval and tests.
+- No tests/CI run in this second-pass documentation audit; no source/workflow/runtime/T0 changes, no merge/rebase/reset/force-push, no deployment, no AI execution or real order.
