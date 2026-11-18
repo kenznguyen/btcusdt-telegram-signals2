@@ -2795,3 +2795,31 @@ This follow-up supersedes the earlier pending items for persistent preview artif
 - Next: wait for exact-SHA Core run `44235712032`; inspect the Core operational test group and all downstream gates. If it fails, fix only the verified failure on this branch and rerun. The Kill Switch review finding remains **focused CI PASS / full Core CI NOT VERIFIED / independent review pending**.
 - Branch remains `feature/core-operational-proof-20261112`; no merge or runtime action. Core First overall remains **PARTIAL / NOT VERIFIED**. Runtime Verification: **NOT STARTED**. Dual-Strategy Intelligence: **DEFERRED**.
 - `AI_EXECUTION_ENABLED=false`; PAPER-only. No canonical T0 DB, T1 runtime, VPS, exchange connection, AI Strategy execution, real orders, merge/promotion, rebase/reset/cherry-pick/force push, or default-branch change.
+
+
+## 2026-11-18 — Exact-SHA full Core First CI completed; independent review residual finding
+
+**Full workflow evidence**
+- Exact code/test SHA: `87b67e150f81b0065909dd8e5b2d7667319a2f95`.
+- Core First workflow [44235712032](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/44235712032), job `134571224698`: **SUCCESS**, all 38 job steps succeeded, including Core-First end-to-end proof, partial-fill crash checkpoints, shared risk/PaperLedger regressions, scoped reservation expiry, T1/T2 Order Book tests, and exact-SHA evidence publication.
+- The Core E2E group completed: `Ran 50 tests`, `OK`. Core operational tests with readiness-capability migration passed within that group.
+- Kill Switch regressions in the full workflow passed: stale readiness evidence, direct legacy Ledger bypass rejection, pending-order transaction recheck, and persistent kill/reset.
+- One-shot gate remained `CORE_RUNTIME_DECISION_CYCLE=ONE_SHOT_TESTS_PASS`, `CORE_RUNTIME_ONE_SHOT=PASS`; 19 tests.
+- Artifact: `core-first-code-operational-proof-44235712032`, ID `14396154571`, size 17,884 bytes, digest `sha256:e4ec78377845c05e460e065fa74bb2dad80feb2e85bff1ceb30a6c8f470368c0`. Artifact is metadata-verified; ZIP payload not independently downloaded/rehashed.
+- Workflow URL: `https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/44235712032`.
+
+**Independent review — residual Required finding**
+- Read-only review examined `paper_execution/risk_control.py`, `paper_execution/ledger.py`, `pipeline/api.py`, and the reset tests at exact SHA `87b67e150f81b0065909dd8e5b2d7667319a2f95`.
+- Transactional protections are present: `BEGIN IMMEDIATE`; pending order and active reservation checks; dual-ledger account risk freshness/day checks; one-use token consumption; five-second TTL; bounded in-memory registry; API fails closed on `ValueError`.
+- **Required residual:** `_issue_kill_reset_evidence()` is only private by Python naming convention and accepts caller-supplied `checks`, candle metadata and book digest. Any in-process caller can import this helper and mint a token using fabricated all-true checks/evidence, then call `PaperLedger.reset_kill()`. Existing tests themselves import this helper to construct evidence. Therefore the direct old `ready=True` bypass is closed, but the Ledger trust boundary still does not independently establish that readiness was evaluated by the trusted API path. This is a contract-enforcement gap, not an observed runtime exploit.
+- Required TDD follow-up: remove caller-controlled evidence issuance inputs from the Ledger trust boundary. Consider moving readiness validation and capability minting behind a narrow trusted control service that itself obtains current T0/book/ledger evidence, or make Ledger reset consume an opaque capability produced only by that service without exporting a general-purpose mint function. Add a regression test that simulates an arbitrary Ledger caller importing/using any exposed issuer with fabricated evidence and proves it cannot clear the latch. Keep acknowledgement explicit, preserve transaction-bound DB checks, and fail closed on stale/unavailable evidence.
+- No source changes were made during this review. The review finding remains **OPEN / REQUIRED** pending design and TDD remediation.
+
+**Status**
+- Kill Switch implementation: **PARTIAL** — transactional checks and focused/full CI pass, but the residual issuer trust-boundary finding is open.
+- Full Core First exact-SHA CI: **PASS**.
+- Independent review of Kill Switch reset: **PARTIAL / REQUIRED finding open**.
+- Core First overall: **PARTIAL / NOT VERIFIED** until all review findings and acceptance gates are closed.
+- Runtime Verification: **NOT STARTED**. Dual-Strategy Intelligence: **DEFERRED**.
+- Branch remains `feature/core-operational-proof-20261112`; code/test SHA remains `87b67e150f81b0065909dd8e5b2d7667319a2f95`. No merge/promotion or runtime action.
+- `AI_EXECUTION_ENABLED=false`; PAPER-only. No canonical T0 DB, T1 runtime, VPS, exchange connection, AI Strategy execution, real orders, rebase/reset/cherry-pick/force push, or default-branch change.
