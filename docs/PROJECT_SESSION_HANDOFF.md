@@ -2887,3 +2887,36 @@ This follow-up supersedes the earlier pending items for persistent preview artif
 - Runtime Verification: **NOT STARTED**. Dual-Strategy Intelligence: **DEFERRED**. `AI_EXECUTION_ENABLED=false`; PAPER-only.
 - No source changes, tests reruns, T0/T1/VPS access, exchange connection, real orders, merge/promotion, or runtime rollout occurred during this review.
 - Next: if deployment is later authorized, implement and test descriptor-based key loading before writing the service deployment contract; separately inspect and rerun the Dual Ledger workflow against the latest applicable source SHA. Continue on this branch.
+
+
+## 2026-11-18 — Core First acceptance gates: signing-key hardening and Dual Ledger fixture reconciliation
+
+**Branch and source provenance**
+- Active branch remains `feature/core-operational-proof-20261112`.
+- Source hardening commit: `780ab34abcda95eb8595f367407b14b97ced7496`; changes only `paper_execution/kill_reset_service.py`.
+- Security regression tests commit: `0ca9574b37bbe30a70ae08dc5ddb4b3679a47f9e`; changes `pipeline/test_api.py`.
+- Dual Ledger test-fixture correction commit: `dba0e6badf23f54167625bef2ad2e96f3dca4985`; changes `paper_execution/test_dual_strategy_api_red.py`.
+- Branch head before this handoff update: `dba0e6badf23f54167625bef2ad2e96f3dca4985`; no merge, rebase, reset, cherry-pick or branch creation.
+
+**Signing-key race remediation**
+- Replaced pathname `lstat()` then `Path.open()` with descriptor-based `os.open(O_RDONLY | O_NOFOLLOW | O_CLOEXEC)`, `os.fstat()` ownership/type/mode validation, and bounded descriptor read (4097-byte ceiling). Platforms without `O_NOFOLLOW` fail closed. Descriptor is closed on both success and failure.
+- Added regressions for a path swap to a symlink between open invocation and descriptor acquisition, an existing symlink, group-readable key permissions, and unauthorized Unix peer UID.
+- TDD RED: test-only commit `526d3c2ebc5e88507a3a0faa4a263a2bd54b5467`; Core First workflow [44241460046](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/44241460046), job `134590109043`, failed as expected at `test_kill_reset_signing_key_loader_rejects_path_swap_to_symlink` with `AssertionError: ValueError not raised`; API group ran 37 tests with exactly this new regression failing. This demonstrates the old pathname-open behavior followed the replaced symlink.
+- Post-fix Core First workflow [44241526021](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/44241526021), checked-out SHA `0ca9574b37bbe30a70ae08dc5ddb4b3679a47f9e`, is **IN PROGRESS** at handoff time. No green result is claimed yet.
+
+**Dual Ledger workflow failure reconciliation**
+- Historical workflow [44238943245](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/44238943245) ran on old source SHA `e7de6043a1a7c41edfdd68cbab00d273406a305c`, not the current branch head.
+- Its 13 failures/errors were traced to the `DualStrategyApiScopeRedTest.setUp()` fixture: it omitted `PAPER_DB`, configured `MARKET_DATA_DB` as the same paper database, and omitted required T0 HTTP client configuration. Six errors raised `PAPER_DB_REQUIRED`; seven API failures returned `T0_CANDLE_HTTP_UNAVAILABLE` before cancellation/evaluation assertions.
+- Corrected the test fixture to use a separate disposable `PAPER_DB` and `MARKET_DATA_DB`, plus a non-routable test T0 HTTP base URL/token. The test client only validates configuration in these paths; no external T0 service or market data is accessed.
+- Dual Ledger workflow [44241630180](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/44241630180), checked-out SHA `dba0e6badf23f54167625bef2ad2e96f3dca4985`, is **IN PROGRESS** at handoff time. Do not treat the fixture correction as verified until the full PaperLedger regression finishes.
+
+**Current acceptance disposition**
+- Signing-key implementation: **IMPLEMENTED / CI PENDING**.
+- Symlink-swap regression: **RED CONFIRMED** on pre-fix behavior; post-fix verification pending.
+- Wrong-peer UID, symlink and key-permission regression coverage: **ADDED / CI PENDING**.
+- Dual Ledger fixture reconciliation: **IMPLEMENTED / FULL REGRESSION PENDING**.
+- Independent Kill Reset review: **CONDITIONAL PASS** until exact-SHA Core and Dual Ledger CI results are available; deployment assumptions remain unverified.
+- Core First overall: **PARTIAL / NOT VERIFIED**.
+- Runtime Verification: **NOT STARTED**. Dual-Strategy Intelligence: **DEFERRED**. `AI_EXECUTION_ENABLED=false`; PAPER-only.
+- No VPS/T0/T1 access, deployment, service provisioning, exchange connection, AI execution, real orders, merge/promotion or default-branch change.
+- Next: collect both in-progress workflow results, inspect every failed step/log, download and verify artifact metadata/digest where available, then update this handoff with exact verdicts. Continue on the existing branch.
