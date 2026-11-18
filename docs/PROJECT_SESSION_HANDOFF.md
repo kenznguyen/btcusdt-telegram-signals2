@@ -2490,3 +2490,37 @@ This follow-up supersedes the earlier pending items for persistent preview artif
 - `AI_EXECUTION_ENABLED=false`; PAPER-only.
 - Runtime Verification remains **NOT STARTED**.
 - No AI Strategy execution, VPS/runtime activation, T0/T1 access, exchange connection, live trading, merge, branch promotion, rebase, reset, cherry-pick, force push, or default-branch change.
+
+
+## 2026-11-18 — Simulated-origin Continuous Runtime RED confirmed
+
+**Exact source and workflow**
+- Existing branch retained: `feature/core-operational-proof-20261112`.
+- Branch HEAD at this increment: `cf7472ceaa5e70d1549b175631e2fd0680505b1c`.
+- Parent: `a2a93428fc1868d0f06d1a1b575c8c515a59ded4`; one commit ahead, no divergence.
+- Workflow: [44230681601](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/44230681601), run 354, event `push`, exact `head_sha=cf7472ceaa5e70d1549b175631e2fd0680505b1c`.
+- Job: `134554664071`, conclusion FAILURE.
+- Added workflow step before the known static dry-run RED so the new simulated-origin tests execute independently. Workflow blob SHA: `250181cc563b4ed9ea6deba63a27b1037413d678`.
+
+**RED results**
+- New targeted suite ran exactly 3 tests and failed as expected:
+  1. `test_simulated_origin_runtime_accepts_contract_only_policy`: ERROR, `RuntimeFactoryError: RUNNER_CONFIG_REQUIRED`. The factory invokes static dry-run, which still requires `risk_limits` even for the contract-only simulated account.
+  2. `test_simulated_origin_runtime_rejects_config_risk_limit_override_before_journal`: FAIL because RuntimeFactory did not raise. The current factory does not detect persisted simulated origin and reject caller-supplied `risk_limits` before journal creation.
+  3. `test_simulated_origin_runtime_rejects_environment_risk_limit_override_before_journal`: FAIL with the wrong early error `RUNNER_CONFIG_REQUIRED`; this test cannot yet reach the simulated environment-override policy because static dry-run rejects the contract-only config first.
+- Preceding Continuous orchestration suite passed (53 tests).
+- Downstream dry-run and Runtime Factory full suite skipped after the targeted RED step failed.
+- Artifact: `core-first-code-operational-proof-44230681601`, ID `14395545063`, size 8,635 bytes, GitHub SHA256 `fff572422a7811bb0c25d3c96d4c7f6c484c8aa87e6464041108bd1fc4f3f371`, expires 2026-11-25.
+- Artifact payload has not yet been downloaded and independently re-hashed; digest above is GitHub artifact metadata.
+
+**Confirmed implementation requirements**
+- Static dry-run must remain side-effect-free and must accept both funded-style and contract-only runner config without opening the Ledger.
+- Runtime Factory must perform a read-only, validated persisted-origin check before creating the Continuous Journal.
+- For simulated origin: reject config `risk_limits` and all supported risk-limit environment overrides; derive effective limits only from the canonical immutable simulated account/risk contract.
+- For funded origin: continue to require its approved risk-limit source.
+- The same simulated/funded origin and risk-policy decision must be passed consistently to One-shot; no independent caller limits may override the validated contract.
+- Preserve pre-journal fail-closed behavior and ensure invalid origin/risk configuration leaves journal and bundle-store absent.
+
+**Verdict and next action**
+- Integration regression: **RED CONFIRMED**, exact SHA and logs verified.
+- Production source remains unchanged. Next implement the minimal shared policy/origin contract, then run targeted dry-run, Runtime Factory, One-shot, simulated-origin and PaperLedger tests before full Core First workflow.
+- Runtime Verification remains **NOT STARTED**. PAPER-only, `AI_EXECUTION_ENABLED=false`; no canonical T0, T1 deployment, VPS, exchange or real orders.
