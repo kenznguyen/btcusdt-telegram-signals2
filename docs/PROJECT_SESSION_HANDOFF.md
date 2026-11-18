@@ -2969,7 +2969,7 @@ This follow-up supersedes the earlier pending items for persistent preview artif
 | Dual Ledger fixture reconciliation and full PaperLedger suite at HEAD `dba0e6...` | **PASS — 672 tests** |
 | Independent Kill Reset static review | **PASS WITH DEPLOYMENT LIMITATIONS** |
 | GitHub artifact metadata/digest association | **PASS** |
-| Artifact ZIP payload independently downloaded/re-hashed | **NOT VERIFIED** |
+| Artifact ZIP payload independently downloaded/re-hashed | **PASS — both SHA-256 values match GitHub digest** |
 | OS provisioning, service/socket/key deployment | **NOT VERIFIED / NOT AUTHORIZED** |
 | Runtime Verification | **NOT STARTED** |
 | Overall Core First code-level acceptance | **PASS WITH LIMITATIONS** |
@@ -2981,3 +2981,20 @@ This follow-up supersedes the earlier pending items for persistent preview artif
 - Do not deploy or provision OS identities, signing key, socket, systemd/autostart, or runtime config without explicit authorization.
 - Next permitted work is documentation/evidence reconciliation and independent review of any remaining Core First acceptance criteria. Runtime acceptance remains a separate, explicitly authorized phase.
 - This section supersedes the immediately preceding appended 2026-11-18 status that described both workflows as IN PROGRESS; the final workflow results above are authoritative.
+
+
+## 2026-11-18 — Independent artifact payload verification
+
+Both CI artifact ZIPs were downloaded from GitHub Actions using their exact artifact IDs, saved in the working session, independently hashed with SHA-256, and inspected with ZIP listing. The computed hashes exactly match both GitHub artifact API metadata and the upload logs.
+
+| Artifact | ID | Size | GitHub digest | Independently computed SHA-256 |
+|---|---:|---:|---|---|
+| `core-first-code-operational-proof-44241526021` | `14399617831` | 18,062 bytes | `0c36fe44a113262f7744db4bb52aa44ac724407393f285f0deab3c6c6b3ff4b6` | Exact match |
+| `dual-ledger-bootstrap-proof-dba0e6badf23f54167625bef2ad2e96f3dca4985` | `14399404044` | 20,440 bytes | `472548ca926a3839322fd7f10ab3ab4acdf178d89559632a7da146fe15d9e0ab` | Exact match |
+
+Additional payload inspection:
+- Core artifact ZIP contains 30 files. `core-operational-source-sha.txt` matches `0ca9574b37bbe30a70ae08dc5ddb4b3679a47f9e`; `core-operational-verdict.txt` records PAPER-only, no canonical T0 touched, no exchange credentials, no real orders and no VPS/persistent runtime. ZIP listing shows test logs and evidence files, not a raw candle database.
+- Dual Ledger artifact ZIP contains 15 files. `bootstrap-source-sha.txt` matches `dba0e6badf23f54167625bef2ad2e96f3dca4985`; `bootstrap-safety.txt` records disposable SQLite CI only, no external services and no live orders. `paper-execution-regression.log` independently confirms 672 tests, OK.
+- Both ZIPs passed archive listing/read checks. No payload mismatch or missing expected source-SHA manifest was found.
+
+**Updated artifact integrity gate: PASS.** This closes the evidence payload integrity gap; it does not alter the separate runtime/deployment NOT VERIFIED status.
