@@ -83,11 +83,59 @@ T0 remains an independent data asset. Core Bundle v1 consumes canonical candles 
 
 The T0 implementation package (`market_data/`) is present in the Core First source tree but absent from main. It must not be copied into Core as a workaround or coupled to Core's Paper database. The Core bundle path is designed around the HTTP contract; the independent T0 service's canonical database and Feeder remain outside this test plan.
 
-### T1 dependency
+### T1 dependency — provider source verification (2026-11-18)
 
-Core consumes T1 Order Book V1 through `core_runtime.orderbook_http.OrderBookHttpClient`, configured by `T1_ORDERBOOK_API_BASE_URL` and `T1_ORDERBOOK_API_TOKEN`, using route `/internal/v1/orderbook/btcusdt`. It validates the T1 snapshot contract and uses loopback-only HTTP configuration.
+#### Consumer contract (pinned)
 
-The separate repository `kenznguyen/binance-futures-collector` exists (default branch `main`, inspected HEAD `d43a673451f7347e16a214612165c63da1b4339c`) and contains order-book collection code/documentation. However, the exact server-side provider implementing Core's `/internal/v1/orderbook/btcusdt` route was not found in that repository's inspected default-branch paths or the accessible repository code-search results. Therefore the T1 collector source is identified, but the exact HTTP service/provider source binding remains **NOT VERIFIED**. Do not assume the collector repository alone supplies the required API route.
+- Repository: `kenznguyen/btcusdt-telegram-signals2`
+- Branch: `feature/core-operational-proof-20261112`
+- Inspected branch SHA: `e6606e28a696374f31cd6db1ec0a1372d942d64d`
+- Consumer: `core_runtime/orderbook_http.py`, blob SHA `89e5129eea4c9e7ceaa4439a546daf112d15c3e3`
+- Contract validator: `core_runtime/orderbook_contract.py`, blob SHA `1620c9f21b1f3df3c2fb65833f2afd80374bf6a5`
+- Consumer test: `core_runtime/test_orderbook_http.py`, blob SHA `6edb8dea8ea208c229439b2655f1ed03c173e055`
+- Exact route: `GET /internal/v1/orderbook/btcusdt`
+- Auth: `Authorization: Bearer <token>`; loopback HTTP only (`127.0.0.1`); no redirects; one request, no retry/fallback; bounded connect/read/total timeouts; max response 65,536 bytes.
+- Contract: `T1_T2_ORDERBOOK_V1`; exactly the required schema fields including `snapshotLastUpdateId`, `firstAppliedU`, `lastAppliedU`, `sourceTimestampMs`, `observedAtMs`, `decisionWatermark`, `generation`, `snapshotId`, `continuity`, `freshness`, `depth`, and `complete`; at least 20 bid and ask levels.
+- V1 validation rejects stale/future timestamps, noncanonical decimal strings, invalid ordering, crossed books, incomplete depth and invalid sequence/watermark state.
+
+#### T1 collector source (identified, but not the provider)
+
+- Repository: `kenznguyen/binance-futures-collector`
+- Default branch: `main`
+- Exact inspected HEAD: `d43a673451f7347e16a214612165c63da1b4339c`
+- `Cargo.toml` version: `1.0.0`, blob SHA `f373e8b32e090a76399905538742e8b34a669419`
+- Collector dashboard backend: `dashboard/backend/server.py`, blob SHA `1bfc322d9868f5eda7a2d9152575fb22b547093d`
+- Dashboard requirements: `dashboard/backend/requirements.txt`, blob SHA `a4e4cf82efddcf443924a332a405fd6c3f0f6a0c` (`fastapi>=0.110`, `pydantic>=2`, `uvicorn[standard]>=0.29`, `tomlkit>=0.12`).
+
+The collector reconstructs the Binance USDT-M order book from REST snapshot + WebSocket diffs and persists the raw depth tape/snapshots. Its optional FastAPI Capture Desk reads the collector's CSV tree; it is not the T1 V1 service.
+
+The inspected backend exposes these GET routes: `/api/health`, `/api/streams`, `/api/coverage`, `/api/health/coverage`, `/api/gaps/{symbol}`, `/api/symbols`, `/api/symbol/{symbol}`, `/api/logs/list`, `/api/logs`, `/api/logs/download`, `/api/dates/{symbol}`, `/api/validate/{symbol}`, `/api/export/bundle`, `/api/export/merged`, `/api/export/orderbook`, `/api/orderbook/{symbol}`, `/api/config`, `/api/replay/{symbol}/day`, and `/api/replay/{symbol}/at`; it also exposes POST config/restart routes. It does **not** expose `/internal/v1/orderbook/btcusdt`.
+
+The closest route, `GET /api/orderbook/{symbol}`, returns only `symbol`, `best_bid`, `best_ask`, `mid`, `spread`, `bids`, and `asks`; level rows contain floating-point `price`, `qty`, and `cumulative`. It does not publish the required V1 sequence IDs, source/observation timestamps, generation, snapshot digest, continuity/freshness flags, completeness, or Bearer auth. `/api/replay/{symbol}/at` exposes a reconstructed book and some snapshot/gap metadata for replay, but it is not the strict V1 snapshot schema or authenticated provider either.
+
+The collector's documented API is therefore **not wire-compatible** with the Core First T1 consumer. The collector is a verified upstream data-capture source, not a verified implementation of the T1 Order Book HTTP provider.
+
+#### Repository search boundary and disposition
+
+The accessible relevant repositories inspected on their default branches were:
+- `kenznguyen/binance-futures-collector` — collector and Capture Desk only; no required internal V1 route.
+- `kenznguyen/btcusdt-telegram-signals` — 7 tracked blobs; no order-book service implementation.
+- `kenznguyen/btcusdt-telegram-bot` — 16 tracked blobs; no order-book provider implementation.
+- `kenznguyen/btcusdt-telegram-signals2` main — no provider implementation; feature branch has the consumer/client and contract only.
+
+No authoritative T1 HTTP provider repository, path, release, or provider version was found in the inspected accessible source. The T1 provider source/version binding is **BLOCKED / NOT VERIFIED**. Do not label collector `1.0.0` as the provider version, and do not assume the dashboard's `/api/orderbook/{symbol}` can be aliased to the V1 route.
+
+A provider implementation must be explicitly located or approved before service integration. At minimum it must atomically publish a validated V1 snapshot from the collector's reconstructed state; preserve source update IDs and timestamps; generate a monotonic/fenced generation and deterministic snapshot ID; expose the exact authenticated loopback route and schema; and fail closed when continuity/freshness/complete-depth requirements are not met. A transformation from the dashboard's rounded float response is insufficient because it has already discarded required provenance and sequence fields.
+
+#### Dependency matrix status
+
+| Dependency | Source/version pin | Status |
+|---|---|---|
+| Core First consumer | signals2 branch `feature/core-operational-proof-20261112`, SHA `e6606e28a696374f31cd6db1ec0a1372d942d64d`; consumer/contract blobs above | PINNED |
+| T1 raw collector | `kenznguyen/binance-futures-collector` `main` SHA `d43a673451f7347e16a214612165c63da1b4339c`, Cargo version `1.0.0` | PINNED AS COLLECTOR ONLY |
+| T1 HTTP provider | No repository/path/version identified | BLOCKED |
+| T1 provider wire compatibility | Existing Capture Desk routes differ from strict V1 | NOT COMPATIBLE |
+| T1 local-fixture consumer tests | Existing `core_runtime/test_orderbook_http.py` | TESTS CONSUMER ONLY; NOT PROVIDER INTEGRATION |
 
 ### Python package dependencies
 
