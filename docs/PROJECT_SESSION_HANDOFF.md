@@ -2823,3 +2823,34 @@ This follow-up supersedes the earlier pending items for persistent preview artif
 - Runtime Verification: **NOT STARTED**. Dual-Strategy Intelligence: **DEFERRED**.
 - Branch remains `feature/core-operational-proof-20261112`; code/test SHA remains `87b67e150f81b0065909dd8e5b2d7667319a2f95`. No merge/promotion or runtime action.
 - `AI_EXECUTION_ENABLED=false`; PAPER-only. No canonical T0 DB, T1 runtime, VPS, exchange connection, AI Strategy execution, real orders, rebase/reset/cherry-pick/force push, or default-branch change.
+
+
+## 2026-11-18 — Isolate Kill Switch reset authority behind a dedicated process
+
+**Scope and implementation**
+- Approved remediation for the Required trust-boundary finding from the prior review.
+- Added `paper_execution/kill_reset_service.py`: readiness evaluation and capability issuance now occur in a separate process. The API process sends only an explicit acknowledgement over a Unix domain socket; it does not submit candle/book/readiness assertions or mint readiness evidence.
+- Capability signing key is read only by the control-service OS identity from a restrictive regular-file path. The service refuses root execution, requires a distinct non-root API UID, validates Unix peer credentials, checks the IPC token, and fails closed when unavailable.
+- Ledger still validates server-issued one-use evidence and performs DB-dependent pending-order/reservation checks within its transaction.
+- Added regressions for fabricated evidence from the API process, unavailable control service, stale/unissued capability, server-side readiness, and distinct non-root service identity.
+- No T0 data, strategy logic, execution enablement, or runtime configuration was changed.
+
+**Exact-SHA CI evidence**
+- Code/test SHA: `503a3c49569da9e874514481e16e12cf21a73961`.
+- Core First workflow [44239664736](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/44239664736), job `134584159295`: **SUCCESS**.
+- Exact SHA printed by workflow: `SOURCE_SHA=503a3c49569da9e874514481e16e12cf21a73961`.
+- API regression group: 34 tests, `OK`; includes all five new/updated Kill Reset API/control-service regressions.
+- Core E2E group: 50 tests, `OK`.
+- Paper Ledger group: 37 tests, `OK`; direct caller cannot assert readiness and pending-order checks remain transaction-bound.
+- One-shot gate: `CORE_RUNTIME_DECISION_CYCLE=ONE_SHOT_TESTS_PASS`, `CORE_RUNTIME_ONE_SHOT=PASS`; 19 tests.
+- Additional relevant groups passed: 53 tests, 49 T1/T2 Order Book tests, plus scoped reservation/storage and other operational regression groups. All workflow steps succeeded.
+- Artifact: `core-first-code-operational-proof-44239664736`, ID `14399595147`, size 17,976 bytes, digest `sha256:e9066111422c21262413790f3c75ab3360cd9ac505b66686c1c6cdf7204f1554`. Metadata verified; payload not independently downloaded/rehashed.
+- Branch head before this handoff-only update: `503a3c49569da9e874514481e16e12cf21a73961`.
+
+**Review and deployment limits**
+- The prior Required finding is addressed at the tested process boundary in code, but a fresh independent security review of this new process/IPC/key-management implementation is still **PENDING**. Do not mark the Kill Switch trust-boundary review fully closed yet.
+- Deployment is **NOT VERIFIED**: this commit adds a separate process contract but no production service manager, OS users, key provisioning, socket directory provisioning, or runtime rollout. Do not start or deploy it on VPS without separate explicit approval and a reviewed deployment plan.
+- Core First remains **PARTIAL / NOT VERIFIED** overall pending independent review and remaining acceptance gates.
+- Runtime Verification: **NOT STARTED**. Dual-Strategy Intelligence: **DEFERRED**.
+- `AI_EXECUTION_ENABLED=false`; PAPER-only. No real orders, exchange connection, canonical T0 DB changes, T1/VPS runtime actions, merge/promotion, rebase/reset/cherry-pick/force push, or default-branch change.
+- Next: perform independent security review of the isolated process, signing-key file handling, Unix socket/peer credential controls, and deployment assumptions; then run any additional exact-SHA workflows required by the review. Keep all work on `feature/core-operational-proof-20261112`.
