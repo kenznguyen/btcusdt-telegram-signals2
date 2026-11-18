@@ -1,12 +1,14 @@
-# CURRENT STAGE I PROVENANCE AUDIT — 2026-11-18
+# CURRENT STAGE I PROVENANCE — 2026-11-18 (CORRECTED)
 
-- Stage I follow-up is recorded in the evidence report, section “Stage I provenance follow-up and review correction”.
-- PR #141 and #142 changed only the workflow. Required `t0_signature_stage1` package/test file was not found on main, workflow-introduction branch, parser-fix branch or inspected T0 centralized-data branch.
-- Correction: the merged parser regex in PR #142 is statically correct for timed/singular unittest summaries. Earlier statement that its regex still had a doubled-escape defect is withdrawn.
-- Stage I remains BLOCKED by missing package dependency. Parser syntax PASS by static inspection only. Runtime, manual dispatch history and artifacts NOT VERIFIED. Commit-associated run lookup covered PR-triggered runs only and returned none.
-- No source/workflow changed or deleted. No T0 runtime/database/Feeder/VPS/exchange/trading access. Next: identify whether package lives in another repository/ref or was retired; no deletion without explicit approval.
+- Repository: `kenznguyen/btcusdt-telegram-signals2`; documentation branch: `main`.
+- The prior audit's “package missing on inspected T0 branch” conclusion is withdrawn. The audit checked a non-existent expected filename `test_stage_i.py`; actual test modules are `t0_signature_stage1/tests/test_primitives.py` and `test_verdicts.py`, both discovered by the workflow's `test_*.py` pattern.
+- Confirmed source ref: `feature/t0-centralized-data-feeder-p1-20261101`; handoff-recorded HEAD `e7273e918f254bd17a3ce997bb722e8d4e36d029`. Package, primitive/verdict modules, both test modules and package test initializer were read back from GitHub. Exact blob SHAs and provenance are in `docs/evidence/MAIN_DOCUMENTATION_CLEANUP_2026-11-18.md`, section “Stage I provenance correction”.
+- Workflow `.github/workflows/t0-signature-a2-2-stage-i.yml` exists on main and the T0 branch (blob `5fa94939181af5f1f33686c3444bc6f8a0326962`). Its compile and unittest discovery paths match the confirmed package layout. It enforces empty database/exchange credentials and `AI_EXECUTION_ENABLED=false`, and uploads a Stage I evidence artifact.
+- Static provenance/path status: **PASS**. Test execution, compile execution, Python 3.12 parity, manual dispatch history and artifact production: **NOT VERIFIED**. The branch's post-amendment self-review records 34 test methods (23 primitive + 11 verdict), but states repository suite and compile were NOT RUN after latest source changes; independent review was not performed and G3 is not established.
+- Keep the workflow as a valid manual branch-context gate, not an orphan. Do not dispatch without separate owner approval. If later approved, select the exact T0 branch ref and record checked-out SHA, run, jobs, test summary and artifact identity.
+- Evidence report correction committed on main: `0cf3d8244c9ae161a35a206bbea470e1a9902214`, report blob `ec19ece2fd8087d126c93e48e21218384cfe44f3`.
+- No source/workflow edit or deletion, workflow dispatch, test/build execution, branch mutation, T0 runtime/database/Feeder/VPS/exchange/trading access occurred in this follow-up.
 
----
 
 # CURRENT REVIEW WORKFLOW TRACE — 2026-11-18
 
