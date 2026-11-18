@@ -1,3 +1,18 @@
+# CURRENT MAIN SNAPSHOT — 2026-11-19 (LEGACY TELEGRAM/DASHBOARD RETIREMENT)
+
+- Repository: `kenznguyen/btcusdt-telegram-signals2`; branch: `main`.
+- Pre-change source HEAD: `e0880d4144b0d81ca1ff3e2e9e97a72ee408eedf`.
+- Owner-approved scope: remove legacy Telegram webhook/commands/notifications, Dashboard UI, and legacy backtest engine including `backtest.py`.
+- Removed: `app.py`, `telegram_commands.py`, `backtest.py`, `dashboard/index.html`, `.github/backtest-trigger.txt`, workflows `telegram-command.yml`, `signal-scan.yml`, `dashboard-backtest.yml`, and `requirements-web.txt`.
+- `bot.py` is retained as a side-effect-free strategy reference containing RSI/ADX indicators and RSI-cross, TP, Smart-DCA, Soft SL, Emergency SL and fill helpers. Telegram messaging/reporting, external candle fetching, state persistence and scanner entrypoint are removed.
+- Added `ci/test_strategy_rules.py`; test execution **NOT RUN**. No workflow dispatched; artifacts NONE; independent review NOT VERIFIED.
+- Independent RSI-%b research backtest and its specification are retained. `BACKTEST_COMPARISON_180D.md` remains historical/inactive pending a new engine.
+- Archived Telegram README retained but explicitly marked RETIRED.
+- T0 remains independent and unchanged. Core First branch `feature/core-operational-proof-20261112` remains separate and is not modified. Dual-Strategy work remains deferred. No VPS/runtime/deployment/exchange/live-order activity.
+- Next: run focused strategy unit tests and safe repository CI on exact committed SHA, inspect repository-wide remaining callers/references, then update this status with exact workflow/run/artifact evidence. Until then, tests/CI/operational parity are **NOT VERIFIED**.
+
+---
+
 # CURRENT STAGE I PROVENANCE — 2026-11-18 (CORRECTED)
 
 - Repository: `kenznguyen/btcusdt-telegram-signals2`; documentation branch: `main`.

@@ -186,3 +186,18 @@ The handoff update and this report are separate sequential commits on the same e
   - No file deleted, edited, renamed or moved. No tests, build, CI, workflow, runtime, T0 DB/Feeder/VPS, exchange or trading action performed.
 - Status: targeted static overlap inspection **PASS**; complete repository-wide functional duplicate detection **NOT VERIFIED**; runtime/test parity **NOT VERIFIED**.
 - Next: if a broader cleanup is approved, inventory remaining same-purpose modules by subsystem (signal, API, backtest, Android/dashboard, CI) and trace callers/tests before proposing any exact file retirement. Preserve Core First sequencing and do not merge the T0 branch wholesale.
+
+
+## 2026-11-19 — Telegram, Dashboard and legacy backtest retirement
+
+- Repository/base: `kenznguyen/btcusdt-telegram-signals2`; branch `main`; exact pre-change HEAD `e0880d4144b0d81ca1ff3e2e9e97a72ee408eedf`.
+- Owner-approved scope: remove the complete legacy Telegram bridge/notification scanner, Dashboard UI, and legacy Dashboard/Telegram backtest engine including `backtest.py`. Preserve the independent RSI-%b research backtest and preserve RSI/ADX/Smart-DCA strategy rules.
+- Removed paths: `app.py`, `telegram_commands.py`, `backtest.py`, `dashboard/index.html`, `.github/backtest-trigger.txt`, `.github/workflows/telegram-command.yml`, `.github/workflows/signal-scan.yml`, `.github/workflows/dashboard-backtest.yml`, and `requirements-web.txt`.
+- Refactored `bot.py` into a side-effect-free strategy reference: retained Wilder RMA, RSI/ADX indicator construction, RSI-cross entry, TP, Smart-DCA, Soft SL, Emergency SL, threshold and conservative fill helpers; removed Telegram messaging/reporting, OKX candle fetching, state persistence and scanner entrypoint.
+- Added `ci/test_strategy_rules.py` covering indicators and the retained strategy rule helpers. Test execution is **NOT RUN** in this change; no test/CI workflow was dispatched.
+- Updated root README to describe active repository state; marked archived Telegram README RETIRED while preserving it as historical provenance.
+- Independent research files `backtest_rsi_percent_b_h1_adx.py`, `RSI_PERCENT_B_H1_ADX_BACKTEST.md`, and `BACKTEST_COMPARISON_180D.md` were retained. The comparison plan is now historical/inactive because its legacy A-side runner was removed.
+- Historical git objects and prior commits are preserved; no history rewrite, branch deletion, T0 change, Core First branch change, VPS/runtime/deployment, exchange, AI execution or live-order action.
+- Static dependency scope: the deleted legacy backtest was the only inspected source importing `bot`; after removal, `bot.py` is retained as a pure strategy module and has no Telegram/scanner entrypoint. Full repository-wide dynamic import/caller scan is **NOT VERIFIED**.
+- Status: source/docs change committed; source readback pending at commit time. Tests, workflow execution, artifact production and independent review: **NOT VERIFIED**.
+- Next: run `python -m unittest ci.test_strategy_rules -v` and the repository's relevant safe CI on the exact commit; inspect full test discovery and verify no remaining runtime/deployment references to retired surfaces. Do not deploy or reactivate legacy services.

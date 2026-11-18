@@ -1,3 +1,5 @@
+> **STATUS: RETIRED (2026-11-19).** Telegram webhook, command bridge, scanner, Dashboard and legacy backtest runner have been removed from `main`. This file is preserved only as historical provenance. Do not follow these instructions, create/deploy the old services, register a webhook, or reactivate the retired workflows.
+
 <!-- Preserved from the repository root README before the 2026-11-18 documentation refresh. Historical instructions are not proof of a currently deployed service. -->
 
 # BTCUSDT Telegram Signal Bot
