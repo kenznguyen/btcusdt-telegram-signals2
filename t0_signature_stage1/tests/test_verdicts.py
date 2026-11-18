@@ -160,6 +160,23 @@ class FixtureMatrixTests(unittest.TestCase):
         self.assertEqual(baseline["bootstrap"], mutated["bootstrap"])
 
 
+    def test_baselines_have_complete_canonical_evidence_and_policy_authorization_metadata(self):
+        from t0_signature_stage1.verdicts import _BASELINES
+        from t0_signature_stage1.primitives import evidence_object_digest, parse_canonical_json
+        for name, baseline in _BASELINES.items():
+            with self.subTest(baseline=name):
+                evidence = baseline["evidence_object"]
+                raw = evidence["canonical_bytes"].encode("utf-8")
+                self.assertEqual(len(raw), evidence["byte_length"])
+                self.assertEqual(evidence_object_digest(raw), evidence["digest"])
+                self.assertEqual(parse_canonical_json(raw)["checkpoint"], "synthetic")
+                policy = baseline["policy_profile_authorization"]
+                self.assertEqual(policy["signer_id"], baseline["test_signer"]["signer_id"])
+                self.assertEqual(policy["signer_role"], baseline["test_signer"]["role"])
+                self.assertEqual(policy["namespace"], "T0")
+                self.assertEqual(policy["audience"], "BTCUSDT")
+                self.assertEqual(policy["allowed_purposes"], baseline["policy"]["allowed_purposes"])
+
     def test_evaluator_rejects_invalid_canonical_evidence_object(self):
         import copy
         from t0_signature_stage1.verdicts import build_fixture, evaluate_fixture_content
@@ -202,6 +219,7 @@ class FixtureMatrixTests(unittest.TestCase):
             with self.subTest(case_id=fixture.case_id):
                 baseline, mutated, spec = build_fixture(fixture.case_id)
                 self.assertEqual(spec.schema_version, "A2.2-STAGE-I-FIXTURE-V1")
+                self.assertEqual(baseline["schema_version"], spec.schema_version)
                 self.assertEqual(set(spec.dimension_results), required)
                 state = _test_state()
                 after, result = evaluate_fixture_content(baseline, mutated, state)
@@ -209,6 +227,9 @@ class FixtureMatrixTests(unittest.TestCase):
                 self.assertEqual(result.state_s0, state)
                 self.assertEqual(result.state_s1, state)
                 self.assertEqual(set(result.dimension_results), required)
+                self.assertEqual(result.dimension_results, spec.dimension_results)
+                self.assertEqual(result.dimension_results["signature"], "NOT_VERIFIED")
+                self.assertEqual(result.dimension_results["custody_readback"], "NOT_VERIFIED")
                 self.assertTrue(result.forbidden_transitions)
                 self.assertTrue(all(result.forbidden_transitions.values()))
 
