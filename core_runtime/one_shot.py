@@ -32,7 +32,8 @@ def _strict_json(path):
         raise ValueError("BUNDLE_FILE_INVALID") from None
 
 
-def _runner_policy(config, *, simulated=False):
+def _runner_policy(config, *, simulated=False, allow_missing_risk_limits=False, environ=None):
+    env = os.environ if environ is None else environ
     risk_env_keys = (
         "PAPER_MAX_DRAWDOWN_PCT",
         "PAPER_MAX_DAILY_LOSS_USDT",
@@ -40,36 +41,40 @@ def _runner_policy(config, *, simulated=False):
     )
     if simulated:
         if "risk_limits" in config or any(
-            os.environ.get(key, "").strip() for key in risk_env_keys
+            isinstance(env.get(key), str) and env.get(key, "").strip()
+            for key in risk_env_keys
         ):
             raise PreflightError("RUNNER_RISK_LIMITS_OVERRIDE_FORBIDDEN")
         limits = None
     else:
         config_limits = config.get("risk_limits")
-        if config_limits is None:
-            config_limits = {}
-        if not isinstance(config_limits, dict):
-            raise PreflightError("RUNNER_RISK_LIMITS_REQUIRED")
-        env_keys = {
-            "maxDrawdownPct": "PAPER_MAX_DRAWDOWN_PCT",
-            "maxDailyLossUsdt": "PAPER_MAX_DAILY_LOSS_USDT",
-            "maxExposureUsdt": "PAPER_MAX_EXPOSURE_USDT",
-        }
-        if set(config_limits) - set(env_keys):
-            raise PreflightError("RUNNER_RISK_LIMITS_REQUIRED")
-        limits = {}
-        for key, env_key in env_keys.items():
-            env_value = os.environ.get(env_key)
-            value = env_value.strip() if isinstance(env_value, str) and env_value.strip() else config_limits.get(key)
-            if not isinstance(value, str) or not value:
+        if config_limits is None and allow_missing_risk_limits:
+            limits = None
+        else:
+            if config_limits is None:
+                config_limits = {}
+            if not isinstance(config_limits, dict):
                 raise PreflightError("RUNNER_RISK_LIMITS_REQUIRED")
-            try:
-                parsed = Decimal(value)
-            except (DecimalException, TypeError, ValueError):
-                raise PreflightError("RUNNER_RISK_LIMIT_INVALID") from None
-            if not parsed.is_finite() or parsed <= 0:
-                raise PreflightError("RUNNER_RISK_LIMIT_INVALID")
-            limits[key] = value
+            env_keys = {
+                "maxDrawdownPct": "PAPER_MAX_DRAWDOWN_PCT",
+                "maxDailyLossUsdt": "PAPER_MAX_DAILY_LOSS_USDT",
+                "maxExposureUsdt": "PAPER_MAX_EXPOSURE_USDT",
+            }
+            if set(config_limits) - set(env_keys):
+                raise PreflightError("RUNNER_RISK_LIMITS_REQUIRED")
+            limits = {}
+            for key, env_key in env_keys.items():
+                env_value = env.get(env_key)
+                value = env_value.strip() if isinstance(env_value, str) and env_value.strip() else config_limits.get(key)
+                if not isinstance(value, str) or not value:
+                    raise PreflightError("RUNNER_RISK_LIMITS_REQUIRED")
+                try:
+                    parsed = Decimal(value)
+                except (DecimalException, TypeError, ValueError):
+                    raise PreflightError("RUNNER_RISK_LIMIT_INVALID") from None
+                if not parsed.is_finite() or parsed <= 0:
+                    raise PreflightError("RUNNER_RISK_LIMIT_INVALID")
+                limits[key] = value
     max_age = config.get("max_book_age_ms")
     if type(max_age) is not int or not 0 < max_age <= 5_000:
         raise PreflightError("RUNNER_BOOK_AGE_POLICY_INVALID")
