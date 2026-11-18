@@ -282,6 +282,25 @@ class FiveLayerApiTest(unittest.TestCase):
             ).fetchone()[0]
         self.assertEqual(ai_orders, 0)
 
+    def test_empty_paper_evaluation_defaults_to_core_runner(self):
+        core_result = {
+            "decision": {
+                "source": "STRATEGY_CORE", "action": "WAIT",
+                "reason": "CORE_TEST_RESULT", "intent": None,
+            },
+            "order": None,
+        }
+        with patch.object(
+            api, "core_runtime_evaluate", return_value=core_result
+        ) as core_evaluate, patch.object(api, "decide") as ai_decision:
+            code, result = self.request("/v1/paper/evaluate", "POST", {})
+
+        self.assertEqual(code, 200, result)
+        self.assertEqual(result["decision"]["source"], "STRATEGY_CORE")
+        self.assertEqual(result["decision"]["reason"], "CORE_TEST_RESULT")
+        core_evaluate.assert_called_once_with(self.now)
+        ai_decision.assert_not_called()
+
     def test_missing_trusted_calibration_context_blocks_ai_paper_execution(self):
         code, result = self.request(
             "/v1/paper/evaluate", "POST", {"source": "AI"}
@@ -518,7 +537,7 @@ class FiveLayerApiTest(unittest.TestCase):
         self.assertEqual(signals["aiStrategy"]["reason"], "AI_CALIBRATION_ADMISSION_CONTEXT_UNAVAILABLE")
         self.assertIsNone(signals["aiStrategy"]["intent"])
 
-    def test_api_kill_switch_requires_control_token_and_keeps_ai_paper_deferred(self):
+    def test_api_kill_switch_requires_control_token_and_blocks_paper_evaluation(self):
         self.assertEqual(self.request("/v1/paper/kill", "POST", {"enabled": True}, token="read-token")[0], 401)
         code, state = self.request("/v1/paper/kill", "POST", {"enabled": True})
         self.assertEqual(code, 200)
