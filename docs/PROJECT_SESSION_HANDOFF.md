@@ -3414,3 +3414,17 @@ Additional payload inspection:
 - Evidence report updated in commit `ced6c757e81f6d68d9cf6e186891c43738d30093`.
 - Safety: workflow-only changes; no app source, shared requirements, T0 canonical DB, VPS/runtime, exchange credentials, or orders changed/used. No merge/deployment/trading authorization.
 - Next: if PR-trigger verification is required, use a legitimate PR event on the intended target and record its exact PR head/merge SHA and run evidence. Keep current branch; no merge without separate approval.
+
+
+## 2026-11-18 — Main-side Core API static review (MAPI-01)
+
+- Reviewed main-only commits `6a21c4183432634437b5014a48da4140fed861a2` and `2b0c043e3e336ca79d639c91cb9ecd7078c280c7` from the 85-commit main-side delta.
+- Exact blobs:
+  - main `pipeline/api.py`: `fe5b9ffc8a95001f5b1a9734da67a1cb8d23a31b`; branch: `bb89b0bdf196f64b3ab9d9ac15b6597f333c583e`.
+  - main `core_runtime/test_api_facade.py`: `e41f374afee2b3b2be5c70f12c441218367d7f70`; branch: `f860d32c4047374dec4f574605a1c1b21ba1a58b`.
+- Finding MAPI-01: main `quality_snapshot()` reads local `core` at line 328 before assigning it at line 351. Since it is a local variable, this statically causes `UnboundLocalError`; the main quality projection test invokes this path and is expected to fail. Test was not executed; static ordering defect is confirmed, runtime failure NOT RUN.
+- Branch fixes ordering: assignment at line 384 precedes read at line 385 and the same value is reused for Core projection.
+- Disposition: preserve branch `pipeline/api.py` and `core_runtime/test_api_facade.py`; no wholesale import of main versions.
+- Full report: `docs/evidence/MAIN_CORE_API_QUALITY_SNAPSHOT_STATIC_REVIEW_2026-11-18.md`; report commit `ef5bdee41430a9f4acd86e104ad60f44a1386f69`.
+- No source/test/workflow execution, candidate checkout, merge simulation, runtime/T0/VPS/exchange access. Merge remains BLOCKED / NOT AUTHORIZED.
+- Next: continue read-only semantic review of remaining main-only deltas; do not create a merge candidate or PR without explicit authorization.
