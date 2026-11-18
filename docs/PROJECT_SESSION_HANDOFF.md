@@ -2760,3 +2760,26 @@ This follow-up supersedes the earlier pending items for persistent preview artif
 - The new reset finding is **implementation complete / focused CI PASS / full Core CI NOT VERIFIED**. Independent review of the fix is still required after the full workflow result.
 - Core First overall remains **PARTIAL / NOT VERIFIED**. Runtime Verification: **NOT STARTED**. Dual-Strategy Intelligence: **DEFERRED**.
 - `AI_EXECUTION_ENABLED=false`; PAPER-only. No canonical T0 DB, T1 runtime, VPS, exchange connection, AI Strategy execution, real orders, merge/promotion, rebase/reset/cherry-pick/force push, or default-branch change.
+
+
+## 2026-11-18 — Kill Switch reset evidence hardening and expanded focused CI
+
+**Follow-up review changes**
+- Renamed the readiness capability issuer to private module API `_issue_kill_reset_evidence`; the API's server-side `control_readiness` path is the intended issuer.
+- API maps missing, stale, unissued, replayed or DB-invalid reset evidence to HTTP `409 SYSTEM_NOT_READY` and preserves the kill latch.
+- Added regression coverage for stale evidence at the risk-control layer and stale/unissued capability at the API boundary.
+- Code SHA: `0b5cf49c5fbcb8e357539c1a1fc570bc60f93035`.
+
+**Focused exact-SHA verification**
+- Workflow [44235467609](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/44235467609), job `134570417775`, exact SHA `0b5cf49c5fbcb8e357539c1a1fc570bc60f93035`: **SUCCESS**.
+- PaperLedger contract suite: `Ran 161 tests`, `OK`.
+- Confirmed passing tests: direct Ledger caller cannot assert readiness; pending orders are rechecked inside the Ledger transaction; stale readiness evidence cannot clear the kill latch; persistent kill/reset behavior remains valid.
+- No artifact was published by this focused workflow.
+
+**Full Core First verification**
+- Core First workflow [44235145804](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/44235145804) is still in progress on prior code SHA `f837000cb8fe0e54713f7b1b6260c16521ada8c5`; its latest observed step is read-only PaperLedger readiness preflight.
+- Latest Core First workflow [44235467621](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/44235467621) for exact SHA `0b5cf49c5fbcb8e357539c1a1fc570bc60f93035` is pending behind the older run because the workflow concurrency group does not cancel in-progress runs.
+- Therefore API regression/full Core workflow verification for the latest 0b5cf49 SHA is **PENDING / NOT VERIFIED**. Do not infer it from the focused PaperLedger workflow.
+- Static review of the latest delta: one-use token registry is bounded to 256 entries and 5-second TTL, token consumption is lock-protected and single-use, Ledger uses `BEGIN IMMEDIATE`, pending orders/reservations and dual-account risk readiness are rechecked before latch clear, and API failures fail closed with 409. The full independent review remains open until latest exact-SHA Core workflow and API tests complete.
+- Core First overall remains **PARTIAL / NOT VERIFIED**. Runtime Verification: **NOT STARTED**. Dual-Strategy Intelligence: **DEFERRED**.
+- `AI_EXECUTION_ENABLED=false`; PAPER-only. No canonical T0 DB, T1 runtime, VPS, exchange connection, AI Strategy execution, real orders, merge/promotion, rebase/reset/cherry-pick/force push, or default-branch change.
