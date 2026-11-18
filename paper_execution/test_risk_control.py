@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from paper_execution.risk_control import ensure, reset_kill, risk_block_reason, set_kill, set_paused, snapshot
+from paper_execution.risk_control import (ensure, issue_kill_reset_evidence, reset_kill, risk_block_reason, set_kill, set_paused, snapshot)
 
 
 class PersistentRiskControlTest(unittest.TestCase):
@@ -15,6 +15,18 @@ class PersistentRiskControlTest(unittest.TestCase):
 
     def connect(self):
         return sqlite3.connect(self.path)
+
+    def readiness(self, checked_at_ms):
+        return issue_kill_reset_evidence(
+            checked_at_ms=checked_at_ms,
+            checks={"closedCandles": True, "orderBook": True,
+                    "noPendingPaperOrders": True, "accountRiskReady": True},
+            candle_evidence={"datasetVersion": "sha256:"+"a"*64,
+                             "closeTimeMs": checked_at_ms-900_000,
+                             "availableAtMs": checked_at_ms-1_000},
+            book_evidence={"snapshotDigest": "sha256:"+"b"*64,
+                           "observedAtMs": checked_at_ms-100},
+        )
 
     def test_new_database_starts_unpaused_and_not_killed(self):
         with self.connect() as db:
@@ -30,12 +42,15 @@ class PersistentRiskControlTest(unittest.TestCase):
         with self.connect() as db:
             self.assertTrue(snapshot(db)["killed"])
             with self.assertRaises(ValueError):
-                reset_kill(db, acknowledge=False, ready=True, at_ms=self.now+1)
+                reset_kill(db, acknowledge=False, readiness_evidence=self.readiness(self.now+1), at_ms=self.now+1)
             with self.assertRaises(ValueError):
-                reset_kill(db, acknowledge=True, ready=False, at_ms=self.now+1)
+                reset_kill(db, acknowledge=True, readiness_evidence={"ready": True}, at_ms=self.now+1)
             self.assertEqual(risk_block_reason(db), "KILL_SWITCH")
-            reset_kill(db, acknowledge=True, ready=True, at_ms=self.now+2)
+            evidence = self.readiness(self.now+2)
+            reset_kill(db, acknowledge=True, readiness_evidence=evidence, at_ms=self.now+2)
             self.assertIsNone(risk_block_reason(db))
+            with self.assertRaises(ValueError):
+                reset_kill(db, acknowledge=True, readiness_evidence=evidence, at_ms=self.now+3)
 
     def test_pause_and_kill_are_independent_and_kill_has_priority(self):
         with self.connect() as db:
@@ -44,7 +59,7 @@ class PersistentRiskControlTest(unittest.TestCase):
             self.assertEqual(risk_block_reason(db), "RISK_PAUSED")
             set_kill(db, True, self.now+1)
             self.assertEqual(risk_block_reason(db), "KILL_SWITCH")
-            reset_kill(db, True, True, self.now+2)
+            reset_kill(db, True, self.readiness(self.now+2), self.now+2)
             self.assertEqual(risk_block_reason(db), "RISK_PAUSED")
 
     def test_generic_kill_clear_is_rejected(self):

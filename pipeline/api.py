@@ -1,5 +1,6 @@
 """Common read API and explicitly authorized, local paper controls."""
 
+import hashlib
 import hmac
 import json
 import mimetypes
@@ -444,7 +445,30 @@ def control_readiness(timestamp):
         "noPendingPaperOrders": no_pending,
         "accountRiskReady": account_risk_ready,
     }
-    return {"ready": all(checks.values()), "checks": checks}
+    readiness = {"ready": all(checks.values()), "checks": checks, "evidence": None}
+    if readiness["ready"]:
+        try:
+            latest = candles["candles"][-1]
+            candle_evidence = {
+                "datasetVersion": candles["datasetVersion"],
+                "closeTimeMs": latest["closeTimeMs"],
+                "availableAtMs": latest["availableAtMs"],
+            }
+            book_evidence = {
+                "snapshotDigest": "sha256:" + hashlib.sha256(
+                    json.dumps(data["book"], sort_keys=True, separators=(",", ":"),
+                               allow_nan=False).encode()
+                ).hexdigest(),
+                "observedAtMs": data["book"]["observedAtMs"],
+            }
+            from paper_execution.risk_control import issue_kill_reset_evidence
+            readiness["evidence"] = issue_kill_reset_evidence(
+                checked_at_ms=timestamp, checks=checks,
+                candle_evidence=candle_evidence, book_evidence=book_evidence,
+            )
+        except (KeyError, IndexError, TypeError, ValueError):
+            readiness["ready"] = False
+    return readiness
 
 
 def _body(environ):
@@ -547,7 +571,7 @@ def application(environ, start_response):
                 readiness = control_readiness(timestamp)
                 if not readiness["ready"]:
                     return response("409 Conflict", {"error": "SYSTEM_NOT_READY", "checks": readiness["checks"]})
-                result = ledger().reset_kill(True, True, timestamp)
+                result = ledger().reset_kill(True, readiness["evidence"], timestamp)
             elif path == "/v1/paper/evaluate" and (not payload or payload in ({"source": "AI"}, {"source": "CORE"})):
                 source = payload.get("source", "AI")
                 if source == "CORE":

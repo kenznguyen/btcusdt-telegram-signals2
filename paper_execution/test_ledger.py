@@ -9,6 +9,7 @@ import tempfile
 import unittest
 
 from paper_execution.ledger import PaperLedger, book_value
+from paper_execution.risk_control import issue_kill_reset_evidence
 
 
 class PaperLedgerTest(unittest.TestCase):
@@ -270,10 +271,31 @@ class PaperLedgerTest(unittest.TestCase):
 
     def test_direct_ledger_caller_cannot_assert_kill_reset_readiness(self):
         self.ledger.set_killed(True, self.now, "TEST_KILL")
-        with self.assertRaises(ValueError):
+        with self.assertRaises(TypeError):
             self.ledger.reset_kill(
                 acknowledge=True, ready=True, now_ms=self.now+1
             )
+        self.assertTrue(self.ledger.snapshot()["riskControl"]["killed"])
+
+
+    def test_kill_reset_rechecks_pending_orders_inside_ledger_transaction(self):
+        order = self.ledger.submit(
+            self.intent("pending-before-reset", limit="99"), self.book(), self.now
+        )
+        self.assertEqual(order["status"], "OPEN")
+        evidence = issue_kill_reset_evidence(
+            checked_at_ms=self.now+1,
+            checks={"closedCandles": True, "orderBook": True,
+                    "noPendingPaperOrders": True, "accountRiskReady": True},
+            candle_evidence={"datasetVersion": "sha256:"+"a"*64,
+                             "closeTimeMs": self.now-900_000,
+                             "availableAtMs": self.now-1_000},
+            book_evidence={"snapshotDigest": "sha256:"+"b"*64,
+                           "observedAtMs": self.now},
+        )
+        self.ledger.set_killed(True, self.now+2, "TEST_KILL")
+        with self.assertRaisesRegex(ValueError, "KILL_RESET_PENDING_PAPER_ORDER"):
+            self.ledger.reset_kill(True, evidence, self.now+3)
         self.assertTrue(self.ledger.snapshot()["riskControl"]["killed"])
 
 class T1PaperBookCompatibilityTest(unittest.TestCase):

@@ -2654,12 +2654,52 @@ class PaperLedger:
                 raise
         return self.snapshot()
 
-    def reset_kill(self, acknowledge, ready, now_ms):
+    def reset_kill(self, acknowledge, readiness_evidence, now_ms):
         now = stamp(now_ms)
         with closing(self.connect()) as connection, connection:
             connection.execute("BEGIN IMMEDIATE")
-            risk_control.reset_kill(connection, acknowledge, ready, now)
-            self.audit(connection, now, "KILL_SWITCH_RESET", {"acknowledge": acknowledge, "ready": ready})
+            tables = {row[0] for row in connection.execute(
+                "SELECT name FROM sqlite_master WHERE type='table'"
+            )}
+            if "paper_orders" not in tables:
+                raise sqlite3.DatabaseError("KILL_RESET_ORDER_STATE_MISSING")
+            pending = connection.execute(
+                "SELECT 1 FROM paper_orders WHERE status IN ('OPEN','PARTIALLY_FILLED') LIMIT 1"
+            ).fetchone()
+            if pending is not None:
+                raise ValueError("KILL_RESET_PENDING_PAPER_ORDER")
+            if "paper_risk_reservations" in tables:
+                active = connection.execute(
+                    "SELECT 1 FROM paper_risk_reservations WHERE status IN ('ACTIVE','PARTIAL') LIMIT 1"
+                ).fetchone()
+                if active is not None:
+                    raise ValueError("KILL_RESET_ACTIVE_RESERVATION")
+            dual_migration = "paper_schema_migrations" in tables and connection.execute(
+                "SELECT 1 FROM paper_schema_migrations WHERE version=? AND status='APPLIED'",
+                (MIGRATION_VERSION,),
+            ).fetchone() is not None
+            if dual_migration:
+                if "paper_account_risk_state" not in tables:
+                    raise sqlite3.DatabaseError("KILL_RESET_ACCOUNT_RISK_STATE_MISSING")
+                account_risk = connection.execute(
+                    """SELECT risk_ready,mark_observed_at_ms,mark_candle_close_ms,
+                              daily_baseline_utc_day_ms,dataset_version
+                       FROM paper_account_risk_state WHERE account_id=1"""
+                ).fetchone()
+                if (account_risk is None or type(account_risk[0]) is not int or account_risk[0] != 1
+                        or type(account_risk[1]) is not int or type(account_risk[2]) is not int
+                        or type(account_risk[3]) is not int
+                        or not isinstance(account_risk[4], str) or not account_risk[4].strip()
+                        or account_risk[1] > now or now-account_risk[1] > 30*60_000
+                        or account_risk[2] > account_risk[1]
+                        or account_risk[3] != now//86_400_000*86_400_000):
+                    raise ValueError("KILL_RESET_ACCOUNT_RISK_NOT_READY")
+            risk_control.reset_kill(connection, acknowledge, readiness_evidence, now)
+            self.audit(connection, now, "KILL_SWITCH_RESET", {
+                "acknowledge": acknowledge,
+                "readinessCheckedAtMs": readiness_evidence.get("checkedAtMs")
+                if isinstance(readiness_evidence, dict) else None,
+            })
         return self.snapshot()
 
     def cancel(self, order_id, now_ms):
