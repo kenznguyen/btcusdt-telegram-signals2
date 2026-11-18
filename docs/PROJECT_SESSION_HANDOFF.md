@@ -3207,3 +3207,19 @@ Additional payload inspection:
 - Branch integration remains **BLOCKED**: 4,566 ahead / 85 behind main at this review. No merge, rebase, reset, force-push or branch replacement.
 - Next: independent bounded integration review of the divergent branch/main histories. Do not implement Dual Strategy, activate runtime, mutate canonical T0 or enable live execution without separate approval.
 - Documentation-only update tests/workflows: **NOT RUN**; the referenced workflow is prior source-code evidence, not a workflow run for these documentation changes.
+
+
+## 2026-11-18 — Core First Integration Candidate snapshot and exact-SHA CI gate
+
+- User approved creating a controlled Integration Candidate while preserving the existing branch; no parallel branch or PR was created.
+- Candidate source snapshot: `44fe5d2b8d18cbbe2afe21042dbcb49a181eac4a`.
+- Candidate evidence record commit: `6abb436d1df93cbd848c1270c760f1da995a74e2`; evidence file: `docs/evidence/CORE_FIRST_INTEGRATION_CANDIDATE_2026-11-18.md`.
+- Current branch HEAD after evidence record: `6abb436d1df93cbd848c1270c760f1da995a74e2`; its parent is the candidate snapshot `44fe5d2b8d18cbbe2afe21042dbcb49a181eac4a`. Candidate source code remains identical to the prior GREEN-tested code SHA `3fba2a9f72b0d1ab8efad0ced604afe7e8506bc9` under the bounded compare: the intervening commits changed documentation only.
+- Candidate record commit changed only `docs/evidence/CORE_FIRST_INTEGRATION_CANDIDATE_2026-11-18.md`; no source, tests, workflow, dependency, schema or runtime configuration changed.
+- Existing GREEN run `44258935215` applies directly to source SHA `3fba2a9f72b0d1ab8efad0ced604afe7e8506bc9`, not to current HEAD `6abb436d1df93cbd848c1270c760f1da995a74e2`. Exact-current-HEAD CI remains **NOT RUN / NOT VERIFIED**.
+- Workflow `.github/workflows/core-live-data-operational-proof.yml` is present on both branch and main; feature-branch blob `0c2d86d76d4d3281e3d7ffb9904a820cf30df547`, main blob `1c0d9e7b6c8355264aa509342175d72931b64cc4`. Both contain `workflow_dispatch`. The available GitHub integration in this session exposes read and rerun operations but no workflow-dispatch operation; do not claim a run was started. Owner can dispatch manually from Actions using branch `feature/core-operational-proof-20261112`, then verify checkout SHA equals `6abb436d1df93cbd848c1270c760f1da995a74e2`.
+- Latest compare against main: branch ahead 4,569 / behind 85; merge base remains `f5b74affb8777953fa66d241784965fbb0e577ba`; main HEAD `6bff2aff91657238297848ef644a0cb4112ab428`. The main-side 85 commits are predominantly historical T0 SSH preflight/contract work and documentation; bounded changed-path compare surfaces 16 paths. The API and Core facade/workflow conflicts still require full content review and merged-tree validation. This classification is preliminary, not approval to discard or merge the 85 commits.
+- Candidate evidence report: `docs/evidence/CORE_FIRST_INTEGRATION_CANDIDATE_2026-11-18.md`; commit `6abb436d1df93cbd848c1270c760f1da995a74e2`.
+- Status: candidate snapshot **CREATED**; source equivalence **PASS — bounded compare**; prior exact-source CI **PASS**; exact current HEAD CI **NOT VERIFIED**; full 85-commit / merged-tree review **IN PROGRESS**; merge **BLOCKED / NOT AUTHORIZED**.
+- No merge, rebase, reset, force-push, new branch, deployment, VPS/runtime activation, canonical T0 database access/mutation, exchange connection, AI execution or real order occurred.
+- Next: owner-trigger exact-HEAD workflow dispatch from GitHub Actions and provide the run URL/ID for provenance review; continue the bounded main-side commit/path review. Do not merge or deploy.
