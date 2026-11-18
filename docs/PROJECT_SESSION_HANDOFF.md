@@ -2524,3 +2524,42 @@ This follow-up supersedes the earlier pending items for persistent preview artif
 - Integration regression: **RED CONFIRMED**, exact SHA and logs verified.
 - Production source remains unchanged. Next implement the minimal shared policy/origin contract, then run targeted dry-run, Runtime Factory, One-shot, simulated-origin and PaperLedger tests before full Core First workflow.
 - Runtime Verification remains **NOT STARTED**. PAPER-only, `AI_EXECUTION_ENABLED=false`; no canonical T0, T1 deployment, VPS, exchange or real orders.
+
+
+## 2026-11-18 — Origin-aware Continuous Runtime policy correction implemented; targeted CI pending full-suite completion
+
+**Scope and source commits**
+- Continued on the same branch `feature/core-operational-proof-20261112`; no branch divergence.
+- RED evidence is recorded above (run `44230681601`, exact source SHA `cf7472ceaa5e70d1549b175631e2fd0680505b1c`).
+- Implemented the smallest source correction in three files:
+  - `core_runtime/one_shot.py`: `_runner_policy` now accepts an explicit environment mapping and a static-validation mode that can omit risk limits without manufacturing them; simulated mode still rejects any config risk-limit key or supported environment override.
+  - `core_runtime/continuous_dry_run.py`: static-only dry-run accepts exactly the funded-style config schema or the contract-only schema, validates non-risk runner fields, and still does not read Ledger contents.
+  - `core_runtime/runtime_factory.py`: after read-only PaperLedger preflight, verifies persisted simulated origin with `is_simulated_account`, validates the risk-policy source with `_runner_policy`, and only then creates the durable Continuous Journal. Funded accounts still require approved risk-limit inputs.
+- Test update in `core_runtime/test_runtime_factory.py`: environment override now enters through the explicit test environment mapping; added funded-origin missing-risk-source rejection.
+- Commits:
+  - One-shot policy: `3c8527b46d6734b5a44da8e11009f48bbf6fab65`.
+  - Static dry-run: `64e0c2b7f58682ab672b41b45d3000a9a76e36cb`.
+  - Runtime Factory origin/risk gate: `be808381dadd5adbe3f1569196980e6bdd07e928`.
+  - Regression test update: `7033d7d8bb7aec0dff38efea5d6bcdde679ef112`.
+- Current branch HEAD verified as `7033d7d8bb7aec0dff38efea5d6bcdde679ef112`; previous HEAD was `be808381dadd5adbe3f1569196980e6bdd07e928`.
+
+**Verification in progress**
+- Core First workflow: [44230898155](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/44230898155), event `push`, exact source SHA `7033d7d8bb7aec0dff38efea5d6bcdde679ef112`.
+- Job `134555496775` was still IN_PROGRESS at handoff update time.
+- Steps confirmed SUCCESS:
+  - Continuous Core orchestration RED-first suite;
+  - simulated-origin Continuous Runtime targeted regressions (the new targeted step);
+  - Continuous Core no-side-effect dry-run suite.
+- PaperLedger readiness preflight step was still running; downstream bundle/provider/factory/operational proof steps were not yet verified.
+- Overall workflow verdict: **IN PROGRESS / NOT VERIFIED** until the run completes. Do not infer full Core First PASS from the targeted steps.
+- Separate T1/T2 Order Book contract workflow also triggered on the same SHA; it is a contract CI run, not deployed T1 runtime.
+
+**Safety and limits**
+- No production Runtime loop started. The factory tests construct objects only and use disposable test Ledgers.
+- `AI_EXECUTION_ENABLED=false`; PAPER-only.
+- No canonical T0 DB access/mutation, T1 deployment, VPS, systemd/autostart, exchange connection, AI Strategy execution, or real orders.
+- Runtime Verification remains **NOT STARTED**.
+- No merge, promotion, rebase, reset, cherry-pick, force push, or default branch change.
+
+**Next action**
+- Inspect completion of workflow `44230898155`, exact job logs and artifact. If targeted tests pass but a later suite fails, diagnose that separate failure before modifying code. Only after full CI and additional focused One-shot simulated-origin coverage can this risk-policy correction be marked PASS.
