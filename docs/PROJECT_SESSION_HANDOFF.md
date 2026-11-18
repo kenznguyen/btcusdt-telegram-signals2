@@ -1,3 +1,16 @@
+# CURRENT MAIN CLEANUP AUDIT — 2026-11-18
+
+- Repository: `kenznguyen/btcusdt-telegram-signals2`
+- Audit baseline after approved deletion: `82412ec5c887598c2dac5e775f3ee46ecddcc26c`.
+- Approved deletion: `market_data/test_write_gateway.py` on main only. Commit: `82412ec5c887598c2dac5e775f3ee46ecddcc26c`.
+- T0 branch counterpart remains intact at blob `131880b9110f5bb5780b411d348eae19acb6e14e`.
+- Follow-up read-only audit found no additional safe deletion candidate. Preserve Core First and T0 branch-specific workflows; their implementation/test dependencies exist on their respective branches. Keep main's focused Core API regression and documented legacy Telegram workflows pending separate retirement/dependency proof.
+- Evidence report: `docs/evidence/MAIN_DOCUMENTATION_CLEANUP_2026-11-18.md`, section “Follow-up bounded cleanup audit”.
+- Status: inspected paths PASS; repository-wide audit NOT VERIFIED; tests/workflows NOT RUN; no artifacts. No T0/runtime/VPS/exchange/trading access.
+- Next: bounded read-only candidate review; no additional deletion without separate approval.
+
+---
+
 # CURRENT MAIN SNAPSHOT — 2026-11-18
 
 > Authoritative restart point for work on main. The historical handoff body below is retained for continuity; older dated status tables are not automatically current.
