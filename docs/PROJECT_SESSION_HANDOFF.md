@@ -2221,3 +2221,36 @@ This follow-up supersedes the earlier pending items for persistent preview artif
 **Next authorized increment**
 - Add a targeted RED-first test that kills a separate writer process at real partial-fill transaction checkpoints (after journal insertion/before dependent writes, and after dependent writes/before commit), reopens the actual PaperLedger database, and proves atomic all-or-nothing state across journal, order, reservation, position, risk and audit.
 - Do not alter T0 canonical storage, T1 deployment, VPS runtime, autostart, AI execution or live trading.
+
+
+## 2026-11-18 — Actual partial-fill process-crash test (CI pending)
+
+**Scope**
+- Added `paper_execution/test_partial_fill_process_crash.py`; no production ledger code changed.
+- Test uses a disposable copy of the real dual-ledger SQLite schema and actual `PaperLedger.submit()` partial-fill transaction.
+- Test-only SQLite triggers invoke a test UDF at two real transaction checkpoints:
+  1. Immediately after inserting the first `paper_account_event_journal` FILL row, before Order/Reservation/Position/Risk/Audit writes.
+  2. Immediately after the final `paper_audit` SUBMIT insert, after all dependent writes but before the connection context commits.
+- A separate spawned writer process blocks inside the trigger. The parent terminates that process, reopens the same database, verifies SQLite integrity and foreign-key integrity, and compares journal/order/reservation/book-level-reservation/strategy-position/risk-snapshot/audit state with the pre-transaction baseline.
+- The test then drops the test trigger, retries the same intent, and verifies that a valid PARTIALLY_FILLED order, one fill journal event, reservation, book-level reservation, position/risk update and audit event can commit.
+- The test does not modify `paper_execution/ledger.py`, use the VPS, connect to an exchange or submit a real order.
+
+**Source and CI**
+- Branch: `feature/core-operational-proof-20261112`.
+- Test file initial commit: `7fb206592c362193ba2ff2bb7deff76013367405`.
+- Trigger match correction: `ddaf2c3e5fcd957f228ae90300858679d45baf85`.
+- Workflow registration commit: `56eea1be3126d01ad691e0931787cb20dae9f73f`.
+- Current branch HEAD at this entry: `ddaf2c3e5fcd957f228ae90300858679d45baf85`.
+- Workflow run `44210233295` checked out the earlier test commit `56eea1be3126d01ad691e0931787cb20dae9f73f`; it is still in progress and is not the final verification of the corrected trigger.
+- Workflow run `44210302780` is queued for corrected source SHA `ddaf2c3e5fcd957f228ae90300858679d45baf85`. It will run after the earlier non-cancelable run.
+- No PASS verdict for this crash test until the corrected-SHA workflow step completes.
+
+**Safety and limits**
+- Disposable CI database only; `AI_EXECUTION_ENABLED=false`.
+- No canonical T0 database, T1 service, exchange credentials, real orders, VPS or persistent runtime used.
+- No merge, branch promotion, deployment, AI execution or live trading.
+
+**Next**
+- Reconcile the two workflow runs and inspect the actual partial-fill crash test logs.
+- If the trigger test fails, fix the test harness or a proven transaction defect with a new RED/GREEN cycle; do not weaken assertions.
+- After the crash test passes, perform read-only review and update Core First sign-off status. T1 deployment/interoperability remains separately NOT VERIFIED.
