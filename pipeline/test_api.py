@@ -404,6 +404,17 @@ class FiveLayerApiTest(unittest.TestCase):
         self.assertEqual(result["error"], "SYSTEM_NOT_READY")
         self.assertTrue(self.request("/v1/paper")[1]["riskControl"]["killed"])
 
+    def test_kill_reset_fails_closed_when_isolated_service_is_unavailable(self):
+        self.request("/v1/paper/kill", "POST", {"enabled": True})
+        socket_path = str(self.root / "missing-kill-reset-control.sock")
+        with patch.dict(os.environ, {"KILL_RESET_CONTROL_SOCKET": socket_path}):
+            code, result = self.request(
+                "/v1/paper/reset-kill", "POST", {"acknowledge": True}
+            )
+        self.assertEqual(code, 503)
+        self.assertEqual(result["error"], "KILL_RESET_CONTROL_UNAVAILABLE")
+        self.assertTrue(self.request("/v1/paper")[1]["riskControl"]["killed"])
+
     def test_kill_reset_requires_server_side_readiness(self):
         self.request("/v1/paper/kill", "POST", {"enabled": True})
         with patch.object(api, "book_snapshot", return_value=None):
