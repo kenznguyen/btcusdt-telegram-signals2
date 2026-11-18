@@ -154,5 +154,31 @@ class ContinuousDryRunTest(unittest.TestCase):
             )
 
 
+    def test_dry_run_accepts_contract_only_policy_without_independent_risk_limits(self):
+        simulated = self.root / "simulated-contract-only.json"
+        simulated.write_text(
+            json.dumps({
+                "mode": "PAPER",
+                "ai_execution_enabled": False,
+                "ledger_path": str(self.ledger),
+                "max_book_age_ms": 2_000,
+                "max_position_base": "0.01",
+            }),
+            encoding="utf-8",
+        )
+
+        result = inspect_continuous_dry_run(
+            simulated,
+            journal_path=self.journal,
+            bundle_store_dir=self.bundle_store,
+            environ=self.env,
+        )
+
+        self.assertEqual(result["status"], "DRY_RUN_CONFIG_VALIDATED")
+        self.assertEqual(result["decisionCycle"], "NOT_RUN")
+        self.assertFalse(result["ledgerContentsRead"])
+        self.assertEqual(result["persistentStateMutation"], "NONE")
+
+
 if __name__ == "__main__":
     unittest.main()
