@@ -20,7 +20,9 @@ from core_runtime.paper_ledger_preflight import (
     PaperLedgerPreflightError,
     inspect_paper_ledger_preflight,
 )
-from core_runtime.preflight import _load_config
+from core_runtime.preflight import PreflightError, _load_config
+from core_runtime.one_shot import _runner_policy
+from paper_execution.simulated_equity import is_simulated_account
 from core_runtime.bundle_provider import CoreBundleProvider, BundleProviderError
 from freqai_bridge.http_candles import (
     CandleHttpClient,
@@ -108,7 +110,7 @@ def _build_bundle_provider(
 def _factory_error(exc):
     if isinstance(exc, RuntimeFactoryError):
         return exc
-    if isinstance(exc, (ContinuousDryRunError, PaperLedgerPreflightError)):
+    if isinstance(exc, (ContinuousDryRunError, PaperLedgerPreflightError, PreflightError)):
         return RuntimeFactoryError(str(exc) or "RUNTIME_PREFLIGHT_FAILED")
     if isinstance(exc, (CandleHttpError, OrderBookHttpError, BundleProviderError)):
         return RuntimeFactoryError("RUNTIME_ENDPOINT_CONFIG_INVALID")
@@ -168,6 +170,10 @@ def build_continuous_runtime(
             environ=env,
             clock=clock,
         )
+        # Persisted account origin is authoritative; inspect it read-only before
+        # any durable Continuous Journal is created.
+        simulated_account = is_simulated_account(static["ledgerPath"])
+        _runner_policy(config, simulated=simulated_account, environ=env)
         journal = ContinuousJournal(journal_path)
         runner = ContinuousCoreRunner(
             config_path=config_path,
