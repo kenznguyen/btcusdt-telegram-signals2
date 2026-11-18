@@ -2112,3 +2112,22 @@ This follow-up supersedes the earlier pending items for persistent preview artif
 **Next**
 - Reconcile final status, exact source SHA, job conclusions and artifact ID/digest for run `44207805789`; update this section with the terminal result.
 - Only after that, separately scope the Common API T0 HTTP boundary migration. Keep runtime/deployment unchanged.
+
+
+## 2026-11-18 — Architecture Compliance Remediation 1 verified
+
+- Workflow run `44207805789`: SUCCESS; URL https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/44207805789
+- Exact workflow checkout/source SHA: `f00dc7f6b6162d989a694e4fb1a446437b9fcf5e`.
+- Job `134478156459`: SUCCESS.
+- Paper/T0 isolation contract: 6/6 PASS.
+- Common API regression + isolation suite: PASS (the full job step completed successfully).
+- Operational artifact: `core-first-code-operational-proof-44207805789`, ID `14385270877`, 14,616 bytes, SHA-256 `c0d2b9ab4921eb55449ff9f23232e4cad6d783a44934194c47efb67ab1f2bef6`, expires 2026-11-25.
+- The workflow is a disposable CI/PAPER proof only. It does not certify a deployed API or runtime.
+- Branch remains `feature/core-operational-proof-20261112`; no merge, PR, branch promotion or deployment.
+- The latest branch HEAD when this entry was added is `192fda64d8097118407f92607948ff4e013e53c8` (docs-only after the tested source SHA).
+- Safety remains unchanged: `AI_EXECUTION_ENABLED=false`; no canonical T0 database, exchange credentials, real orders, VPS or persistent runtime used.
+
+**Next authorized increment**
+- Migrate all Common API candle reads through the existing strict T0 Candle HTTP Contract V1 client using explicit `T0_CANDLE_API_BASE_URL`, `T0_CANDLE_API_TOKEN`, and `T0_CANDLE_MAX_LAG_MS`.
+- Remove the Common API's local `create_store_from_env().read_window()` path; no local SQLite fallback. Paper DB remains independent and local.
+- Start with RED tests. Do not change T0 service, T1 service, runtime deployment or VPS configuration. Runtime configuration for the Common API remains NOT UPDATED and must not be deployed until separately configured.
