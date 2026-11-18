@@ -194,7 +194,7 @@ def _make_baseline(name: str, *, legacy_statement: bool = False, path_a_enabled:
         "policy": {"allowed_purposes": ["T0_CHECKPOINT_ISSUER_ATTESTATION"]},
         "policy_profile_authorization": policy_authorization,
         "policy_signed_binding": policy_signed_binding,
-        "verification_request": dict(binding, allow_automatic_fallback=False, bootstrap_path=None,
+        "verification_request": dict(binding, allow_automatic_fallback=False, bootstrap_path=("A" if path_a_enabled else None),
                                      subject_object_id="A2_2_CURRENT_OBJECT"),
         "verifier_allowed_profile": dict(binding, locally_enabled=True),
         "profile": {"lifecycle": "ACTIVE"},
