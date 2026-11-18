@@ -3489,3 +3489,20 @@ Additional payload inspection:
 - Exact-SHA isolated Python sandbox verification: compileall PASS; focused verdict tests 17/17 PASS; full Stage I package tests 40/40 PASS.
 - Updated repair evidence report commit: `a421b7318059b0a7683ecc44f8588b45f77d70cf`.
 - Test execution was isolated and ephemeral, not GitHub Actions; no workflow run/artifact. No runtime, T0, VPS, credential, exchange or trading interaction.
+
+
+## 2026-11-18 — Independent read-only review of A2.2 Stage I F-01/F-02 repair
+
+- Review source HEAD: `6d1350471f4422b0d6f142baa28ed6fa04e77892`.
+- Reviewed blobs: `t0_signature_stage1/verdicts.py` = `f38cecb9eb72638f62661999dd6924cdce5bfe4d`; `t0_signature_stage1/tests/test_verdicts.py` = `a28d957fc4522cf56805f0435c04a4b98b812268`; governing A2.2 spec = `d9f93bf390d107381b7135c3073aeca0d14894d4`.
+- Read-only review report: `docs/evidence/T0_A2_2_STAGE_I_F01_F02_INDEPENDENT_STATIC_REVIEW_2026-11-18.md`, commit `1cc255130caa961feccdca1941a21bfc30b5365a`.
+- Disposition: REQUEST CHANGES / Stage I contract conformance BLOCKED / NOT VERIFIED.
+- R1 BLOCKER: NV-03 changes a `subject_fixture` label to `A1_HISTORICAL` instead of changing only verifier-selected profile for an unchanged historical A1 object. The evaluator triggers from the label and does not inspect the separate historical fixture.
+- R2 BLOCKER: implementation uses `profile_id/profile_version` aliases instead of normative `signature_profile_id/signature_profile_version`; B0-PF does not encode the exact §18.1 pre-existing mismatch. §15.2's full set of binding locations is not represented.
+- R3 BLOCKER: `evaluate_fixture_content` rejects more than one changed leaf but accepts zero changed leaves, contrary to §18.4's exactly-one-mutation requirement.
+- R4 BLOCKER: B0/B-A fixtures omit required canonical Evidence Object/signature/envelope/policy binding material and complete S0 evidence; `FixtureSpec` has one dimension label rather than per-dimension outcomes/schema version; tests do not assert all forbidden transitions required by §18.4.
+- R5 REQUIRED: expected verdicts are checked against the same catalog that defines mutations; add contract-row-specific semantic regressions, especially NV-03/NV-04, binding fields, zero-mutation and per-dimension evidence.
+- Positive: F-01 builder mechanics and F-02 removal of fact-key routing remain PASS within their narrow scope; §17 bootstrap first-match order appears aligned and tested in part. Existing 17 focused / 40 package tests were previously run on exact source SHA `9e385fd95e79d1049d3ce0959a36619a879f3e91`; this review ran no tests and does not change that historical evidence.
+- F-03 README digest-helper mismatch remains unresolved.
+- No source/test/workflow/runtime/T0/VPS/credential/exchange/trading changes were made during this review. No workflow dispatch, merge or deployment.
+- Next: seek explicit approval for a narrow Stage I source/test repair of R1–R5, keeping mock-only/offline scope and the existing branch. Do not dispatch workflow/CI or begin Stages II–V.
