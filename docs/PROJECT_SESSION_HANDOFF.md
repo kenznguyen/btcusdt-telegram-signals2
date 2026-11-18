@@ -3315,3 +3315,16 @@ Additional payload inspection:
 - Disposition: branch A1 wording is consistent with the controlling owner-approved addendum. Main's A1 draft/pending-ratification wording is stale and must not override the formal contract addendum.
 - This resolves documentary authority only. It does not establish actual custody, exact-object readback, freshness, signature verification, independent failure-domain protection or L4 acceptance; no implementation/runtime/provider/destructive operation is authorized.
 - Bounded review report updated in commit `9888b95599d75652c674b1048e8a67bacc55d239`.
+
+
+## 2026-11-18 — Workflow integration review (bounded pass 2)
+
+- Static comparison on branch `feature/core-operational-proof-20261112`, pre-review HEAD `9c0c7866dc62593a7e3412f439c7c65781b4f9ba`, against main HEAD `6bff2aff91657238297848ef644a0cb4112ab428`.
+- Report: `docs/evidence/WORKFLOW_INTEGRATION_REVIEW_BOUNDED_PASS2_2026-11-18.md`, created in commit `09e9ce000ab75f8b3817a74f082b46ca0cb5df3e`.
+- Core workflow blobs: main `1c0d9e7b6c8355264aa509342175d72931b64cc4`, branch `0c2d86d76d4d3281e3d7ffb9904a820cf30df547`. Branch has 37 steps vs main 35 and adds Dual Ledger bootstrap fixture tests plus Kill Reset RED-to-GREEN tests. Preserve branch additions; both workflows retain paper-only/credential isolation guards.
+- T0 workflow blobs: main `e4d5ecc712bf590d5b4f7587fa649cbc94d4f8e2`, branch `e298db15ce16f1deb72dbce466513037319b0f6f`. Main is manual-only with one job and six manual gates. Branch has eight jobs, adds automatic lease/fencing, recovery, T0-to-T2 data-flow and G4 read-only contract gates, plus a manual lease/fencing choice.
+- F-07: branch T0 workflow's change-scoped dependency chain requires recovery job success before data-flow, and recovery + data-flow success before G4. When an upstream scoped job is skipped because its own paths did not change, an independent downstream scope can be suppressed. Static control-flow finding; no Actions run performed.
+- F-08: jobs test for `pull_request`, but workflow declares no `pull_request` event. The PR conditions are unreachable. Push trigger is limited to legacy T0 branch `feature/t0-centralized-data-feeder-p1-20261101`; it does not automatically trigger on current Core First branch or main.
+- Disposition: preserve branch Core workflow and its two additional regressions. Do not replace branch T0 workflow with main's reduced manual-only file. Branch T0 workflow is richer but **NOT READY FOR INTEGRATION AS-IS** pending F-07 dependency and F-08 trigger intent review.
+- Status: Core workflow comparison **PASS**; T0 feature inventory **PASS**; T0 dependency semantics **BLOCKED**; PR trigger coverage **NOT CONFIGURED / NOT VERIFIED**; workflow execution **NOT RUN**; merge **BLOCKED / NOT AUTHORIZED**.
+- Next: inspect remaining T0 gate bodies and exact change-path coverage; draft minimal F-07/F-08 correction proposal without applying it; reconcile main-only G0.52 audit record. No workflow edits/dispatch, merge/rebase/reset/force-push, VPS/runtime/T0 access, AI execution or real orders.
