@@ -4,44 +4,46 @@
 
 - Repository: kenznguyen/btcusdt-telegram-signals2
 - Branch: main
-- Main HEAD before this handoff update: 107882efbcbd1264c49ea011deecf936238b5dd7
+- Main HEAD before this handoff update: 9828c41082e03a3ec07e8e33991eac8fbe366762
 - Prior bounded Core API fix: 1502521b85565b4b75e5368417b3a1169329ec75
 - Prior Core API focused regression: workflow run 44301625371, exact tested source SHA 1502521b85565b4b75e5368417b3a1169329ec75, SUCCESS, 1/1 test PASS.
-- New inventory report: docs/evidence/MAIN_CORE_RUNTIME_DEPENDENCY_INVENTORY_AND_INTEGRATION_PLAN_2026-11-18.md
-- Inventory report commit: 107882efbcbd1264c49ea011deecf936238b5dd7
+- Dependency inventory and integration plan: docs/evidence/MAIN_CORE_RUNTIME_DEPENDENCY_INVENTORY_AND_INTEGRATION_PLAN_2026-11-18.md
+- Latest T1 source-verification evidence commit: 9828c41082e03a3ec07e8e33991eac8fbe366762
 
 ## Main-side Core Runtime state
 
 - Read-only inventory at main SHA 9490b64b232258604418257ef5f69bd17f4b9a3f found 49 tracked blobs. main has pipeline/api.py and a few isolated tests, but does not contain the implementation packages required for a full Core API/Core Runtime integration.
-- Missing/incomplete main paths include core_runtime (only test_api_facade.py), pipeline (only api.py), paper_execution, freqai_bridge, risk_policy.py, futures_intelligence, integrations, and most market_data implementation modules. Direct import blockers are listed in the inventory report.
+- Missing/incomplete main paths include core_runtime (only test_api_facade.py), pipeline (only api.py), paper_execution, freqai_bridge, risk_policy.py, futures_intelligence, integrations, and most market_data implementation modules. Direct import blockers are listed in the evidence report.
 - The focused quality_snapshot regression is intentionally isolated with import-time stubs. It proves only the repaired projection defect; it is not full Core API or T0 integration evidence.
 - Main requirements-web.txt does not currently include rfc8785, which the Core First Bundle v1 path uses. Do not change dependency manifests until the per-workflow dependency scope is reviewed.
 - Main full Core/API integration status: BLOCKED / NOT VERIFIED due to absent internal implementation packages.
 
-## Core First dependency source and integration plan
+## Core First and T0/T1 dependency state
 
-- Current inspected Core First branch: feature/core-operational-proof-20261112, SHA e6606e28a696374f31cd6db1ec0a1372d942d64d.
-- This branch is the project's active Core First source, not a released Python package or standalone Core Runtime repository. Keep it separate; no source copy, cherry-pick, rebase, merge or branch reconciliation occurred.
-- Latest successful full Core-First operational workflow inspected: run 44272495963, exact tested SHA ea8dc9159782a3da83cab2b84409698922bd281d, artifact ID 14413755795, SHA-256 86370ed99fb0895e560d60469334fd5f765c40c10c2ac764912041002e2e09d6.
-- Current feature HEAD is 86 commits ahead of that tested SHA; the bounded compare lists docs, T0 Stage-I and T0 manual-workflow changes. Selected Core source, test and Core workflow blobs were independently confirmed unchanged between tested SHA and current feature HEAD. This does not represent a new full workflow run at current HEAD.
-- Current compare between feature branch and main reports 4,667 commits ahead / 101 behind; changed-file list is capped at 300. No open PR for this branch was found. Merge/reconciliation remains BLOCKED.
-- T0 is consumed through the read-only Candle Contract v1 HTTP client; do not couple Core to the T0 canonical database or copy T0 implementation into main as a workaround.
-- T1 consumer contract is identified in core_runtime/orderbook_http.py, but the exact server-side provider for /internal/v1/orderbook/btcusdt was not found in the inspected T1 collector repository. Provider source/version binding remains NOT VERIFIED.
-- Detailed source inventory, dependency classification and proposed I0-I7 integration gates are in the linked report. Plan is documented, not executed.
+- Current inspected Core First branch: feature/core-operational-proof-20261112, SHA e6606e28a696374f31cd6db1ec0a1372d942d64d. Keep it separate from main.
+- Latest successful full Core-First operational workflow inspected: run 44272495963, exact tested SHA ea8dc9159782a3da83cab2b84409698922bd281d, artifact ID 14413755795, SHA-256 86370ed99fb0895e560d60469334fd5f765c40c10c2ac764912041002e2e09d6. This is historical exact-SHA evidence, not a workflow run on current feature HEAD.
+- T0 remains an independent data asset; Core consumes Candle Contract v1 over read-only HTTP. Do not couple Core to T0 canonical DB or copy T0 source into main.
+- T1 consumer is pinned in the Core First branch: core_runtime/orderbook_http.py blob 89e5129eea4c9e7ceaa4439a546daf112d15c3e3; contract validator core_runtime/orderbook_contract.py blob 1620c9f21b1f3df3c2fb65833f2afd80374bf6a5; exact route GET /internal/v1/orderbook/btcusdt; Bearer auth; strict T1_T2_ORDERBOOK_V1 schema.
+- T1 raw collector source is identified: kenznguyen/binance-futures-collector, main SHA d43a673451f7347e16a214612165c63da1b4339c, Cargo version 1.0.0 (Cargo.toml blob f373e8b32e090a76399905538742e8b34a669419).
+- The collector's Capture Desk server.py blob 1bfc322d9868f5eda7a2d9152575fb22b547093d exposes /api/orderbook/{symbol}, not /internal/v1/orderbook/btcusdt. Its summary response lacks required V1 sequence/provenance/generation/freshness fields and Bearer authentication. The collector is pinned as a raw capture source only, not as the V1 HTTP provider.
+- Inspected relevant accessible default-branch repositories: binance-futures-collector, btcusdt-telegram-signals, btcusdt-telegram-bot and signals2 main. No compatible T1 provider implementation or authoritative provider version was found.
+- T1 HTTP provider repository/path/version: BLOCKED / NOT VERIFIED. Do not label collector 1.0.0 as provider version or alias the dashboard route.
+- Full dependency matrix cannot yet be locked. The evidence report contains the exact T1 client/contract/source comparison and minimum provider requirements.
 
-## Safety and scope
+## Safety, test status and scope
 
-- Documentation-only inventory on main. No source, dependency manifest, workflow, test, branch or runtime was changed in this increment.
-- No T0 canonical DB, Feeder, VPS, exchange, credentials, deployment, AI execution or live order was accessed.
+- Latest increment was documentation-only on main. No source, dependency manifest, workflow, test, branch, collector runtime, VPS or service was changed or started.
+- No T0 canonical DB, Feeder, exchange, credentials, deployment, AI execution or live order was accessed.
 - Keep paper-only; AI_EXECUTION_ENABLED=false.
+- Main focused projection defect: FIXED / REGRESSION PASS. Main full Core/API/T0 integration: BLOCKED / NOT VERIFIED. T1 raw collector source: PINNED. T1 HTTP provider source/version: BLOCKED / NOT VERIFIED. Current Core First HEAD workflow: NOT RUN.
 - Core First remains the sole paper-executable strategy. Dual-Strategy Intelligence/AI paper execution remains DEFERRED pending Core First closeout and separate owner approval.
-- Main focused projection defect: FIXED / REGRESSION PASS. Main full Core/API/T0 integration: BLOCKED / NOT VERIFIED. T1 provider source binding: NOT VERIFIED.
 
-## Next authorized action and limits
+## Next action and authorization boundary
 
-- Resolve the exact T1 HTTP provider repository/path and pin its source/version; do not assume binance-futures-collector alone exposes the API route.
-- After separate owner authorization, run the existing Core First operational workflow on the exact current feature branch HEAD and record checkout SHA, run, jobs and artifact.
-- Do not merge, copy source to main, change T0/Shared Risk/Ledger/Core behavior, activate runtime, or start Dual-Strategy work as part of this inventory.
+- User/owner must either identify the authoritative T1 provider repository/path/version if it exists outside inspected sources, or approve a scoped design/implementation location for the missing V1 provider. No implementation location is assumed.
+- Once provider source is pinned and exact V1 route/schema/auth/sequence/freshness behavior is verified, freeze the complete dependency matrix and submit it for review.
+- Only after that review and separate explicit approval, run the existing Core First operational workflow on exact current feature HEAD e6606e28a696374f31cd6db1ec0a1372d942d64d; record checkout SHA, run, jobs and artifact.
+- Do not merge, copy source to main, change T0/Shared Risk/Ledger/Core behavior, activate runtime, or start Dual-Strategy work as part of this task.
 
 
 ---
