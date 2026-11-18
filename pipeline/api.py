@@ -195,7 +195,7 @@ def market_window(symbol, timeframe, start_ms, end_ms, as_of_ms=None):
         return client.fetch(
             start_ms=start_ms,
             end_ms=end_ms,
-            as_of_ms=now_ms() if as_of_ms is None else as_of_ms,
+            as_of_ms=as_of_ms,
             timeframe=timeframe,
         )
     except (CandleHttpError, ValueError, TypeError):
