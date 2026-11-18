@@ -547,6 +547,13 @@ def application(environ, start_response):
     try:
         if method == "POST":
             payload = _body(environ)
+            if path == "/v1/paper/evaluate":
+                if payload == {"source": "AI"}:
+                    return response("409 Conflict", {
+                        "error": "AI_PAPER_EXECUTION_DEFERRED",
+                    })
+                if payload not in ({}, {"source": "CORE"}):
+                    raise ValueError("Invalid paper evaluation source")
             try:
                 t0_candle_http_client()
             except OSError:
@@ -588,42 +595,10 @@ def application(environ, start_response):
                         "error": "KILL_RESET_CONTROL_UNAVAILABLE",
                     })
                 result = service_body
-            elif path == "/v1/paper/evaluate" and (not payload or payload in ({"source": "AI"}, {"source": "CORE"})):
-                source = payload.get("source", "AI")
-                if source == "CORE":
-                    result = core_runtime_evaluate(timestamp)
-                else:
-                    source_id = "AI_FREQAI"
-                    from paper_execution.ledger import dual_ledger_ready
-                    dual_active = dual_ledger_ready(paper_db_path())
-                    strategy_ledger = (
-                        ledger(strategy_id=source_id) if dual_active else ledger()
-                    ) if not dual_active else None
-                    data = context(timestamp)
-                    decision = decide(data, timestamp)
-                    decision["source"] = "AI_FREQAI"
-                    timestamp = now_ms()
-                    order = None
-                    if dual_active and decision.get("intent"):
-                        # AI candidates remain blocked until Trusted Admission Context
-                        # and the admitted leverage provider are established.
-                        return response("409 Conflict", {
-                            "error": "AI_ADMISSION_NOT_ESTABLISHED",
-                        })
-                    if decision.get("intent"):
-                        end = timestamp // 900_000 * 900_000
-                        mark_window = market_window("BTCUSDT","15m",
-                                                  end-900_000,end,as_of_ms=timestamp)
-                        if mark_window["candles"] and mark_window["coverage"]["complete"]:
-                            mark = mark_window["candles"][-1]
-                            ledger().record_account_mark(mark["close"],mark["closeTimeMs"],timestamp,
-                                mark_window["datasetVersion"],os.environ.get("PAPER_INITIAL_CAPITAL","100"))
-                        order = strategy_ledger.submit(decision["intent"], data["book"], timestamp,
-                            strategy_id=source_id)
-                        if mark_window["candles"] and mark_window["coverage"]["complete"]:
-                            ledger().record_account_mark(mark["close"],mark["closeTimeMs"],timestamp,
-                                mark_window["datasetVersion"],os.environ.get("PAPER_INITIAL_CAPITAL","100"))
-                    result = {"decision": decision, "order": order}
+            elif path == "/v1/paper/evaluate" and payload in ({}, {"source": "CORE"}):
+                # Core First is the only active paper strategy. AI remains
+                # independently observable/researchable but cannot submit here.
+                result = core_runtime_evaluate(timestamp)
             else:
                 raise ValueError("Invalid control payload")
         elif path == "/v1/candles":
