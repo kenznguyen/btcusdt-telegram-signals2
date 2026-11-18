@@ -3014,3 +3014,36 @@ Additional payload inspection:
 **Review independence qualification**
 - The code review recorded above is a fresh static review of the source, tests, API boundary and Ledger transaction by this assistant. It is not a separate-model review, human security audit, penetration test or external certification.
 - Therefore the code-level review findings are recorded, but a genuinely independent second reviewer remains **NOT VERIFIED**. Do not label this as an externally independent security sign-off.
+
+
+## 2026-11-18 — Kill Reset requires validated Dual Ledger readiness
+
+**Scope**
+- Closed the legacy readiness fallback in `pipeline/api.py::control_readiness`.
+- Kill Reset now fails closed when `dual_ledger_ready(PAPER_DB)` is false. It reports both `noPendingPaperOrders=false` and `accountRiskReady=false`, returns no readiness evidence, and does not construct/read a legacy Ledger snapshot as a substitute for the validated account-wide risk contract.
+- When Dual Ledger is ready, both strategy snapshots, account-wide pending orders, and the validated account risk snapshot remain required.
+- No migration, repair, schema write, T0 access, runtime action, or deployment was performed.
+
+**TDD / source provenance**
+- Regression-first test commit: `58f2c4da530efa39acb4f31e53d62a57509a9c16`; added `FiveLayerApiTest.test_kill_reset_fails_closed_when_dual_ledger_is_not_ready`.
+- Implementation commit: `b341c343eda13c0e76455d39f091e9f0daa6a4c9`.
+- Test commit precedes implementation commit on the same branch.
+- The regression is designed to fail against the previous fallback: with complete candles/book and no legacy pending orders, the old code set `accountRiskReady=True`, generated evidence, and returned READY. **RED execution was not independently observed** in this session because the GitHub runner status interface was unavailable and the working container could not resolve github.com. Do not mark RED as verified.
+- Focused command defined by repository CI: `python -m unittest pipeline.test_api -v`.
+- GitHub Actions run ID, job ID and artifact: **NOT VERIFIED / unavailable in this session**. Commit status checks returned no status records; no run/artifact ID is claimed.
+- No local test execution is claimed.
+
+**Acceptance**
+| Gate | Status |
+|---|---|
+| Regression added before implementation | PASS — commit order |
+| Regression RED execution | NOT VERIFIED |
+| Fail-closed implementation present at source SHA `b341c343eda13c0e76455d39f091e9f0daa6a4c9` | PASS — source inspection |
+| Focused API test | NOT VERIFIED |
+| Core CI / artifact | NOT VERIFIED |
+| Runtime / OS service deployment | NOT STARTED / NOT AUTHORIZED |
+| Kill Reset readiness fallback gate | PARTIAL — code changed, tests/CI evidence pending |
+
+**Next**
+- Obtain a successful Core workflow run for source SHA `b341c343eda13c0e76455d39f091e9f0daa6a4c9`, inspect the API regression result and artifact, then update this handoff with exact run/job/artifact/digest.
+- If CI exposes a regression, fix it on this same branch. Do not merge, promote, deploy, provision OS users/socket/key, access VPS/T0/T1 runtime, or enable AI/live execution.
