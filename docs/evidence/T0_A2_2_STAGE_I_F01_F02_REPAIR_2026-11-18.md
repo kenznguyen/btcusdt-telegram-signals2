@@ -3,14 +3,14 @@
 Date: 2026-11-18
 Repository: kenznguyen/btcusdt-telegram-signals2
 Branch: feature/core-operational-proof-20261112
-Final source HEAD: 637f494b48939a26d1abf0d948186267d1ca58a4
+Final source HEAD: 9e385fd95e79d1049d3ce0959a36619a879f3e91
 Scope: only t0_signature_stage1/verdicts.py and t0_signature_stage1/tests/test_verdicts.py.
 
 ## Authorization and TDD evidence
 
 The owner explicitly approved repair of F-01/F-02 in the two scoped files and isolated tests. TDD sequence:
 - RED test commit: b9f2b8b56f52737e13d0f6b4dfbfcd2032f48397.
-- Implementation and follow-up corrections: 910967dd0b136faedafe1e51011174c44a4c6dc0, 9457ce935d8331619de55527842bebe099cc63e6, c11843409cd42df1d9522a22b4f0c44c9c4aff7c, 0512580b5410e3b2e7f7400a118dc8bec2aebbd4, final cleanup 637f494b48939a26d1abf0d948186267d1ca58a4.
+- Implementation and follow-up corrections: 910967dd0b136faedafe1e51011174c44a4c6dc0, 9457ce935d8331619de55527842bebe099cc63e6, c11843409cd42df1d9522a22b4f0c44c9c4aff7c, 0512580b5410e3b2e7f7400a118dc8bec2aebbd4, final cleanup 9e385fd95e79d1049d3ce0959a36619a879f3e91.
 - The RED run against the pre-fix source failed as expected: 27 mutation-path assertions failed and the new path/evaluator helpers were absent.
 - Final source was fetched by exact commit SHA into an isolated ephemeral Python sandbox; no repository CI or workflow was dispatched.
 
@@ -22,7 +22,7 @@ The owner explicitly approved repair of F-01/F-02 in the two scoped files and is
 - All 27 mutation paths now resolve to pre-existing leaves.
 - Fixture builder rejects absent intermediate/leaf paths; it never creates dictionaries or fields during mutation.
 - Builder checks that the before/after leaf-path sets are identical and exactly the declared leaf changes.
-- Added tests for existing-path enforcement, fail-closed missing path, and no field addition/removal.
+- Added tests for existing-path enforcement, fail-closed missing path, no field addition/removal, compound-mutation rejection, and defensive isolation of mutable catalog values.
 
 ### F-02 — addressed
 
@@ -40,17 +40,17 @@ The owner explicitly approved repair of F-01/F-02 in the two scoped files and is
 
 ## Exact final source identity
 
-- Commit: 637f494b48939a26d1abf0d948186267d1ca58a4
+- Commit: 9e385fd95e79d1049d3ce0959a36619a879f3e91
 - t0_signature_stage1/verdicts.py blob: 85938c16d338f56d38721460adf4494f18bb2ed3
-- t0_signature_stage1/tests/test_verdicts.py blob: 45880b5c68b9f74a25c63ff125fef9826de4eca0
+- t0_signature_stage1/tests/test_verdicts.py blob: a28d957fc4522cf56805f0435c04a4b98b812268
 - GitHub compare from pre-work HEAD 00dd663b05741f6a7fc3d863301f90e29bcf2781 to final HEAD: ahead 6, behind 0; exactly two changed paths, both within the approved scope.
 
 ## Verification
 
 Executed in an isolated ephemeral Python test sandbox after fetching the exact final commit:
 - python -m compileall -q t0_signature_stage1: PASS.
-- python -m unittest t0_signature_stage1.tests.test_verdicts -v: 16 tests PASS.
-- python -m unittest discover -s t0_signature_stage1/tests -p 'test_*.py' -v: 39 tests PASS.
+- python -m unittest t0_signature_stage1.tests.test_verdicts -v: 17 tests PASS.
+- python -m unittest discover -s t0_signature_stage1/tests -p 'test_*.py' -v: 40 tests PASS.
 - No external service, DB, network, credential, VPS or exchange access was used by the test process after source retrieval.
 - This is not a GitHub Actions run; no workflow run or artifact ID exists.
 
