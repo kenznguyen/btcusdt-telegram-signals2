@@ -148,7 +148,7 @@ The handoff update and this report are separate sequential commits on the same e
 ## Stage I provenance correction — 2026-11-18 (supersedes prior missing-package finding)
 
 - A follow-up read-only inspection corrected a path-selection error in the prior audit. The earlier check looked for `t0_signature_stage1/tests/test_stage_i.py`, but the actual test modules are `test_primitives.py` and `test_verdicts.py`; the workflow uses the broader `test_*.py` discovery pattern.
-- Confirmed on `feature/t0-centralized-data-feeder-p1-20261101`, handoff-recorded branch HEAD `e7273e918f254bd17a3ce997bb722e8d4e36d029`:
+- Confirmed on current branch ref `feature/t0-centralized-data-feeder-p1-20261101`, exact HEAD `eb91528bab2b994f283dbe34cd7b0bcbfe406cb5` (branch commit page readback). The earlier Stage I handoff commit is `e7273e918f254bd17a3ce997bb722e8d4e36d029`; all listed Stage I blobs were fetched using the current branch ref:
   - `t0_signature_stage1/__init__.py`: blob `de3841295124c36cd366a4ff138c42ada303b688`.
   - `t0_signature_stage1/primitives.py`: blob `91496d70a67d12525b8399b46aeb1318693b17ee`.
   - `t0_signature_stage1/verdicts.py`: blob `600c49865279e03ef28466f267a6bf0b57176aa1`.
