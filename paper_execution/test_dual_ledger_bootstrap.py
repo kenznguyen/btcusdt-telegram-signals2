@@ -1,6 +1,5 @@
 """TDD contract for the isolated Dual Ledger bootstrap CLI."""
 
-import hashlib
 import json
 import os
 import sqlite3
@@ -19,12 +18,10 @@ from paper_execution.bootstrap import (
 from paper_execution.__main__ import _current_source_sha, main as paper_cli_main
 from paper_execution.ledger import read_account_risk_snapshot, dual_ledger_ready
 from risk_policy import CORE_LEVERAGE
-
-
-def write_json(path, value):
-    raw = json.dumps(value, sort_keys=True, separators=(",", ":")).encode("utf-8")
-    path.write_bytes(raw)
-    return "sha256:" + hashlib.sha256(raw).hexdigest()
+from paper_execution.test_support import (
+    build_dual_ledger_bootstrap_manifest,
+    write_json,
+)
 
 
 class DualLedgerBootstrapContractTest(unittest.TestCase):
@@ -43,112 +40,10 @@ class DualLedgerBootstrapContractTest(unittest.TestCase):
         })
         self.environment.start()
         self.addCleanup(self.environment.stop)
-        self.funding_evidence = self.root / "funding-evidence.json"
-        self.cutover_evidence = self.root / "equity-cutover-evidence.json"
-        self.owner_attestation = self.root / "owner-attestation.json"
-        self.manifest = {
-            "schemaVersion": 1,
-            "mode": "PAPER",
-            "sourceSha": self.source_sha,
-            "initialCapitalQuote": "100",
-            "maxPositionBase": "0.01",
-            "riskLimits": {
-                "maxDrawdownPct": "50",
-                "maxDailyLossUsdt": "50",
-                "maxExposureUsdt": "1000",
-            },
-            "aiLeverage": "3",
-            "markPrice": "100",
-            "markCandleCloseMs": self.now - 60_000,
-            "markObservedAtMs": self.now,
-            "datasetVersion": "sha256:" + "1" * 64,
-            "fundingCoverageStartAtMs": self.now - 86_400_000,
-            "fundingCoverageId": "bootstrap-funding-coverage-001",
-            "fundingSource": "OWNER_RECONCILED_EVIDENCE",
-            "fundingSnapshotId": "owner-funding-001",
-            "fundingEvidencePath": str(self.funding_evidence),
-            "fundingPayloadHash": "",
-            "fundingExpectedPopulation": {
-                "schemaVersion": 1,
-                "populationType": "EXPECTED_FUNDING_EVENTS",
-                "populationDefinitionId": "owner-statement-enumeration-v1",
-                "snapshotId": "owner-funding-001",
-                "source": "owner-funding-statement",
-                "startAtMs": self.now - 86_400_000,
-                "endAtMs": self.now,
-                "currency": "USDT",
-                "events": [],
-            },
-            "cutoverId": "bootstrap-equity-cutover-001",
-            "cutoverSource": "OWNER_RECONCILED_EVIDENCE",
-            "cutoverSnapshotId": "owner-equity-001",
-            "cutoverEvidencePath": str(self.cutover_evidence),
-            "cutoverPayloadHash": "",
-            "ownerAttestationPath": str(self.owner_attestation),
-            "ownerAttestationPayloadHash": "",
-            "configVersion": "paper-risk-v1",
-            "recordedAtMs": self.now,
-        }
-        funding_document = {
-            "snapshotId": "owner-funding-001",
-            "status": "VERIFIED",
-            "startAtMs": self.now - 86_400_000,
-            "endAtMs": self.now,
-            "source": "OWNER_RECONCILED_EVIDENCE",
-            "configVersion": "paper-risk-v1",
-            "fundingByStrategy": {
-                "STRATEGY_CORE": "0",
-                "AI_FREQAI": "0",
-                "LEGACY_UNATTRIBUTED": "0",
-            },
-            "expectedPopulation": self.manifest["fundingExpectedPopulation"],
-        }
-        cutover_document = {
-            "snapshotId": "owner-equity-001",
-            "initialCapitalQuote": "100",
-            "realizedPnlQuote": "0",
-            "feesQuote": "0",
-            "fundingQuote": "0",
-            "accountEquityQuote": "100",
-            "markPrice": "100",
-            "markCandleCloseMs": self.now - 60_000,
-            "markObservedAtMs": self.now,
-            "datasetVersion": "sha256:" + "1" * 64,
-            "fundingCoverageStartAtMs": self.now - 86_400_000,
-            "source": "OWNER_RECONCILED_EVIDENCE",
-            "configVersion": "paper-risk-v1",
-        }
-        self.manifest["fundingPayloadHash"] = write_json(
-            self.funding_evidence, funding_document
-        )
-        self.manifest["cutoverPayloadHash"] = write_json(
-            self.cutover_evidence, cutover_document
-        )
-        owner_attestation = {
-            "schemaVersion": 1,
-            "attestationType": "DUAL_LEDGER_BOOTSTRAP_EVIDENCE_REVIEW",
-            "attestorRole": "OWNER_DECLARATION",
-            "claimScope": "FUNDING_AND_EQUITY_SNAPSHOT_REVIEW",
-            "sourceSha": self.source_sha,
-            "fundingSnapshotId": "owner-funding-001",
-            "fundingPayloadHash": self.manifest["fundingPayloadHash"],
-            "cutoverSnapshotId": "owner-equity-001",
-            "cutoverPayloadHash": self.manifest["cutoverPayloadHash"],
-            "reviewedAtMs": self.now,
-            "reviewStatement": "I_REVIEWED_THE_IDENTIFIED_FUNDING_AND_EQUITY_SNAPSHOTS",
-            "nonClaims": [
-                "FACTUAL_TRUTH",
-                "FRESHNESS",
-                "POPULATION_COMPLETENESS",
-                "PRIVILEGED_ACTION_AUTHORIZATION",
-                "SOURCE_AUTHENTICITY",
-            ],
-        }
-        self.manifest["ownerAttestationPayloadHash"] = write_json(
-            self.owner_attestation, owner_attestation
-        )
         self.db_path = self.root / "paper" / "account.sqlite3"
-        self.db_path.parent.mkdir()
+        self.manifest = build_dual_ledger_bootstrap_manifest(
+            self.root, self.now, self.db_path, self.source_sha
+        )
 
     def test_bootstrap_creates_three_scopes_and_ready_only_after_reconciliation(self):
         result = bootstrap_paper_account(self.db_path, self.manifest)

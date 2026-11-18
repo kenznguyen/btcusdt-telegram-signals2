@@ -16,6 +16,8 @@ from market_data.store import Candle, CandleStore, read_window
 from market_data.test_support import seed_candles
 from pipeline import api
 from paper_execution import kill_reset_service
+from paper_execution.bootstrap import bootstrap_paper_account
+from paper_execution.test_support import build_dual_ledger_bootstrap_manifest
 
 
 def _run_kill_reset_service_for_test(socket_path, key_path, control_token, ready_event):
@@ -109,6 +111,7 @@ class FiveLayerApiTest(unittest.TestCase):
         self.t0_http_client.start()
         self.addCleanup(self.t0_http_client.stop)
         self.config = {"MARKET_DATA_DB": str(self.db), "PAPER_DB": str(self.paper_db),
+                       "AI_EXECUTION_ENABLED": "false",
                        "T0_CANDLE_API_BASE_URL": "https://t0.test.invalid",
                        "T0_CANDLE_API_TOKEN": "read-only-test-token",
                        "T0_CANDLE_MAX_LAG_MS": "120000", "MARKET_DATA_TOKEN": "read-token",
@@ -482,6 +485,15 @@ class FiveLayerApiTest(unittest.TestCase):
         self.assertIsNone(signals["aiStrategy"]["intent"])
 
     def test_api_kill_switch_requires_control_token_and_blocks_paper_evaluation(self):
+        # Replace the empty test database with a real, isolated PAPER Dual Ledger.
+        self.paper_db.unlink()
+        manifest = build_dual_ledger_bootstrap_manifest(
+            self.root, self.now, self.paper_db, "b" * 40
+        )
+        bootstrap = bootstrap_paper_account(self.paper_db, manifest)
+        self.assertTrue(bootstrap["riskReady"])
+        self.assertFalse(bootstrap["liveTradingSupported"])
+
         self.assertEqual(self.request("/v1/paper/kill", "POST", {"enabled": True}, token="read-token")[0], 401)
         code, state = self.request("/v1/paper/kill", "POST", {"enabled": True})
         self.assertEqual(code, 200)
