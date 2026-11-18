@@ -388,6 +388,22 @@ class FiveLayerApiTest(unittest.TestCase):
             _, result = self.request("/v1/paper/evaluate", "POST", {})
         self.assertEqual(result["order"]["status"], "FILLED")
 
+    def test_kill_reset_rejects_stale_or_unissued_readiness_capability(self):
+        self.request("/v1/paper/kill", "POST", {"enabled": True})
+        checks = {
+            "closedCandles": True, "orderBook": True,
+            "noPendingPaperOrders": True, "accountRiskReady": True,
+        }
+        stale = {
+            "ready": True, "checks": checks,
+            "evidence": {"token": "x"*43, "checkedAtMs": self.now-6_000},
+        }
+        with patch.object(api, "control_readiness", return_value=stale):
+            code, result = self.request("/v1/paper/reset-kill", "POST", {"acknowledge": True})
+        self.assertEqual(code, 409)
+        self.assertEqual(result["error"], "SYSTEM_NOT_READY")
+        self.assertTrue(self.request("/v1/paper")[1]["riskControl"]["killed"])
+
     def test_kill_reset_requires_server_side_readiness(self):
         self.request("/v1/paper/kill", "POST", {"enabled": True})
         with patch.object(api, "book_snapshot", return_value=None):

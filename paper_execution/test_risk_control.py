@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from paper_execution.risk_control import (ensure, issue_kill_reset_evidence, reset_kill, risk_block_reason, set_kill, set_paused, snapshot)
+from paper_execution.risk_control import (ensure, _issue_kill_reset_evidence, reset_kill, risk_block_reason, set_kill, set_paused, snapshot)
 
 
 class PersistentRiskControlTest(unittest.TestCase):
@@ -17,7 +17,7 @@ class PersistentRiskControlTest(unittest.TestCase):
         return sqlite3.connect(self.path)
 
     def readiness(self, checked_at_ms):
-        return issue_kill_reset_evidence(
+        return _issue_kill_reset_evidence(
             checked_at_ms=checked_at_ms,
             checks={"closedCandles": True, "orderBook": True,
                     "noPendingPaperOrders": True, "accountRiskReady": True},
@@ -51,6 +51,15 @@ class PersistentRiskControlTest(unittest.TestCase):
             self.assertIsNone(risk_block_reason(db))
             with self.assertRaises(ValueError):
                 reset_kill(db, acknowledge=True, readiness_evidence=evidence, at_ms=self.now+3)
+
+    def test_stale_readiness_evidence_cannot_clear_kill_latch(self):
+        with self.connect() as db:
+            ensure(db)
+            set_kill(db, True, self.now, "TEST_KILL")
+            evidence = self.readiness(self.now+1)
+            with self.assertRaisesRegex(ValueError, "server-issued readiness evidence"):
+                reset_kill(db, True, evidence, self.now+5_002)
+            self.assertEqual(risk_block_reason(db), "KILL_SWITCH")
 
     def test_pause_and_kill_are_independent_and_kill_has_priority(self):
         with self.connect() as db:

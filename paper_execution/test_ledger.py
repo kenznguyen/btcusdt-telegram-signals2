@@ -9,7 +9,7 @@ import tempfile
 import unittest
 
 from paper_execution.ledger import PaperLedger, book_value
-from paper_execution.risk_control import issue_kill_reset_evidence
+from paper_execution.risk_control import _issue_kill_reset_evidence
 
 
 class PaperLedgerTest(unittest.TestCase):
@@ -235,7 +235,7 @@ class PaperLedgerTest(unittest.TestCase):
         self.assertEqual(rejected["reason"], "KILL_SWITCH")
         with self.assertRaises(ValueError):
             reopened.set_killed(False, self.now+1)
-        evidence = issue_kill_reset_evidence(
+        evidence = _issue_kill_reset_evidence(
             checked_at_ms=self.now+2,
             checks={"closedCandles": True, "orderBook": True,
                     "noPendingPaperOrders": True, "accountRiskReady": True},
@@ -293,7 +293,7 @@ class PaperLedgerTest(unittest.TestCase):
             self.intent("pending-before-reset", limit="99"), self.book(), self.now
         )
         self.assertEqual(order["status"], "OPEN")
-        evidence = issue_kill_reset_evidence(
+        evidence = _issue_kill_reset_evidence(
             checked_at_ms=self.now+1,
             checks={"closedCandles": True, "orderBook": True,
                     "noPendingPaperOrders": True, "accountRiskReady": True},

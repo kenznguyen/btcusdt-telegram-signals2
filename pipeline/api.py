@@ -461,8 +461,8 @@ def control_readiness(timestamp):
                 ).hexdigest(),
                 "observedAtMs": data["book"]["observedAtMs"],
             }
-            from paper_execution.risk_control import issue_kill_reset_evidence
-            readiness["evidence"] = issue_kill_reset_evidence(
+            from paper_execution.risk_control import _issue_kill_reset_evidence
+            readiness["evidence"] = _issue_kill_reset_evidence(
                 checked_at_ms=timestamp, checks=checks,
                 candle_evidence=candle_evidence, book_evidence=book_evidence,
             )
@@ -571,7 +571,12 @@ def application(environ, start_response):
                 readiness = control_readiness(timestamp)
                 if not readiness["ready"]:
                     return response("409 Conflict", {"error": "SYSTEM_NOT_READY", "checks": readiness["checks"]})
-                result = ledger().reset_kill(True, readiness["evidence"], timestamp)
+                try:
+                    result = ledger().reset_kill(True, readiness["evidence"], timestamp)
+                except ValueError:
+                    return response("409 Conflict", {
+                        "error": "SYSTEM_NOT_READY", "checks": readiness["checks"],
+                    })
             elif path == "/v1/paper/evaluate" and (not payload or payload in ({"source": "AI"}, {"source": "CORE"})):
                 source = payload.get("source", "AI")
                 if source == "CORE":

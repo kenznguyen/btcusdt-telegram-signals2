@@ -82,7 +82,7 @@ _RESET_EVIDENCE_TTL_MS = 5_000
 _RESET_CHECKS = {"closedCandles", "orderBook", "noPendingPaperOrders", "accountRiskReady"}
 
 
-def issue_kill_reset_evidence(*, checked_at_ms, checks, candle_evidence, book_evidence):
+def _issue_kill_reset_evidence(*, checked_at_ms, checks, candle_evidence, book_evidence):
     """Issue a one-use, process-local capability after the API readiness preflight."""
     checked = stamp(checked_at_ms)
     if not isinstance(checks, dict) or set(checks) != _RESET_CHECKS or any(
