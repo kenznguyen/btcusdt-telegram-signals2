@@ -204,10 +204,41 @@ jobs:
           set -euo pipefail
           python -m unittest paper_execution.test_core_first_operational paper_execution.test_core_short_lifecycle -v 2>&1 | tee core-first-operational-tests.log
 
-      - name: Run actual partial-fill process crash and recovery contracts
+      - name: Diagnose partial-fill crash checkpoints independently
         run: |
           set -euo pipefail
-          python -m unittest paper_execution.test_partial_fill_process_crash -v 2>&1 | tee partial-fill-process-crash-tests.log
+          diag_dir="$(mktemp -d)"
+          trap 'rm -rf "$diag_dir"' EXIT
+          cat > "$diag_dir/sitecustomize.py" <<'PY'
+          import faulthandler
+          faulthandler.enable()
+          faulthandler.dump_traceback_later(30, repeat=True)
+          PY
+          export PYTHONPATH="$diag_dir:$PWD:${PYTHONPATH:-}"
+          failed=0
+          run_checkpoint() {
+            test_name="$1"
+            log_file="$2"
+            set +e
+            timeout --foreground --signal=TERM --kill-after=5s 120s \
+              python -m unittest "$test_name" -v 2>&1 | tee "$log_file"
+            status=${PIPESTATUS[0]}
+            set -e
+            echo "CHECKPOINT_EXIT_STATUS=$status" | tee -a "$log_file"
+            if [ "$status" -ne 0 ]; then failed=1; fi
+          }
+          run_checkpoint \
+            paper_execution.test_partial_fill_process_crash.PartialFillProcessCrashRecoveryTest.test_process_kill_after_all_writes_before_commit_rolls_back_partial_fill \
+            partial-fill-process-crash-before-commit.log
+          run_checkpoint \
+            paper_execution.test_partial_fill_process_crash.PartialFillProcessCrashRecoveryTest.test_process_kill_after_fill_journal_insert_rolls_back_partial_fill \
+            partial-fill-process-crash-after-journal.log
+          if [ "$failed" -ne 0 ]; then
+            echo "PARTIAL_FILL_PROCESS_CRASH=BLOCKED"
+            exit 1
+          fi
+          cat partial-fill-process-crash-before-commit.log partial-fill-process-crash-after-journal.log > partial-fill-process-crash-tests.log
+          echo "PARTIAL_FILL_PROCESS_CRASH=PASS" | tee -a partial-fill-process-crash-tests.log
 
       - name: Run Core Runner disposable SQLite ledger integration contracts
         run: |
@@ -383,4 +414,6 @@ jobs:
             scoped-reservation-expiry-regressions.log
             core-first-operational-tests.log
             partial-fill-process-crash-tests.log
+            partial-fill-process-crash-before-commit.log
+            partial-fill-process-crash-after-journal.log
             core-operational-verdict.txt
