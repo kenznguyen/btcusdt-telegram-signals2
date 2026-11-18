@@ -3453,3 +3453,19 @@ Additional payload inspection:
 - Report: `docs/evidence/T0_A2_2_STAGE_I_STATIC_IMPLEMENTATION_REVIEW_2026-11-18.md`, created on this branch in commit `4ea45bc34c73efde2211d3af7da9fa1cee2282c3`.
 - Tests/CI: **NOT RUN**. Workflow dispatch: **NOT RUN / NOT AUTHORIZED**. Source/test/workflow/runtime/T0/VPS/credentials/trading unchanged. No merge or history rewrite.
 - Overall: Stage I contract-conformance **BLOCKED / NOT READY TO CLAIM PASS**; F-01/F-02 must be corrected under scoped authorization. Stages II–V remain BLOCKED / NOT APPROVED.
+
+
+## 2026-11-18 — T0 A2.2 Stage I F-01/F-02 repair
+
+- Owner approved modifying only `t0_signature_stage1/verdicts.py` and `t0_signature_stage1/tests/test_verdicts.py`, plus isolated tests.
+- TDD RED test commit: `b9f2b8b56f52737e13d0f6b4dfbfcd2032f48397`; pre-fix run reproduced the issue with 27 existing-leaf assertions failing and missing helper/evaluator APIs.
+- Final source HEAD before evidence docs: `c69502ae664588b338fec26a4016712110284372`.
+- Final source blobs: verdicts.py `85938c16d338f56d38721460adf4494f18bb2ed3`; test_verdicts.py `e90b8391e1e9de67cac01da512e50ab09f19a81d`.
+- F-01 fixed: nested B0/B0-PF/hypothetical B-A baselines now include all 27 mutation targets; mutation helper rejects absent paths and fixture builder asserts unchanged leaf-path set plus exactly one changed leaf.
+- F-02 fixed: removed catalog fact_key; verdict facts are derived from actual mutated fixture content; regression test restores the changed purpose field and confirms the purpose verdict disappears.
+- Exact-SHA isolated Python sandbox verification: compileall PASS; focused test_verdicts 15/15 PASS; full package discovery 38/38 PASS. Source was fetched by exact SHA into an ephemeral isolated test sandbox. This was not a GitHub Actions run; no workflow dispatch or artifact exists.
+- GitHub compare from prior handoff HEAD `00dd663b05741f6a7fc3d863301f90e29bcf2781` to source HEAD: ahead 6, behind 0, exactly two modified paths, both within approved scope.
+- Evidence report: `docs/evidence/T0_A2_2_STAGE_I_F01_F02_REPAIR_2026-11-18.md`, commit `5870a0ec0d2bdcccd76e70b5290e3793da685a34`.
+- Safety: no workflow, README, runtime, T0 canonical data, VPS, credentials, exchange or trading changes; no merge or history rewrite.
+- Disposition: F-01 PASS; F-02 PASS; tested synthetic package scope PASS. Overall Stage I contract conformance remains PARTIAL / NOT VERIFIED beyond synthetic routing and single-mutation checks. Stages II–V, workflow execution, merge, deployment and trading remain BLOCKED / NOT AUTHORIZED.
+- Next: read-only review the two-file diff against A2.2 §§17–18, then handle F-03 documentation consistency separately with approval if required.
