@@ -3,14 +3,14 @@
 Date: 2026-11-18
 Repository: kenznguyen/btcusdt-telegram-signals2
 Branch: feature/core-operational-proof-20261112
-Final source HEAD: c69502ae664588b338fec26a4016712110284372
+Final source HEAD: 637f494b48939a26d1abf0d948186267d1ca58a4
 Scope: only t0_signature_stage1/verdicts.py and t0_signature_stage1/tests/test_verdicts.py.
 
 ## Authorization and TDD evidence
 
 The owner explicitly approved repair of F-01/F-02 in the two scoped files and isolated tests. TDD sequence:
 - RED test commit: b9f2b8b56f52737e13d0f6b4dfbfcd2032f48397.
-- Implementation and follow-up corrections: 910967dd0b136faedafe1e51011174c44a4c6dc0, 9457ce935d8331619de55527842bebe099cc63e6, c11843409cd42df1d9522a22b4f0c44c9c4aff7c, 0512580b5410e3b2e7f7400a118dc8bec2aebbd4, final cleanup c69502ae664588b338fec26a4016712110284372.
+- Implementation and follow-up corrections: 910967dd0b136faedafe1e51011174c44a4c6dc0, 9457ce935d8331619de55527842bebe099cc63e6, c11843409cd42df1d9522a22b4f0c44c9c4aff7c, 0512580b5410e3b2e7f7400a118dc8bec2aebbd4, final cleanup 637f494b48939a26d1abf0d948186267d1ca58a4.
 - The RED run against the pre-fix source failed as expected: 27 mutation-path assertions failed and the new path/evaluator helpers were absent.
 - Final source was fetched by exact commit SHA into an isolated ephemeral Python sandbox; no repository CI or workflow was dispatched.
 
@@ -26,7 +26,7 @@ The owner explicitly approved repair of F-01/F-02 in the two scoped files and is
 
 ### F-02 — addressed
 
-- Removed catalog fact_key routing metadata.
+- Removed catalog fact_key routing metadata. Added a regression case proving compound mutations fail closed.
 - Added deterministic fact derivation from actual fixture content.
 - evaluate_stage1_fixture() now builds the baseline/mutated pair and routes using the mutated fixture content.
 - Added a regression test that restores the mutated purpose field and confirms the purpose verdict disappears, proving the evaluator is not merely reading a preassigned catalog fact.
@@ -40,17 +40,17 @@ The owner explicitly approved repair of F-01/F-02 in the two scoped files and is
 
 ## Exact final source identity
 
-- Commit: c69502ae664588b338fec26a4016712110284372
+- Commit: 637f494b48939a26d1abf0d948186267d1ca58a4
 - t0_signature_stage1/verdicts.py blob: 85938c16d338f56d38721460adf4494f18bb2ed3
-- t0_signature_stage1/tests/test_verdicts.py blob: e90b8391e1e9de67cac01da512e50ab09f19a81d
+- t0_signature_stage1/tests/test_verdicts.py blob: 45880b5c68b9f74a25c63ff125fef9826de4eca0
 - GitHub compare from pre-work HEAD 00dd663b05741f6a7fc3d863301f90e29bcf2781 to final HEAD: ahead 6, behind 0; exactly two changed paths, both within the approved scope.
 
 ## Verification
 
 Executed in an isolated ephemeral Python test sandbox after fetching the exact final commit:
 - python -m compileall -q t0_signature_stage1: PASS.
-- python -m unittest t0_signature_stage1.tests.test_verdicts -v: 15 tests PASS.
-- python -m unittest discover -s t0_signature_stage1/tests -p 'test_*.py' -v: 38 tests PASS.
+- python -m unittest t0_signature_stage1.tests.test_verdicts -v: 16 tests PASS.
+- python -m unittest discover -s t0_signature_stage1/tests -p 'test_*.py' -v: 39 tests PASS.
 - No external service, DB, network, credential, VPS or exchange access was used by the test process after source retrieval.
 - This is not a GitHub Actions run; no workflow run or artifact ID exists.
 
