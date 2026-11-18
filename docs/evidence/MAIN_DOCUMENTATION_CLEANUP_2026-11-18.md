@@ -82,3 +82,19 @@ The handoff update and this report are separate sequential commits on the same e
 - No source, test, workflow, T0, runtime, credential, branch, tag or historical evidence path was changed or deleted.
 - Final documentation readback: **PASS**. Tests/build/workflow remain **NOT RUN**; no artifact exists.
 - The final handoff update is committed immediately after this evidence update; its exact commit becomes the final main HEAD and is recorded in the conversation result.
+
+
+## Follow-up bounded cleanup audit — 2026-11-18
+
+- Audit target: `main`; source HEAD at audit start: `82412ec5c887598c2dac5e775f3ee46ecddcc26c`.
+- Read-only scope: verify the immediately preceding one-file removal, re-check candidate workflows and their branch-side dependencies, and classify remaining obvious cleanup candidates.
+- Removed from main in the preceding approved increment: `market_data/test_write_gateway.py`; deletion commit `82412ec5c887598c2dac5e775f3ee46ecddcc26c`. The T0 branch copy remains at blob `131880b9110f5bb5780b411d348eae19acb6e14e`.
+- Correction to the earlier dependency inventory: its statement that main contains `market_data/test_write_gateway.py` is historical and no longer current after the deletion. Main no longer contains that test or the T0 implementation package; do not interpret its absence as permission to remove T0 branch content.
+- `.github/workflows/paper-writer-isolation-red.yml`: KEEP / REVIEW. Its target branch `feature/t0-paper-writer-isolation-red-20261102` exists and contains `paper_execution/test_writer_isolation_red.py` (blob `89d6ff98e26339c398537e74a569c4b103af0a88`). The target test is absent on main and on the workflow's separately named PR base branch; retain pending branch/PR lifecycle review.
+- `.github/workflows/core-live-data-operational-proof.yml`: KEEP. It is the Core First workflow; its corresponding implementation/tests exist on `feature/core-operational-proof-20261112`. Main's copy is not evidence that Core First is merged or operational on main.
+- `.github/workflows/core-api-quality-regression.yml` and `ci/test_core_api_quality_snapshot.py`: KEEP. They provide the intentionally narrow main-side regression boundary; they do not prove full Core/T0 integration.
+- `.github/workflows/signal-scan.yml` and `.github/workflows/telegram-command.yml`: KEEP / LEGACY ACTIVE. Manual scanning and Telegram/backtest command paths remain explicitly documented in the current README; workflow triggers still exist. No retirement authorization or migration evidence found in this audit.
+- Historical reports, architecture decisions, archive content, active Android/backtest sources and other workflows: KEEP pending a separate dependency/ownership audit.
+- Result: no additional DELETE candidate met the required conditions. No further files were deleted or modified in this audit. No tests, builds, workflows, runtime, T0 database, Feeder, VPS, exchange or trading paths were executed or accessed.
+- Status: read-only inventory PASS for the inspected paths; full repository-wide dependency audit NOT VERIFIED. CI/tests NOT RUN; artifact NONE.
+- Next: only continue with a bounded candidate review where ownership, branch/PR triggers, references and replacement/migration evidence can all be established. Any further deletion requires a separate explicit approval.
