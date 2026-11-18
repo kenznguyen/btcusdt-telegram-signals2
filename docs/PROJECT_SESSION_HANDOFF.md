@@ -3237,3 +3237,12 @@ Additional payload inspection:
 - Current branch HEAD after this evidence/handoff update: pending final GitHub ref verification; do not infer from earlier commit IDs.
 - Status: candidate snapshot preserved; bounded main history review **PARTIAL**; exact-current-HEAD CI **NOT RUN / NOT VERIFIED**; merged-tree validation **NOT RUN**; merge **BLOCKED / NOT AUTHORIZED**.
 - No source/workflow/runtime/T0 data changes, merge, rebase, reset, force-push, branch creation, deployment, exchange access, AI execution or real order.
+
+
+## 2026-11-18 — Final candidate source identity pin
+
+- Current branch HEAD before this handoff commit: `165324511ffa8afa08f9b504a015bebc5d04e532` (candidate evidence report's final identity pin).
+- Candidate evidence report blob: `1a82fd5dac0017c4aa2fbc80f2d661dabfb9ac51`.
+- Last verified compare against main before this documentation-only commit: 4,572 ahead / 85 behind; merge base `f5b74affb8777953fa66d241784965fbb0e577ba`.
+- Exact-head CI remains **NOT RUN / NOT VERIFIED**. Manual workflow dispatch is required on the branch, with checkout SHA checked against the live branch HEAD at dispatch time.
+- Merge remains **BLOCKED / NOT AUTHORIZED**. No source/runtime/T0/AI/live-trading changes.
