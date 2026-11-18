@@ -2271,3 +2271,22 @@ This follow-up supersedes the earlier pending items for persistent preview artif
 - Determine whether the checkpoint event is reached, whether the writer is terminated, and where the parent process blocks.
 - Fix only a demonstrated test-harness defect; if a ledger atomicity defect is reproduced, add a RED regression before changing production source.
 - Keep Core First PARTIAL / NOT VERIFIED; T1 deployed interoperability remains separately NOT VERIFIED. No merge, branch promotion, deployment, AI execution, or live trading.
+
+## 2026-11-18 — Partial-fill crash diagnostic isolation (workflow-only)
+
+- Workflow diagnostic change commit: `0df073b2ba196786cd816d3014841bf9d121f32a`.
+- Existing workflow and branch retained; no new branch/workflow created.
+- Replaced the combined crash-test invocation with two separately bounded test invocations:
+  - after all writes / before commit;
+  - after fill-journal insertion / before dependent writes.
+- Each invocation has a 120-second process-group timeout and delayed repeating faulthandler dumps through a temporary `sitecustomize.py`; separate logs are uploaded as artifacts.
+- This is a workflow/diagnostic-only change. No application or test source was changed in this increment.
+- The new workflow run result is pending; no crash-recovery PASS is claimed.
+- Prior crash-test verdict remains BLOCKED / NOT VERIFIED until both isolated invocations complete and their state assertions pass.
+- Safety remains unchanged: `AI_EXECUTION_ENABLED=false`; no canonical T0, T1 runtime, VPS, exchange credentials or real orders.
+
+**Next**
+- Inspect the workflow run triggered by `0df073b2ba196786cd816d3014841bf9d121f32a`.
+- Retrieve both checkpoint logs and identify any assertion failure or repeated stack trace.
+- Fix only the demonstrated harness issue, or prove a ledger defect with a RED regression before any production-source change.
+- Core First remains PARTIAL / NOT VERIFIED; T1 deployment/interoperability remains separately NOT VERIFIED. No merge, branch promotion, deployment, AI execution or live trading.
