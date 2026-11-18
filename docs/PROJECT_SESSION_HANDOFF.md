@@ -2374,3 +2374,42 @@ This follow-up supersedes the earlier pending items for persistent preview artif
 - No production Ledger changes without a reproduced defect and RED regression.
 - No canonical T0 database access/modification, T0 Feeder startup, T1 deployment, VPS runtime, systemd/autostart, exchange connection, AI Strategy execution, real orders, merge, branch promotion, rebase, reset, cherry-pick, force push, or default-branch change.
 - `AI_EXECUTION_ENABLED=false`; paper-only safeguards remain mandatory.
+
+
+## 2026-11-18 — Core First independent static review, tranche 1
+
+**Review scope and provenance**
+- Read-only review on existing branch `feature/core-operational-proof-20261112`; reviewed exact HEAD `dd515180a2fd042966bc9d0a4ad9178637e3fdaf`.
+- Code-level source under review is unchanged from workflow source SHA `ca7ad7f2a9e766ca56a02229e310fb611015feb2`; HEAD `dd515180...` is a documentation-only child commit.
+- Reviewed Core strategy/signal producer and adapter, Bundle V1 validation/provider, One-shot Runner, continuous runner/journal recovery, PAPER preflight/path guards, simulated risk contract loader, API facade, and related tests.
+- No source or test files changed; no tests rerun; no runtime, T0, T1, VPS, or exchange access.
+
+**Finding — REQUIRED: simulated-account configuration contract is inconsistent across Continuous dry-run and One-shot**
+- `core_runtime/continuous_dry_run.py::inspect_continuous_dry_run` requires the config key set to include `risk_limits` and calls `_runner_policy(config)` without `simulated=True`.
+- For a simulated ledger, `core_runtime/one_shot.py::run_once` detects the persisted simulated origin and calls `_runner_policy(config, simulated=True)`; this explicitly rejects a `risk_limits` config key or risk-limit environment overrides with `RUNNER_RISK_LIMITS_OVERRIDE_FORBIDDEN`.
+- Therefore there is no valid config satisfying both paths for a simulated account:
+  - omit `risk_limits`: Continuous dry-run rejects with `RUNNER_CONFIG_REQUIRED`;
+  - include `risk_limits`: static dry-run can pass, but One-shot rejects the same config as an independent risk-limit override.
+- `core_runtime/test_runtime_factory.py` and `core_runtime/test_continuous_dry_run.py` use funded-style fixture/configs with explicit `risk_limits`; there is no corresponding end-to-end simulated-origin Continuous runtime test in the reviewed test set.
+- This conflicts with the project single-source-of-truth rule: simulated Ledger limits must come only from the validated immutable simulated account/risk contract.
+- Impact: Continuous Core runtime path is not demonstrated as usable with the project's simulated account configuration. This is a code-level integration blocker, not a deployed Runtime Verification result.
+- Severity: **REQUIRED / BLOCKING for simulated-account Core runtime acceptance**. No production fix proposed or applied in this review increment.
+
+**Other reviewed controls — no issue found in inspected sections**
+- Simulated Ledger rejects caller-supplied independent `risk_limits` when contract bytes are supplied; persisted contract origin/hash is verified before limits are bound.
+- Paper admission enforces shared exposure/margin controls and Kill Switch inside the Ledger transaction; tests cover ENTRY, DCA, exact 1% boundary, over-budget rejection and kill/drawdown/daily-loss latches.
+- Bundle V1 enforces strict schema, closed contiguous candles, provenance, freshness, order-book evidence and account-risk snapshot contracts.
+- Continuous Runner claims one cycle atomically, persists intent before One-shot submission, and recovery reconciles existing order state rather than blindly replaying an intent.
+- Paper preflight checks explicit `AI_EXECUTION_ENABLED=false`, absence of exchange credentials, PAPER-only state and clear Kill Switch; ledger path isolation rejects overlap with T0 data paths.
+- These are static observations of the inspected source and tests, not a full review sign-off.
+
+**Next code-level action**
+- Add a RED-first test using a real disposable simulated-origin Ledger and contract-only config. Prove the expected config is accepted consistently by static dry-run, runtime factory and One-shot policy without independent risk overrides; also prove injected config/env risk limits remain rejected.
+- Only after RED evidence, implement the smallest config-contract correction and rerun targeted tests plus the Core First CI evidence workflow on this same branch.
+- Complete the remaining review axes for Ledger transaction/risk state, API route exposure and continuous recovery before final code-level sign-off.
+
+**Runtime separation / prohibited**
+- Runtime Verification remains a separate workstream and is not started by this review.
+- No T0 HTTP connectivity checks, T1 service checks, VPS, deployment, systemd/autostart, live process start, exchange access, AI Strategy execution, or real orders.
+- No source changes, no migrations, no canonical T0 DB access, no merge/branch promotion/rebase/reset/cherry-pick/force push.
+- `AI_EXECUTION_ENABLED=false`; paper-only constraints remain mandatory.
