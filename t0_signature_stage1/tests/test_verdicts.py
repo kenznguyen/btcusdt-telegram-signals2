@@ -230,6 +230,17 @@ class FixtureMatrixTests(unittest.TestCase):
                 self.assertEqual(policy["audience"], "BTCUSDT")
                 self.assertEqual(policy["allowed_purposes"], baseline["policy"]["allowed_purposes"])
 
+    def test_evaluator_reports_object_binding_mismatch_as_its_own_dimension(self):
+        import copy
+        from t0_signature_stage1.verdicts import build_fixture, evaluate_fixture_content
+        baseline, mutated, _spec = build_fixture("A2.2-NV-01")
+        baseline = copy.deepcopy(baseline)
+        mutated = copy.deepcopy(mutated)
+        baseline["descriptor"]["object_id"] = "SUBSTITUTED-OBJECT"
+        mutated["descriptor"]["object_id"] = "SUBSTITUTED-OBJECT"
+        _after, result = evaluate_fixture_content(baseline, mutated, _test_state())
+        self.assertEqual((result.verdict, result.reason_code), ("INVALID", "FIXTURE_SINGLE_MUTATION_VIOLATION"))
+
     def test_evaluator_rejects_invalid_canonical_evidence_object(self):
         import copy
         from t0_signature_stage1.verdicts import build_fixture, evaluate_fixture_content
