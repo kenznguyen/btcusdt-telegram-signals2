@@ -222,7 +222,10 @@ _BASELINES = {
     "B0": _make_baseline("A2.2-SYNTHETIC-BASELINE-B0"),
     "B0-PF": _make_baseline("A2.2-SYNTHETIC-BASELINE-B0-PF", legacy_statement=True),
     "B-A": _make_baseline("A2.2-SYNTHETIC-HYPOTHETICAL-BASELINE-B-A-NOT-OPERATIONAL", path_a_enabled=True),
-}def _expected_dimensions(mutation_path: str, verdict: str) -> dict[str, str]:
+}
+
+
+def _expected_dimensions(mutation_path: str, verdict: str) -> dict[str, str]:
     dimensions = {key: "NOT_APPLICABLE" for key in _REQUIRED_DIMENSIONS}
     dimensions.update({"parsing_canonicalization": "PASS", "object_binding": "PASS",
                        "signature": "NOT_VERIFIED", "custody_readback": "NOT_VERIFIED"})
