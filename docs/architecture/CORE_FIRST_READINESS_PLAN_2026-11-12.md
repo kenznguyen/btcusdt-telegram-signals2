@@ -2,11 +2,11 @@
 
 - Plan date: 2026-11-12
 - Repository: `kenznguyen/btcusdt-telegram-signals2`
-- Branch: `feature/t0-centralized-data-feeder-p1-20261101`
+- Branch at plan creation: `feature/t0-centralized-data-feeder-p1-20261101` (historical); active branch: `feature/core-operational-proof-20261112`
 - Inspected source HEAD: `c7748adca424ea9d56004bcdb9669dd8db88d570`
 - Inspected tree SHA: `8572ebe397506a9c1b7c94101c44b131c3ff4d8e` (recursive tree, not truncated)
-- Plan status: **READY FOR OWNER REVIEW**
-- Execution status: **NOT STARTED**
+- Plan status at creation: **READY FOR OWNER REVIEW**; current implementation evidence is recorded in Section 8.
+- Execution status at plan creation: **NOT STARTED**; superseded by Section 8 for the verified Core First scope.
 
 ## 1. Objective
 
@@ -127,3 +127,45 @@ Only after R1–R3 pass:
 ## 7. Next action
 
 The smallest next technical action, after owner approval, is to dispatch the existing isolated GitHub Actions workflows at the exact current branch SHA and record their run IDs, job conclusions and artifact IDs. No code changes are required before that baseline run. T0 data reacquisition remains a separate owner decision and must not be bundled into CI approval.
+
+
+## 8. Evidence and readiness status update — 2026-11-18
+
+This addendum supersedes the historical "NOT STARTED / NOT RUN" labels in Sections 1, 3, 4 and 6 only where explicitly stated below. The original source inventory and plan remain preserved as a historical 2026-11-12 baseline.
+
+### Current source and CI evidence
+
+- Active branch: `feature/core-operational-proof-20261112`.
+- Documentation reconciliation baseline HEAD: `e933cdc9f3fafbffeed417615c9ba887d25c5281`.
+- Exact tested source SHA: `3fba2a9f72b0d1ab8efad0ced604afe7e8506bc9`.
+- Workflow: [44258935215](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/44258935215), conclusion SUCCESS; checked-out SHA matches the exact tested source SHA.
+- Artifact: [14407801013](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/44258935215/artifacts/14407801013), name `core-first-code-operational-proof-44258935215`, recorded SHA-256 `3c34a50eebff9aa39a1098286f4483ec339cc41b10957eac7856cde589bfa695`.
+- API + Paper Storage command `python -m unittest pipeline.test_api pipeline.test_paper_storage_isolation -v`: 45 tests PASS.
+- Full Core-First operational workflow: PASS for Core entry/DCA, long/short lifecycle, mixed-writer stress, repeated mixed-writer stress, Shared Risk/Paper Ledger, T0/Paper storage isolation and T1/T2 order-book contracts.
+- API policy: empty payload defaults to Core; explicit Core source is accepted; AI source returns HTTP 409 / `AI_PAPER_EXECUTION_DEFERRED` before admission side effects; unsupported source returns HTTP 400.
+- Safety: `AI_EXECUTION_ENABLED=false`; no exchange credentials; `REAL_ORDERS_SENT=false`; no VPS/persistent runtime; no canonical T0 database mutation.
+
+### Superseding status matrix
+
+| Area | Current status | Boundary |
+|---|---|---|
+| Strategy Core implementation | **PASS — CI VERIFIED** | Exact tested SHA and workflow above |
+| Core deterministic contract coverage | **PASS** | Covered by full Core-First operational workflow |
+| Shared Risk / Paper Ledger regression | **PASS** | Deterministic isolated CI evidence; not production runtime certification |
+| Core-to-Risk-to-Paper integration | **PASS — CI EVIDENCE** | Workflow/fixture boundary only |
+| Core-First API source policy | **PASS** | AI rejected; Core default/explicit Core accepted |
+| AI paper execution | **DEFERRED / BLOCKED** | AI is observation/research only in Core First |
+| Real T0 dataset / real-market OOS | **NOT VERIFIED** | Synthetic fixtures do not satisfy this gate |
+| Profitability / incremental alpha | **NOT VERIFIED** | No claim of real-market OOS profitability |
+| Runtime paper operation | **NOT AUTHORIZED / NOT VERIFIED** | Requires separate data/runtime approval |
+| Live trading | **NOT AUTHORIZED** | Outside current scope |
+
+### Next actions and restrictions
+
+1. Conduct independent bounded integration review of the divergent branch against `main`; do not merge or update the branch from main during the review.
+2. Keep Core First as the sole paper-executable strategy.
+3. Do not begin Dual-Strategy Intelligence / AI Strategy admission until Core First closeout and a separate owner decision.
+4. Do not change T0, Shared Risk policy, ledger schema, Kill Switch, Core thresholds or runtime as part of this documentation reconciliation.
+5. No live trading, exchange execution, VPS activation or canonical T0 mutation is authorized.
+
+Documentation-only update tests/workflows: **NOT RUN**. The CI evidence above belongs to source SHA `3fba2a9f72b0d1ab8efad0ced604afe7e8506bc9`, not to the documentation commit produced by this update.

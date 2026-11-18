@@ -1,10 +1,39 @@
 # Five-Layer System — Session Handoff
 
-Last updated: 2026-11-05 (Asia/Ho_Chi_Minh)
+Last updated: 2026-11-18 (Asia/Ho_Chi_Minh)
 
 ## Purpose
 
 This file is the durable restart point for future ChatGPT sessions. GitHub is the source of truth for project progress and evidence; do not rely on conversation memory alone.
+
+## Current active project state — 2026-11-18
+
+This section supersedes older "Current workstream" labels and stale status summaries elsewhere in this historical handoff. Historical evidence below remains preserved with its original source identity and scope.
+
+- Repository: `kenznguyen/btcusdt-telegram-signals2`.
+- Active branch: `feature/core-operational-proof-20261112`.
+- Source HEAD before this documentation update: `e933cdc9f3fafbffeed417615c9ba887d25c5281`.
+- Core First is the active priority. Do not begin Dual-Strategy Intelligence implementation until Core First closeout and a separate owner approval.
+- Strategy Core remains RSI + ADX + Smart DCA and the only paper-executable strategy.
+- AI is observation/research only in this phase. `POST /v1/paper/evaluate` rejects `source=AI` with HTTP 409 / `AI_PAPER_EXECUTION_DEFERRED`; empty payload defaults to Core; explicit `source=CORE` routes to Core Runner.
+- Shared Risk Engine remains the final common risk authority. Paper-only; `AI_EXECUTION_ENABLED=false`; no live orders or exchange execution.
+- No T0 canonical database mutation, VPS/runtime activation, deployment, merge, rebase, reset or force-push is authorized by this status update.
+
+### Latest Core First evidence
+
+- Exact tested source SHA: `3fba2a9f72b0d1ab8efad0ced604afe7e8506bc9`.
+- GREEN workflow: [44258935215](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/44258935215), SUCCESS; checkout SHA matches tested source SHA.
+- Artifact: [ID 14407801013](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/44258935215/artifacts/14407801013), name `core-first-code-operational-proof-44258935215`, recorded SHA-256 `3c34a50eebff9aa39a1098286f4483ec339cc41b10957eac7856cde589bfa695`.
+- Common API + Paper Storage regression: `python -m unittest pipeline.test_api pipeline.test_paper_storage_isolation -v` — 45 tests PASS.
+- Full Core-First operational workflow: PASS for the exact tested SHA above, including Core entry/DCA, long/short lifecycle, mixed-writer stress, Shared Risk/Paper Ledger, T0/Paper storage isolation and T1/T2 order-book contracts.
+- Safety evidence: `AI_EXECUTION_ENABLED=false`, no exchange credentials, `REAL_ORDERS_SENT=false`, no VPS/persistent runtime and no canonical T0 database mutation.
+- Real-market OOS profitability, production readiness and live-trading readiness remain NOT VERIFIED / NOT AUTHORIZED.
+
+### Branch integration status
+
+- At this review: branch HEAD `e933cdc9f3fafbffeed417615c9ba887d25c5281`; main HEAD `6bff2aff91657238297848ef644a0cb4112ab428`; merge base `f5b74affb8777953fa66d241784965fbb0e577ba`.
+- GitHub compare reports branch ahead by 4,566 commits and behind by 85 commits. This is a large divergent history; MERGE BLOCKED pending bounded integration review.
+- Do not infer that the 85 commits can be safely integrated from compare metadata alone.
 
 ## Repository and workflow rules
 
@@ -3151,3 +3180,18 @@ Additional payload inspection:
 - Status: **B2 RESOLVED / CI PASS**. B1 branch divergence (4,560 ahead / 85 behind main at review time) remains **MERGE BLOCKED**. R3 stale Core-First architecture/readiness documents remain open and outside this API-only approval.
 - No merge, rebase, reset, force-push, deployment, runtime activation, or real trading.
 - Next: update stale architecture/readiness documents and perform a bounded integration review before any merge proposal.
+
+
+## 2026-11-18 — Core First architecture/readiness documentation reconciliation
+
+- User approved documentation-only reconciliation of the Core First architecture decision, readiness plan and session handoff on the existing branch `feature/core-operational-proof-20261112`.
+- This update records already-completed implementation and CI evidence; it does not change runtime behavior, strategy logic, risk policy, schemas, data, workflows or deployment.
+- Architecture decision status: approved direction remains in force; implementation is now **IMPLEMENTED / CI VERIFIED within the stated test boundary**, not "NOT STARTED".
+- Readiness plan status: deterministic Core, Shared Risk/Paper Ledger and Core-to-Risk-to-Paper workflow evidence is now **PASS for the exact tested source SHA**. Historical real-data/OOS and runtime gates remain open or blocked.
+- Exact tested source SHA: `3fba2a9f72b0d1ab8efad0ced604afe7e8506bc9`.
+- GREEN workflow #44258935215: SUCCESS; exact checked-out SHA matches; artifact ID `14407801013`; recorded artifact SHA-256 `3c34a50eebff9aa39a1098286f4483ec339cc41b10957eac7856cde589bfa695`.
+- Common API + Paper Storage regression: 45 tests PASS; full Core-First operational workflow PASS.
+- API behavior: empty payload defaults to Core; explicit `source=CORE` is accepted; `source=AI` is rejected with HTTP 409 / `AI_PAPER_EXECUTION_DEFERRED` before T0 client setup, Paper DB checks, write-budget consumption, AI decision evaluation or ledger selection; unsupported source returns HTTP 400.
+- Branch integration remains **BLOCKED**: 4,566 ahead / 85 behind main at this review. No merge, rebase, reset, force-push or branch replacement.
+- Next: independent bounded integration review of the divergent branch/main histories. Do not implement Dual Strategy, activate runtime, mutate canonical T0 or enable live execution without separate approval.
+- Documentation-only update tests/workflows: **NOT RUN**; the referenced workflow is prior source-code evidence, not a workflow run for these documentation changes.

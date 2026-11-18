@@ -3,9 +3,9 @@
 - Decision ID: CORE_FIRST_ARCHITECTURE_DECISION
 - Owner decision date: 2026-11-12
 - Repository: `kenznguyen/btcusdt-telegram-signals2`
-- Active branch: `feature/t0-centralized-data-feeder-p1-20261101`
+- Active branch: `feature/core-operational-proof-20261112`
 - Decision status: **APPROVED — architecture direction**
-- Implementation status: **NOT STARTED by this decision**
+- Implementation status at decision date: **NOT STARTED**; superseded by the dated implementation update in Section 8.
 
 ## 1. Decision
 
@@ -78,3 +78,24 @@ No numeric threshold is set by this decision.
 - Shared Risk runtime behavior: **NOT VERIFIED** by this decision.
 - AI production admission: **DEFERRED / BLOCKED**.
 - Next step: separately scope the minimum Core-first readiness and evidence work, starting with T0 data reacquisition only after its own explicit approval.
+
+
+## 8. Implementation and verification update — 2026-11-18
+
+This dated addendum supersedes the historical "NOT STARTED" implementation status above without changing the original 2026-11-12 architecture decision or its safety boundaries.
+
+- Active implementation branch: `feature/core-operational-proof-20261112`.
+- Documentation update baseline HEAD: `e933cdc9f3fafbffeed417615c9ba887d25c5281`.
+- Strategy Core (RSI + ADX + Smart DCA) remains the sole paper-executable strategy.
+- AI remains deferred from paper execution. The common API now defaults an empty evaluate request to Core, accepts explicit `source=CORE`, and rejects any `source=AI` with HTTP 409 / `AI_PAPER_EXECUTION_DEFERRED` before database/risk/ledger admission work.
+- Exact tested source SHA: `3fba2a9f72b0d1ab8efad0ced604afe7e8506bc9`.
+- GREEN workflow: [44258935215](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/44258935215), SUCCESS; checked-out SHA matches the tested source.
+- Artifact: [14407801013](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/44258935215/artifacts/14407801013); recorded SHA-256 `3c34a50eebff9aa39a1098286f4483ec339cc41b10957eac7856cde589bfa695`.
+- API + Paper Storage tests: 45 PASS. Full Core-First operational workflow: PASS, including Core entry/DCA, long/short lifecycle, mixed-writer stress, Shared Risk/Paper Ledger, T0/Paper storage isolation and T1/T2 order-book contracts.
+- `AI_EXECUTION_ENABLED=false`; no exchange credentials; `REAL_ORDERS_SENT=false`; no VPS/persistent runtime and no canonical T0 database mutation.
+- Implementation status: **IMPLEMENTED / CI VERIFIED within this evidence boundary**.
+- Real-market OOS profitability: **NOT VERIFIED**. Production/runtime readiness: **NOT VERIFIED / NOT AUTHORIZED**. Live trading: **NOT AUTHORIZED**.
+- No changes to T0 ownership, Shared Risk authority, risk limits, ledger schema, Kill Switch or Core strategy definition are implied by this status update.
+- Branch integration: **MERGE BLOCKED**. At review, branch was 4,566 commits ahead and 85 behind `main`; complete bounded integration review remains required.
+
+The 2026-11-12 decision remains the governing architecture. This addendum records implementation evidence only; it does not reopen AI admission or authorize Dual-Strategy implementation.
