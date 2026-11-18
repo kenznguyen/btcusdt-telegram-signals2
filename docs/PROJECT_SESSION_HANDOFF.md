@@ -3328,3 +3328,16 @@ Additional payload inspection:
 - Disposition: preserve branch Core workflow and its two additional regressions. Do not replace branch T0 workflow with main's reduced manual-only file. Branch T0 workflow is richer but **NOT READY FOR INTEGRATION AS-IS** pending F-07 dependency and F-08 trigger intent review.
 - Status: Core workflow comparison **PASS**; T0 feature inventory **PASS**; T0 dependency semantics **BLOCKED**; PR trigger coverage **NOT CONFIGURED / NOT VERIFIED**; workflow execution **NOT RUN**; merge **BLOCKED / NOT AUTHORIZED**.
 - Next: inspect remaining T0 gate bodies and exact change-path coverage; draft minimal F-07/F-08 correction proposal without applying it; reconcile main-only G0.52 audit record. No workflow edits/dispatch, merge/rebase/reset/force-push, VPS/runtime/T0 access, AI execution or real orders.
+
+
+## 2026-11-18 — T0 gate coverage and G0.52 reconciliation (bounded pass 3)
+
+- Continued read-only review of the branch T0 manual validation workflow. Updated `docs/evidence/WORKFLOW_INTEGRATION_REVIEW_BOUNDED_PASS2_2026-11-18.md` in commit `642d61bcf8cd2e8383f956be19d15ae4be975551`.
+- F-10: the manual P3 gate runs `market_data.test_feeder_retry`, `market_data.test_feeder_health`, `market_data.test_feeder_health_api` and compiles `app.py`, but these paths are not in the push path filter. Kraken Spot gates are also manual-choice only. This is a confirmed automation-coverage limit; whether it is a defect depends on the intended manual-vs-automatic policy.
+- Reconciled main-only detailed G0.52 audit blob `e8f7c9c2e9a307fa2f241df966fe606f97f3bd34` against branch G0.52 record blob `9e716bd4903892ec338c37b6c59987204d42f6b4`, G0.51 owner record blob `c008b690a5874f33511e3e7e9b632978a5dc0bb3`, and G0.53 package blob `8c9f7980d14a13b16b2f9f79f4cc2bc176253f15`.
+- G0.52 main-only document is substantively duplicative: same date, baseline SHA `7dd321f5960291873dd8f374e6dd62c6a988c7b8`, D01–D14 findings and S2 BLOCKED/NOT READY verdict. It adds explanatory detail but no new Owner decision, test result or implementation authority.
+- Branch G0.53 is the later, narrower proposed S2 synthetic byte-integrity-only contract package, but remains **READY FOR OWNER DECISION — NOT RATIFIED**. G0.51 D12-A/D13-A/D14-A are policy decisions, not implementation approval; D14 requires separate exact-scope approval.
+- Reconciliation report: `docs/evidence/G0_52_MAIN_AUDIT_RECONCILIATION_2026-11-18.md`, created in commit `ac00c99862485954a35169e1ecd5a6faf2a164f1`.
+- Status: G0.52 documentary reconciliation **PASS**; S2 remains **BLOCKED / NOT READY FOR IMPLEMENTATION**; G0.53 ratification **NOT VERIFIED / NOT RATIFIED**; no implementation authority.
+- No tests/CI, workflow dispatch, runtime/VPS/T0/key/provider operation, source/workflow changes, merge/rebase/reset/force-push, AI execution or real orders.
+- Next: assemble the bounded integration map from findings F-01–F-10 and R-01–R-04; identify preserve/reconcile/defer items and required gates. Do not execute integration or workflow corrections without separate approval.
