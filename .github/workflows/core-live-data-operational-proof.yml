@@ -297,9 +297,9 @@ jobs:
               echo "T2_ORDERBOOK_HTTP_READER=NOT_VERIFIED"
               echo "T1_T2_ORDERBOOK_HTTP_INTEGRATION=NOT_VERIFIED"
             fi
-            if grep -q "^OK$" paper-storage-isolation-tests.log && grep -q "Ran 6 tests" paper-storage-isolation-tests.log; then
+            if grep -q "^OK$" paper-storage-isolation-tests.log && grep -q "Ran 7 tests" paper-storage-isolation-tests.log; then
               echo "T0_PAPER_STORAGE_ISOLATION=PASS"
-              echo "T0_PAPER_STORAGE_ISOLATION_TESTS=6_PASS"
+              echo "T0_PAPER_STORAGE_ISOLATION_TESTS=7_PASS"
             else
               echo "T0_PAPER_STORAGE_ISOLATION=NOT_VERIFIED"
             fi
