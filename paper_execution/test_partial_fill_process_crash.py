@@ -17,8 +17,8 @@ RISK_LIMITS = {
 
 
 def _partial_fill_crash_worker(
-    database_path, intent, book, now_ms, checkpoint_name, checkpoint_reached,
-    release_checkpoint,
+    database_path, intent, book, now_ms, checkpoint_name, checkpoint_sender,
+    release_receiver,
 ):
     ledger = PaperLedger(
         database_path,
@@ -37,8 +37,8 @@ def _partial_fill_crash_worker(
 
         def checkpoint(name):
             if name == checkpoint_name:
-                checkpoint_reached.set()
-                release_checkpoint.wait(120)
+                checkpoint_sender.send_bytes(name.encode("utf-8"))
+                release_receiver.recv_bytes()
             return 0
 
         connection.create_function("paper_crash_checkpoint", 1, checkpoint)
@@ -174,29 +174,34 @@ class PartialFillProcessCrashRecoveryTest(unittest.TestCase):
         self.assertEqual(baseline["audit_count"], 0)
 
         context = multiprocessing.get_context("spawn")
-        checkpoint_reached = context.Event()
-        release_checkpoint = context.Event()
+        checkpoint_receiver, checkpoint_sender = context.Pipe(duplex=False)
+        release_receiver, release_sender = context.Pipe(duplex=False)
         process = context.Process(
             target=_partial_fill_crash_worker,
             args=(
                 str(database_path), intent, book, self.fixture.now + 1,
-                checkpoint_name, checkpoint_reached, release_checkpoint,
+                checkpoint_name, checkpoint_sender, release_receiver,
             ),
         )
         process.start()
+        checkpoint_sender.close()
+        release_receiver.close()
         try:
             self.assertTrue(
-                checkpoint_reached.wait(timeout=20),
+                checkpoint_receiver.poll(timeout=20),
                 f"writer did not reach {checkpoint_name}; exit={process.exitcode}",
             )
+            reached_checkpoint = checkpoint_receiver.recv_bytes().decode("utf-8")
+            self.assertEqual(reached_checkpoint, checkpoint_name)
             process.terminate()
             process.join(timeout=10)
             self.assertFalse(process.is_alive(), "partial-fill writer survived termination")
         finally:
-            release_checkpoint.set()
             if process.is_alive():
                 process.kill()
                 process.join(timeout=5)
+            checkpoint_receiver.close()
+            release_sender.close()
 
         self.assertIsNotNone(process.exitcode)
         self.assertNotEqual(process.exitcode, 0, "writer exited normally instead of being killed")
