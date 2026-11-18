@@ -35,7 +35,7 @@ jobs:
       - name: Checkout exact main source
         uses: actions/checkout@v4
         with:
-          ref: main
+          ref: ${{ github.sha }}
           persist-credentials: false
 
       - name: Set up Python
@@ -66,7 +66,7 @@ jobs:
           python -m py_compile pipeline/api.py core_runtime/test_api_facade.py
           echo "PY_COMPILE=PASS" | tee compile-status.txt
 
-      - name: Run quality snapshot regression (RED expected before fix)
+      - name: Run quality snapshot regression
         shell: bash
         run: |
           set -uo pipefail
