@@ -3073,3 +3073,49 @@ Additional payload inspection:
 - In GitHub Actions, select **Core-First code-level operational proof**, choose branch `feature/core-operational-proof-20261112`, and run workflow.
 - Verify the run's checked-out SHA against the intended feature branch HEAD, then record run ID, job conclusions, test summaries, and artifact ID/digest.
 - Keep paper-only settings; do not activate T0/T1 runtime, VPS deployment, exchange access, real orders, or AI execution.
+
+
+## P5 Core First — Kill Reset fixture RED → GREEN (2026-11-18)
+
+### Scope and decision
+
+- Fixed the Common API Kill Reset regression test fixture without weakening control_readiness() or dual_ledger_ready().
+- Extracted the synthetic bootstrap evidence builder to paper_execution/test_support.py; both the bootstrap contract tests and Common API tests use the same fixture builder.
+- Kept the legacy API Kill Switch rejection test on its original legacy/disposable database path.
+- Added a separate success-path test that bootstraps a real isolated PAPER Dual Ledger before exercising Kill Reset. Kept the separate not-ready Dual Ledger test fail-closed.
+- The synthetic funding/equity/owner-attestation documents are test fixtures only. They are not factual funding evidence, authenticated owner identity, or production capital verification.
+- Paper-only boundaries remain: AI_EXECUTION_ENABLED=false; no exchange credentials, canonical T0 database, VPS runtime, or real orders.
+
+### RED evidence
+
+- Prior exact source SHA: 7a80b1f832aec915351b895babeebff307f46620.
+- Workflow run: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/44255180926.
+- Observed regression: Kill Reset returned HTTP 409 because the test database had no validated Dual Ledger contract; fail-closed readiness was correct.
+
+### GREEN evidence — focused tests
+
+- Tested source SHA: 50d6f775ff3c1cd9fe5a20144874f4ee5f4c2b95.
+- Workflow run: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/44256822798.
+- Confirmed PASS steps on this exact SHA:
+  - Dual Ledger bootstrap fixture contracts.
+  - Kill Reset regression set: legacy kill blocks paper evaluation; ready Dual Ledger reset succeeds; not-ready Dual Ledger reset remains rejected.
+  - Common API regressions with isolated Paper storage.
+  - Earlier T0 HTTP boundary, candle client, compile, Strategy Core and multiple Core runtime contract steps.
+- At handoff update time, the full operational workflow is still running at Run read-only PaperLedger readiness preflight contracts; overall workflow conclusion and final artifact are pending. Do not treat the whole Core First proof as PASS yet.
+- The separate Dual Ledger Bootstrap and Owner Attestation workflow runs at SHA 61065dbec75f20c197b6f3f2ff22fd4447567b60 are still in progress; their final conclusions are not yet verified.
+
+### Source commits and files
+
+- 2d3af3af8d0962706dc0ac357cc39cb2e770844a: shared bootstrap fixture, API test bootstrap, focused CI contracts.
+- 61065dbec75f20c197b6f3f2ff22fd4447567b60: restore evidence file references in the bootstrap contract test.
+- 8a9f76823965b8ea5d0729f790bd529945976e70: ensure shared fixture source changes trigger the Core operational proof workflow.
+- 50d6f775ff3c1cd9fe5a20144874f4ee5f4c2b95: separate legacy Kill Switch blocking from Dual Ledger Kill Reset success proof.
+- Changed source/workflow paths: paper_execution/test_support.py, paper_execution/test_dual_ledger_bootstrap.py, pipeline/test_api.py, .github/workflows/core-live-data-operational-proof.yml.
+- No merge, deployment, runtime activation, or live-trading authorization.
+
+### Status and next action
+
+- Focused Kill Reset regression: PASS on tested SHA 50d6f775ff3c1cd9fe5a20144874f4ee5f4c2b95.
+- Full Core operational workflow: IN PROGRESS / NOT VERIFIED until run 44256822798 completes and its artifact is inspected.
+- Separate Dual Ledger Bootstrap and Owner Attestation runs: IN PROGRESS / NOT VERIFIED.
+- Next: collect final run conclusions, exact checked-out SHA, job summaries, artifact IDs and SHA-256 digests; inspect failures if any; then update this handoff again. Core First completion, merge, Dual-Strategy implementation, VPS/runtime use, and real trading remain out of scope.
