@@ -12,12 +12,21 @@ This section supersedes older "Current workstream" labels and stale status summa
 
 - Repository: `kenznguyen/btcusdt-telegram-signals2`.
 - Active branch: `feature/core-operational-proof-20261112`.
-- Source HEAD before this handoff reconciliation: `c771a13f85a5bb20f998dada42eb5e26ac835c65`.
+- Latest verified branch HEAD: `d2edcf7706f36df2712768574269d69ac5b742a0` (documentation/evidence commit; workflow source under test remains `5ab1d10a54ad31a48fa777d017173c8ffb031ae5`).
 - Core First is the active priority. Do not begin Dual-Strategy Intelligence implementation until Core First closeout and a separate owner approval.
 - Strategy Core remains RSI + ADX + Smart DCA and the only paper-executable strategy.
 - AI is observation/research only in this phase. `POST /v1/paper/evaluate` rejects `source=AI` with HTTP 409 / `AI_PAPER_EXECUTION_DEFERRED`; empty payload defaults to Core; explicit `source=CORE` routes to Core Runner.
 - Shared Risk Engine remains the final common risk authority. Paper-only; `AI_EXECUTION_ENABLED=false`; no live orders or exchange execution.
 - No T0 canonical database mutation, VPS/runtime activation, deployment, merge, rebase, reset or force-push is authorized by this status update.
+
+### Latest T0 manual-validation workflow evidence — 2026-11-18
+
+- Exact tested workflow/source SHA: `5ab1d10a54ad31a48fa777d017173c8ffb031ae5`; final workflow blob SHA: `2d5d4bfdef7578088df7cf73e603ed1943b9db74`.
+- GitHub Actions run [44276873908](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/44276873908): SUCCESS, push event, 10/10 jobs completed; manual-only gate skipped as expected.
+- P3 retry/health job ran 33 tests, `OK`; Flask 3.1.3 was installed in the isolated P3 job.
+- F-07 PASS; F-10 PASS; F-08 push trigger PASS. F-08 pull_request-to-main remains NOT VERIFIED because no open PR exists for the active branch and no PR event was run.
+- Evidence report: `docs/evidence/T0_MANUAL_VALIDATION_WORKFLOW_F07_F08_F10_FIX_2026-11-18.md`; latest report/handoff commits are recorded in Git history. Artifact IDs and provider-reported digests are in that report; payload digests were not independently recomputed.
+- Creating a PR solely to exercise the PR trigger has not been authorized; do not create one without explicit approval.
 
 ### Latest Core First evidence
 
@@ -31,8 +40,8 @@ This section supersedes older "Current workstream" labels and stale status summa
 
 ### Branch integration status
 
-- Verified immediately before this handoff reconciliation: branch HEAD `c771a13f85a5bb20f998dada42eb5e26ac835c65`; main HEAD `6bff2aff91657238297848ef644a0cb4112ab428`; merge base `f5b74affb8777953fa66d241784965fbb0e577ba`.
-- GitHub compare of the current branch ref reports branch ahead by 4,567 commits and behind by 85 commits. The comparison against reviewed snapshot `ff74d10aba0bdd60c14bebbe07746452571213fb` reports 7 commits ahead, confirming that snapshot is not the current branch tip. This is a large divergent history; MERGE BLOCKED.
+- Verified 2026-11-18 after the T0 workflow evidence commits: branch HEAD `d2edcf7706f36df2712768574269d69ac5b742a0`; main HEAD `6bff2aff91657238297848ef644a0cb4112ab428`; merge base `f5b74affb8777953fa66d241784965fbb0e577ba`.
+- Fresh GitHub compare reports branch ahead by 4,604 commits and behind by 85 commits (status `diverged`; compare response capped at 300 changed-file entries). No open PR was found for head `kenznguyen:feature/core-operational-proof-20261112`. This remains a large divergent history; MERGE BLOCKED.
 - Do not infer that the 85 commits can be safely integrated from compare metadata alone.
 
 ## Core First integration manifest — 2026-11-18
