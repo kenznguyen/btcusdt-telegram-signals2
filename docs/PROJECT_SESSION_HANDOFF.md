@@ -12,7 +12,7 @@ This section supersedes older "Current workstream" labels and stale status summa
 
 - Repository: `kenznguyen/btcusdt-telegram-signals2`.
 - Active branch: `feature/core-operational-proof-20261112`.
-- Latest verified branch HEAD: `d2edcf7706f36df2712768574269d69ac5b742a0` (documentation/evidence commit; workflow source under test remains `5ab1d10a54ad31a48fa777d017173c8ffb031ae5`).
+- Latest verified branch HEAD before this handoff update: `6546e4570a3d744c8bc1457018e2a94484a659cb` (post-repair Stage I read-only review evidence commit; workflow source under test remains `5ab1d10a54ad31a48fa777d017173c8ffb031ae5`).
 - Core First is the active priority. Do not begin Dual-Strategy Intelligence implementation until Core First closeout and a separate owner approval.
 - Strategy Core remains RSI + ADX + Smart DCA and the only paper-executable strategy.
 - AI is observation/research only in this phase. `POST /v1/paper/evaluate` rejects `source=AI` with HTTP 409 / `AI_PAPER_EXECUTION_DEFERRED`; empty payload defaults to Core; explicit `source=CORE` routes to Core Runner.
@@ -27,6 +27,17 @@ This section supersedes older "Current workstream" labels and stale status summa
 - F-07 PASS; F-10 PASS; F-08 push trigger PASS. F-08 pull_request-to-main remains NOT VERIFIED because no open PR exists for the active branch and no PR event was run.
 - Evidence report: `docs/evidence/T0_MANUAL_VALIDATION_WORKFLOW_F07_F08_F10_FIX_2026-11-18.md`; latest report/handoff commits are recorded in Git history. Artifact IDs and provider-reported digests are in that report; payload digests were not independently recomputed.
 - Creating a PR solely to exercise the PR trigger has not been authorized; do not create one without explicit approval.
+
+
+### Latest T0 A2.2 Stage I post-repair review — 2026-11-18
+
+- Reviewed branch HEAD before report commit: `45e2457af945d9b3ea4c9d02de054798d8b4b47f`; review was static/read-only.
+- Evidence report: `docs/evidence/T0_A2_2_STAGE_I_POST_REPAIR_READ_ONLY_REVIEW_2026-11-18.md`; report commit `6546e4570a3d744c8bc1457018e2a94484a659cb`.
+- R1 PASS, R2 PASS (modeled bindings only), R3 PASS, R5 PASS, F-03 PASS. R4 remains PARTIAL.
+- R4 follow-up findings: baseline digests are generated dynamically from the same mutable baseline fixtures and are not independently pinned; B0 `state_snapshot.trust_roots` terminology does not explicitly distinguish test signer trust material from an empty bootstrap-root enrollment set. Signature and custody/readback dimensions remain `NOT_VERIFIED` and must not be promoted using mock assertions.
+- Tests were NOT RUN on reviewed HEAD; no workflow run/artifact was created.
+- Recommended next action: prepare a narrow R4 hardening proposal (independent expected baseline digests and explicit signer-vs-bootstrap-root state separation). Before editing the two authorized Stage I files, confirm the existing R1–R5 approval covers this additional R4 hardening; otherwise request separate approval.
+- Stage I full contract conformance remains PARTIAL / NOT VERIFIED. Workflow dispatch, Stages II–V, production crypto/bootstrap, merge, deployment and trading remain NOT AUTHORIZED.
 
 ### Latest Core First evidence
 
