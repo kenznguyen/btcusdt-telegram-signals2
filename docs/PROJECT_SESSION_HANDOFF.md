@@ -2,16 +2,16 @@
 
 - Repository: `kenznguyen/btcusdt-telegram-signals2`; branch: `main`.
 - Pre-change source HEAD: `e0880d4144b0d81ca1ff3e2e9e97a72ee408eedf`.
-- Current main HEAD after source retirement and dependency-manifest correction: `3bdae4aa19efb1b90554f1f9f8aab27f607f3180`.
+- Source retirement commit: `de4a3e84c38507b76ff561cddb71a7b14a970933`; dependency/docs correction commit: `3bdae4aa19efb1b90554f1f9f8aab27f607f3180`.
 - Owner-approved scope: remove legacy Telegram webhook/commands/notifications, Dashboard UI, and legacy backtest engine including `backtest.py`.
-- Removed: `app.py`, `telegram_commands.py`, `backtest.py`, `dashboard/index.html`, `.github/backtest-trigger.txt`, workflows `telegram-command.yml`, `signal-scan.yml`, `dashboard-backtest.yml`, and `requirements-web.txt`.
+- Removed: `app.py`, `telegram_commands.py`, `backtest.py`, `dashboard/index.html`, `.github/backtest-trigger.txt`, workflows `telegram-command.yml`, `signal-scan.yml`, and `dashboard-backtest.yml`.
 - `bot.py` is retained as a side-effect-free strategy reference containing RSI/ADX indicators and RSI-cross, TP, Smart-DCA, Soft SL, Emergency SL and fill helpers. Telegram messaging/reporting, external candle fetching, state persistence and scanner entrypoint are removed.
 - Added `ci/test_strategy_rules.py`; test execution **NOT RUN**. No workflow dispatched; artifacts NONE; independent review NOT VERIFIED.
 - `requirements-web.txt` was explicitly retained after tracing active Core workflow consumers (`core-api-quality-regression.yml` and `core-live-data-operational-proof.yml`); deleting it would break unrelated CI.
 - Independent RSI-%b research backtest and its specification are retained. `BACKTEST_COMPARISON_180D.md` remains historical/inactive pending a new engine.
 - Archived Telegram README retained but explicitly marked RETIRED.
 - T0 remains independent and unchanged. Core First branch `feature/core-operational-proof-20261112` remains separate and is not modified. Dual-Strategy work remains deferred. No VPS/runtime/deployment/exchange/live-order activity.
-- GitHub tree/readback verification: **PASS** at source commit `de4a3e84c38507b76ff561cddb71a7b14a970933`; documentation/dependency correction commit `3bdae4aa19efb1b90554f1f9f8aab27f607f3180` preserves `requirements-web.txt` for active Core workflows.
+- GitHub tree/readback verification: **PASS** at source commit `de4a3e84c38507b76ff561cddb71a7b14a970933`; documentation/dependency correction commit `3bdae4aa19efb1b90554f1f9f8aab27f607f3180` preserves `requirements-web.txt` for active Core workflows. Latest final tree/handoff readback is recorded in this 2026-11-19 handoff update.
 - Local execution was unavailable because the checkout environment could not resolve `github.com`; focused tests and CI remain **NOT RUN / NOT VERIFIED**. No workflow run or artifact exists for this change.
 - Next: execute `python -m unittest ci.test_strategy_rules -v` and safe repository CI on exact current main SHA; inspect repository-wide remaining callers/references and then update this status with exact workflow/run/artifact evidence. Until then, strategy runtime parity remains **NOT VERIFIED**.
 
