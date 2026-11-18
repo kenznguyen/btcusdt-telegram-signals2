@@ -243,6 +243,45 @@ class FiveLayerApiTest(unittest.TestCase):
                     "inputSnapshotId": "sha256:"+"d"*64, "mode": "PAPER",
                 }}
 
+    def test_ai_paper_evaluation_is_rejected_when_dual_ledger_is_not_ready(self):
+        with patch.object(api, "decide", return_value=self.valid_ai_decision()) as ai_decision:
+            code, result = self.request(
+                "/v1/paper/evaluate", "POST", {"source": "AI"}
+            )
+
+        self.assertEqual(code, 409, result)
+        self.assertEqual(result["error"], "AI_PAPER_EXECUTION_DEFERRED")
+        ai_decision.assert_not_called()
+        with sqlite3.connect(self.paper_db) as connection:
+            tables = connection.execute(
+                "SELECT name FROM sqlite_master WHERE type='table'"
+            ).fetchall()
+        self.assertEqual(tables, [])
+
+    def test_ai_paper_evaluation_is_rejected_when_dual_ledger_is_ready(self):
+        self.paper_db.unlink()
+        manifest = build_dual_ledger_bootstrap_manifest(
+            self.root, self.now, self.paper_db, "b" * 40
+        )
+        bootstrap = bootstrap_paper_account(self.paper_db, manifest)
+        self.assertTrue(bootstrap["riskReady"])
+        from paper_execution.ledger import dual_ledger_ready
+        self.assertTrue(dual_ledger_ready(self.paper_db))
+
+        with patch.object(api, "decide", return_value=self.valid_ai_decision()) as ai_decision:
+            code, result = self.request(
+                "/v1/paper/evaluate", "POST", {"source": "AI"}
+            )
+
+        self.assertEqual(code, 409, result)
+        self.assertEqual(result["error"], "AI_PAPER_EXECUTION_DEFERRED")
+        ai_decision.assert_not_called()
+        with sqlite3.connect(self.paper_db) as connection:
+            ai_orders = connection.execute(
+                "SELECT COUNT(*) FROM paper_orders WHERE strategy_id='AI_FREQAI'"
+            ).fetchone()[0]
+        self.assertEqual(ai_orders, 0)
+
     def test_missing_trusted_calibration_context_blocks_ai_paper_execution(self):
         code, intelligence = self.request("/v1/intelligence")
         self.assertEqual(code, 200, intelligence)
