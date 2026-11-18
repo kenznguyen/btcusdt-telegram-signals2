@@ -2187,3 +2187,37 @@ This follow-up supersedes the earlier pending items for persistent preview artif
 - Reconcile final conclusion and artifact for Core run `44209353003`.
 - If green, perform independent read-only review of this increment and record the final compliance status.
 - Then proceed to the separately scoped actual partial-fill process-crash recovery test. Keep T0/T1 runtime, VPS deployment, AI execution and live trading disabled.
+
+
+## 2026-11-18 — Architecture Compliance Remediation 2 final CI result
+
+- Core First workflow run `44209353003`: SUCCESS.
+- Exact checkout/source SHA: `659d6c2c6aeb0b36eaa1711a6d0b43e25e2e0cab`.
+- Job ID: `134483433176`; no failed steps.
+- Artifact: `core-first-code-operational-proof-44209353003`, ID `14385372661`, 16,623 bytes, SHA-256 `8a7a1e07a0aa86f6ac3bc18a49d4e81ed7d454ca9030475c582ed06c12db18bc`, expires 2026-11-25.
+- Verified exact invocations:
+  - Paper/T0 storage isolation: 7 PASS.
+  - T0 Candle HTTP client: 51 PASS.
+  - Common API T0 HTTP boundary: 3 PASS.
+  - Common API + Paper storage regressions: 32 PASS.
+  - Core API facade: 8 PASS.
+  - Core First end-to-end PAPER proof: 50 PASS.
+  - Core Runner disposable SQLite ledger integration: 27 PASS.
+  - Shared risk/PaperLedger and scoped reservation expiry suites: PASS.
+  - T1/T2 Order Book V1, HTTP reader and integration invocation: 49 PASS.
+- Separate T2 HTTP workflow `44209227437`: SUCCESS; artifact ID `14385411676`, SHA-256 `6a54d879d2957d46bf2a9046aa44deb4f5f0539f24a80603d5648d0b7ef128f7`.
+- Separate T1/T2 order-book workflow `44209353009`: SUCCESS; artifact ID `14384164457`, SHA-256 `ac6afc0951cbc3e440df2ef2b9508aa8f40691a116a50942573d53c4631f4cab`.
+- Handoff documentation update commit: `95e8e6dba9fe0b57032a1c8a993a62e6722a7d4e`; current branch HEAD after that docs-only commit is `95e8e6dba9fe0b57032a1c8a993a62e6722a7d4e`.
+
+**Compliance verdict for Remediation 2**
+- PASS: Common API source-level candle read boundary is T0 authenticated read-only HTTP only; no direct local T0 store read or local fallback remains.
+- PASS: optional as-of behavior preserves legacy unbounded AI dataset identity while Core one-page bundle reads remain explicit-as-of.
+- PASS: Paper DB remains independent and may be configured without exposing the T0 local DB path.
+- NOT VERIFIED: deployed Common API ↔ deployed T0 HTTP connectivity. No runtime endpoint/token configuration was changed or tested.
+- NOT VERIFIED: T1 deployed server interoperability. T1 PR remains Draft/not merged; CI contract and loopback integration tests are not deployment evidence.
+- NOT VERIFIED: actual process termination at partial-fill transaction checkpoints. The current ledger integration suite does not replace that crash test.
+- Overall Core First remains PARTIAL / NOT VERIFIED. No merge, branch promotion, VPS deployment, runtime activation, AI execution or live trading.
+
+**Next authorized increment**
+- Add a targeted RED-first test that kills a separate writer process at real partial-fill transaction checkpoints (after journal insertion/before dependent writes, and after dependent writes/before commit), reopens the actual PaperLedger database, and proves atomic all-or-nothing state across journal, order, reservation, position, risk and audit.
+- Do not alter T0 canonical storage, T1 deployment, VPS runtime, autostart, AI execution or live trading.
