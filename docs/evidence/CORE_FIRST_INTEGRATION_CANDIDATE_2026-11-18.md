@@ -116,3 +116,13 @@ The compare exposes 16 paths. Key dispositions:
 - The connected GitHub action set in this session has no workflow-dispatch operation. No workflow was triggered. CI on the exact current HEAD remains **NOT RUN / NOT VERIFIED**.
 - Required owner action: GitHub → Actions → **Core-First code-level operational proof** → Run workflow → select branch `feature/core-operational-proof-20261112`. Confirm the run's checkout/source SHA equals the then-current branch HEAD before treating results as exact-HEAD evidence. If branch HEAD changes before dispatch, use the new SHA and update this record.
 - No merge, rebase, reset, force-push, new branch/PR, deployment, runtime activation, canonical T0 access, exchange connection or real order.
+
+
+## Final source identity check after documentation updates
+
+- Verified current branch HEAD: `8bae34dc8727012ab21b41520cdc99da00b4468a`.
+- Verified handoff blob: `ba7c6c1dc6f502be2d1acc9ad4583bdbd5f32347`.
+- Verified this evidence report blob before this final note: `7ae2a390d86878458b1512c456f57fcc4a7b204c`.
+- Latest compare against main: 4,572 ahead / 85 behind; merge base `f5b74affb8777953fa66d241784965fbb0e577ba`.
+- Exact HEAD CI: **NOT RUN / NOT VERIFIED**. No workflow-dispatch action is exposed in the connected GitHub tools. Do not treat the prior GREEN run on `3fba2a9...` as an exact-current-HEAD run.
+- Next user action: manually dispatch the existing workflow on `feature/core-operational-proof-20261112`; verify checkout SHA `8bae34dc8727012ab21b41520cdc99da00b4468a` before evaluating PASS.
