@@ -7,6 +7,7 @@ on:
     paths:
       - "pipeline/api.py"
       - "core_runtime/test_api_facade.py"
+      - "ci/test_core_api_quality_snapshot.py"
       - ".github/workflows/core-api-quality-regression.yml"
   workflow_dispatch:
 
@@ -63,14 +64,14 @@ jobs:
       - name: Compile Core API and regression test
         run: |
           set -euo pipefail
-          python -m py_compile pipeline/api.py core_runtime/test_api_facade.py
+          python -m py_compile pipeline/api.py ci/test_core_api_quality_snapshot.py
           echo "PY_COMPILE=PASS" | tee compile-status.txt
 
       - name: Run quality snapshot regression
         shell: bash
         run: |
           set -uo pipefail
-          python -m unittest core_runtime.test_api_facade.CoreApiFacadeTest.test_quality_projection_uses_bundle_preview_and_t1_book_evidence -v 2>&1 | tee quality-snapshot-regression.log
+          python -m unittest ci.test_core_api_quality_snapshot -v 2>&1 | tee quality-snapshot-regression.log
           status=${PIPESTATUS[0]}
           echo "QUALITY_SNAPSHOT_TEST_EXIT=${status}" | tee quality-snapshot-test-status.txt
           exit "${status}"
