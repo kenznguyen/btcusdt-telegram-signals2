@@ -199,6 +199,20 @@ class FixtureMatrixTests(unittest.TestCase):
         self.assertEqual(baseline["bootstrap"], mutated["bootstrap"])
 
 
+    def test_nv20_mutates_normative_bootstrap_record_profile_field(self):
+        from t0_signature_stage1.verdicts import PROFILE_ID, PROFILE_VERSION, build_fixture, evaluate_fixture_content
+        baseline, mutated, spec = build_fixture("A2.2-NV-20")
+        self.assertEqual(spec.mutation_path, "bootstrap_record.signature_profile_id")
+        self.assertEqual(baseline["bootstrap_record"]["signature_profile_id"], PROFILE_ID)
+        self.assertEqual(baseline["bootstrap_authorization"]["signature_profile_id"], PROFILE_ID)
+        self.assertEqual(baseline["bootstrap_authorization"]["signature_profile_version"], PROFILE_VERSION)
+        self.assertEqual(mutated["bootstrap_record"]["signature_profile_id"], "SUBSTITUTED-PROFILE")
+        self.assertEqual(mutated["bootstrap_authorization"], baseline["bootstrap_authorization"])
+        after, result = evaluate_fixture_content(baseline, mutated, _test_state())
+        self.assertEqual((result.verdict, result.reason_code),
+                         ("INVALID", "ROOT_BOOTSTRAP_PROFILE_MISMATCH"))
+        self.assertEqual(after, _test_state())
+
     def test_baselines_have_complete_canonical_evidence_and_policy_authorization_metadata(self):
         from t0_signature_stage1.verdicts import _BASELINES
         from t0_signature_stage1.primitives import evidence_object_digest, parse_canonical_json
