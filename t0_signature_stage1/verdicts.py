@@ -24,7 +24,8 @@ MOCK_REJECTED = "MOCK_REJECTED"
 
 @dataclass(frozen=True)
 class StageStateSnapshot:
-    trust_roots: tuple[str, ...]
+    bootstrap_roots: tuple[str, ...]
+    test_signer_trust_material: tuple[str, ...]
     policy_head: str
     anchor_head: tuple[int, str]
     checkpoint_head: tuple[str, str]
@@ -221,7 +222,8 @@ def _make_baseline(name: str, *, legacy_statement: bool = False, path_a_enabled:
             "immutable": True,
         },
         "state_snapshot": {
-            "trust_roots": ["synthetic-root-fingerprint"],
+            "bootstrap_roots": [],
+            "test_signer_trust_material": ["synthetic-checkpoint-signer-fingerprint"],
             "policy_head": "policy-digest-0",
             "anchor_head": [0, "anchor-digest-0"],
             "checkpoint_head": ["checkpoint-0", "object-digest-0"],
@@ -235,6 +237,11 @@ _BASELINES = {
     "B0": _make_baseline("A2.2-SYNTHETIC-BASELINE-B0"),
     "B0-PF": _make_baseline("A2.2-SYNTHETIC-BASELINE-B0-PF", legacy_statement=True),
     "B-A": _make_baseline("A2.2-SYNTHETIC-HYPOTHETICAL-BASELINE-B-A-NOT-OPERATIONAL", path_a_enabled=True),
+}
+_BASELINE_DIGESTS = {
+    "B0": "6f0da5da65d0892cfcb913cc7aeb46df966eedadd26281da64885302d0232cd7",
+    "B0-PF": "3137e4a63a19398469f7d8b27b5fecc71d573cd43d954ed7e76e4124c4a6b223",
+    "B-A": "4a75faea129d1029cbfc1f1b548b9ac5735971289522cebc7913cbd3d9f774b0",
 }
 
 
@@ -273,6 +280,9 @@ def fixture_catalog() -> tuple[FixtureSpec, ...]:
     fixtures = []
     for index, (baseline, mutation_path, mutation_value, verdict, reason, dimension) in enumerate(_FIXTURE_ROWS, start=1):
         baseline_bytes = canonicalize(_BASELINES[baseline])
+        baseline_digest = hashlib.sha256(baseline_bytes).hexdigest()
+        if baseline_digest != _BASELINE_DIGESTS[baseline]:
+            raise ValueError(f"{baseline}: pinned baseline digest mismatch")
         fixtures.append(FixtureSpec(
             case_id=f"A2.2-NV-{index:02d}",
             baseline=baseline,
@@ -280,7 +290,7 @@ def fixture_catalog() -> tuple[FixtureSpec, ...]:
             expected_verdict=verdict,
             expected_reason=reason,
             dimension_result=dimension,
-            baseline_digest=hashlib.sha256(baseline_bytes).hexdigest(),
+            baseline_digest=_BASELINE_DIGESTS[baseline],
             mutation_path=mutation_path,
             mutation_value=copy.deepcopy(mutation_value),
             schema_version=FIXTURE_SCHEMA_VERSION,
@@ -514,7 +524,8 @@ def evaluate_fixture_content(
                                         dimension_results={}, state_s0=state, state_s1=state,
                                         forbidden_transitions={key: True for key in _FORBIDDEN_TRANSITIONS})
         if not isinstance(snapshot, Mapping) or (
-            tuple(snapshot.get("trust_roots", ())) != state.trust_roots
+            tuple(snapshot.get("bootstrap_roots", ())) != state.bootstrap_roots
+            or tuple(snapshot.get("test_signer_trust_material", ())) != state.test_signer_trust_material
             or snapshot.get("policy_head") != state.policy_head
             or tuple(snapshot.get("anchor_head", ())) != state.anchor_head
             or tuple(snapshot.get("checkpoint_head", ())) != state.checkpoint_head
