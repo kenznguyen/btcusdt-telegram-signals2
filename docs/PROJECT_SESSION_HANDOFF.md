@@ -21,6 +21,20 @@
 - No workflow dispatched, no source/workflow modified, no T0/runtime/VPS/DB/Feeder/exchange/trading activity. Tests/CI NOT RUN; artifacts NONE.
 - Next: resolve Stage I source ownership/provenance read-only (history and all relevant refs). No deletion or workflow edit without separate explicit approval.
 
+
+## 2026-11-18 — Cross-branch functional overlap audit
+
+- Read-only targeted comparison: `main` HEAD before this audit `fb26b5cb8c7184c735a170e139bf0935367ce337`; T0 branch `feature/t0-centralized-data-feeder-p1-20261101` HEAD `eb91528bab2b994f283dbe34cd7b0bcbfe406cb5`.
+- Confirmed Strategy Core rule overlap: main `bot.py` (blob `9151c61165d5ce9bcfd90f800b4f56f016347d6f`) implements RSI/ADX/Smart-DCA signal logic; branch `pipeline/core_strategy.py` (blob `c14e76f2cecb9f8aca54db263ded1ff17881cb24`) explicitly mirrors those rules as a native Strategy Core producer. Not drop-in replacements: bot.py also owns legacy Telegram/reporting paths; core_strategy emits a versioned intent under paper architecture. Consolidation is a future candidate only after Core First acceptance/parity evidence.
+- Confirmed common API overlap: main `pipeline/api.py` blob `b6f017f603fecd242ba47a83fff387f8594bca2e` and branch version blob `d0217944bbfa9b864b0f259e0091daf9a989d180` implement overlapping common read API/paper control route families, but differ in Core adapter and signal/paper handling. Keep each ref isolated; no replacement/cherry-pick implied.
+- Same filename, different function: main `app.py` blob `198c373b1008a2a53e74dd43d7c2c3f8f6343c83` is Telegram webhook/dashboard + GitHub Actions backtest dispatch; branch `app.py` blob `760d6d8e8a8680160df97f030931fda256205072` is T0 feeder health/dashboard. Not duplicates.
+- Backtest distinction: main `backtest.py` blob `1ad441dbfd18498adefea3776b60a0797ac3367a` simulates bot.py RSI/ADX/Smart-DCA rules; branch `backtest_rsi_percent_b_h1_adx.py` blob `4765c53c358b1091a6619cad6d2b37a3f1751520` is an independent RSI-%b research definition, not a drop-in duplicate.
+- T0 modules `market_data/*`, `pipeline/core_strategy.py`, `pipeline/core_signal.py`, `pipeline/decision.py`, `paper_execution/risk_control.py`, `paper_execution/ledger.py` were not found on main at checked refs; do not infer branch deletion/copy authorization.
+- Report: `docs/evidence/MAIN_DOCUMENTATION_CLEANUP_2026-11-18.md`, section “Cross-branch functional overlap audit”; report commit `3eb17c8414d9cbc59c45689c8642a7f876dd4f56`, blob `cde09f45ad4f634a1d809e9fa327922fa5d7a872`.
+- Status: targeted static overlap review PASS; complete repo-wide duplicate detection NOT VERIFIED; test/runtime parity NOT VERIFIED. No files changed outside documentation; no tests/CI/workflows or T0 runtime/data/VPS/exchange/trading touched.
+- Next: any wider cleanup requires subsystem-by-subsystem caller/test/dependency tracing. Preserve Core First sequencing; do not bulk-merge the T0 branch or delete candidate files without exact approval.
+
+
 ---
 
 # CURRENT WORKFLOW LIFECYCLE AUDIT — 2026-11-18
