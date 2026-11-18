@@ -2304,3 +2304,17 @@ This follow-up supersedes the earlier pending items for persistent preview artif
 - Confirm GitHub Actions run for commit `6f6ecfb6c10c0d80f8e1c91569a4ebbd91a886e2`.
 - Inspect each checkpoint log, timeout status, worker exit code, and faulthandler output.
 - Preserve the current branch and paper-only safeguards; do not change ledger logic without a reproduced defect.
+
+
+## 2026-11-18 — Partial-fill crash harness: replace multiprocessing Events with Pipes
+
+- Scope: fix only the disposable process-crash test harness; do not modify production PaperLedger behavior.
+- Prior diagnostic evidence: workflow run `44224876140`, source SHA `6f6ecfb6c10c0d80f8e1c91569a4ebbd91a886e2`, job `134537550818`, conclusion FAILURE. Both isolated crash checkpoints timed out with exit status 124. Faulthandler showed the test parent blocked inside `multiprocessing.synchronize.Event.set()` during cleanup. This is evidence of a harness synchronization deadlock, not evidence of a PaperLedger atomicity defect.
+- Prior artifact: `core-first-code-operational-proof-44224876140`, artifact ID `14391979251`, size 14,695 bytes, SHA256 `047bb439900ab889d3ac8bdf5c5800f3ef572395aced5a15bf039d0f6cbafc70`, expires 2026-11-25.
+- Change: replaced checkpoint/release `multiprocessing.Event` objects with one-way `multiprocessing.Pipe` endpoints in `paper_execution/test_partial_fill_process_crash.py`. Child reports the exact checkpoint over the pipe and blocks on a separate pipe; parent terminates the writer without touching an Event condition lock. No production source changed.
+- Commit/source SHA: `5c941be7c9221b01ce803aac10068a7cab053a86`; changed file blob SHA `e0847a38c9c6680c63b090c2fe6018d9fba9c947`.
+- Verification: GitHub Actions run `44226574145` on exact source SHA `5c941be7c9221b01ce803aac10068a7cab053a86`; at handoff update time the run was IN_PROGRESS, job `134541083225`. Compile and earlier steps through Continuous Core no-side-effect dry-run were PASS; read-only PaperLedger readiness preflight was running. Crash checkpoints and final artifact were not yet verified.
+- Status: harness change committed; crash-recovery verification remains BLOCKED / NOT VERIFIED pending run `44226574145`. No claim of Ledger atomicity proof.
+- Safety: `AI_EXECUTION_ENABLED=false`; canonical T0 untouched; no exchange credentials, real orders, VPS, or persistent runtime. No changes to `paper_execution/ledger.py`.
+- Next: inspect run `44226574145`, especially both independently isolated crash checkpoint logs and artifact. If pipe synchronization works, verify SQLite rollback, integrity, foreign keys, and retry state. If it still fails, diagnose the new traceback before changing anything.
+- Prohibited: no Ledger changes without a reproduced production defect and RED regression; no T0/T1 runtime deployment, systemd/autostart, AI Strategy execution, live orders, merge, or branch promotion.
