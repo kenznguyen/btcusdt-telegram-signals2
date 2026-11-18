@@ -2290,3 +2290,17 @@ This follow-up supersedes the earlier pending items for persistent preview artif
 - Retrieve both checkpoint logs and identify any assertion failure or repeated stack trace.
 - Fix only the demonstrated harness issue, or prove a ledger defect with a RED regression before any production-source change.
 - Core First remains PARTIAL / NOT VERIFIED; T1 deployment/interoperability remains separately NOT VERIFIED. No merge, branch promotion, deployment, AI execution or live trading.
+
+## 2026-11-18 — Crash-test timeout process-tree correction
+
+- Read-only inspection of the isolated diagnostic workflow found that GNU `timeout --foreground` does not manage the command's process group. The crash test starts a spawned writer process; if the test runner itself stalls, a spawned child could outlive the timeout and retain a SQLite lock. This undermines reliable isolation between the two checkpoint invocations.
+- Corrected the workflow to use process-group timeout (removed `--foreground`) with TERM and a 5-second KILL grace period.
+- Workflow commit: `6f6ecfb6c10c0d80f8e1c91569a4ebbd91a886e2`.
+- Scope is CI harness only. No Python test source or production ledger source changed.
+- This is a plausible diagnostic-harness defect identified by static inspection, not yet proven as the cause of the earlier hangs.
+- Verdict remains **BLOCKED / NOT VERIFIED** until a workflow run at the corrected commit reports both checkpoint tests passing and artifacts contain their complete logs.
+
+**Next**
+- Confirm GitHub Actions run for commit `6f6ecfb6c10c0d80f8e1c91569a4ebbd91a886e2`.
+- Inspect each checkpoint log, timeout status, worker exit code, and faulthandler output.
+- Preserve the current branch and paper-only safeguards; do not change ledger logic without a reproduced defect.
