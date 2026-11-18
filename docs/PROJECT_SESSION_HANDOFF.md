@@ -1,3 +1,15 @@
+# CURRENT MAIN SNAPSHOT — 2026-11-19 (MAIN ↔ T1 FUNCTIONAL OVERLAP AUDIT)
+
+- Main repo: `kenznguyen/btcusdt-telegram-signals2`, branch `main`, source HEAD audited: `719146bda589b567c5ff2784fe0ae31b7fb641b6`.
+- T1 repo: `kenznguyen/binance-futures-collector`, branch `main`, source HEAD audited: `c91a8c22d3b6236c98ab9a4d4d69b25d47f7f738`.
+- Result: no exact duplicate file or drop-in duplicate implementation established. Partial overlap exists in Order Book API presentation and monitoring/quality surfaces; data sources, route contracts and layer responsibilities differ.
+- Main `pipeline/api.py` Order Book endpoint uses the Hummingbot bridge; T1 Dashboard endpoint reconstructs from T1 CSV. T1 Order Book Provider V1 publisher exists in source but remains PAUSED and is not wired into `src/main.rs` or `OrderbookManager`.
+- Main `pipeline/api.py` currently imports several modules absent from the inspected main tree; API runtime and its route are **NOT VERIFIED**. This is a dependency-integrity issue, not proof of duplication.
+- Evidence: `docs/evidence/MAIN_T1_FUNCTIONAL_OVERLAP_AUDIT_2026-11-19.md`; static audit only, no source/workflow/runtime changes. Tests and independent review NOT RUN.
+- Next: resolve main API dependency integrity separately before making any deletion decision. Keep T1 frozen; no provider route/runtime wiring or T0/T2 changes.
+
+---
+
 # CURRENT MAIN SNAPSHOT — 2026-11-19 (LEGACY TELEGRAM/DASHBOARD RETIREMENT)
 
 - Repository: `kenznguyen/btcusdt-telegram-signals2`; branch: `main`.
