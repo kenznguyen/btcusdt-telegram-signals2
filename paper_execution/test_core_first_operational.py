@@ -15,7 +15,8 @@ from unittest.mock import patch
 
 from paper_execution import ledger as ledger_module
 from paper_execution.ledger import PaperLedger
-from paper_execution.risk_control import _issue_kill_reset_evidence
+from paper_execution import kill_reset_service
+from paper_execution.kill_reset_service import _issue_kill_reset_evidence
 import rfc8785
 
 
@@ -113,6 +114,12 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
+        self.key_path = Path(self.temp.name) / "kill-reset-signing.key"
+        self.key_path.write_bytes(b"test-only-kill-reset-signing-key-32-bytes")
+        self.key_path.chmod(0o600)
+        self.key_patch = patch.object(kill_reset_service, "KILL_RESET_SIGNING_KEY_PATH", self.key_path)
+        self.key_patch.start()
+        self.addCleanup(self.key_patch.stop)
         self.now = 1_800_000_000_000
         self.m15_rows = candles(120, 900_000, self.now)
         current_open = self.m15_rows[-1]["openTimeMs"]

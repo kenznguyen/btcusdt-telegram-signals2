@@ -461,7 +461,7 @@ def control_readiness(timestamp):
                 ).hexdigest(),
                 "observedAtMs": data["book"]["observedAtMs"],
             }
-            from paper_execution.risk_control import _issue_kill_reset_evidence
+            from paper_execution.kill_reset_service import _issue_kill_reset_evidence
             readiness["evidence"] = _issue_kill_reset_evidence(
                 checked_at_ms=timestamp, checks=checks,
                 candle_evidence=candle_evidence, book_evidence=book_evidence,
@@ -568,15 +568,23 @@ def application(environ, start_response):
             elif path == "/v1/paper/kill" and set(payload) == {"enabled"} and payload["enabled"] is True:
                 result = ledger().set_killed(True, timestamp, "OPERATOR_KILL_SWITCH")
             elif path == "/v1/paper/reset-kill" and set(payload) == {"acknowledge"} and payload["acknowledge"] is True:
-                readiness = control_readiness(timestamp)
-                if not readiness["ready"]:
-                    return response("409 Conflict", {"error": "SYSTEM_NOT_READY", "checks": readiness["checks"]})
                 try:
-                    result = ledger().reset_kill(True, readiness["evidence"], timestamp)
-                except ValueError:
-                    return response("409 Conflict", {
-                        "error": "SYSTEM_NOT_READY", "checks": readiness["checks"],
+                    from paper_execution.kill_reset_service import request_kill_reset
+                    service_status, service_body = request_kill_reset(
+                        os.environ.get("KILL_RESET_CONTROL_SOCKET", ""),
+                        os.environ.get("KILL_RESET_CONTROL_TOKEN", ""),
+                    )
+                except (OSError, TimeoutError, ValueError):
+                    return response("503 Service Unavailable", {
+                        "error": "KILL_RESET_CONTROL_UNAVAILABLE",
                     })
+                if service_status == 409:
+                    return response("409 Conflict", service_body)
+                if service_status != 200:
+                    return response("503 Service Unavailable", {
+                        "error": "KILL_RESET_CONTROL_UNAVAILABLE",
+                    })
+                result = service_body
             elif path == "/v1/paper/evaluate" and (not payload or payload in ({"source": "AI"}, {"source": "CORE"})):
                 source = payload.get("source", "AI")
                 if source == "CORE":

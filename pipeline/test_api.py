@@ -2,6 +2,7 @@ import csv
 from datetime import datetime, timezone
 import io
 import json
+import multiprocessing
 import os
 import sqlite3
 from pathlib import Path
@@ -13,6 +14,13 @@ from futures_intelligence.import_collector import build_snapshot
 from market_data.store import Candle, CandleStore, read_window
 from market_data.test_support import seed_candles
 from pipeline import api
+from paper_execution import kill_reset_service
+
+
+def _run_kill_reset_service_for_test(socket_path, key_path, control_token, ready_event):
+    kill_reset_service.KILL_RESET_SIGNING_KEY_PATH = Path(key_path)
+    os.environ["KILL_RESET_CONTROL_TOKEN"] = control_token
+    kill_reset_service.serve(socket_path, ready_event=ready_event)
 
 
 class FixtureT0CandleHttpClient:
@@ -43,6 +51,17 @@ class FiveLayerApiTest(unittest.TestCase):
         self.db = self.root / "market-data.sqlite3"
         self.paper_db = self.root / "paper.sqlite3"
         self.paper_db.touch()
+        self.signing_key_path = self.root / "kill-reset-signing.key"
+        self.signing_key_path.write_bytes(b"test-only-kill-reset-signing-key-32-bytes")
+        self.signing_key_path.chmod(0o600)
+        self.signing_key_patch = patch.object(
+            kill_reset_service, "KILL_RESET_SIGNING_KEY_PATH",
+            self.root / "missing-service-signing-key",
+        )
+        self.signing_key_patch.start()
+        self.addCleanup(self.signing_key_patch.stop)
+        self.control_socket = self.root / "kill-reset-control.sock"
+        self.control_token = "test-control-token-" + "x" * 48
         CandleStore(self.db)
         seed_candles(self.db, [
             Candle("15m", self.end-1_800_000, "100", "102", "99", "101", "3", self.end-899_000),
@@ -90,7 +109,10 @@ class FiveLayerApiTest(unittest.TestCase):
                        "T0_CANDLE_API_BASE_URL": "https://t0.test.invalid",
                        "T0_CANDLE_API_TOKEN": "read-only-test-token",
                        "T0_CANDLE_MAX_LAG_MS": "120000", "MARKET_DATA_TOKEN": "read-token",
-                       "CONTROL_TOKEN": "paper-control-token", "INTELLIGENCE_REPORT_PATH": str(self.intel_path),
+                       "CONTROL_TOKEN": "paper-control-token",
+                       "KILL_RESET_CONTROL_SOCKET": str(self.control_socket),
+                       "KILL_RESET_CONTROL_TOKEN": self.control_token,
+                       "INTELLIGENCE_REPORT_PATH": str(self.intel_path),
                        "FREQAI_REPORT_PATH": str(self.pred_path), "STRATEGY_CORE_REPORT_PATH": str(self.core_path),
                        "PAPER_MAX_DRAWDOWN_PCT":"95", "PAPER_MAX_DAILY_LOSS_USDT":"95",
                        "PAPER_MAX_EXPOSURE_USDT":"1000"}
@@ -103,6 +125,23 @@ class FiveLayerApiTest(unittest.TestCase):
         self.books = patch.object(api, "book_snapshot", return_value=self.book)
         self.books.start()
         self.addCleanup(self.books.stop)
+
+    def start_kill_reset_service(self):
+        ready = multiprocessing.Event()
+        process = multiprocessing.Process(
+            target=_run_kill_reset_service_for_test,
+            args=(str(self.control_socket), str(self.signing_key_path),
+                  self.control_token, ready),
+            daemon=True,
+        )
+        process.start()
+        self.addCleanup(process.join, 5)
+        self.addCleanup(process.terminate)
+        if not ready.wait(5):
+            process.terminate()
+            process.join(5)
+            self.fail("isolated Kill Reset Control Service did not start")
+        return process
 
     def request(self, path, method="GET", body=None, token=None, query=""):
         raw = b"" if body is None else json.dumps(body).encode()
@@ -378,6 +417,7 @@ class FiveLayerApiTest(unittest.TestCase):
             _, result = self.request("/v1/paper/evaluate", "POST", {})
         self.assertEqual(result["order"]["status"], "REJECTED")
         self.assertEqual(result["order"]["reason"], "KILL_SWITCH")
+        self.start_kill_reset_service()
         self.assertEqual(self.request("/v1/paper/reset-kill", "POST",
                                       {"acknowledge": True})[0], 200)
         # A rejected intent remains idempotently rejected. A fresh prediction
@@ -399,6 +439,7 @@ class FiveLayerApiTest(unittest.TestCase):
             "evidence": {"token": "x"*43, "checkedAtMs": self.now-6_000},
         }
         with patch.object(api, "control_readiness", return_value=stale):
+            self.start_kill_reset_service()
             code, result = self.request("/v1/paper/reset-kill", "POST", {"acknowledge": True})
         self.assertEqual(code, 409)
         self.assertEqual(result["error"], "SYSTEM_NOT_READY")
@@ -415,9 +456,28 @@ class FiveLayerApiTest(unittest.TestCase):
         self.assertEqual(result["error"], "KILL_RESET_CONTROL_UNAVAILABLE")
         self.assertTrue(self.request("/v1/paper")[1]["riskControl"]["killed"])
 
+    def test_arbitrary_api_process_cannot_mint_fabricated_reset_evidence(self):
+        self.request("/v1/paper/kill", "POST", {"enabled": True})
+        with self.assertRaisesRegex(ValueError, "KILL_RESET_SIGNING_KEY_UNAVAILABLE"):
+            kill_reset_service._issue_kill_reset_evidence(
+                checked_at_ms=self.now,
+                checks={"closedCandles": True, "orderBook": True,
+                        "noPendingPaperOrders": True, "accountRiskReady": True},
+                candle_evidence={"datasetVersion": "sha256:"+"a"*64,
+                                 "closeTimeMs": self.now-900_000,
+                                 "availableAtMs": self.now-1_000},
+                book_evidence={"snapshotDigest": "sha256:"+"b"*64,
+                               "observedAtMs": self.now-100},
+            )
+        forged = {"token": "x"*43, "checkedAtMs": self.now, "signature": "0"*64}
+        with self.assertRaisesRegex(ValueError, "server-issued readiness evidence"):
+            api.ledger().reset_kill(True, forged, self.now)
+        self.assertTrue(self.request("/v1/paper")[1]["riskControl"]["killed"])
+
     def test_kill_reset_requires_server_side_readiness(self):
         self.request("/v1/paper/kill", "POST", {"enabled": True})
         with patch.object(api, "book_snapshot", return_value=None):
+            self.start_kill_reset_service()
             code, result = self.request("/v1/paper/reset-kill", "POST", {"acknowledge": True})
         self.assertEqual(code, 409)
         self.assertEqual(result["error"], "SYSTEM_NOT_READY")

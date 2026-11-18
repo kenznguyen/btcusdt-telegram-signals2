@@ -2,8 +2,11 @@ import sqlite3
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
-from paper_execution.risk_control import (ensure, _issue_kill_reset_evidence, reset_kill, risk_block_reason, set_kill, set_paused, snapshot)
+from paper_execution import kill_reset_service
+from paper_execution.kill_reset_service import _issue_kill_reset_evidence
+from paper_execution.risk_control import (ensure, reset_kill, risk_block_reason, set_kill, set_paused, snapshot)
 
 
 class PersistentRiskControlTest(unittest.TestCase):
@@ -11,6 +14,12 @@ class PersistentRiskControlTest(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.path = Path(self.temp.name) / "risk.sqlite3"
+        self.key_path = Path(self.temp.name) / "kill-reset-signing.key"
+        self.key_path.write_bytes(b"test-only-kill-reset-signing-key-32-bytes")
+        self.key_path.chmod(0o600)
+        self.key_patch = patch.object(kill_reset_service, "KILL_RESET_SIGNING_KEY_PATH", self.key_path)
+        self.key_patch.start()
+        self.addCleanup(self.key_patch.stop)
         self.now = 1_800_000_000_000
 
     def connect(self):
