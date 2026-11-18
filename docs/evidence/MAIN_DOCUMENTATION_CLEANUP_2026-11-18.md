@@ -98,3 +98,25 @@ The handoff update and this report are separate sequential commits on the same e
 - Result: no additional DELETE candidate met the required conditions. No further files were deleted or modified in this audit. No tests, builds, workflows, runtime, T0 database, Feeder, VPS, exchange or trading paths were executed or accessed.
 - Status: read-only inventory PASS for the inspected paths; full repository-wide dependency audit NOT VERIFIED. CI/tests NOT RUN; artifact NONE.
 - Next: only continue with a bounded candidate review where ownership, branch/PR triggers, references and replacement/migration evidence can all be established. Any further deletion requires a separate explicit approval.
+
+
+## Follow-up workflow lifecycle audit — 2026-11-18
+
+- Repository/branch: `kenznguyen/btcusdt-telegram-signals2:main`.
+- Source baseline before this documentation increment: `95469069fdcf78c0567e3b5971e2eee8a440e94a`.
+- Scope: read-only inventory of all 13 workflow files under `.github/workflows/`; inspect triggers, branch filters, key source references and whether named branches still exist. No workflow execution-history API data was available through the connected GitHub read surface; recent run frequency therefore remains NOT VERIFIED.
+- KEEP — `android-live-chart-ci.yml`: manual branch selector; all three configured source branches were found. Android project paths are present in the repository.
+- KEEP — `android-release-pair.yml`: manual exact-SHA paired APK release with paper-only/credential-empty checks and artifact verification. Its required branch `feature/p5-4-1-post-merge-validation-20261103` exists, and `ci/verify-android-release-pair.py` exists on that branch (blob `0f01375a41773af881a697404949be037c206728`).
+- REVIEW — `android-release.yml`: older single-APK release workflow overlaps in purpose with the stricter paired release workflow, but it has different branch inputs and output contract. Configured branches still exist. No retirement/migration decision or evidence establishes it as redundant; do not delete.
+- KEEP — `dashboard-backtest.yml`: manual backtest workflow; `backtest.py` exists on main (blob `1ad441dbfd18498adefea3776b60a0797ac3367a`).
+- KEEP — `signal-scan.yml` and `telegram-command.yml`: manual/explicit trigger workflows; `bot.py` (blob `9151c61165d5ce9bcfd90f800b4f56f016347d6f`) and `telegram_commands.py` (blob `558af67f20c4191ad27d50031590beacaacd1c45a`) remain on main. The scanner is manual-only; telegram-command also has a push trigger on `.github/backtest-trigger.txt`.
+- KEEP — `core-api-quality-regression.yml`: main push-path regression and manual dispatch; retain as the narrow main-side test boundary, not full Core integration proof.
+- KEEP — `core-live-data-operational-proof.yml`: branch-filtered to `feature/core-operational-proof-20261112`; branch remains present. Do not interpret its presence on main as Core First merged or runnable on main.
+- KEEP — `p1-8-synthetic-evidence.yml`: push-filtered to T0 branch; branch exists and `synthetic_evidence/test_generator.py` exists there (blob `4a0b677b0260d1a167d515ee82de928774149ab4`).
+- KEEP / REVIEW — `paper-writer-isolation-red.yml`: push source branch and PR base branch both exist; test file exists on push branch (blob `89d6ff98e26339c398537e74a569c4b103af0a88`). No deletion.
+- REVIEW — `p5-3-11-g2-integration-green.yml`: reusable via `workflow_call` and manual dispatch, but its test commands reference T0 implementation modules absent from main (for example `market_data/test_gateway_runtime.py`). Caller references and branch-side execution context were not fully established; preserve pending caller/dependency trace.
+- REVIEW — `t0-signature-a2-2-stage-i.yml`: manual-only and requires `t0_signature_stage1/tests`, which was not found on main or confirmed on the inspected T0 branch. GitHub code search surfaced only the workflow itself. This is a potential orphan/stale workflow, not a deletion authorization; locate historical source/owner and check all refs before any retirement.
+- KEEP / REVIEW — `t0-manual-validation.yml`: manual-only multi-gate workflow. Some gates reference T0 packages absent from main; intended execution ref/branch and the current authoritative T0 gate set need confirmation. Preserve T0 branch and workflow until that is reconciled.
+- No workflow deleted or edited. No CI/test/workflow run was started. No runtime, database, Feeder, VPS, exchange, AI execution or live order accessed.
+- Status: workflow inventory PASS for all 13 files; branch existence checks PASS for configured branches queried; workflow run recency/caller graph NOT VERIFIED; test/CI NOT RUN; artifact NONE.
+- Next: inspect only the three REVIEW groups (`android-release.yml`, `p5-3-11-g2-integration-green.yml`, `t0-signature-a2-2-stage-i.yml`, plus T0 manual gate ref selection) with history/caller evidence. No deletion without separate explicit approval.
