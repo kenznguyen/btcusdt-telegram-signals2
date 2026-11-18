@@ -2854,3 +2854,36 @@ This follow-up supersedes the earlier pending items for persistent preview artif
 - Runtime Verification: **NOT STARTED**. Dual-Strategy Intelligence: **DEFERRED**.
 - `AI_EXECUTION_ENABLED=false`; PAPER-only. No real orders, exchange connection, canonical T0 DB changes, T1/VPS runtime actions, merge/promotion, rebase/reset/cherry-pick/force push, or default-branch change.
 - Next: perform independent security review of the isolated process, signing-key file handling, Unix socket/peer credential controls, and deployment assumptions; then run any additional exact-SHA workflows required by the review. Keep all work on `feature/core-operational-proof-20261112`.
+
+
+## 2026-11-18 — Independent static security review: isolated Kill Reset Control Service
+
+**Review target and provenance**
+- Existing branch: `feature/core-operational-proof-20261112`.
+- Source/test SHA reviewed: `503a3c49569da9e874514481e16e12cf21a73961`.
+- Handoff branch HEAD before this update: `844aba00685d9fbd028fd55d4b9b52a52ef513c0`; compare confirms it is exactly one documentation-only commit after the source/test SHA, with no source divergence.
+- Reviewed files: `paper_execution/kill_reset_service.py`, `paper_execution/risk_control.py`, `paper_execution/ledger.py`, `pipeline/api.py`, and `pipeline/test_api.py`.
+- Relevant exact-SHA Core First workflow: [44239664736](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/44239664736), job `134584159295`, SUCCESS; exact checked-out source SHA `503a3c49569da9e874514481e16e12cf21a73961`. API tests 34/34, Core E2E 50/50, Paper Ledger 37/37, one-shot 19/19; all workflow steps succeeded.
+- Artifact metadata: `core-first-code-operational-proof-44239664736`, ID `14399595147`, size 17,976 bytes, digest `sha256:e9066111422c21262413790f3c75ab3360cd9ac505b66686c1c6cdf7204f1554`. Metadata verified; payload bytes not independently downloaded/re-hashed.
+
+**Independent review result — CONDITIONAL PASS (code-level)**
+- **Correctness:** reset readiness is evaluated inside the isolated service; pending orders, active reservations and dual-account risk readiness are rechecked inside the Ledger's `BEGIN IMMEDIATE` transaction. Capability registry is bounded, lock-protected and one-use. Stale, unissued, replayed and unavailable-service paths fail closed.
+- **Trust boundary / authorization:** API route requires the distinct control token; IPC additionally checks the caller's Linux Unix-socket peer UID and a separate control token. Production `serve()` rejects root, malformed API UID and identical API/service UIDs. API process does not provide readiness assertions or mint evidence.
+- **Key handling:** signing key must be a regular file owned by the service UID with no group/other permission bits; missing or invalid key fails closed. The key is not read by the API process in the production request flow; the isolated service issues and consumes the capability in its own process.
+- **Transaction and failure behavior:** the Ledger retains transactional pending-order/reservation checks and the API maps service-unavailable and not-ready outcomes to non-success responses; the kill latch is not cleared on those failures.
+- **Architecture/readability/performance:** the separate process is a justified trust boundary for the signing key and readiness authority. No new dependency or unbounded data-processing path was identified in the reviewed reset flow.
+
+**Deployment prerequisites / limits (not runtime-verified)**
+- The source checks the key file itself with `lstat()` and then opens it by pathname. Deployment must make the parent directory non-writable by the API UID and all untrusted users; a future hardening change should use descriptor-based open with `O_NOFOLLOW` and verify the opened descriptor with `fstat()` to remove the pathname check/use race.
+- The Unix socket is created mode `0660`; deployment must explicitly arrange a shared group or equivalent access so the distinct API UID can connect, while keeping that group limited to the API identity. The peer-UID check remains authoritative.
+- The service must be provisioned with only the required T0 read credentials and Paper Ledger access, plus the signing key; its filesystem/environment access must be reviewed for least privilege.
+- No OS users/groups, key file, parent directory, service manager, socket path, or service process has been provisioned or exercised. Deployment and runtime security remain **NOT VERIFIED**.
+- CI test coverage verifies distinct production UID configuration and unavailable/stale/fabricated evidence behavior. A dedicated negative test for a wrong Unix peer UID and filesystem symlink/permission attack cases would strengthen regression coverage; these remain recommended follow-up tests, not a demonstrated bypass in the reviewed deployment contract.
+
+**Disposition**
+- Prior Required finding (API caller could mint fabricated readiness evidence) is **CLOSED at the code trust boundary** by moving readiness evaluation and capability issuance into a separate process.
+- Independent static code review: **CONDITIONAL PASS**. No new demonstrated code-level bypass was found. The pathname/key-directory hardening and OS-level provisioning requirements above are deployment gates; do not claim deployment readiness.
+- Core First overall remains **PARTIAL / NOT VERIFIED** pending other acceptance gates and the separate Dual Ledger workflow failure reconciliation.
+- Runtime Verification: **NOT STARTED**. Dual-Strategy Intelligence: **DEFERRED**. `AI_EXECUTION_ENABLED=false`; PAPER-only.
+- No source changes, tests reruns, T0/T1/VPS access, exchange connection, real orders, merge/promotion, or runtime rollout occurred during this review.
+- Next: if deployment is later authorized, implement and test descriptor-based key loading before writing the service deployment contract; separately inspect and rerun the Dual Ledger workflow against the latest applicable source SHA. Continue on this branch.
