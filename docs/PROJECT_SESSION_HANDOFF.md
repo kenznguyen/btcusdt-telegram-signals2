@@ -2603,3 +2603,41 @@ This follow-up supersedes the earlier pending items for persistent preview artif
 - No canonical T0 DB, VPS, T1 runtime, exchange connection, AI Strategy execution, or real orders.
 - Runtime Verification remains **NOT STARTED**.
 - No merge, promotion, rebase, reset, cherry-pick, force push, or default branch change.
+
+
+## 2026-11-18 — Direct One-shot simulated-origin regression added; CI correction in progress
+
+**Scope**
+- Added three tests in `pipeline/test_core_runtime_one_shot.py` using a disposable SQLite Ledger initialized with the canonical `DEFAULT_SIMULATED_CAPITAL_CONTRACT` and a valid account mark.
+- The tests cover:
+  1. contract-only runner config on simulated origin; Ledger constructor receives the canonical simulated contract and no caller `risk_limits` / `require_risk_limits`;
+  2. config risk-limit override rejected before Ledger construction;
+  3. environment risk-limit override rejected before Ledger construction.
+- No production code changed.
+
+**RED / diagnosis**
+- Initial test commit: `739cc83a407d640488d26541f7550c1741ea1170`.
+- Workflow [44231860222](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/44231860222), job `134558566188`, completed **FAILURE** at One-shot suite.
+- Exact source SHA: `739cc83a407d640488d26541f7550c1741ea1170`.
+- New config-override and environment-override rejection tests both passed.
+- Contract-only simulated-origin path reached the constructor assertion; the failure was test-only byte serialization comparison (canonical contract file is pretty-printed, test expected compact JSON), not a production behavior failure.
+- The suite ran 19 tests; 18 passed and one failed on this assertion.
+- Artifact `core-first-code-operational-proof-44231860222`, ID `14395223611`, 6,421 bytes, GitHub SHA256 `498dbd28c36f140cf91571b9991d365c7c3a8c6c2b655253161895823762f9c4`. Artifact metadata digest only; payload not independently downloaded/hashed.
+
+**Correction**
+- Test assertion now parses the contract bytes and compares the JSON object structurally.
+- Test correction commit: `88a9f0d315fdc2bee587d5697f77b819ec8cb477`.
+- Workflow run [44231937925](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/44231937925), exact source SHA `88a9f0d315fdc2bee587d5697f77b819ec8cb477`, was still **IN_PROGRESS** at handoff update time (job `operational-proof`, job ID to be refreshed; step 21 running).
+- Workflow evidence count was corrected from 16 to 19 tests in `.github/workflows/core-live-data-operational-proof.yml`; workflow update commit `40ff89de277d3200b9c12c1db93e91c126b0f7eb`.
+- Follow-up workflow run [44231947333](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/44231947333), exact source SHA `40ff89de277d3200b9c12c1db93e91c126b0f7eb`, was **PENDING** at handoff update time.
+
+**Verdict**
+- Simulated-origin config/environment override rejection: **PASS in targeted tests** on initial run.
+- Positive simulated-origin contract-only One-shot regression: **NOT VERIFIED** until corrected test passes.
+- Overall new One-shot increment: **IN PROGRESS / NOT VERIFIED** pending both follow-up workflows.
+- No production source correction is justified by the initial assertion-only failure.
+
+**Next**
+- Refresh runs `44231937925` and `44231947333`; inspect One-shot suite logs and all downstream steps.
+- Require exact-SHA successful Core First workflow on `40ff89de277d3200b9c12c1db93e91c126b0f7eb` before marking this increment PASS.
+- Continue same branch. Runtime Verification remains **NOT STARTED**; no VPS/T0/T1 runtime, exchange, AI execution, or real orders.
