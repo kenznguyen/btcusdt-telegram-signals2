@@ -15,6 +15,24 @@ from market_data.test_support import seed_candles
 from pipeline import api
 
 
+class FixtureT0CandleHttpClient:
+    db_path = None
+    calls = []
+
+    def __init__(self, config):
+        self.config = config
+
+    def fetch(self, *, start_ms, end_ms, as_of_ms, timeframe):
+        from freqai_bridge.http_candles import CandleHttpError
+        type(self).calls.append((timeframe, start_ms, end_ms, as_of_ms))
+        try:
+            return read_window(
+                type(self).db_path, "BTCUSDT", timeframe, start_ms, end_ms, as_of_ms,
+            )
+        except (ValueError, OSError, sqlite3.Error):
+            raise CandleHttpError("CANDLE_INVALID") from None
+
+
 class FiveLayerApiTest(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
@@ -61,7 +79,17 @@ class FiveLayerApiTest(unittest.TestCase):
         self.book = {"source": "hummingbot", "connector": "binance_perpetual", "symbol": "BTCUSDT",
                      "observedAtMs": self.now-100, "bids": [{"price": "100", "quantity": "1"}],
                      "asks": [{"price": "100.02", "quantity": "1"}]}
-        self.config = {"MARKET_DATA_DB": str(self.db), "PAPER_DB": str(self.paper_db), "MARKET_DATA_TOKEN": "read-token",
+        FixtureT0CandleHttpClient.db_path = self.db
+        FixtureT0CandleHttpClient.calls.clear()
+        self.t0_http_client = patch(
+            "freqai_bridge.http_candles.CandleHttpClient", FixtureT0CandleHttpClient,
+        )
+        self.t0_http_client.start()
+        self.addCleanup(self.t0_http_client.stop)
+        self.config = {"MARKET_DATA_DB": str(self.db), "PAPER_DB": str(self.paper_db),
+                       "T0_CANDLE_API_BASE_URL": "https://t0.test.invalid",
+                       "T0_CANDLE_API_TOKEN": "read-only-test-token",
+                       "T0_CANDLE_MAX_LAG_MS": "120000", "MARKET_DATA_TOKEN": "read-token",
                        "CONTROL_TOKEN": "paper-control-token", "INTELLIGENCE_REPORT_PATH": str(self.intel_path),
                        "FREQAI_REPORT_PATH": str(self.pred_path), "STRATEGY_CORE_REPORT_PATH": str(self.core_path),
                        "PAPER_MAX_DRAWDOWN_PCT":"95", "PAPER_MAX_DAILY_LOSS_USDT":"95",
@@ -198,18 +226,17 @@ class FiveLayerApiTest(unittest.TestCase):
         self.assertEqual(self.request("/v1/paper/pause", "POST", {"paused": True})[0], 429)
         self.assertTrue(api.control_permit(self.now+60_000))
 
-    def test_missing_store_does_not_create_a_fake_fresh_paper_account_on_write(self):
-        path = self.root / "missing.sqlite3"
-        with patch.dict(os.environ, {"MARKET_DATA_DB": str(path)}):
+    def test_missing_t0_http_config_does_not_create_a_fake_fresh_paper_account_on_write(self):
+        with patch.dict(os.environ, {"T0_CANDLE_API_BASE_URL": ""}):
             self.assertEqual(self.request("/v1/paper/evaluate", "POST", {})[0], 503)
-            self.assertFalse(path.exists())
 
     def test_read_only_paper_does_not_create_missing_or_uninitialized_account(self):
         self.paper_db.unlink(missing_ok=True)
         self.assertEqual(self.request("/v1/paper")[0], 503)
-        with patch.dict(os.environ, {"MARKET_DATA_DB": str(self.root / "absent.sqlite3")}):
+        missing_paper = self.root / "absent-paper.sqlite3"
+        with patch.dict(os.environ, {"PAPER_DB": str(missing_paper)}):
             self.assertEqual(self.request("/v1/paper")[0], 503)
-            self.assertFalse((self.root / "absent.sqlite3").exists())
+            self.assertFalse(missing_paper.exists())
 
     def test_empty_intelligence_snapshot_does_not_become_ready(self):
         missing = build_snapshot(self.now-300_000, self.now-1000, self.now-500)
@@ -379,39 +406,26 @@ class FiveLayerApiTest(unittest.TestCase):
                                       {"acknowledge": True, "ready": False})[0], 400)
 
 
-    def test_market_data_reads_follow_factory_while_paper_ledger_stays_sqlite(self):
-        calls = []
+    def test_market_data_reads_use_t0_http_client_while_paper_ledger_stays_separate(self):
+        query = (f"symbol=BTCUSDT&timeframe=15m&startMs={self.end-1_800_000}"
+                 f"&endMs={self.end}")
+        code, _ = self.request("/v1/candles", query=query)
+        self.assertEqual(code, 200)
 
-        class SelectedStore:
-            def read_window(self, symbol, timeframe, start_ms, end_ms, as_of_ms=None):
-                calls.append((symbol, timeframe, start_ms, end_ms, as_of_ms))
-                return {
-                    "candles": [],
-                    "coverage": {"complete": False, "expected": 1, "returned": 0, "gaps": []},
-                    "datasetVersion": "sha256:" + "e" * 64,
-                }
+        code, quality = self.request("/v1/quality")
+        self.assertEqual(code, 200)
+        self.assertEqual(quality["mode"], "PAPER")
 
-        selected_store = SelectedStore()
-        with patch.object(api, "create_store_from_env", return_value=selected_store):
-            query = (f"symbol=BTCUSDT&timeframe=15m&startMs={self.end-1_800_000}"
-                     f"&endMs={self.end}")
-            code, _ = self.request("/v1/candles", query=query)
-            self.assertEqual(code, 200)
+        timeframes = {call[0] for call in FixtureT0CandleHttpClient.calls}
+        self.assertIn("15m", timeframes)
+        self.assertIn("1h", timeframes)
 
-            code, quality = self.request("/v1/quality")
-            self.assertEqual(code, 200)
-            self.assertEqual(quality["mode"], "PAPER")
-
-            timeframes = {call[1] for call in calls}
-            self.assertIn("15m", timeframes)
-            self.assertIn("1h", timeframes)
-
-            api.ledger()
-            before_paper_read = len(calls)
-            code, paper = self.request("/v1/paper")
-            self.assertEqual(code, 200)
-            self.assertFalse(paper["liveTradingSupported"])
-            self.assertEqual(len(calls), before_paper_read)
+        api.ledger()
+        before_paper_read = len(FixtureT0CandleHttpClient.calls)
+        code, paper = self.request("/v1/paper")
+        self.assertEqual(code, 200)
+        self.assertFalse(paper["liveTradingSupported"])
+        self.assertEqual(len(FixtureT0CandleHttpClient.calls), before_paper_read)
 
 
 if __name__ == "__main__":
