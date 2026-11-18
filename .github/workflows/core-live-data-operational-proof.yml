@@ -151,6 +151,15 @@ jobs:
           set -euo pipefail
           python -m unittest core_runtime.test_continuous_runner core_runtime.test_terminal_order_recovery -v 2>&1 | tee continuous-core-runner-tests.log
 
+      - name: Run simulated-origin Continuous Runtime RED-first regressions
+        run: |
+          set -euo pipefail
+          python -m unittest \
+            core_runtime.test_runtime_factory.ContinuousRuntimeFactoryTest.test_simulated_origin_runtime_accepts_contract_only_policy \
+            core_runtime.test_runtime_factory.ContinuousRuntimeFactoryTest.test_simulated_origin_runtime_rejects_config_risk_limit_override_before_journal \
+            core_runtime.test_runtime_factory.ContinuousRuntimeFactoryTest.test_simulated_origin_runtime_rejects_environment_risk_limit_override_before_journal \
+            -v 2>&1 | tee simulated-origin-continuous-runtime-tests.log
+
       - name: Run Continuous Core no-side-effect dry-run contracts
         run: |
           set -euo pipefail
