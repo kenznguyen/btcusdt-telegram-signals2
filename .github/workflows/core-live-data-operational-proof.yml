@@ -81,7 +81,7 @@ jobs:
       - name: Compile changed operational and Core modules
         run: |
           set -euo pipefail
-          python -m py_compile ops/live_market_data_probe.py ops/test_live_market_data_probe.py pipeline/api.py pipeline/test_paper_storage_isolation.py pipeline/core_strategy.py pipeline/core_signal.py pipeline/test_core_runtime_contract.py pipeline/test_core_runtime_adapter_contract.py pipeline/test_core_runtime_one_shot.py core_runtime/__init__.py core_runtime/runtime_factory.py core_runtime/test_runtime_factory.py core_runtime/bundle_provider.py core_runtime/preflight.py core_runtime/one_shot.py core_runtime/adapter.py core_runtime/input_bundle.py core_runtime/orderbook_contract.py core_runtime/orderbook_http.py core_runtime/continuous_journal.py core_runtime/continuous_cadence.py core_runtime/continuous_runner.py core_runtime/paper_ledger_preflight.py core_runtime/test_paper_ledger_preflight.py core_runtime/test_continuous_journal.py core_runtime/test_continuous_cadence.py core_runtime/test_continuous_runner.py core_runtime/test_terminal_order_recovery.py core_runtime/test_runner_hardening.py core_runtime/test_input_bundle_contract.py core_runtime/test_bundle_provider.py core_runtime/test_orderbook_contract.py core_runtime/test_orderbook_http.py core_runtime/test_orderbook_http_integration.py core_runtime/api_facade.py core_runtime/test_api_facade.py paper_execution/test_core_first_operational.py paper_execution/test_account_risk_snapshot_read_only.py paper_execution/test_core_short_lifecycle.py paper_execution/test_dual_ledger_red.py paper_execution/risk_control.py paper_execution/ledger.py paper_execution/account_equity.py
+          python -m py_compile ops/live_market_data_probe.py ops/test_live_market_data_probe.py pipeline/api.py pipeline/test_api.py pipeline/test_paper_storage_isolation.py pipeline/core_strategy.py pipeline/core_signal.py pipeline/test_core_runtime_contract.py pipeline/test_core_runtime_adapter_contract.py pipeline/test_core_runtime_one_shot.py core_runtime/__init__.py core_runtime/runtime_factory.py core_runtime/test_runtime_factory.py core_runtime/bundle_provider.py core_runtime/preflight.py core_runtime/one_shot.py core_runtime/adapter.py core_runtime/input_bundle.py core_runtime/orderbook_contract.py core_runtime/orderbook_http.py core_runtime/continuous_journal.py core_runtime/continuous_cadence.py core_runtime/continuous_runner.py core_runtime/paper_ledger_preflight.py core_runtime/test_paper_ledger_preflight.py core_runtime/test_continuous_journal.py core_runtime/test_continuous_cadence.py core_runtime/test_continuous_runner.py core_runtime/test_terminal_order_recovery.py core_runtime/test_runner_hardening.py core_runtime/test_input_bundle_contract.py core_runtime/test_bundle_provider.py core_runtime/test_orderbook_contract.py core_runtime/test_orderbook_http.py core_runtime/test_orderbook_http_integration.py core_runtime/api_facade.py core_runtime/test_api_facade.py paper_execution/test_core_first_operational.py paper_execution/test_account_risk_snapshot_read_only.py paper_execution/test_core_short_lifecycle.py paper_execution/test_dual_ledger_red.py paper_execution/risk_control.py paper_execution/ledger.py paper_execution/account_equity.py
           echo "PY_COMPILE=PASS" | tee core-operational-compile.txt
 
       - name: Run live-data probe contract tests
@@ -93,6 +93,11 @@ jobs:
         run: |
           set -euo pipefail
           python -m unittest pipeline.test_paper_storage_isolation -v 2>&1 | tee paper-storage-isolation-tests.log
+
+      - name: Run Common API regressions with isolated Paper storage
+        run: |
+          set -euo pipefail
+          python -m unittest pipeline.test_api pipeline.test_paper_storage_isolation -v 2>&1 | tee common-api-paper-storage-tests.log
 
       - name: Run Strategy Core and signal regressions
         run: |
@@ -335,6 +340,7 @@ jobs:
             core-operational-source-sha.txt
             core-operational-safety.txt
             paper-storage-isolation-tests.log
+            common-api-paper-storage-tests.log
             core-operational-compile.txt
             live-data-probe-tests.log
             core-strategy-tests.log
