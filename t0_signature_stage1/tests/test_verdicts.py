@@ -230,19 +230,22 @@ class MockVerifierTests(unittest.TestCase):
         result = evaluate_stage1_facts({})
         self.assertEqual((result.verdict, result.reason_code), ("BLOCKED", "ROOT_BOOTSTRAP_PATH_NOT_ENABLED"))
 
-    def test_profile_binding_requires_all_five_locations_to_match(self):
+    def test_profile_binding_requires_all_normative_locations_to_match(self):
         from t0_signature_stage1.verdicts import PROFILE_ID, PROFILE_VERSION, validate_profile_bindings
+        names = ("descriptor", "statement", "envelope", "policy_profile_authorization",
+                 "policy_signed_binding", "bootstrap_record", "bootstrap_authorization",
+                 "verifier_request", "verifier_allowed_profile")
         bindings = {
-            name: {"profile_id": PROFILE_ID, "profile_version": PROFILE_VERSION}
-            for name in ("descriptor", "statement", "envelope", "policy", "request")
+            name: {"signature_profile_id": PROFILE_ID, "signature_profile_version": PROFILE_VERSION}
+            for name in names
         }
         result = validate_profile_bindings(bindings)
         self.assertEqual((result.verdict, result.reason_code), ("PASS", "PROFILE_BINDING_MATCH"))
-        bindings["envelope"]["profile_id"] = "untrusted-substitution"
+        bindings["envelope"]["signature_profile_id"] = "untrusted-substitution"
         result = validate_profile_bindings(bindings)
         self.assertEqual((result.verdict, result.reason_code), ("INVALID", "PROFILE_BINDING_MISMATCH"))
-        bindings["envelope"]["profile_id"] = PROFILE_ID
-        bindings["policy"]["profile_version"] = "2"
+        bindings["envelope"]["signature_profile_id"] = PROFILE_ID
+        bindings["policy_signed_binding"]["signature_profile_version"] = "2"
         result = validate_profile_bindings(bindings)
         self.assertEqual((result.verdict, result.reason_code), ("INVALID", "PROFILE_BINDING_MISMATCH"))
 
