@@ -4,9 +4,10 @@
 
 - Repository: `kenznguyen/btcusdt-telegram-signals2`
 - Branch: `main`
-- Main SHA immediately before this handoff update: `f796efd141ea92b46a645c566d1d0338b461c35f`
+- Main SHA immediately before this final handoff update: `fa6748361d8bc2c949cba681d0c1506b5faf6d10`
+- Final readback baseline before evidence refresh: `b9fecd23e06f1e122da7e98949fc76d670c8c2ab`
 - Documentation cleanup record: [MAIN_DOCUMENTATION_CLEANUP_2026-11-18.md](evidence/MAIN_DOCUMENTATION_CLEANUP_2026-11-18.md)
-- Cleanup commits on `main`: archive README `d8a5d036ee8fc4b456898f4824a561700140be5d`; root README `9fa3426a6d6c6e8576d3913ef6415c572f324bd5`; maintenance policy `3f998b30fd7d9e54ecb70799c4b59001d275de53`; docs index `48177f7a73c0f11ae56a466958207809f0fff904`; cleanup evidence `f796efd141ea92b46a645c566d1d0338b461c35f`.
+- Cleanup commits on `main`: archive README `d8a5d036ee8fc4b456898f4824a561700140be5d`; root README `9fa3426a6d6c6e8576d3913ef6415c572f324bd5`; maintenance policy `3f998b30fd7d9e54ecb70799c4b59001d275de53`; docs index `48177f7a73c0f11ae56a466958207809f0fff904`; initial cleanup evidence `f796efd141ea92b46a645c566d1d0338b461c35f`; final readback evidence update `fa6748361d8bc2c949cba681d0c1506b5faf6d10`.
 - Current guidance: root `README.md`, `docs/README.md`, and `docs/REPOSITORY_MAINTENANCE.md`.
 
 ## Main-side technical state
