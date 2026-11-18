@@ -3506,3 +3506,22 @@ Additional payload inspection:
 - F-03 README digest-helper mismatch remains unresolved.
 - No source/test/workflow/runtime/T0/VPS/credential/exchange/trading changes were made during this review. No workflow dispatch, merge or deployment.
 - Next: seek explicit approval for a narrow Stage I source/test repair of R1–R5, keeping mock-only/offline scope and the existing branch. Do not dispatch workflow/CI or begin Stages II–V.
+
+
+## 2026-11-18 — T0 A2.2 Stage I R1–R5 semantic repair
+
+- Owner approval: narrow R1–R5 repair limited to `t0_signature_stage1/verdicts.py`, `t0_signature_stage1/tests/test_verdicts.py`, isolated offline tests. Continue on existing branch only.
+- Tested source HEAD: `64b859e6b5fbbb45e4f764cfc7af22c1e0d57667`.
+- Tested source blobs: verdicts.py `6f3af6288dec3dc23f01a297b80467aa03515663`; test_verdicts.py `2d4a44eecaccce26329c0ed98e30d2fd8a6a6812`.
+- TDD RED commit: `0a2c823b2d823c64353fd4b4805c918084603a48`; exact-SHA RED run failed on the new contract regression cases as expected.
+- R1 PASS: NV-03 now evaluates an unchanged separate A1 historical object against explicit V2 verifier selection; no subject label trigger.
+- R2 PASS for modeled structure: exact `signature_profile_id/signature_profile_version` fields across descriptor, statement, envelope, policy authorization, policy signed binding, bootstrap record, bootstrap authorization, verifier request and local allowed-profile configuration. NV-20 mutates `bootstrap_record.signature_profile_id` and returns the §17 bootstrap-specific reason.
+- R3 PASS: zero mutations, compound mutations and fixture state snapshot transitions fail closed.
+- R4 PARTIAL: schema version, baseline digest, canonical Evidence Object identity/bytes/length/domain-separated digest, signer/policy metadata, per-dimension outcomes, S0/S1 and forbidden-transition assertions are present and tested. Signature and custody/readback dimensions remain explicitly `NOT_VERIFIED`; mock markers are not cryptographic evidence.
+- R5 PASS for routing: a hard-coded independent oracle pins all 27 A2.2 verdict/reason pairs; focused NV-03/NV-04/NV-20 regressions added.
+- Exact-SHA isolated ephemeral Python sandbox verification on `64b859e6b5fbbb45e4f764cfc7af22c1e0d57667`: compileall PASS; focused verdict tests 28/28 PASS; complete Stage I package tests 51/51 PASS. This was not GitHub Actions; no workflow run or artifact exists.
+- Evidence report: `docs/evidence/T0_A2_2_STAGE_I_R1_R5_SEMANTIC_REPAIR_2026-11-18.md`, commit `edf492124e96607b124beccc2d8582459c87d621`.
+- GitHub compare from prior review HEAD `b607a948be2347c4f2c6ba80856864a3076d4f75` to tested source HEAD: 23 commits ahead, 0 behind; exactly the two approved source/test paths changed. All commits are sequential on the same existing branch.
+- No README/workflow/production crypto/key/root enrollment/durable trust state/T0 canonical data/VPS/runtime/credentials/exchange/trading changes; no workflow dispatch, merge, rebase, reset, cherry-pick, force-push or history rewrite.
+- Final disposition: R1 PASS; R2 PASS (modeled binding structure); R3 PASS; R4 PARTIAL; R5 PASS; Stage I full contract conformance remains PARTIAL / NOT VERIFIED. F-03 README digest-helper mismatch remains OPEN. Workflow dispatch, Stages II–V, merge, deployment and trading remain NOT AUTHORIZED.
+- Next: fresh read-only review of exact final two-file diff/evidence; handle F-03 as a separate documentation-only increment if approved. Do not dispatch workflow or proceed to Stages II–V.
