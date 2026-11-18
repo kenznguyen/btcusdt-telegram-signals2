@@ -12,7 +12,7 @@ This section supersedes older "Current workstream" labels and stale status summa
 
 - Repository: `kenznguyen/btcusdt-telegram-signals2`.
 - Active branch: `feature/core-operational-proof-20261112`.
-- Source HEAD before this documentation update: `e933cdc9f3fafbffeed417615c9ba887d25c5281`.
+- Source HEAD before this handoff reconciliation: `c771a13f85a5bb20f998dada42eb5e26ac835c65`.
 - Core First is the active priority. Do not begin Dual-Strategy Intelligence implementation until Core First closeout and a separate owner approval.
 - Strategy Core remains RSI + ADX + Smart DCA and the only paper-executable strategy.
 - AI is observation/research only in this phase. `POST /v1/paper/evaluate` rejects `source=AI` with HTTP 409 / `AI_PAPER_EXECUTION_DEFERRED`; empty payload defaults to Core; explicit `source=CORE` routes to Core Runner.
@@ -31,9 +31,21 @@ This section supersedes older "Current workstream" labels and stale status summa
 
 ### Branch integration status
 
-- At this review: branch HEAD `e933cdc9f3fafbffeed417615c9ba887d25c5281`; main HEAD `6bff2aff91657238297848ef644a0cb4112ab428`; merge base `f5b74affb8777953fa66d241784965fbb0e577ba`.
-- GitHub compare reports branch ahead by 4,566 commits and behind by 85 commits. This is a large divergent history; MERGE BLOCKED pending bounded integration review.
+- Verified immediately before this handoff reconciliation: branch HEAD `c771a13f85a5bb20f998dada42eb5e26ac835c65`; main HEAD `6bff2aff91657238297848ef644a0cb4112ab428`; merge base `f5b74affb8777953fa66d241784965fbb0e577ba`.
+- GitHub compare of the current branch ref reports branch ahead by 4,567 commits and behind by 85 commits. The comparison against reviewed snapshot `ff74d10aba0bdd60c14bebbe07746452571213fb` reports 7 commits ahead, confirming that snapshot is not the current branch tip. This is a large divergent history; MERGE BLOCKED.
 - Do not infer that the 85 commits can be safely integrated from compare metadata alone.
+
+## Core First integration manifest — 2026-11-18
+
+- Read-only Integration Manifest completed after bounded static comparison of the 16 previously classified paths.
+- Priority: preserve branch versions of `pipeline/api.py`, `core_runtime/test_api_facade.py`, and `.github/workflows/core-live-data-operational-proof.yml`.
+- T0 manual workflow: keep branch version; the `PC_CANONICAL_PATH=NOT_VERIFIED`, `CANONICAL_DB_INTEGRITY=NOT_RUN`, and `FEEDER_RUNTIME=NOT_RUN` evidence line is present in both versions; no one-line patch is required.
+- T0 signature workflow has identical blob SHA on main and branch in the inspected snapshot; no patch required. T0 Signature Trust A1 remains a separate DRAFT, not implementation approval.
+- Historical evidence and contribution ledger remain separate; do not bulk-import the 85 main-side commits.
+- Compare metadata is bounded (maximum 300 changed-file entries); the 85-commit side and merged tree have not been exhaustively validated.
+- Manifest verdict: PASS for bounded static disposition; merged-tree tests NOT RUN; candidate NOT CREATED; merge BLOCKED.
+- No source, workflow, branch, runtime, T0 database, or credentials were changed during the manifest review.
+- Next: if separately approved, create a controlled candidate snapshot preserving the current branch and validate exact candidate SHA. Do not merge or deploy.
 
 ## Repository and workflow rules
 
