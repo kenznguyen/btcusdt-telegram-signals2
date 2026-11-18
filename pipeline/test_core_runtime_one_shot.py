@@ -324,8 +324,8 @@ class CoreOneShotRunnerTest(unittest.TestCase):
         self.assertNotIn("risk_limits", created[0].init_kwargs)
         self.assertNotIn("require_risk_limits", created[0].init_kwargs)
         self.assertEqual(
-            created[0].init_kwargs.get("simulated_contract_bytes"),
-            json.dumps(DEFAULT_SIMULATED_CAPITAL_CONTRACT, separators=(",", ":")).encode("utf-8"),
+            json.loads(created[0].init_kwargs.get("simulated_contract_bytes", b"{}")),
+            DEFAULT_SIMULATED_CAPITAL_CONTRACT,
         )
 
     def test_simulated_origin_rejects_config_risk_override_before_ledger_construction(self):
