@@ -4,6 +4,7 @@ import io
 import json
 import multiprocessing
 import os
+import socket
 import sqlite3
 from pathlib import Path
 import tempfile
@@ -151,6 +152,52 @@ class FiveLayerApiTest(unittest.TestCase):
                 ValueError, "KILL_RESET_SIGNING_KEY_UNAVAILABLE"
             ):
                 kill_reset_service._load_signing_key()
+
+    def test_kill_reset_signing_key_loader_rejects_existing_symlink(self):
+        target_path = self.root / "target-signing.key"
+        link_path = self.root / "linked-signing.key"
+        target_path.write_bytes(b"attacker-signing-key-material-32-bytes")
+        target_path.chmod(0o600)
+        link_path.symlink_to(target_path)
+        with patch.object(
+            kill_reset_service, "KILL_RESET_SIGNING_KEY_PATH", link_path
+        ):
+            with self.assertRaisesRegex(
+                ValueError, "KILL_RESET_SIGNING_KEY_UNAVAILABLE"
+            ):
+                kill_reset_service._load_signing_key()
+
+    def test_kill_reset_signing_key_loader_rejects_group_readable_file(self):
+        key_path = self.root / "group-readable-signing.key"
+        key_path.write_bytes(b"test-only-kill-reset-signing-key-32-bytes")
+        key_path.chmod(0o640)
+        with patch.object(
+            kill_reset_service, "KILL_RESET_SIGNING_KEY_PATH", key_path
+        ):
+            with self.assertRaisesRegex(
+                ValueError, "KILL_RESET_SIGNING_KEY_PERMISSIONS_INVALID"
+            ):
+                kill_reset_service._load_signing_key()
+
+    def test_kill_reset_control_service_rejects_untrusted_peer_uid(self):
+        service_socket, client_socket = socket.socketpair()
+        self.addCleanup(service_socket.close)
+        self.addCleanup(client_socket.close)
+
+        class UnauthorizedPeerServer:
+            allowed_api_uid = os.geteuid() + 1
+            control_token = self.control_token
+
+        client_socket.sendall(json.dumps({
+            "acknowledge": True, "token": self.control_token,
+        }).encode("utf-8") + b"\\n")
+        client_socket.shutdown(socket.SHUT_WR)
+        kill_reset_service._KillResetHandler(
+            service_socket, ("local", 0), UnauthorizedPeerServer()
+        )
+        response = json.loads(client_socket.recv(4096))
+        self.assertEqual(response["status"], 401)
+        self.assertEqual(response["body"]["error"], "CONTROL_SERVICE_UNAUTHORIZED")
 
     def start_kill_reset_service(self):
         ready = multiprocessing.Event()
