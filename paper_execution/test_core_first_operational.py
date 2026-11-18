@@ -15,6 +15,7 @@ from unittest.mock import patch
 
 from paper_execution import ledger as ledger_module
 from paper_execution.ledger import PaperLedger
+from paper_execution.risk_control import _issue_kill_reset_evidence
 import rfc8785
 
 
@@ -98,6 +99,17 @@ def _hold_sqlite_write_lock_until_released(database_path, acquired_event, releas
 
 
 class CoreFirstOperationalProofTest(unittest.TestCase):
+    def reset_readiness_evidence(self, checked_at_ms):
+        return _issue_kill_reset_evidence(
+            checked_at_ms=checked_at_ms,
+            checks={"closedCandles": True, "orderBook": True,
+                    "noPendingPaperOrders": True, "accountRiskReady": True},
+            candle_evidence={"datasetVersion": "sha256:"+"a"*64,
+                             "closeTimeMs": checked_at_ms-900_000,
+                             "availableAtMs": checked_at_ms-500},
+            book_evidence={"snapshotDigest": "sha256:"+"b"*64,
+                           "observedAtMs": checked_at_ms-100},
+        )
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
@@ -1990,7 +2002,7 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
         with sqlite3.connect(self.path) as connection:
             connection.execute("DROP TABLE paper_audit")
         with self.assertRaises(sqlite3.OperationalError):
-            self.core.reset_kill(acknowledge=True, ready=True, now_ms=self.now + 1)
+            self.core.reset_kill(acknowledge=True, readiness_evidence=self.reset_readiness_evidence(self.now + 1), now_ms=self.now + 1)
         state = self.core.snapshot()
         self.assertTrue(state["riskControl"]["killed"])
         signal = self.decide()
@@ -2115,7 +2127,9 @@ class CoreFirstOperationalProofTest(unittest.TestCase):
         def reset():
             gate.wait(timeout=5)
             return self.core.reset_kill(
-                acknowledge=True, ready=True, now_ms=self.now + 1
+                acknowledge=True,
+                readiness_evidence=self.reset_readiness_evidence(self.now + 1),
+                now_ms=self.now + 1,
             )
 
         with ThreadPoolExecutor(max_workers=2) as pool:
