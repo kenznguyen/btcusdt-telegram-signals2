@@ -154,7 +154,7 @@ class PartialFillProcessCrashRecoveryTest(unittest.TestCase):
                 CREATE TRIGGER {trigger_name}
                 AFTER INSERT ON paper_audit
                 WHEN NEW.kind='SUBMIT'
-                  AND instr(NEW.document, '"intentId":"{intent["intentId"]}"')>0
+                  AND instr(NEW.document, '{intent["intentId"]}')>0
                 BEGIN
                     SELECT paper_crash_checkpoint('before_commit');
                 END
