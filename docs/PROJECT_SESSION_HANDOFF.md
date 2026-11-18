@@ -1,3 +1,16 @@
+# CURRENT REVIEW WORKFLOW TRACE — 2026-11-18
+
+- Repo: `kenznguyen/btcusdt-telegram-signals2`, branch `main`.
+- Read-only workflow trace recorded in `docs/evidence/MAIN_DOCUMENTATION_CLEANUP_2026-11-18.md`, section “Follow-up REVIEW workflow trace”.
+- Android release: keep both workflows; single-APK legacy workflow and exact-SHA paired regular + .paper release have different contracts.
+- G2 GREEN: caller confirmed in merged PR #127 / P5.4.1 orchestrator; merge commit `135ef7b69e8314b0b78e68c7f6fd41af34ca99e3`. Reusable workflow is not orphaned; its dependencies are branch-context T0 modules absent from main.
+- T0 Manual Validation: keep; manual selected-ref gate workflow. Dispatch ref must contain the relevant T0 implementation; main-side dispatch does not validate missing T0 packages.
+- T0 Signature Stage I: PR #141 introduced workflow; PR #142 fixed summary parsing but review still identified a regex defect; expected `t0_signature_stage1/tests` package is absent on inspected refs. Status BLOCKED / NOT VERIFIED, not safe to delete pending package provenance/owner confirmation.
+- No workflow dispatched, no source/workflow modified, no T0/runtime/VPS/DB/Feeder/exchange/trading activity. Tests/CI NOT RUN; artifacts NONE.
+- Next: resolve Stage I source ownership/provenance read-only (history and all relevant refs). No deletion or workflow edit without separate explicit approval.
+
+---
+
 # CURRENT WORKFLOW LIFECYCLE AUDIT — 2026-11-18
 
 - Repo/branch: `kenznguyen/btcusdt-telegram-signals2:main`.
