@@ -29,22 +29,32 @@ _MAX_IPC_MESSAGE = 65_536
 
 
 def _load_signing_key():
+    """Load the service key from a verified file descriptor without following symlinks."""
+    if os.geteuid() == 0:
+        raise ValueError("KILL_RESET_SERVICE_MUST_NOT_RUN_AS_ROOT")
+    nofollow = getattr(os, "O_NOFOLLOW", None)
+    if nofollow is None:
+        raise ValueError("KILL_RESET_SIGNING_KEY_UNAVAILABLE")
+    flags = os.O_RDONLY | nofollow | getattr(os, "O_CLOEXEC", 0)
+    descriptor = None
     try:
-        if os.geteuid() == 0:
-            raise ValueError("KILL_RESET_SERVICE_MUST_NOT_RUN_AS_ROOT")
-        metadata = KILL_RESET_SIGNING_KEY_PATH.lstat()
+        descriptor = os.open(str(KILL_RESET_SIGNING_KEY_PATH), flags)
+        metadata = os.fstat(descriptor)
         mode = stat.S_IMODE(metadata.st_mode)
         if (not stat.S_ISREG(metadata.st_mode) or metadata.st_uid != os.geteuid()
                 or mode & 0o077):
             raise ValueError("KILL_RESET_SIGNING_KEY_PERMISSIONS_INVALID")
-        with KILL_RESET_SIGNING_KEY_PATH.open("rb") as source:
+        with os.fdopen(descriptor, "rb", closefd=True) as source:
+            descriptor = None
             key = source.read(4097)
     except OSError as error:
         raise ValueError("KILL_RESET_SIGNING_KEY_UNAVAILABLE") from error
+    finally:
+        if descriptor is not None:
+            os.close(descriptor)
     if not 32 <= len(key) <= 4096:
         raise ValueError("KILL_RESET_SIGNING_KEY_INVALID")
     return key
-
 
 def _issue_kill_reset_evidence(*, checked_at_ms, checks, candle_evidence, book_evidence):
     """Issue one-use evidence only in the isolated process holding the signing key."""
