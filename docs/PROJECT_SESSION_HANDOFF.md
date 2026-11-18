@@ -3223,3 +3223,17 @@ Additional payload inspection:
 - Status: candidate snapshot **CREATED**; source equivalence **PASS — bounded compare**; prior exact-source CI **PASS**; exact current HEAD CI **NOT VERIFIED**; full 85-commit / merged-tree review **IN PROGRESS**; merge **BLOCKED / NOT AUTHORIZED**.
 - No merge, rebase, reset, force-push, new branch, deployment, VPS/runtime activation, canonical T0 database access/mutation, exchange connection, AI execution or real order occurred.
 - Next: owner-trigger exact-HEAD workflow dispatch from GitHub Actions and provide the run URL/ID for provenance review; continue the bounded main-side commit/path review. Do not merge or deploy.
+
+
+## 2026-11-18 — Bounded main-divergence review follow-up
+
+- Bounded history inventory completed for the 85 main-side commits from merge base `f5b74affb8777953fa66d241784965fbb0e577ba` to main `6bff2aff91657238297848ef644a0cb4112ab428`.
+- Commit-message groups: 57 SSH preflight / PR #140 / retirement and related tests/evidence; 3 T0 signature/A2.2; 3 Core API/operational workflow; 4 project documentation; 3 P1.8/P1.38; 15 other T0/CI/PR evidence and maintenance.
+- Bounded 16-path review: preserve feature-branch `pipeline/api.py`, `core_runtime/api_facade.py`, `core_runtime/test_api_facade.py`, Core operational workflow and T0 manual workflow. Main `pipeline/api.py` uses `MARKET_DATA_DB` for Paper storage and local T0 store access, while branch API enforces separate `PAPER_DB`, T0 HTTP access and AI paper deferral.
+- Main `core_runtime/api_facade.py` returned 404 at inspected ref although main `core_runtime/test_api_facade.py` imports it; treat main-side test/source pairing as incomplete pending further validation.
+- The 85 commit list and 16 paths were inventoried; this is not a full semantic review of every commit patch or a tested merged tree. Main-divergence review remains **PARTIAL / NOT MERGE-READY**.
+- Detailed evidence: `docs/evidence/CORE_FIRST_INTEGRATION_CANDIDATE_2026-11-18.md`, update commit `92d19532e346520633ffe3ca5fa772df01c722d2`.
+- Exact candidate CI was not dispatched: the available GitHub integration lacks a workflow-dispatch action. Workflow supports `workflow_dispatch`; owner must run Actions → **Core-First code-level operational proof** on branch `feature/core-operational-proof-20261112`, then verify checked-out SHA against the branch HEAD at dispatch time.
+- Current branch HEAD after this evidence/handoff update: pending final GitHub ref verification; do not infer from earlier commit IDs.
+- Status: candidate snapshot preserved; bounded main history review **PARTIAL**; exact-current-HEAD CI **NOT RUN / NOT VERIFIED**; merged-tree validation **NOT RUN**; merge **BLOCKED / NOT AUTHORIZED**.
+- No source/workflow/runtime/T0 data changes, merge, rebase, reset, force-push, branch creation, deployment, exchange access, AI execution or real order.
