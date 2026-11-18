@@ -44,6 +44,8 @@ class DualLedgerBootstrapContractTest(unittest.TestCase):
         self.manifest = build_dual_ledger_bootstrap_manifest(
             self.root, self.now, self.db_path, self.source_sha
         )
+        self.funding_evidence = Path(self.manifest["fundingEvidencePath"])
+        self.cutover_evidence = Path(self.manifest["cutoverEvidencePath"])
 
     def test_bootstrap_creates_three_scopes_and_ready_only_after_reconciliation(self):
         result = bootstrap_paper_account(self.db_path, self.manifest)
