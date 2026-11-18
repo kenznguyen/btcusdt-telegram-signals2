@@ -12,7 +12,7 @@ This section supersedes older "Current workstream" labels and stale status summa
 
 - Repository: `kenznguyen/btcusdt-telegram-signals2`.
 - Active branch: `feature/core-operational-proof-20261112`.
-- Latest branch HEAD after independent R4 review evidence: `97c001c13043aa9bfeaf9857807673e9a987973f` (independent review report commit; exact R4 source under review remains `fcb188c6d0c215d5e753bad7ef5b6aeb9facad93`).
+- Latest independently reviewed R4 source SHA: `fcb188c6d0c215d5e753bad7ef5b6aeb9facad93`; independent review report commit: `97c001c13043aa9bfeaf9857807673e9a987973f`. The active branch HEAD is the newest handoff commit recorded in Git history.
 - Core First is the active priority. Do not begin Dual-Strategy Intelligence implementation until Core First closeout and a separate owner approval.
 - Strategy Core remains RSI + ADX + Smart DCA and the only paper-executable strategy.
 - AI is observation/research only in this phase. `POST /v1/paper/evaluate` rejects `source=AI` with HTTP 409 / `AI_PAPER_EXECUTION_DEFERRED`; empty payload defaults to Core; explicit `source=CORE` routes to Core Runner.
