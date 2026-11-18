@@ -548,7 +548,7 @@ def application(environ, start_response):
         if method == "POST":
             payload = _body(environ)
             if path == "/v1/paper/evaluate":
-                if payload == {"source": "AI"}:
+                if payload.get("source") == "AI":
                     return response("409 Conflict", {
                         "error": "AI_PAPER_EXECUTION_DEFERRED",
                     })

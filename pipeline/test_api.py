@@ -307,9 +307,11 @@ class FiveLayerApiTest(unittest.TestCase):
         )
         self.assertEqual(code, 409, result)
         self.assertEqual(result["error"], "AI_PAPER_EXECUTION_DEFERRED")
-        _, state = self.request("/v1/paper")
-        self.assertEqual(state["positionBase"], "0")
-        self.assertFalse(state["liveTradingSupported"])
+        with sqlite3.connect(self.paper_db) as connection:
+            tables = connection.execute(
+                "SELECT name FROM sqlite_master WHERE type='table'"
+            ).fetchall()
+        self.assertEqual(tables, [])
     def test_retries_do_not_create_deferred_ai_paper_orders(self):
         first_code, first = self.request(
             "/v1/paper/evaluate", "POST", {"source": "AI"}
@@ -354,15 +356,16 @@ class FiveLayerApiTest(unittest.TestCase):
     def test_corrupt_artifacts_and_stale_model_do_not_generate_orders(self):
         self.prediction["availableAtMs"] = self.now-31_000
         self.pred_path.write_text(json.dumps(self.prediction))
-        _, result = self.request("/v1/paper/evaluate", "POST", {})
-        self.assertEqual(result["decision"]["action"], "WAIT")
-        self.assertIsNone(result["order"])
+        code, result = self.request(
+            "/v1/paper/evaluate", "POST", {"source": "AI"}
+        )
+        self.assertEqual(code, 409, result)
+        self.assertEqual(result["error"], "AI_PAPER_EXECUTION_DEFERRED")
         snapshot = json.loads(self.intel_path.read_text())
         snapshot["netTakerQuote"] = "99999"
         self.intel_path.write_text(json.dumps(snapshot))
         self.assertEqual(self.request("/v1/intelligence")[0], 503)
         self.assertEqual(self.request("/v1/decision")[1]["action"], "WAIT")
-
     def test_system_and_apk_book_contract_are_explicit_paper(self):
         code, system = self.request("/v1/system")
         self.assertEqual(code, 200)
