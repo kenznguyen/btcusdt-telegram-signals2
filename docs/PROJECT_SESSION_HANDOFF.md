@@ -3047,3 +3047,29 @@ Additional payload inspection:
 **Next**
 - Obtain a successful Core workflow run for source SHA `b341c343eda13c0e76455d39f091e9f0daa6a4c9`, inspect the API regression result and artifact, then update this handoff with exact run/job/artifact/digest.
 - If CI exposes a regression, fix it on this same branch. Do not merge, promote, deploy, provision OS users/socket/key, access VPS/T0/T1 runtime, or enable AI/live execution.
+
+
+## 2026-11-18 — Core operational proof workflow dispatch enablement
+
+**Scope**
+- User explicitly approved adding only `.github/workflows/core-live-data-operational-proof.yml` to default branch `main`, solely to make the existing `workflow_dispatch` workflow available in GitHub Actions.
+- No Core First source files, strategy logic, risk logic, databases, runtime configuration, or deployment files were merged or changed by this operation.
+
+**Provenance**
+- Default branch HEAD before write: `2b0c043e3e336ca79d639c91cb9ecd7078c280c7`.
+- Source branch: `feature/core-operational-proof-20261112`.
+- Source workflow blob SHA: `1c0d9e7b6c8355264aa509342175d72931b64cc4`.
+- Main-only workflow commit: `6bff2aff91657238297848ef644a0cb4112ab428`.
+- Verified main workflow blob SHA after write: `1c0d9e7b6c8355264aa509342175d72931b64cc4` (exact match with source branch).
+- Workflow URL: https://github.com/kenznguyen/btcusdt-telegram-signals2/blob/main/.github/workflows/core-live-data-operational-proof.yml
+
+**Verification**
+- Workflow file presence on `main`: PASS.
+- Exact workflow blob equality with Core First branch: PASS.
+- Workflow dispatch/run, checked-out source SHA, jobs, tests, and artifact: NOT RUN / NOT VERIFIED in this operation.
+- No CI PASS is claimed.
+
+**Next**
+- In GitHub Actions, select **Core-First code-level operational proof**, choose branch `feature/core-operational-proof-20261112`, and run workflow.
+- Verify the run's checked-out SHA against the intended feature branch HEAD, then record run ID, job conclusions, test summaries, and artifact ID/digest.
+- Keep paper-only settings; do not activate T0/T1 runtime, VPS deployment, exchange access, real orders, or AI execution.
