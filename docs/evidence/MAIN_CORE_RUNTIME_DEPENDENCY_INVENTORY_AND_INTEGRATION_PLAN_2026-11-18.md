@@ -200,7 +200,7 @@ All tests should run against the existing Core First source branch at a newly re
 | Core First source location | IDENTIFIED — active project branch; not a released package |
 | T0 HTTP consumer contract | IDENTIFIED |
 | T1 HTTP consumer contract | IDENTIFIED |
-| T1 server/provider source binding | NOT VERIFIED |
+| T1 raw collector source/version | PINNED — binance-futures-collector main SHA d43a673451f7347e16a214612165c63da1b4339c, Cargo 1.0.0 |\n| T1 HTTP provider source/version | BLOCKED / NOT VERIFIED — no compatible provider found |\n| Collector Capture Desk route compatibility | NOT COMPATIBLE — /api/orderbook/{symbol} is not the V1 route/schema/auth |
 | Existing Core First exact-SHA operational CI | PASS — historical exact tested SHA |
 | Current Core First HEAD full workflow run | NOT RUN |
 | Main full Core/API integration | BLOCKED — implementation dependencies absent |
@@ -208,4 +208,4 @@ All tests should run against the existing Core First source branch at a newly re
 | Merge/reconciliation | BLOCKED / NOT AUTHORIZED |
 | Dual-Strategy expansion | DEFERRED |
 
-Next action: resolve and pin the T1 HTTP provider source/version, then obtain owner authorization to run the existing Core First operational workflow on the exact current feature-branch HEAD. No source change is needed for this inventory increment.
+Next action: obtain owner decision on the missing T1 provider implementation location (or supply the authoritative repository/path/version if it already exists outside inspected repositories). After provider source is pinned and its V1 wire compatibility is proven, freeze the full dependency matrix and seek separate owner authorization to run the existing Core First operational workflow on the exact current feature-branch HEAD. Do not run that workflow while the T1 provider dependency remains unresolved.
