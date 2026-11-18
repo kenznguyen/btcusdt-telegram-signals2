@@ -3305,3 +3305,13 @@ Additional payload inspection:
 - Core operational proof workflow and T0 manual validation workflow differ; full gate-by-gate parity review remains outstanding. T0 A2.2 Stage I workflow blob is identical on main and branch.
 - Status: bounded history inventory **PASS**; targeted source review **BLOCKED FOR INTEGRATION** by F-01; governance reconciliation **BLOCKED / NOT VERIFIED**; workflow parity **PARTIAL / NOT VERIFIED**; full semantic review **NOT COMPLETE**; merged-tree validation **NOT RUN**; merge **BLOCKED / NOT AUTHORIZED**.
 - Next: verify controlling T0 custody addendum; complete workflow gate comparisons; reconcile G0.52; then prepare an integration map only. No merge/rebase/reset/force-push, source replacement, workflow replacement, VPS/runtime/T0 access, AI execution or real order.
+
+
+## 2026-11-18 — T0 custody decision authority reconciled
+
+- Follow-up to bounded main integration review F-05.
+- Verified the controlling formal addendum in `docs/architecture/T0_EVIDENCE_OBJECT_CHECKPOINT_CONTRACT_V1.md`, blob `a6825270d59bde274bfe765d5f942144b66a84de`, lines 805–835: owner explicitly approved on 2026-11-11 the bounded VPS + GitHub custody scope as an amendment to §§7/9, retaining the joint-rollback limitation and NOT VERIFIED technical controls.
+- Cross-checked `docs/decisions/D-2026-11-10-L4-EVIDENCE-CUSTODY-VPS-GITHUB-ONLY.md`, blob `527bf46a024cbad98ec74df8f85c70efc4dc0615`: owner-directed VPS + GitHub only; exact-object identity, independent digest/readback and substantive L4 requirements remain.
+- Disposition: branch A1 wording is consistent with the controlling owner-approved addendum. Main's A1 draft/pending-ratification wording is stale and must not override the formal contract addendum.
+- This resolves documentary authority only. It does not establish actual custody, exact-object readback, freshness, signature verification, independent failure-domain protection or L4 acceptance; no implementation/runtime/provider/destructive operation is authorized.
+- Bounded review report updated in commit `9888b95599d75652c674b1048e8a67bacc55d239`.
