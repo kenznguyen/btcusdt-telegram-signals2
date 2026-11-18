@@ -8,6 +8,9 @@ from unittest.mock import patch
 
 from core_runtime.test_input_bundle_contract import valid_bundle
 from core_runtime.one_shot import run_once
+from paper_execution.ledger import PaperLedger
+from paper_execution.account_equity import record_account_mark
+from paper_execution.simulated_capital import DEFAULT_SIMULATED_CAPITAL_CONTRACT
 
 
 NOW = 1_800_000_000_000
@@ -78,6 +81,8 @@ class CoreOneShotRunnerTest(unittest.TestCase):
         class FakeLedger:
             def __init__(self, *args, **kwargs):
                 self.submit_calls = 0
+                self.init_args = args
+                self.init_kwargs = kwargs
                 created.append(self)
 
             def submit(inner, *args, **kwargs):
@@ -279,6 +284,69 @@ class CoreOneShotRunnerTest(unittest.TestCase):
         self.assertEqual(result["runStatus"], "PAPER_ACCEPTED", result)
         self.assertEqual(len(created), 1)
         self.assertEqual(created[0].submit_calls, 1)
+
+
+    def _initialize_simulated_origin(self):
+        contract_bytes = json.dumps(
+            DEFAULT_SIMULATED_CAPITAL_CONTRACT, separators=(",", ":")
+        ).encode("utf-8")
+        PaperLedger(
+            self.ledger_path,
+            strategy_id="STRATEGY_CORE",
+            source_sha="b" * 40,
+            simulated_contract_bytes=contract_bytes,
+            simulated_initialized_at_ms=NOW,
+        )
+        record_account_mark(
+            PaperLedger(self.ledger_path),
+            "100",
+            NOW - 60_000,
+            NOW,
+            "sha256:" + "c" * 64,
+        )
+        config = {
+            "mode": "PAPER",
+            "ai_execution_enabled": False,
+            "ledger_path": str(self.ledger_path),
+            "max_book_age_ms": 2_000,
+            "max_position_base": "0.01",
+        }
+        self.config_path.write_text(json.dumps(config), encoding="utf-8")
+        return config
+
+    def test_simulated_origin_uses_contract_only_policy_without_caller_limits(self):
+        self._initialize_simulated_origin()
+
+        result, created = self.run_patched(producer_report())
+
+        self.assertEqual(result["runStatus"], "PAPER_ACCEPTED", result)
+        self.assertEqual(len(created), 1)
+        self.assertNotIn("risk_limits", created[0].init_kwargs)
+        self.assertNotIn("require_risk_limits", created[0].init_kwargs)
+        self.assertEqual(
+            created[0].init_kwargs.get("simulated_contract_bytes"),
+            json.dumps(DEFAULT_SIMULATED_CAPITAL_CONTRACT, separators=(",", ":")).encode("utf-8"),
+        )
+
+    def test_simulated_origin_rejects_config_risk_override_before_ledger_construction(self):
+        config = self._initialize_simulated_origin()
+        config["risk_limits"] = dict(LIMITS)
+        self.config_path.write_text(json.dumps(config), encoding="utf-8")
+
+        result, created = self.run_patched(producer_report())
+
+        self.assertEqual(result["runStatus"], "INPUT_REJECTED")
+        self.assertEqual(len(created), 0)
+
+    def test_simulated_origin_rejects_environment_risk_override_before_ledger_construction(self):
+        self._initialize_simulated_origin()
+
+        with patch.dict("os.environ", {"PAPER_MAX_EXPOSURE_USDT": "999"}, clear=False):
+            result, created = self.run_patched(producer_report())
+
+        self.assertEqual(result["runStatus"], "INPUT_REJECTED")
+        self.assertEqual(len(created), 0)
+
 
 if __name__ == "__main__":
     unittest.main()
