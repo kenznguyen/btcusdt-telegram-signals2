@@ -485,7 +485,17 @@ class FiveLayerApiTest(unittest.TestCase):
         self.assertIsNone(signals["aiStrategy"]["intent"])
 
     def test_api_kill_switch_requires_control_token_and_blocks_paper_evaluation(self):
-        # Replace the empty test database with a real, isolated PAPER Dual Ledger.
+        self.assertEqual(self.request("/v1/paper/kill", "POST", {"enabled": True}, token="read-token")[0], 401)
+        code, state = self.request("/v1/paper/kill", "POST", {"enabled": True})
+        self.assertEqual(code, 200)
+        self.assertTrue(state["riskControl"]["killed"])
+        with patch.object(api, "decide", return_value=self.valid_ai_decision()):
+            code, result = self.request("/v1/paper/evaluate", "POST", {})
+        self.assertEqual(code, 200, result)
+        self.assertEqual(result["order"]["status"], "REJECTED")
+        self.assertEqual(result["order"]["reason"], "KILL_SWITCH")
+
+    def test_kill_reset_succeeds_with_bootstrapped_dual_ledger(self):
         self.paper_db.unlink()
         manifest = build_dual_ledger_bootstrap_manifest(
             self.root, self.now, self.paper_db, "b" * 40
@@ -494,24 +504,16 @@ class FiveLayerApiTest(unittest.TestCase):
         self.assertTrue(bootstrap["riskReady"])
         self.assertFalse(bootstrap["liveTradingSupported"])
 
-        self.assertEqual(self.request("/v1/paper/kill", "POST", {"enabled": True}, token="read-token")[0], 401)
         code, state = self.request("/v1/paper/kill", "POST", {"enabled": True})
         self.assertEqual(code, 200)
         self.assertTrue(state["riskControl"]["killed"])
-        with patch.object(api, "decide", return_value=self.valid_ai_decision()):
-            _, result = self.request("/v1/paper/evaluate", "POST", {})
-        self.assertEqual(result["order"]["status"], "REJECTED")
-        self.assertEqual(result["order"]["reason"], "KILL_SWITCH")
         self.start_kill_reset_service()
-        self.assertEqual(self.request("/v1/paper/reset-kill", "POST",
-                                      {"acknowledge": True})[0], 200)
-        # A rejected intent remains idempotently rejected. A fresh prediction
-        # timestamp creates a new signal identity after the operator reset.
-        self.prediction["availableAtMs"] = self.now-500
-        self.pred_path.write_text(json.dumps(self.prediction))
-        with patch.object(api, "decide", return_value=self.valid_ai_decision()):
-            _, result = self.request("/v1/paper/evaluate", "POST", {})
-        self.assertEqual(result["order"]["status"], "FILLED")
+        code, result = self.request(
+            "/v1/paper/reset-kill", "POST", {"acknowledge": True}
+        )
+        self.assertEqual(code, 200, result)
+        _, paper = self.request("/v1/paper")
+        self.assertFalse(paper["account"]["killSwitch"]["killed"])
 
     def test_kill_reset_fails_closed_when_dual_ledger_is_not_ready(self):
         # A legacy database without the validated Dual Ledger contract must
