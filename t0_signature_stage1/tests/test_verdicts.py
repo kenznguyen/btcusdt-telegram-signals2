@@ -117,6 +117,14 @@ class FixtureMatrixTests(unittest.TestCase):
         self.assertEqual(after, state)
 
 
+    def test_mutable_catalog_values_are_defensively_copied(self):
+        from t0_signature_stage1.verdicts import build_fixture
+        first = fixture_catalog()[-1]
+        first.mutation_value.append("UNEXPECTED")
+        _baseline, mutated, _spec = build_fixture("A2.2-NV-27")
+        self.assertEqual(mutated["bootstrap"]["path_evidence"], ["PATH_A", "PATH_B"])
+
+
 class MockVerifierTests(unittest.TestCase):
     def test_mock_verifier_is_explicitly_non_cryptographic(self):
         verifier = MockSignatureVerifier()
