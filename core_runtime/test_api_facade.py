@@ -211,8 +211,10 @@ class CoreApiFacadeTest(unittest.TestCase):
 
     def test_core_evaluate_route_never_uses_legacy_local_decision_or_hummingbot_path(self):
         with tempfile.TemporaryDirectory() as directory:
-            db_path = Path(directory) / "paper.sqlite3"
-            db_path.touch()
+            market_db_path = Path(directory) / "market-data.sqlite3"
+            paper_db_path = Path(directory) / "paper.sqlite3"
+            market_db_path.touch()
+            paper_db_path.touch()
             body = json.dumps({"source": "CORE"}).encode()
             environ = {
                 "REQUEST_METHOD": "POST",
@@ -239,7 +241,8 @@ class CoreApiFacadeTest(unittest.TestCase):
                 patch.dict(os.environ, {
                     "CONTROL_TOKEN": "control-secret",
                     "MARKET_DATA_TOKEN": "read-secret",
-                    "MARKET_DATA_DB": str(db_path),
+                    "MARKET_DATA_DB": str(market_db_path),
+                    "PAPER_DB": str(paper_db_path),
                 }, clear=False),
                 patch.object(common_api, "now_ms", return_value=NOW),
                 patch.object(common_api, "control_permit", return_value=True),
