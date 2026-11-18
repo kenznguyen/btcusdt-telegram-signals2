@@ -3246,3 +3246,17 @@ Additional payload inspection:
 - Last verified compare against main before this documentation-only commit: 4,572 ahead / 85 behind; merge base `f5b74affb8777953fa66d241784965fbb0e577ba`.
 - Exact-head CI remains **NOT RUN / NOT VERIFIED**. Manual workflow dispatch is required on the branch, with checkout SHA checked against the live branch HEAD at dispatch time.
 - Merge remains **BLOCKED / NOT AUTHORIZED**. No source/runtime/T0/AI/live-trading changes.
+
+
+## 2026-11-18 — Repository structure and dependency audit
+
+- Read-only inventory pinned to source HEAD `fa48bb56a9b353256fa967ee780bee90455e794d`; recursive tree: 1,105 tracked files, 251 Python files outside docs, 37 workflow/CI YAML files.
+- Audit report: `docs/evidence/REPOSITORY_STRUCTURE_DEPENDENCY_AUDIT_2026-11-18.md`; evidence commit `40da68b26bce1b4e6c2e59d4db61e0049a91f9d1`.
+- Confirmed: `pipeline/api.py` imports `CORE_LEVERAGE` from root `risk_policy.py`; keep the module at root until import/test/workflow updates are reviewed.
+- Confirmed: `dashboard/index.html` is a manual JSON/CSV backtest report viewer; `control_dashboard/` is the distinct React control plane. Do not merge these surfaces.
+- `app.py` is a Flask WSGI app serving the manual dashboard and feeder health routes; its exact deployment/start-command callers remain unresolved — REVIEW, do not move/delete.
+- `backtest_rsi_percent_b_h1_adx.py` is documented as independent research outside T0–T4; keep until exact-branch workflow/caller trace is complete.
+- `d07_9_lineage/` and `t0_signature_stage1/` are distinct offline/synthetic packages with their own schemas, constraints and tests; preserve their boundaries.
+- Audit is **PARTIAL PASS / READ-ONLY**. No source move/rename/delete, workflow edit, test or CI run. The available code-search endpoint indexes the default branch, so it was not used to claim exact-branch caller completeness.
+- Next: complete exact-branch entrypoint/caller trace for `app.py`, research backtest and dashboard surfaces; then consider a docs index. No source relocation until this is complete and approved.
+- No merge/rebase/reset/force-push, branch creation, deployment, VPS/runtime/T0 database access, exchange access, AI execution or real order.
