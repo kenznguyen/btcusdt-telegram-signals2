@@ -3101,7 +3101,7 @@ Additional payload inspection:
   - Kill Reset regression set: legacy kill blocks paper evaluation; ready Dual Ledger reset succeeds; not-ready Dual Ledger reset remains rejected.
   - Common API regressions with isolated Paper storage.
   - Earlier T0 HTTP boundary, candle client, compile, Strategy Core and multiple Core runtime contract steps.
-- At handoff update time, the full operational workflow is still running at Run read-only PaperLedger readiness preflight contracts; overall workflow conclusion and final artifact are pending. Do not treat the whole Core First proof as PASS yet.
+- Full operational workflow completed successfully: run 44256822798, push event, branch feature/core-operational-proof-20261112, checked-out SOURCE_SHA 50d6f775ff3c1cd9fe5a20144874f4ee5f4c2b95. All workflow steps, including Core First end-to-end paper proof, partial-fill crash checkpoints, Core Runner integration, account-risk snapshot, shared risk/Paper Ledger, scoped reservation expiry, and T1/T2 order-book integration, completed successfully. Artifact 14405604108 (core-first-code-operational-proof-44256822798), SHA-256 e0a0ef6bc491e63bc1886383c3983680532d06b2e416fbcf30c02578e0337367. No raw candle database was uploaded.
 - Separate supporting workflows at SHA 61065dbec75f20c197b6f3f2ff22fd4447567b60 completed successfully: Dual Ledger Bootstrap run 44256536198 (artifact 14406476712, SHA-256 38c7e41e3088b19b528d57499777acabf8dfdacbd1757e2ca0200eec05bfdd56) and Owner Attestation run 44256535834 (artifact 14406561070, SHA-256 65c39eb01a45fd9b3473f6b8dc17cb0adb1fbd217b6df506506508355ae63d5c). These supporting runs validate the shared bootstrap fixture and attestation contracts at SHA 61065, not the latest API-test SHA.
 
 ### Source commits and files
@@ -3116,6 +3116,6 @@ Additional payload inspection:
 ### Status and next action
 
 - Focused Kill Reset regression: PASS on tested SHA 50d6f775ff3c1cd9fe5a20144874f4ee5f4c2b95.
-- Full Core operational workflow: IN PROGRESS / NOT VERIFIED until run 44256822798 completes and its artifact is inspected.
+- Full Core operational workflow: PASS on exact checked-out SHA 50d6f775ff3c1cd9fe5a20144874f4ee5f4c2b95; artifact and digest recorded above.
 - Separate Dual Ledger Bootstrap and Owner Attestation runs: PASS at SHA 61065dbec75f20c197b6f3f2ff22fd4447567b60; supporting artifacts recorded above.
-- Next: collect final run conclusions, exact checked-out SHA, job summaries, artifact IDs and SHA-256 digests; inspect failures if any; then update this handoff again. Core First completion, merge, Dual-Strategy implementation, VPS/runtime use, and real trading remain out of scope.
+- Next: preserve this exact-SHA evidence for independent Core First review and the user's next approval gate. This CI pass alone does not authorize merge, Dual-Strategy implementation, VPS/runtime activation, or real trading.
