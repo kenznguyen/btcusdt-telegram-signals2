@@ -58,12 +58,13 @@ The 85 main-side commits are not 85 distinct changed source files. The commit su
 - Main `.github/workflows/t0-signature-a2-2-stage-i.yml` and branch copy have identical blob SHA `5fa94939181af5f1f33686c3444bc6f8a0326962`.
 - Main `.github/workflows/t0-manual-validation.yml` and branch copy differ substantially in size and content; they require a separate gate-by-gate workflow review before any integration decision.
 
-### F-05 — T0 signature amendment contains a governance-text conflict
+### F-05 — Main's A1 amendment narrative is stale against the controlling owner-approved contract addendum
 
 - Main and branch versions of `docs/architecture/T0_SIGNATURE_TRUST_POLICY_MONOTONIC_ANCHOR_AMENDMENT_A1_2026-11-11.md` differ.
-- Main text describes VPS + GitHub custody as a proposed/draft alternative pending owner ratification.
-- Branch text records the owner-approved addendum and explicitly retains the joint-rollback limitation.
-- Do not resolve this by choosing a file based on branch age alone. Verify the controlling owner decision/addendum and reconcile the wording before any merge.
+- The controlling branch contract `docs/architecture/T0_EVIDENCE_OBJECT_CHECKPOINT_CONTRACT_V1.md`, blob `a6825270d59bde274bfe765d5f942144b66a84de`, contains the formal owner-approved amendment dated 2026-11-11 at lines 805–835. It explicitly amends §§7/9 to the bounded VPS + GitHub custody scope and preserves the joint-rollback limitation.
+- The owner decision record `docs/decisions/D-2026-11-10-L4-EVIDENCE-CUSTODY-VPS-GITHUB-ONLY.md`, blob `527bf46a024cbad98ec74df8f85c70efc4dc0615`, records VPS + GitHub only as owner-directed, with no external custody requirement, while retaining exact-object/readback and integrity requirements.
+- Therefore the branch A1 wording is consistent with the controlling approved addendum. Main's A1 wording that still calls the arrangement a draft pending ratification is stale and must not override the formal addendum.
+- This resolves the owner-decision ambiguity for the bounded custody-location scope only. It does not promote custody/readback/freshness controls to PASS and does not authorize technical implementation, provider/VPS operations or destructive actions.
 
 ### F-06 — Main contains an additional D01–D14/S2 audit record
 
@@ -86,7 +87,7 @@ The 85 main-side commits are not 85 distinct changed source files. The commit su
 - Bounded main-history inventory: **PASS** (85 commits / 16 changed paths identified).
 - Targeted Common API source review: **BLOCKED for integration** by F-01; branch variant avoids the identified defect.
 - Paper/T0 isolation comparison: **REQUIRES PRESERVATION / FURTHER REVIEW**.
-- T0 signature governance reconciliation: **BLOCKED / NOT VERIFIED** until controlling owner addendum is checked.
+- T0 signature governance reconciliation: **RESOLVED FOR DOCUMENTARY AUTHORITY** in favor of the branch's formal owner-approved addendum; main A1 narrative is stale. Technical custody/readback/freshness qualification remains **NOT VERIFIED**.
 - Workflow parity review: **PARTIAL / NOT VERIFIED**.
 - Full semantic review of all 85 commits and merged-tree validation: **NOT COMPLETE / NOT RUN**.
 - Merge: **BLOCKED / NOT AUTHORIZED**.
