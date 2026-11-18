@@ -82,13 +82,22 @@ Consequently, when a data-flow-only change occurs and the recovery job is correc
 - The branch workflow includes broader automated coverage, but F-07/F-08 mean that coverage is not reliably activated for all independent changes or pull requests.
 - The workflow's manual TimescaleDB gate consumes `MARKET_DATA_TEST_DATABASE_URL`; it explicitly fails when the secret is missing. This is a disposable integration-test dependency, not authorization to access canonical T0. No secret value was read.
 
+### F-10 — Several P3 components remain manual-only and are outside the push path filter
+
+The branch's manual P3 gate runs `market_data.test_feeder_retry`, `market_data.test_feeder_health`, `market_data.test_feeder_health_api`, and compiles `app.py`. These paths are not present in the workflow's push path filter. A change limited to one of these files therefore does not trigger this workflow automatically. Kraken adapter/store/API source and tests are also manual-choice gates rather than automatic push gates.
+
+- Classification: **AUTOMATION COVERAGE LIMIT — CONFIRMED FROM PATH FILTER**.
+- This may be intentional for manually selected/less frequently changed components; it is not automatically a defect unless those files are expected to receive push-time CI.
+- The workflow currently has no `pull_request` trigger and its push branch filter is limited to the legacy T0 branch, so this manual-only coverage is not automatically activated on the current Core First branch or main.
+
 ## Integration disposition
 
 1. Preserve the branch Core operational proof workflow, including Dual Ledger bootstrap and Kill Reset regressions.
 2. Do not replace the branch T0 workflow with main's manual-only file.
 3. The branch T0 workflow is the richer candidate, but it is **NOT READY FOR INTEGRATION AS-IS** until F-07 dependency semantics and F-08 trigger intent are corrected/reviewed.
 4. Do not add PR/main triggers automatically; first decide intended branch/event coverage.
-5. Do not infer test PASS from YAML presence. No workflow was run in this review.
+5. Decide whether P3 and Kraken gates are intentionally manual-only; if not, update path coverage in a separately approved change.
+6. Do not infer test PASS from YAML presence. No workflow was run in this review.
 
 ## Status
 
