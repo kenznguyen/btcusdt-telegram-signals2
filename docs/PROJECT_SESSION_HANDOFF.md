@@ -3428,3 +3428,14 @@ Additional payload inspection:
 - Full report: `docs/evidence/MAIN_CORE_API_QUALITY_SNAPSHOT_STATIC_REVIEW_2026-11-18.md`; report commit `ef5bdee41430a9f4acd86e104ad60f44a1386f69`.
 - No source/test/workflow execution, candidate checkout, merge simulation, runtime/T0/VPS/exchange access. Merge remains BLOCKED / NOT AUTHORIZED.
 - Next: continue read-only semantic review of remaining main-only deltas; do not create a merge candidate or PR without explicit authorization.
+
+
+## 2026-11-18 — Main-side Core API static review and documentation placement correction
+
+- MAPI-01 static finding: main `pipeline/api.py` reads local `core` at line 328 before assignment at line 351 in `quality_snapshot()`; this is a statically confirmed `UnboundLocalError` ordering defect. Corresponding main test invokes this path but was not run in this review. Branch version assigns at line 384 before reading at line 385 and reuses the same result.
+- Main source blob: `fe5b9ffc8a95001f5b1a9734da67a1cb8d23a31b`; branch source blob: `bb89b0bdf196f64b3ab9d9ac15b6597f333c583e`.
+- Main test blob: `e41f374afee2b3b2be5c70f12c441218367d7f70`; branch test blob: `f860d32c4047374dec4f574605a1c1b21ba1a58b`.
+- **Process correction:** the first report creation omitted the `branch` argument and was committed to default branch `main` as `ef5bdee41430a9f4acd86e104ad60f44a1386f69`. It changed documentation only; no source, workflow, runtime, or trading code. This was verified by checking refs: main now points to `ef5bdee...`, while the Core First branch points to `a58e93dd6840217018773cf93e48e4312f7469db` before this correction.
+- No attempt was made to rewrite, revert, or delete the main commit. A duplicate report is being recorded on the intended Core First branch to preserve project evidence placement.
+- Review report on Core First branch: `docs/evidence/MAIN_CORE_API_QUALITY_SNAPSHOT_STATIC_REVIEW_2026-11-18.md`; branch report commit `714f5dd476fdc815aab7697fdb3da90092d639b7`.
+- Merge remains BLOCKED / NOT AUTHORIZED. Continue read-only review only; do not create PR/merge candidate without explicit approval.
