@@ -2131,3 +2131,59 @@ This follow-up supersedes the earlier pending items for persistent preview artif
 - Migrate all Common API candle reads through the existing strict T0 Candle HTTP Contract V1 client using explicit `T0_CANDLE_API_BASE_URL`, `T0_CANDLE_API_TOKEN`, and `T0_CANDLE_MAX_LAG_MS`.
 - Remove the Common API's local `create_store_from_env().read_window()` path; no local SQLite fallback. Paper DB remains independent and local.
 - Start with RED tests. Do not change T0 service, T1 service, runtime deployment or VPS configuration. Runtime configuration for the Common API remains NOT UPDATED and must not be deployed until separately configured.
+
+
+## 2026-11-18 — Architecture Compliance Remediation 2: Common API T0 HTTP boundary (CI partially verified)
+
+**Scope and design**
+- Continue on existing branch `feature/core-operational-proof-20261112`; no branch creation or merge.
+- Common API candle reads now use the existing strict `CandleHttpClient` / T0 Candle Contract V1.
+- Required Common API endpoint configuration: `T0_CANDLE_API_BASE_URL`, `T0_CANDLE_API_TOKEN`, `T0_CANDLE_MAX_LAG_MS`.
+- `market_window()` no longer calls `create_store_from_env().read_window()`; no local SQLite/Postgres fallback. It maps transport/config/contract failures to a safe unavailable error.
+- Common API POST preflight validates the T0 HTTP client configuration instead of requiring a local `MARKET_DATA_DB` file.
+- Paper DB can be configured independently without `MARKET_DATA_DB`. If a legacy/local path is explicitly present, the existing Paper/T0 alias guard still rejects overlap.
+- All Common API consumers using `market_window()` (candles, equity marks, quality M15/H1, AI context, system readiness and decision inputs) now traverse the same HTTP boundary.
+- Existing AI context used the unbounded T0 read contract (`asOfMs=null`). The shared Candle HTTP client now supports an omitted optional as-of parameter in `fetch()`, omits it from the HTTP query, validates returned candles against server generation time, and preserves the original dataset identity. `fetch_one_page()` remains strict and still requires an explicit as-of timestamp for Core bundle requests.
+- T0 service and its storage/API implementation were not modified.
+
+**TDD evidence**
+1. RED:
+   - Workflow run `44208755094`, exact checkout SHA `847f9616a2a350054746138ef89a65a84926c964`.
+   - New Common API T0 HTTP boundary contracts: 3 tests failed against the old direct-store path (2 assertion failures, 1 configuration error), confirming no HTTP-only boundary existed.
+   - URL: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/44208755094
+2. HTTP client optional-as-of RED:
+   - Workflow run `44209083031`, exact checkout SHA `16ba5884a9e8205793fcfcd0878685e494f9be0a`.
+   - New optional-as-of client test failed as expected before the client change.
+3. T2 HTTP client GREEN:
+   - Workflow run `44209227437`: SUCCESS.
+   - Exact workflow checkout SHA `f02b96a6cb80a4f496f79c8281da53a4089351df`.
+   - T2 Candle HTTP consumer suite: 51 PASS.
+   - Artifact `t2-http-adapter-f02b96a6cb80a4f496f79c8281da53a4089351df`, ID `14385411676`, 2,953 bytes, SHA-256 `6a54d879d2957d46bf2a9046aa44deb4f5f0539f24a80603d5648d0b7ef128f7`, expires 2026-11-25.
+   - URL: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/44209227437
+4. T1/T2 order-book regression:
+   - Workflow run `44209353009`: SUCCESS at source SHA `659d6c2c6aeb0b36eaa1711a6d0b43e25e2e0cab`.
+   - Artifact ID `14384164457`, 2,248 bytes, SHA-256 `ac6afc0951cbc3e440df2ef2b9508aa8f40691a116a50942573d53c4631f4cab`.
+   - URL: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/44209353009
+5. Core operational workflow:
+   - Run `44209353003`, exact checkout SHA `659d6c2c6aeb0b36eaa1711a6d0b43e25e2e0cab`, URL https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/44209353003.
+   - Confirmed PASS so far: compile; live-data probe contracts; T0/Paper isolation (7 tests); T0 Candle HTTP client contracts; Common API T0 HTTP boundary (3 tests); Common API regression suite; Strategy Core/signal suite; Core preflight CLI; one-shot; runner hardening; cadence; journal; continuous orchestration; dry-run; PaperLedger readiness; Bundle V1 validation/input normalization/provider; Common API Core Bundle facade (8 tests); runtime factory; producer adapter.
+   - At this handoff update, the workflow is still executing `Run Core-First end-to-end paper operational proof`. Final conclusion and Core operational artifact are pending.
+   - An earlier run `44209134952` failed only because the Core facade route fixture omitted the newly required T0 HTTP configuration; the fixture was corrected in commit `659d6c2c6aeb0b36eaa1711a6d0b43e25e2e0cab` and the new run has passed that facade suite.
+ 
+**Source and branch**
+- Branch HEAD at this entry: `659d6c2c6aeb0b36eaa1711a6d0b43e25e2e0cab`.
+- Main application changes in this increment: `pipeline/api.py`, `freqai_bridge/http_candles.py`.
+- Related tests: `pipeline/test_api_t0_http_boundary.py`, `pipeline/test_api.py`, `pipeline/test_paper_storage_isolation.py`, `freqai_bridge/test_http_candles.py`, `core_runtime/test_api_facade.py`.
+- CI workflow updates: `.github/workflows/core-live-data-operational-proof.yml`, `.github/workflows/t2-http-consumer-red.yml`.
+
+**Safety and limits**
+- CI remains disposable and paper-only: `AI_EXECUTION_ENABLED=false`; no canonical T0 DB, exchange credentials, real orders, VPS or persistent runtime.
+- No T0 service/storage, T1 runtime, deployment, VPS, systemd/autostart or exchange configuration was changed.
+- Common API runtime environment has NOT been updated. Do not deploy/start it until the three T0 Candle HTTP settings and separate `PAPER_DB` are configured and independently verified.
+- No local T0 fallback remains in `pipeline/api.py`; its only remaining `MARKET_DATA_DB` reference is the optional path-alias safety guard in `paper_db_path()`.
+- Core First overall remains PARTIAL / NOT VERIFIED pending terminal Core workflow evidence, independent review, T1 deployment/integration evidence, and the actual partial-fill process-crash test. Promotion/merge remains blocked. Dual-Strategy AI remains deferred.
+
+**Next**
+- Reconcile final conclusion and artifact for Core run `44209353003`.
+- If green, perform independent read-only review of this increment and record the final compliance status.
+- Then proceed to the separately scoped actual partial-fill process-crash recovery test. Keep T0/T1 runtime, VPS deployment, AI execution and live trading disabled.
