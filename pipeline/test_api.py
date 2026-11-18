@@ -20,7 +20,9 @@ from paper_execution import kill_reset_service
 def _run_kill_reset_service_for_test(socket_path, key_path, control_token, ready_event):
     kill_reset_service.KILL_RESET_SIGNING_KEY_PATH = Path(key_path)
     os.environ["KILL_RESET_CONTROL_TOKEN"] = control_token
-    kill_reset_service.serve(socket_path, ready_event=ready_event)
+    kill_reset_service._serve_socket(
+        socket_path, control_token, os.geteuid(), ready_event=ready_event
+    )
 
 
 class FixtureT0CandleHttpClient:
@@ -444,6 +446,17 @@ class FiveLayerApiTest(unittest.TestCase):
         self.assertEqual(code, 409)
         self.assertEqual(result["error"], "SYSTEM_NOT_READY")
         self.assertTrue(self.request("/v1/paper")[1]["riskControl"]["killed"])
+
+    def test_production_control_service_requires_a_distinct_non_root_api_user(self):
+        with patch.object(
+            kill_reset_service, "KILL_RESET_SIGNING_KEY_PATH", self.signing_key_path
+        ), patch.dict(os.environ, {
+            "KILL_RESET_CONTROL_TOKEN": self.control_token,
+            "KILL_RESET_CONTROL_SOCKET": str(self.control_socket),
+            "KILL_RESET_API_UID": str(os.geteuid()),
+        }, clear=True):
+            with self.assertRaisesRegex(RuntimeError, "different non-root OS users"):
+                kill_reset_service.serve()
 
     def test_kill_reset_fails_closed_when_isolated_service_is_unavailable(self):
         self.request("/v1/paper/kill", "POST", {"enabled": True})

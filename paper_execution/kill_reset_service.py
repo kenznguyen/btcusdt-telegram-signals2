@@ -15,6 +15,7 @@ import socket
 import socketserver
 import sqlite3
 import stat
+import struct
 import threading
 
 from pipeline.values import stamp
@@ -29,15 +30,18 @@ _MAX_IPC_MESSAGE = 65_536
 
 def _load_signing_key():
     try:
-        metadata = KILL_RESET_SIGNING_KEY_PATH.stat()
+        if os.geteuid() == 0:
+            raise ValueError("KILL_RESET_SERVICE_MUST_NOT_RUN_AS_ROOT")
+        metadata = KILL_RESET_SIGNING_KEY_PATH.lstat()
         mode = stat.S_IMODE(metadata.st_mode)
         if (not stat.S_ISREG(metadata.st_mode) or metadata.st_uid != os.geteuid()
                 or mode & 0o077):
             raise ValueError("KILL_RESET_SIGNING_KEY_PERMISSIONS_INVALID")
-        key = KILL_RESET_SIGNING_KEY_PATH.read_bytes()
+        with KILL_RESET_SIGNING_KEY_PATH.open("rb") as source:
+            key = source.read(4097)
     except OSError as error:
         raise ValueError("KILL_RESET_SIGNING_KEY_UNAVAILABLE") from error
-    if len(key) < 32:
+    if not 32 <= len(key) <= 4096:
         raise ValueError("KILL_RESET_SIGNING_KEY_INVALID")
     return key
 
@@ -88,8 +92,8 @@ def _consume_kill_reset_evidence(evidence, at_ms):
     if not isinstance(evidence, dict) or set(evidence) != {"token", "checkedAtMs", "signature"}:
         return False
     token, signature = evidence["token"], evidence["signature"]
-    if (not isinstance(token, str) or not 40 <= len(token) <= 128
-            or not isinstance(signature, str) or len(signature) != 64):
+    if (not isinstance(token, str) or not token.isascii() or not 40 <= len(token) <= 128
+            or not isinstance(signature, str) or not signature.isascii() or len(signature) != 64):
         return False
     try:
         key = _load_signing_key()
@@ -123,28 +127,43 @@ def _perform_reset():
     return 200, result
 
 
+def _peer_uid(connection):
+    if not hasattr(socket, "SO_PEERCRED"):
+        raise ValueError("UNIX_PEER_CREDENTIALS_UNAVAILABLE")
+    raw = connection.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED, struct.calcsize("3i"))
+    return struct.unpack("3i", raw)[1]
+
+
 class _KillResetHandler(socketserver.StreamRequestHandler):
     def handle(self):
-        raw = self.rfile.readline(_MAX_IPC_MESSAGE + 1)
-        if not raw or len(raw) > _MAX_IPC_MESSAGE or not raw.endswith(b"\n"):
-            response = {"status": 400, "body": {"error": "INVALID_CONTROL_REQUEST"}}
+        try:
+            peer_uid = _peer_uid(self.request)
+        except (OSError, ValueError, struct.error):
+            peer_uid = None
+        if peer_uid != self.server.allowed_api_uid:
+            response = {"status": 401, "body": {"error": "CONTROL_SERVICE_UNAUTHORIZED"}}
         else:
-            try:
-                payload = json.loads(raw)
-            except (UnicodeDecodeError, json.JSONDecodeError):
-                payload = None
-            token = getattr(self.server, "control_token", "")
-            if (not isinstance(payload, dict) or set(payload) != {"acknowledge", "token"}
-                    or payload.get("acknowledge") is not True
-                    or not isinstance(payload.get("token"), str)
-                    or not hmac.compare_digest(payload["token"], token)):
-                response = {"status": 401, "body": {"error": "CONTROL_SERVICE_UNAUTHORIZED"}}
+            raw = self.rfile.readline(_MAX_IPC_MESSAGE + 1)
+            if not raw or len(raw) > _MAX_IPC_MESSAGE or not raw.endswith(b"\n"):
+                response = {"status": 400, "body": {"error": "INVALID_CONTROL_REQUEST"}}
             else:
                 try:
-                    status, body = _perform_reset()
-                except Exception:
-                    status, body = 503, {"error": "KILL_RESET_CONTROL_FAILED"}
-                response = {"status": status, "body": body}
+                    payload = json.loads(raw)
+                except (UnicodeDecodeError, json.JSONDecodeError):
+                    payload = None
+                token = getattr(self.server, "control_token", "")
+                supplied = payload.get("token") if isinstance(payload, dict) else None
+                if (not isinstance(payload, dict) or set(payload) != {"acknowledge", "token"}
+                        or payload.get("acknowledge") is not True
+                        or not isinstance(supplied, str) or not supplied.isascii()
+                        or not hmac.compare_digest(supplied.encode("ascii"), token.encode("ascii"))):
+                    response = {"status": 401, "body": {"error": "CONTROL_SERVICE_UNAUTHORIZED"}}
+                else:
+                    try:
+                        status, body = _perform_reset()
+                    except Exception:
+                        status, body = 503, {"error": "KILL_RESET_CONTROL_FAILED"}
+                    response = {"status": status, "body": body}
         self.wfile.write(json.dumps(response, separators=(",", ":"), allow_nan=False).encode("utf-8") + b"\n")
 
 
@@ -156,7 +175,8 @@ class _KillResetServer(socketserver.ThreadingUnixStreamServer):
 def request_kill_reset(socket_path, control_token, timeout=2.0):
     if not isinstance(socket_path, str) or not socket_path or not Path(socket_path).is_absolute():
         raise ValueError("KILL_RESET_CONTROL_SOCKET_INVALID")
-    if not isinstance(control_token, str) or len(control_token) < 32:
+    if (not isinstance(control_token, str) or not control_token.isascii()
+            or len(control_token) < 32):
         raise ValueError("KILL_RESET_CONTROL_TOKEN_UNAVAILABLE")
     client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     client.settimeout(timeout)
@@ -186,22 +206,26 @@ def request_kill_reset(socket_path, control_token, timeout=2.0):
     return status, body
 
 
-def serve(socket_path=None, ready_event=None):
+def _serve_socket(socket_path, control_token, allowed_api_uid, ready_event=None):
     _load_signing_key()
-    control_token = os.environ.get("KILL_RESET_CONTROL_TOKEN", "")
-    if len(control_token) < 32:
-        raise RuntimeError("KILL_RESET_CONTROL_TOKEN must contain at least 32 characters")
-    configured_path = socket_path or os.environ.get("KILL_RESET_CONTROL_SOCKET", "")
-    if not configured_path or not Path(configured_path).is_absolute():
+    if type(allowed_api_uid) is not int or allowed_api_uid < 1:
+        raise RuntimeError("KILL_RESET_API_UID_INVALID")
+    if not isinstance(control_token, str) or not control_token.isascii() or len(control_token) < 32:
+        raise RuntimeError("KILL_RESET_CONTROL_TOKEN must contain at least 32 ASCII characters")
+    if not isinstance(socket_path, str) or not Path(socket_path).is_absolute():
         raise RuntimeError("KILL_RESET_CONTROL_SOCKET must be an absolute path")
-    path = Path(configured_path)
-    path.parent.mkdir(parents=True, exist_ok=True)
+    path = Path(socket_path)
+    path.parent.mkdir(parents=True, exist_ok=True, mode=0o750)
+    parent = path.parent.stat()
+    if parent.st_uid != os.geteuid() or stat.S_IMODE(parent.st_mode) & 0o022:
+        raise RuntimeError("KILL_RESET_CONTROL_SOCKET_DIRECTORY_PERMISSIONS_INVALID")
     if path.exists() or path.is_symlink():
         if not stat.S_ISSOCK(path.lstat().st_mode):
             raise RuntimeError("Refusing to replace a non-socket control path")
         path.unlink()
     server = _KillResetServer(str(path), _KillResetHandler)
     server.control_token = control_token
+    server.allowed_api_uid = allowed_api_uid
     os.chmod(path, 0o660)
     if ready_event is not None:
         ready_event.set()
@@ -210,6 +234,22 @@ def serve(socket_path=None, ready_event=None):
     finally:
         server.server_close()
         path.unlink(missing_ok=True)
+
+
+def serve(socket_path=None, ready_event=None):
+    if os.geteuid() == 0:
+        raise RuntimeError("Kill Reset Control Service must not run as root")
+    control_token = os.environ.get("KILL_RESET_CONTROL_TOKEN", "")
+    if not control_token.isascii() or len(control_token) < 32:
+        raise RuntimeError("KILL_RESET_CONTROL_TOKEN must contain at least 32 ASCII characters")
+    raw_api_uid = os.environ.get("KILL_RESET_API_UID", "")
+    if not raw_api_uid.isascii() or not raw_api_uid.isdigit() or str(int(raw_api_uid)) != raw_api_uid:
+        raise RuntimeError("KILL_RESET_API_UID must be a canonical non-root UID")
+    api_uid = int(raw_api_uid)
+    if api_uid == 0 or api_uid == os.geteuid():
+        raise RuntimeError("API and Kill Reset Control Service must use different non-root OS users")
+    configured_path = socket_path or os.environ.get("KILL_RESET_CONTROL_SOCKET", "")
+    _serve_socket(configured_path, control_token, api_uid, ready_event)
 
 
 if __name__ == "__main__":
