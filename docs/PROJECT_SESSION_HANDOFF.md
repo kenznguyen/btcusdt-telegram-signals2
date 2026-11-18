@@ -1,3 +1,16 @@
+# CURRENT WORKFLOW LIFECYCLE AUDIT — 2026-11-18
+
+- Repo/branch: `kenznguyen/btcusdt-telegram-signals2:main`.
+- Audit source baseline: `95469069fdcf78c0567e3b5971e2eee8a440e94a`.
+- All 13 workflows in `.github/workflows/` were inventoried read-only. No workflow files changed or ran.
+- Preserve Core First/T0 branch-filtered workflows. Preserve focused Core API regression, Android CI/release-pair, dashboard backtest, signal scan and Telegram command workflows pending normal ownership/retirement evidence.
+- REVIEW only: `android-release.yml` (overlapping but distinct single-APK release contract); `p5-3-11-g2-integration-green.yml` (reusable/manual workflow with T0 dependencies absent on main; caller graph not confirmed); `t0-signature-a2-2-stage-i.yml` (manual-only; expected package/tests not found in inspected refs); `t0-manual-validation.yml` (manual gate source/ref context requires confirmation).
+- Evidence: `docs/evidence/MAIN_DOCUMENTATION_CLEANUP_2026-11-18.md`, section “Follow-up workflow lifecycle audit”.
+- Status: inventory PASS; workflow run recency/caller graph NOT VERIFIED; tests/CI NOT RUN; artifact NONE. No T0/runtime/VPS/database/Feeder/exchange/trading access.
+- Next: inspect REVIEW items' history/callers and exact intended branch context; no workflow deletion without separate explicit approval.
+
+---
+
 # CURRENT MAIN CLEANUP AUDIT — 2026-11-18
 
 - Repository: `kenznguyen/btcusdt-telegram-signals2`
