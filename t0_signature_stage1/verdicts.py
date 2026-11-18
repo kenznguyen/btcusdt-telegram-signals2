@@ -182,7 +182,7 @@ def _make_baseline(name: str, *, legacy_statement: bool = False, path_a_enabled:
             "object_type": "T0_CHECKPOINT",
             "schema_version": "T0-CHECKPOINT-V1",
             "canonical_bytes": '{"checkpoint":"synthetic","sequence":"0"}',
-            "byte_length": 42,
+            "byte_length": 41,
             "digest": evidence_object_digest(b'{"checkpoint":"synthetic","sequence":"0"}'),
         },
         "descriptor": dict(binding, object_id="A2_2_CURRENT_OBJECT"),
