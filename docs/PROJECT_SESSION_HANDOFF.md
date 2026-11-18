@@ -2998,3 +2998,14 @@ Additional payload inspection:
 - Both ZIPs passed archive listing/read checks. No payload mismatch or missing expected source-SHA manifest was found.
 
 **Updated artifact integrity gate: PASS.** This closes the evidence payload integrity gap; it does not alter the separate runtime/deployment NOT VERIFIED status.
+
+
+## 2026-11-18 — Artifact ZIP integrity verification completed
+
+- Downloaded Core artifact ID `14399617831` and independently computed SHA-256 from the ZIP bytes: `0c36fe44a113262f7744db4bb52aa44ac724407393f285f0deab3c6c6b3ff4b6`. Exact match with GitHub artifact API digest and upload log.
+- Downloaded Dual Ledger artifact ID `14399404044` and independently computed SHA-256 from the ZIP bytes: `472548ca926a3839322fd7f10ab3ab4acdf178d89559632a7da146fe15d9e0ab`. Exact match with GitHub artifact API digest and upload log.
+- Core ZIP integrity/read: PASS; 30 files. Embedded source SHA matches Core workflow checked-out SHA `0ca9574b37bbe30a70ae08dc5ddb4b3679a47f9e`. Embedded verdict records `PAPER_ONLY=PASS`, `AI_EXECUTION_ENABLED=false`, canonical T0 untouched, no exchange credentials, no real orders, and no VPS/persistent runtime.
+- Dual Ledger ZIP integrity/read: PASS; 15 files. Embedded source SHA matches Dual Ledger workflow SHA `dba0e6badf23f54167625bef2ad2e96f3dca4985`. Embedded safety manifest limits execution to disposable SQLite CI with no external services/live orders; regression log confirms 672 tests, OK.
+- ZIP listings contain test/evidence logs and no raw candle database.
+- Artifact payload integrity gate: **PASS**. This verifies artifact bytes and provenance, not runtime/deployment readiness.
+- Exact source and docs provenance: handoff update follows source HEAD `dba0e6badf23f54167625bef2ad2e96f3dca4985`; the Core workflow SHA differs by only the later Dual Ledger test-fixture-only commit as recorded above.
