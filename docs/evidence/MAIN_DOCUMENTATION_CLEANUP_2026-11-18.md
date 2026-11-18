@@ -143,3 +143,20 @@ The handoff update and this report are separate sequential commits on the same e
 - Commit-associated workflow-run lookup for the two PR merge commits returned no PR-triggered runs. This API view is limited to PR-triggered runs and does not establish whether manual dispatch runs ever occurred. No manual run history/artifact was verified.
 - Updated assessment: workflow is **BLOCKED by missing executable package dependency** on the inspected refs. Parser correction in PR #142 is **PASS by static source inspection only**. Runtime execution, test count, artifact production and manual run history remain **NOT VERIFIED**.
 - Recommendation: do not delete yet. The workflow is currently unusable on the inspected refs, but first confirm whether the intended Stage I package exists in another repository/ref or was intentionally retired. No source/workflow deletion or edits authorized/performed. T0 runtime/data/VPS/Feeder/exchange/trading untouched.
+
+
+## Stage I provenance correction — 2026-11-18 (supersedes prior missing-package finding)
+
+- A follow-up read-only inspection corrected a path-selection error in the prior audit. The earlier check looked for `t0_signature_stage1/tests/test_stage_i.py`, but the actual test modules are `test_primitives.py` and `test_verdicts.py`; the workflow uses the broader `test_*.py` discovery pattern.
+- Confirmed on `feature/t0-centralized-data-feeder-p1-20261101`, handoff-recorded branch HEAD `e7273e918f254bd17a3ce997bb722e8d4e36d029`:
+  - `t0_signature_stage1/__init__.py`: blob `de3841295124c36cd366a4ff138c42ada303b688`.
+  - `t0_signature_stage1/primitives.py`: blob `91496d70a67d12525b8399b46aeb1318693b17ee`.
+  - `t0_signature_stage1/verdicts.py`: blob `600c49865279e03ef28466f267a6bf0b57176aa1`.
+  - `t0_signature_stage1/tests/__init__.py`: blob `4beea581f1e3cd514e6a085290f7f4dffb47aea9`.
+  - `t0_signature_stage1/tests/test_primitives.py`: blob `8e47af0bb98cae6e8501c609c97259ebc5e0c78f`.
+  - `t0_signature_stage1/tests/test_verdicts.py`: blob `d37ab48b0455d788bd5c87398281420a7aa121d8`.
+- Provenance: source/test addition commit `40b338336fcad59f058fac320bffe6182b4485f8`; post-amendment self-review document blob `e44273248ef7ee68898a90e1fdfb1cd6a0a6c6dc`. The self-review records 23 primitive test methods + 11 fixture/verdict test methods = 34, but explicitly states the exact repository suite and compile check were NOT RUN after the latest source change; Python 3.12 parity NOT VERIFIED; independent review NOT PERFORMED; G3 NOT ESTABLISHED.
+- Workflow `.github/workflows/t0-signature-a2-2-stage-i.yml` is present on both `main` and the T0 branch with blob `5fa94939181af5f1f33686c3444bc6f8a0326962`. It compiles `t0_signature_stage1`, discovers `test_*.py` under `t0_signature_stage1/tests`, checks empty DB/exchange credentials and `AI_EXECUTION_ENABLED=false`, and uploads a Stage I evidence artifact. The actual run/dispatch history and artifacts remain NOT VERIFIED.
+- Corrected status: package/test dependency provenance on the inspected T0 branch **PASS (static GitHub readback)**; workflow path compatibility **PASS (static inspection)**; test execution, compile execution, Python 3.12 parity, manual dispatch history and artifact production **NOT VERIFIED**. The previous claim that the package was absent from the inspected T0 branch is withdrawn.
+- Scope remained read-only: no workflow dispatch, test/build execution, source/workflow edit or deletion, branch mutation, T0 runtime/database/Feeder/VPS/exchange/trading access.
+- Recommendation: retain the Stage I workflow as a valid manual branch-context gate, not an orphan. Do not dispatch without separate owner approval; if approved later, select the exact T0 branch ref and record the checked-out SHA, run, job results and artifact identity.
