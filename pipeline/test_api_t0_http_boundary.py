@@ -54,7 +54,7 @@ class CommonApiT0HttpBoundaryTest(unittest.TestCase):
         self.assertEqual(client.config.token, "t0-read-only-test-token")
         self.assertEqual(client.config.max_lag_ms, 120000)
         self.assertEqual(client.calls, [(
-            1_799_998_200_000, 1_800_000_000_000, 1_800_000_000_000, "15m",
+            1_799_998_200_000, 1_800_000_000_000, None, "15m",
         )])
 
     def test_missing_t0_http_configuration_fails_closed_without_local_fallback(self):
