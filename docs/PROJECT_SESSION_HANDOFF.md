@@ -3288,3 +3288,20 @@ Additional payload inspection:
 - Scope: only `docs/README.md`, root `README.md`, and this handoff were changed. No source/workflow/config/runtime/T0/VPS/credential/exchange changes; no merge/rebase/reset/force-push/new branch; no AI execution or real order.
 - Status: **DOCUMENTATION INDEX CREATED / TARGETED PATHS VERIFIED / TESTS NOT RUN / FULL LINK AUDIT NOT RUN**.
 - Next: optional automated link validation on the exact updated HEAD, then continue only with the current Core First closeout priorities. Do not start Dual-Strategy implementation or source relocation solely because the index now links those documents.
+
+
+## 2026-11-18 — Main integration review (bounded pass 1)
+
+- Read-only compare after exact-HEAD Core First proof and evidence commit.
+- Branch `feature/core-operational-proof-20261112` HEAD before this review record: `5002814e7ee298db99eb9c1e0e63a2988e89054a`.
+- Main HEAD: `6bff2aff91657238297848ef644a0cb4112ab428`.
+- Merge base: `f5b74affb8777953fa66d241784965fbb0e577ba`.
+- Divergence at review: branch 4,582 ahead / 85 behind. The 85 main-side commits correspond to 16 changed paths relative to merge base (14 added, 2 modified).
+- Review report: `docs/evidence/MAIN_INTEGRATION_REVIEW_BOUNDED_PASS1_2026-11-18.md`; created in commit `37528fb25465be0e4a49579127920dc7be39e4f1`.
+- Material finding: main `pipeline/api.py::quality_snapshot()` reads `core.sourceEvidence` at line 328 before assigning `core` at line 351, causing an `UnboundLocalError` on that path. Main's newly added quality projection test invokes this path and should expose it when run. This is a static source-review finding; main tests were not run.
+- The current branch assigns `core` before using it (lines 384–385) and retains an explicit `paper_db_path()` boundary that separates Paper storage from canonical T0. Do not replace the branch Common API with main's file wholesale.
+- Main and branch T0 signature amendment documents contain conflicting governance wording: main calls VPS + GitHub custody a proposed/draft alternative; branch records an owner-approved addendum and joint-rollback limitation. Verify the controlling owner decision before reconciling.
+- Main contains an additional G0.52 D01–D14/S2 audit record; it states S2 is BLOCKED/NOT READY and grants no implementation authority. Preserve for later evidence reconciliation; it is not an independent security or runtime review.
+- Core operational proof workflow and T0 manual validation workflow differ; full gate-by-gate parity review remains outstanding. T0 A2.2 Stage I workflow blob is identical on main and branch.
+- Status: bounded history inventory **PASS**; targeted source review **BLOCKED FOR INTEGRATION** by F-01; governance reconciliation **BLOCKED / NOT VERIFIED**; workflow parity **PARTIAL / NOT VERIFIED**; full semantic review **NOT COMPLETE**; merged-tree validation **NOT RUN**; merge **BLOCKED / NOT AUTHORIZED**.
+- Next: verify controlling T0 custody addendum; complete workflow gate comparisons; reconcile G0.52; then prepare an integration map only. No merge/rebase/reset/force-push, source replacement, workflow replacement, VPS/runtime/T0 access, AI execution or real order.
