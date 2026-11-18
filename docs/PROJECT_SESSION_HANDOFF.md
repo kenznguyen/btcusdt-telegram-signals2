@@ -798,7 +798,6 @@ Current status:
 
 
 ### BTC Chart Pro separation — Android dependency-map increment
-
 - Extended docs/evidence/CHART_PRO_SEPARATION_AUDIT_2026-11-05.md with file-level disposition and source-set findings; update commit e7f0537a981d67c5a1037866f02326a80057fc89.
 - Android source line reviewed at PR #65 head 51f4edf5776b06b927db980faac4ca0ca91c44ce. PR #65 is OPEN / DRAFT / NOT MERGED; its seven changed files are only FiveLayer API/panel/candles/presentation and associated tests. Keep its PnL/freshness scope separate.
 - Confirmed MainActivity runtime branch alone is insufficient isolation: parallel build type inherits debug and compiles common src/main; no Chart Pro source-set exclusion is defined. AndroidManifest still declares StrategyMonitorService and foreground-service permissions for both variants.
@@ -1599,7 +1598,6 @@ This section supersedes the earlier PR #140 next-step note that requested implem
 - Next: inspect the two commits behind main and resolve ancestry/conflict risk on the existing PR branch without changing protected runtime scope; rerun exact-head CI if source changes. Do not dispatch `scaleway-ssh-preflight` without separate explicit approval.
 
 
-
 ## 2026-11-10 — PR #140 reset and merge closeout (supersedes prior PR #140 OPEN/BLOCKED notes)
 
 - User explicitly approved resetting `main` to remove the two named commits, then merging PR #140.
@@ -2397,8 +2395,7 @@ This follow-up supersedes the earlier pending items for persistent preview artif
 
 **Other reviewed controls — no issue found in inspected sections**
 - Simulated Ledger rejects caller-supplied independent `risk_limits` when contract bytes are supplied; persisted contract origin/hash is verified before limits are bound.
-- Paper admission enforces shared exposure/margin controls and Kill Switch inside the Ledger transaction; tests cover ENTRY, DCA, exact 1% boundary, over-budget rejection and kill/drawdown/daily-loss latches.
-- Bundle V1 enforces strict schema, closed contiguous candles, provenance, freshness, order-book evidence and account-risk snapshot contracts.
+- Paper admission enforces shared exposure/margin controls and Kill Switch inside the Ledger transaction; tests cover ENTRY, DCA, exact 1% boundary, over-budget rejection and kill/drawdown/daily-loss latches.- Bundle V1 enforces strict schema, closed contiguous candles, provenance, freshness, order-book evidence and account-risk snapshot contracts.
 - Continuous Runner claims one cycle atomically, persists intent before One-shot submission, and recovery reconciles existing order state rather than blindly replaying an intent.
 - Paper preflight checks explicit `AI_EXECUTION_ENABLED=false`, absence of exchange credentials, PAPER-only state and clear Kill Switch; ledger path isolation rejects overlap with T0 data paths.
 - These are static observations of the inspected source and tests, not a full review sign-off.
@@ -2672,3 +2669,30 @@ This follow-up supersedes the earlier pending items for persistent preview artif
 - If full workflow passes, close the independent review as PASS for this narrow test increment and proceed to the broader Core First review; do not treat this as overall Core First acceptance without the broader review.
 - Runtime Verification remains **NOT STARTED**; Dual-Strategy Intelligence remains **DEFERRED**.
 - `AI_EXECUTION_ENABLED=false`; no canonical T0 access, T1 runtime, VPS, exchange connection, AI execution, or real orders. No merge/promotion/rebase/reset/cherry-pick/force push/default-branch change.
+
+## 2026-11-18 — One-shot simulated-origin exact-SHA CI PASS and independent review continuation
+
+**Exact-SHA CI result**
+- Existing branch retained: `feature/core-operational-proof-20261112`; no branch creation or divergence.
+- Tested code/test SHA: `c6b453c02201974b91526a196b6c15ce7395c08b`.
+- Core First workflow: [44233422622](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/44233422622), run 362, push event; job `operational-proof`, ID `134563708405`: **SUCCESS**, all 36 primary steps completed successfully.
+- Workflow job checkout identity and artifact association identify the exact source SHA above.
+- One-shot verdict gate: `CORE_RUNTIME_DECISION_CYCLE=ONE_SHOT_TESTS_PASS`, `CORE_RUNTIME_ONE_SHOT=PASS`; suite count gate requires 19 tests. The test file contains the expanded environment override subtests for all three supported keys: `PAPER_MAX_DRAWDOWN_PCT`, `PAPER_MAX_DAILY_LOSS_USDT`, and `PAPER_MAX_EXPOSURE_USDT`.
+- Continuous Runtime Factory, read-only PaperLedger readiness, Core E2E, partial-fill process-crash checkpoints, account-wide risk snapshot, shared risk/PaperLedger, and T1/T2 Order Book workflow steps also completed successfully.
+- Artifact: `core-first-code-operational-proof-44233422622`, ID `14396326556`, size 17,769 bytes, GitHub digest `sha256:811826c97b7ebac8fd1fddb83ef06d833c3f225eb69b23003bfea205b11b3106`, expires 2026-11-25.
+- Artifact digest is GitHub metadata. Payload ZIP has not been downloaded and independently re-hashed in this increment.
+
+**Independent review continuation**
+- Narrow One-shot simulated-origin review is **PASS** after the exact-SHA 19-test verdict and full workflow completion.
+- Expanded review of `pipeline/api.py`, `core_runtime/runtime_factory.py`, `core_runtime/continuous_runner.py`, and the opening/state-read portions of `paper_execution/ledger.py` was performed read-only.
+- API boundary observations: GET routes require `MARKET_DATA_TOKEN`; POST paper-control routes require the distinct `CONTROL_TOKEN`; constant-time bearer comparison is used; POST body is bounded to 4 KiB with duplicate JSON keys rejected; POST control actions are rate-limited through the Paper DB. Core execution is routed through the Core Runtime facade/Continuous Runner, while AI candidate admission remains blocked when the dual ledger is active and Trusted Admission Context is not established.
+- Continuous Runner observations: immutable bundle digest/path and config provenance are checked; each cycle is claimed before One-shot; intent identity is journaled before submit; uncertain post-intent failures become `UNKNOWN_REQUIRES_RECONCILIATION`; recovery checks persisted bundle provenance and reconciles ledger order state rather than blindly replaying an intent; process lock is exclusive and non-blocking.
+- No new Critical or Required finding was confirmed in this limited read-only slice. No tests were executed during this review slice; these are source observations, not a new test verdict.
+- Full independent review remains **PARTIAL / NOT VERIFIED**: the complete PaperLedger write/risk/kill-switch path, all API error/authorization branches, T0/T1 HTTP client security/limits, and cross-layer call graph/test coverage still require closeout. Do not infer Core First overall acceptance from this increment.
+
+**Current state and next action**
+- Handoff update records this exact-SHA CI completion and review boundary. Tested source SHA remains `c6b453c02201974b91526a196b6c15ce7395c08b`; this documentation commit is separate.
+- Continue read-only review of the remaining PaperLedger transaction/risk methods and T0/T1 HTTP client contracts, then reconcile review findings against existing CI tests. If a concrete defect is found, stop review and open a TDD-scoped fix on this same branch before sign-off.
+- Core First overall: **PARTIAL / NOT VERIFIED** pending broader independent review.
+- Runtime Verification: **NOT STARTED**. Dual-Strategy Intelligence: **DEFERRED**.
+- `AI_EXECUTION_ENABLED=false`; PAPER-only. No canonical T0 DB, T1 runtime, VPS, exchange connection, AI Strategy execution, real orders, merge/promotion, rebase/reset/cherry-pick/force push, or default-branch change.
