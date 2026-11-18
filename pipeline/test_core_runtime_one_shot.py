@@ -338,14 +338,23 @@ class CoreOneShotRunnerTest(unittest.TestCase):
         self.assertEqual(result["runStatus"], "INPUT_REJECTED")
         self.assertEqual(len(created), 0)
 
-    def test_simulated_origin_rejects_environment_risk_override_before_ledger_construction(self):
+    def test_simulated_origin_rejects_each_environment_risk_override_before_ledger_construction(self):
         self._initialize_simulated_origin()
+        risk_env_keys = (
+            "PAPER_MAX_DRAWDOWN_PCT",
+            "PAPER_MAX_DAILY_LOSS_USDT",
+            "PAPER_MAX_EXPOSURE_USDT",
+        )
 
-        with patch.dict("os.environ", {"PAPER_MAX_EXPOSURE_USDT": "999"}, clear=False):
-            result, created = self.run_patched(producer_report())
+        for overridden_key in risk_env_keys:
+            with self.subTest(environment_key=overridden_key):
+                environment = {key: "" for key in risk_env_keys}
+                environment[overridden_key] = "999"
+                with patch.dict("os.environ", environment, clear=False):
+                    result, created = self.run_patched(producer_report())
 
-        self.assertEqual(result["runStatus"], "INPUT_REJECTED")
-        self.assertEqual(len(created), 0)
+                self.assertEqual(result["runStatus"], "INPUT_REJECTED")
+                self.assertEqual(len(created), 0)
 
 
 if __name__ == "__main__":
