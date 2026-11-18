@@ -44,6 +44,61 @@ class FixtureMatrixTests(unittest.TestCase):
                 self.assertFalse(result.state_advanced)
 
 
+    def test_every_declared_mutation_targets_an_existing_baseline_field(self):
+        from t0_signature_stage1.verdicts import _BASELINES, _get_existing_path
+        for fixture in fixture_catalog():
+            with self.subTest(case_id=fixture.case_id):
+                value = _get_existing_path(_BASELINES[fixture.baseline], fixture.mutation_path)
+                self.assertIsNotNone(value)
+
+    def test_fixture_builder_fails_closed_for_missing_mutation_path(self):
+        from t0_signature_stage1.verdicts import _set_existing_path
+        baseline = {"nested": {"present": "value"}}
+        with self.assertRaises(KeyError):
+            _set_existing_path(baseline, "nested.missing.leaf", "mutated")
+
+    def test_each_fixture_mutates_an_existing_leaf_without_adding_fields(self):
+        from t0_signature_stage1.verdicts import build_fixture
+        def leaves(value, prefix=""):
+            if isinstance(value, dict):
+                result = {}
+                for key, child in value.items():
+                    result.update(leaves(child, f"{prefix}.{key}" if prefix else key))
+                return result
+            return {prefix: value}
+        for fixture in fixture_catalog():
+            with self.subTest(case_id=fixture.case_id):
+                baseline, mutated, spec = build_fixture(fixture.case_id)
+                before, after = leaves(baseline), leaves(mutated)
+                self.assertIn(spec.mutation_path, before)
+                self.assertIn(spec.mutation_path, after)
+                self.assertEqual(set(before), set(after))
+                changed = {key for key in before if before[key] != after[key]}
+                self.assertEqual(changed, {spec.mutation_path})
+
+    def test_fixture_verdict_is_derived_from_mutated_content_not_catalog_fact_key(self):
+        from t0_signature_stage1.verdicts import build_fixture, evaluate_fixture_content
+        baseline, mutated, _spec = build_fixture("A2.2-NV-01")
+        before = StageStateSnapshot(
+            trust_roots=("synthetic-root-fingerprint",),
+            policy_head="policy-digest-0",
+            anchor_head=(0, "anchor-digest-0"),
+            checkpoint_head=("checkpoint-0", "object-digest-0"),
+            bootstrap_sequence=0,
+        )
+        after, result = evaluate_fixture_content(baseline, mutated, before)
+        self.assertEqual((result.verdict, result.reason_code),
+                         ("UNTRUSTED", "PURPOSE_NOT_SUPPORTED_BY_PROFILE"))
+        self.assertEqual(after, before)
+        # Restore the mutated semantic field: the same evaluator must no longer
+        # emit the purpose failure, regardless of the catalog's expected fact key.
+        restored = dict(mutated)
+        restored["statement"] = dict(mutated["statement"])
+        restored["statement"]["purpose"] = baseline["statement"]["purpose"]
+        _same_state, restored_result = evaluate_fixture_content(baseline, restored, before)
+        self.assertNotEqual(restored_result.reason_code, "PURPOSE_NOT_SUPPORTED_BY_PROFILE")
+
+
 class MockVerifierTests(unittest.TestCase):
     def test_mock_verifier_is_explicitly_non_cryptographic(self):
         verifier = MockSignatureVerifier()
