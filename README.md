@@ -2,7 +2,7 @@
 
 **GitHub là nơi lưu trữ mã nguồn, nhánh, lịch sử và bằng chứng; GitHub Actions là cơ chế thực thi CI/workflow chuẩn của dự án.** Codemagic chỉ còn các workflow build/kiểm tra được giữ lại; không phải runner chính của Hệ thống 5 tầng. Ba tác vụ Python Telegram/scanner/backtest cũ đã được gỡ khỏi repository chung.
 
-Phạm vi kiến trúc và các ranh giới loại trừ được ghi tại [Five-Layer Architecture](docs/FIVE_LAYER_ARCHITECTURE.md) và [T0 Active Scope Index](docs/T0_ACTIVE_SCOPE_INDEX.md). Quyết định loại Android Chart/Scanner và Python bot/backtest khỏi phạm vi được ghi tại [Five-Layer Scope Exclusion Decision](docs/evidence/FIVE_LAYER_SCOPE_EXCLUSION_ANDROID_PYTHON_2026-11-10.md).
+Chỉ mục điều hướng tài liệu: [Documentation Index](docs/README.md). Phạm vi kiến trúc và các ranh giới loại trừ được ghi tại [Five-Layer Architecture](docs/FIVE_LAYER_ARCHITECTURE.md) và [T0 Active Scope Index](docs/T0_ACTIVE_SCOPE_INDEX.md). Quyết định loại Android Chart/Scanner và Python bot/backtest khỏi phạm vi được ghi tại [Five-Layer Scope Exclusion Decision](docs/evidence/FIVE_LAYER_SCOPE_EXCLUSION_ANDROID_PYTHON_2026-11-10.md).
 
 ## Thành phần thuộc Hệ thống 5 tầng
 
