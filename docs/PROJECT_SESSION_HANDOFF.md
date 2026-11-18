@@ -3439,3 +3439,17 @@ Additional payload inspection:
 - No attempt was made to rewrite, revert, or delete the main commit. A duplicate report is being recorded on the intended Core First branch to preserve project evidence placement.
 - Review report on Core First branch: `docs/evidence/MAIN_CORE_API_QUALITY_SNAPSHOT_STATIC_REVIEW_2026-11-18.md`; branch report commit `714f5dd476fdc815aab7697fdb3da90092d639b7`.
 - Merge remains BLOCKED / NOT AUTHORIZED. Continue read-only review only; do not create PR/merge candidate without explicit approval.
+
+
+## 2026-11-18 — T0 A2.2 Stage I static implementation review
+
+- Read-only static review completed on branch `feature/core-operational-proof-20261112`, HEAD before evidence commit `9491aa89cdaedee5d73fb6a7f7a1d1363c0c22a6`.
+- Owner approval commit: `b79424ad86b5f4d78da610da3c81c9e90e92fee6`; exact approved A2.2 source blob: `41d41cd23f73a6e552b9ceca5ebbb39c46934e7d`.
+- Reviewed package blobs: README `883f1adcd866b769c3e094e1c0b5167f278733a5`; primitives `91496d70a67d12525b8399b46aeb1318693b17ee`; primitive tests `8e47af0bb98cae6e8501c609c97259ebc5e0c78f`; verdicts `600c49865279e03ef28466f267a6bf0b57176aa1`; verdict tests `d37ab48b0455d788bd5c87398281420a7aa121d8`.
+- F-01 **BLOCKER**: fixture mutation paths are nested but the baselines do not contain those nested fields; `build_fixture()` creates missing dictionaries, so many mutations add leaves rather than mutate the intended baseline semantic field. The leaf-diff test does not detect this semantic mismatch.
+- F-02 **BLOCKER**: `evaluate_stage1_fixture()` routes using the preassigned catalog `fact_key`; it does not derive facts from the mutated fixture. The 27 expected verdicts therefore do not prove the fixtures are recognized from their content.
+- F-03 **DOC INCONSISTENCY**: README says three digest helpers fail closed due to unresolved domain separators, while `primitives.py` implements all four §20.1 exact-hex domain helpers and tests fixed vectors. Reconcile documentation against the governing contract.
+- Positive static observations: canonical parser/U64/base64url/digest primitives are present; mock verifier is explicitly non-cryptographic; no positive bootstrap path; manual-only workflow clears credential/DB env and sets `AI_EXECUTION_ENABLED=false`. Workflow does not assert approved A2.2 source blob SHA.
+- Report: `docs/evidence/T0_A2_2_STAGE_I_STATIC_IMPLEMENTATION_REVIEW_2026-11-18.md`, created on this branch in commit `4ea45bc34c73efde2211d3af7da9fa1cee2282c3`.
+- Tests/CI: **NOT RUN**. Workflow dispatch: **NOT RUN / NOT AUTHORIZED**. Source/test/workflow/runtime/T0/VPS/credentials/trading unchanged. No merge or history rewrite.
+- Overall: Stage I contract-conformance **BLOCKED / NOT READY TO CLAIM PASS**; F-01/F-02 must be corrected under scoped authorization. Stages II–V remain BLOCKED / NOT APPROVED.
