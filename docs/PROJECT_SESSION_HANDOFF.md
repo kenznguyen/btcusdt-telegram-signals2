@@ -1,35 +1,41 @@
 # CURRENT MAIN SNAPSHOT — 2026-11-18
 
-> This section is the authoritative restart point for work on `main`. The older handoff body below is preserved as historical continuity; its dated workstream labels and status tables are not automatically current.
+> Authoritative restart point for work on main. The historical handoff body below is retained for continuity; older dated status tables are not automatically current.
 
-- Repository: `kenznguyen/btcusdt-telegram-signals2`
-- Branch: `main`
-- Main SHA immediately before this final handoff update: `fa6748361d8bc2c949cba681d0c1506b5faf6d10`
-- Final readback baseline before evidence refresh: `b9fecd23e06f1e122da7e98949fc76d670c8c2ab`
-- Documentation cleanup record: [MAIN_DOCUMENTATION_CLEANUP_2026-11-18.md](evidence/MAIN_DOCUMENTATION_CLEANUP_2026-11-18.md)
-- Cleanup commits on `main`: archive README `d8a5d036ee8fc4b456898f4824a561700140be5d`; root README `9fa3426a6d6c6e8576d3913ef6415c572f324bd5`; maintenance policy `3f998b30fd7d9e54ecb70799c4b59001d275de53`; docs index `48177f7a73c0f11ae56a466958207809f0fff904`; initial cleanup evidence `f796efd141ea92b46a645c566d1d0338b461c35f`; final readback evidence update `fa6748361d8bc2c949cba681d0c1506b5faf6d10`.
-- Current guidance: root `README.md`, `docs/README.md`, and `docs/REPOSITORY_MAINTENANCE.md`.
+- Repository: kenznguyen/btcusdt-telegram-signals2
+- Branch: main
+- Main HEAD before this handoff update: 2aa9d95fa2b3d640e490b1765f7e8b7cb744c3ea
+- Core API source fix: 1502521b85565b4b75e5368417b3a1169329ec75
+- Regression test isolation commit: 15158d0bc38e03b939b01765e41e3beb00815ea9
+- Workflow adjustment commit: 5ec333702185760ab40f8efa5d8e50ca06e3ce8f
+- Evidence update commit: 2aa9d95fa2b3d640e490b1765f7e8b7cb744c3ea
+- Detailed report: docs/evidence/MAIN_CORE_API_QUALITY_SNAPSHOT_STATIC_REVIEW_2026-11-18.md
 
 ## Main-side technical state
 
-- The repository contains Telegram scanner/command code, backtesting/dashboard, Android source, T0 market-data code, pipeline and Core runtime. Presence in source does not establish deployment or runtime readiness.
-- `.github/workflows/signal-scan.yml` is manual-only (`workflow_dispatch`); scheduled scanning is disabled.
-- Main Core API quality projection has a critical statically confirmed ordering defect in `pipeline/api.py:quality_snapshot()`: local `core` is read before assignment. Review: `docs/evidence/MAIN_CORE_API_QUALITY_SNAPSHOT_STATIC_REVIEW_2026-11-18.md`. That review did not run tests; runtime failure is **NOT RUN**. This defect is not repaired by the documentation cleanup.
-- `feature/core-operational-proof-20261112` remains a separate, divergent Core First workstream. It is not merged into `main`; do not merge, reset, rebase, cherry-pick or copy its state without a separately approved reconciliation plan.
-- Do not describe Dual-Strategy Intelligence or independent AI LONG/SHORT capability as implemented on `main` without exact-main source and test evidence.
+- The main-side quality_snapshot() local-variable ordering defect is fixed: core_runtime_preview(timestamp) is now called immediately before the first read of local core, and that preview is reused for the Strategy Core projection.
+- Runtime regression proof: RED run 44301561075 on source SHA 5ec333702185760ab40f8efa5d8e50ca06e3ce8f reproduced UnboundLocalError.
+- GREEN run 44301625371 on exact source SHA 1502521b85565b4b75e5368417b3a1169329ec75: job SUCCESS; py_compile PASS; focused regression 1/1 PASS.
+- GREEN artifact ID 14425806625; SHA-256 8c7fee79dcc06e311097e7b5681fd02a4de6eb71ef396ced85e65f2c2e12dc87. Artifact URL: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/44301625371/artifacts/14425806625
+- Focused test: ci/test_core_api_quality_snapshot.py. It stubs only import-time T0 adapter symbols and the unrelated risk-limit parser; context, market_window and core_runtime_preview inputs are mocked. The production quality_snapshot() function itself is exercised.
+- Verification boundary: this is a focused projection regression, not full T0/API/Core integration. The original core_runtime/test_api_facade.py suite remains NOT VERIFIED because the corresponding Core runtime modules are absent from this main tree.
+- Workflow run 44300987446 failed before the test due to missing market_data.api. Run 44301561075 then established valid RED after test isolation. These earlier failures are recorded as CI setup history, not product regression outcomes.
+- feature/core-operational-proof-20261112 remains separate and divergent. No merge, cherry-pick, rebase, reset, or source copy occurred. Do not reconcile without a separate approved plan.
+- Do not describe Dual-Strategy Intelligence or independent AI LONG/SHORT as implemented on main without separate source and test evidence.
 
 ## Safety and scope
 
-- Paper/simulated only; no live orders. Keep `AI_EXECUTION_ENABLED=false`.
-- T0 remains an independent data asset. No canonical database, Feeder, exchange, market-data sync, VPS/runtime, credential or deployment action was performed by this cleanup.
-- No source, test, workflow, branch, tag, historical evidence or artifact was deleted. No branch was created/deleted; no merge, rebase, reset, cherry-pick, force-push or history rewrite occurred.
-- Four documentation commits plus archive and evidence were written sequentially to existing `main`; exact commit IDs are listed above.
-- Tests/build/workflow dispatch: **NOT RUN**. Artifact: **NONE**. Independent review: **NOT PERFORMED**.
-- Documentation refresh and evidence preservation: **PASS**, pending final exact-SHA readback. Runtime/deployment/operational readiness: **NOT VERIFIED**.
+- Paper/simulated only; AI_EXECUTION_ENABLED=false. No live orders or exchange credentials.
+- T0 remains an independent data asset. No T0 source, canonical database, Feeder, VPS/runtime, deployment, credential or market-data operation was performed.
+- No strategy, API schema, risk policy, ledger, or runtime behavior beyond the local variable ordering was changed.
+- Commits on main for this bounded task: 15158d0bc38e03b939b01765e41e3beb00815ea9 (focused test); 5ec333702185760ab40f8efa5d8e50ca06e3ce8f (workflow/test invocation); 1502521b85565b4b75e5368417b3a1169329ec75 (minimal source fix); 2aa9d95fa2b3d640e490b1765f7e8b7cb744c3ea (evidence report). Earlier workflow setup commits: ceb6580833e3dc597dcd720aa23b0a2e90402b91 and 1498c17efbb10a3cd102864b900b571f6ffa7eab.
+- Focused defect status: FIXED / REGRESSION PASS. Full Core API/T0 integration: NOT VERIFIED. Independent review of broader Core First architecture: NOT PERFORMED in this bounded task.
 
-## Next authorized action
+## Next step and limits
 
-Complete read-only GitHub readback of the cleanup paths and confirm the final `main` HEAD. Do not start Core API source repair, workflow execution, branch reconciliation, T0/runtime activity or trading without a separate explicit scope and approval.
+- Next: if broader validation is needed, first identify the authoritative main-side Core runtime/T0 dependency source and define a separate isolated integration test; do not import source from the divergent feature branch.
+- Keep the current main branch and its evidence intact. No branch reconciliation, Dual-Strategy work, T0/VPS/runtime activity, deployment, or trading is authorized by this fix.
+
 
 ---
 
