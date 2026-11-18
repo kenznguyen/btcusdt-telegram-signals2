@@ -13,6 +13,7 @@ Personal BTCUSDT Quant System repository. Current scope is research, strategy de
 | Strategy Core reference rules | `bot.py` | Pure RSI/ADX/Smart-DCA indicators and rule helpers only; Telegram, scanner, state persistence and CLI entrypoint removed. |
 | Independent research backtest | `backtest_rsi_percent_b_h1_adx.py`, `RSI_PERCENT_B_H1_ADX_BACKTEST.md` | Separate research implementation/specification; not the deleted legacy backtest engine. |
 | Historical comparison plan | `BACKTEST_COMPARISON_180D.md` | Plan retained as historical research documentation; its former A-side runner is retired and must be revalidated before reuse. |
+| Shared CI dependencies | `requirements-web.txt` | Retained because the Core API and Core-First workflows still install from this manifest; it is not a Telegram-only file. |
 | Android application | `android-app/`, `.github/workflows/android-*.yml` | Android source and CI/release workflows remain. |
 | T0 market data and Core API/runtime | `market_data/`, `pipeline/`, `core_runtime/` | Source and isolated contract workflows remain branch/repository scoped; source presence is not proof of deployment. |
 

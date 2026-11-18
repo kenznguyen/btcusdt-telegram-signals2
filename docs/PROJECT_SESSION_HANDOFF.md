@@ -6,6 +6,7 @@
 - Removed: `app.py`, `telegram_commands.py`, `backtest.py`, `dashboard/index.html`, `.github/backtest-trigger.txt`, workflows `telegram-command.yml`, `signal-scan.yml`, `dashboard-backtest.yml`, and `requirements-web.txt`.
 - `bot.py` is retained as a side-effect-free strategy reference containing RSI/ADX indicators and RSI-cross, TP, Smart-DCA, Soft SL, Emergency SL and fill helpers. Telegram messaging/reporting, external candle fetching, state persistence and scanner entrypoint are removed.
 - Added `ci/test_strategy_rules.py`; test execution **NOT RUN**. No workflow dispatched; artifacts NONE; independent review NOT VERIFIED.
+- `requirements-web.txt` was explicitly retained after tracing active Core workflow consumers (`core-api-quality-regression.yml` and `core-live-data-operational-proof.yml`); deleting it would break unrelated CI.
 - Independent RSI-%b research backtest and its specification are retained. `BACKTEST_COMPARISON_180D.md` remains historical/inactive pending a new engine.
 - Archived Telegram README retained but explicitly marked RETIRED.
 - T0 remains independent and unchanged. Core First branch `feature/core-operational-proof-20261112` remains separate and is not modified. Dual-Strategy work remains deferred. No VPS/runtime/deployment/exchange/live-order activity.
