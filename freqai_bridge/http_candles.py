@@ -128,8 +128,9 @@ class CandleHttpClient:
             "timeframe": timeframe,
             "startMs": start_ms,
             "endMs": end_ms,
-            "asOfMs": as_of_ms,
         }
+        if as_of_ms is not None:
+            params["asOfMs"] = as_of_ms
         headers = {
             "Authorization": "Bearer " + self.config.token,
             "Accept": "application/json",
@@ -215,8 +216,9 @@ class CandleHttpClient:
                     response.close()
         raise CandleHttpError("HTTP_UNAVAILABLE")
 
-    def fetch(self, start_ms, end_ms, as_of_ms, timeframe="15m"):
-        if not all(self._timestamp(value) for value in (start_ms, end_ms, as_of_ms)):
+    def fetch(self, start_ms, end_ms, as_of_ms=None, timeframe="15m"):
+        if (not all(self._timestamp(value) for value in (start_ms, end_ms))
+                or (as_of_ms is not None and not self._timestamp(as_of_ms))):
             raise CandleHttpError("RANGE_MISMATCH")
         if timeframe not in _INTERVAL_MS:
             raise CandleHttpError("IDENTITY_MISMATCH")
@@ -340,7 +342,9 @@ class CandleHttpClient:
             now = self.clock_ms()
         except Exception:
             raise CandleHttpError("FRESHNESS_UNAVAILABLE") from None
-        if not self._timestamp(now) or as_of_ms > now or generated > now:
+        if (not self._timestamp(now)
+                or (as_of_ms is not None and as_of_ms > now)
+                or generated > now):
             raise CandleHttpError("FRESHNESS_UNAVAILABLE")
 
         candles = payload["candles"]
@@ -365,7 +369,9 @@ class CandleHttpClient:
                     or closed != opened + interval or candle["isClosed"] is not True
                     or candle["availabilityKind"] != "FIRST_OBSERVED"
                     or candle["quality"] != "VALIDATED"
-                    or available < closed or available > as_of_ms or available > generated):
+                    or available < closed
+                    or (as_of_ms is not None and available > as_of_ms)
+                    or available > generated):
                 raise CandleHttpError("CANDLE_INVALID")
             prices = {name: self._decimal(candle[name]) for name in ("open", "high", "low", "close")}
             volume = self._decimal(candle["volume"], allow_zero=True)
