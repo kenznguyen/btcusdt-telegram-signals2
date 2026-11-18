@@ -3478,3 +3478,14 @@ Additional payload inspection:
 - Final source blobs: verdicts.py `85938c16d338f56d38721460adf4494f18bb2ed3`; test_verdicts.py `45880b5c68b9f74a25c63ff125fef9826de4eca0`.
 - Exact-SHA isolated sandbox rerun: compileall PASS; focused tests 16/16 PASS; complete package tests 39/39 PASS.
 - Evidence report updated to reflect final SHA and counts; workflow remains NOT RUN / NOT AUTHORIZED.
+
+
+### Final Stage I fixture hardening — 2026-11-18
+
+- Added defensive copying of mutable mutation values in the fixture catalog; regression test verifies mutation of a returned catalog value cannot contaminate subsequent fixture construction.
+- Added compound-mutation rejection regression; two changed leaves produce INVALID / FIXTURE_SINGLE_MUTATION_VIOLATION with state unchanged.
+- Final exact tested source commit: `9e385fd95e79d1049d3ce0959a36619a879f3e91`.
+- Final blobs: verdicts.py `f38cecb9eb72638f62661999dd6924cdce5bfe4d`; test_verdicts.py `a28d957fc4522cf56805f0435c04a4b98b812268`.
+- Exact-SHA isolated Python sandbox verification: compileall PASS; focused verdict tests 17/17 PASS; full Stage I package tests 40/40 PASS.
+- Updated repair evidence report commit: `a421b7318059b0a7683ecc44f8588b45f77d70cf`.
+- Test execution was isolated and ephemeral, not GitHub Actions; no workflow run/artifact. No runtime, T0, VPS, credential, exchange or trading interaction.
