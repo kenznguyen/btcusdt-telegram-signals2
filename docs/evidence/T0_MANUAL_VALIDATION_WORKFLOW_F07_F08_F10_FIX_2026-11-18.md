@@ -73,3 +73,47 @@ No local YAML parser, GitHub Actions workflow run, job log, or artifact result w
 **PARTIAL — workflow edits committed; static content assertions PASS; YAML syntax and exact-SHA CI NOT VERIFIED.**
 
 Next: verify the GitHub Actions run for final workflow/source commit `89c129fd3c68740398fd70792e46d376910859d1`, confirm the workflow's checked-out SHA from logs, inspect all job conclusions and the P3/data-flow/G4 artifacts, and record artifact IDs plus independently computed digests. Do not claim CI PASS until those exact-SHA facts are established.
+
+
+## Exact-SHA CI validation update — 2026-11-18
+
+### Run 44275608239 — initial workflow correction SHA
+
+- Branch: `feature/core-operational-proof-20261112`.
+- Exact run head SHA: `89c129fd3c68740398fd70792e46d376910859d1`.
+- Event: `push`; run conclusion: **SUCCESS**.
+- Jobs: lease/fencing PASS; recovery scope detector PASS; data-flow scope detector PASS; G4 scope detector PASS; recovery tests PASS; data-flow tests PASS; G4 contract tests PASS.
+- P3 automatic job was **SKIPPED** because this commit did not change a P3 component path. This run does not validate execution of the new P3 automatic job.
+- Artifacts (GitHub metadata; digests are provider-reported, not independently recomputed):
+  - Lease/fencing ID `14415011583`, SHA-256 `83194dcc6b5e202f715188e444a16b72fa0f67c3661f803854fce849f1987f4e`.
+  - Recovery ID `14415050371`, SHA-256 `7ec6048f8af8995c52e70a9c728da28d20728ca1f8cf5477c6bcd92d865627da`.
+  - Data flow ID `14413992824`, SHA-256 `dbb3c19b34c8e86f05472ccbfa2425ac90a37a53c112f537b4c78ab12cc27068`.
+  - G4 ID `14412984771`, SHA-256 `0da39abe58a1179938e8522ce094387c51ff67cef7d8ade411e0da4831f10c35`.
+
+### Run 44275967382 — P3 auto-job exercise SHA
+
+- Workflow adjustment: include the workflow file itself in the P3 change detector so a workflow edit exercises the newly added P3 automatic job.
+- Branch: `feature/core-operational-proof-20261112`.
+- Exact run head SHA: `0d792a1cba0ea4482d186e5c4a443b3f193cf733`.
+- Event: `push`; run conclusion: **FAILURE**.
+- Job conclusions:
+  - Lease/fencing: PASS.
+  - Recovery tests: PASS.
+  - T0→T2 data-flow tests: PASS.
+  - G4 read-only runtime contract tests: PASS.
+  - P3 retry/health automatic tests: **FAILURE** at step `Run isolated retry and health component tests` (exit code 1).
+  - Manual gate: SKIPPED, as expected for a push event.
+  - Change-scope detectors: PASS.
+- GitHub job page exposes only the generic exit-code annotation to the connected read-only view; detailed command output/raw logs could not be retrieved. The exact failing test and root cause are therefore **NOT VERIFIED**. Do not infer a code defect or alter application source without a separate scoped review.
+- Artifacts (GitHub metadata; digests provider-reported, not independently recomputed):
+  - P3 component artifact ID `14414252914`, SHA-256 `879beefcbbf49df52806a7ce9500fbcee7178e1393c71d31664dedc8ba0044ff`.
+  - Lease/fencing artifact ID `14414457197`, SHA-256 `2fc04b19f71bee4dcaaee1ff070e581e533e7c0cf37e2075f4087cfef01dd78d`.
+  - Recovery artifact ID `14414796722`, SHA-256 `a49370dc3e9a1cb49ee0f03095a4cb6b14ceccf526d89d481ea7ff511ad65c94`.
+  - Data-flow artifact ID `14414393179`, SHA-256 `ddad904f3dbfb6ae6a1d52f78fe6424c704805fb09b7b3b455a785db87bfed05`.
+  - G4 artifact ID `14415405293`, SHA-256 `a7b5d6b93d5a485cdabf6a8e601551e7405901945bdf7f1c8142cb137b764bdb`.
+
+### Updated verdict
+
+**PARTIAL / BLOCKED ON P3 FAILURE.** F-07 dependency correction is exercised by successful data-flow and G4 jobs on run 44275967382, alongside successful recovery and lease/fencing tests. F-08 push trigger is exercised by the successful workflow run on the active branch; PR trigger remains not exercised because no PR run was part of this validation. F-10 trigger and automatic P3 job are exercised, but the P3 test command failed and its detailed cause remains NOT VERIFIED. The workflow must not be treated as fully green until the P3 failure is diagnosed and corrected in an explicitly bounded scope, then rerun on a new exact SHA.
+
+No live/VPS/T0 canonical database/exchange access occurred. No merge/deployment/trading authorization is implied.
