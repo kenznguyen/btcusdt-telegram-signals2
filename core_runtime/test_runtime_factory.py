@@ -14,6 +14,9 @@ from core_runtime.runtime_factory import (
 )
 from paper_execution.test_core_first_operational import CoreFirstOperationalProofTest
 from core_runtime.__main__ import main as core_main
+from paper_execution.simulated_capital import DEFAULT_SIMULATED_CAPITAL_CONTRACT
+from paper_execution.ledger import PaperLedger
+from paper_execution.account_equity import record_account_mark
 
 
 class ContinuousRuntimeFactoryTest(unittest.TestCase):
@@ -218,6 +221,105 @@ class ContinuousRuntimeFactoryTest(unittest.TestCase):
         self.assertIs(runner.received_provider, bundle_provider)
         self.assertEqual(runner.bundle_path, "/disposable/bundle.json")
         self.assertEqual(provider_calls, [1234567890000])
+
+
+    def _create_ready_simulated_ledger(self):
+        path = self.root / "simulated-origin-ledger.sqlite3"
+        contract_bytes = json.dumps(
+            DEFAULT_SIMULATED_CAPITAL_CONTRACT, separators=(",", ":")
+        ).encode("utf-8")
+        PaperLedger(
+            path,
+            strategy_id="STRATEGY_CORE",
+            source_sha="b" * 40,
+            simulated_contract_bytes=contract_bytes,
+            simulated_initialized_at_ms=self.fixture.now,
+        )
+        record_account_mark(
+            PaperLedger(path),
+            "100",
+            self.fixture.now - 60_000,
+            self.fixture.now,
+            "sha256:" + "c" * 64,
+        )
+        return path
+
+    def _write_contract_only_config(self, ledger_path):
+        self.config.write_text(json.dumps({
+            "mode": "PAPER",
+            "ai_execution_enabled": False,
+            "ledger_path": str(ledger_path),
+            "max_book_age_ms": 2_000,
+            "max_position_base": "0.01",
+        }), encoding="utf-8")
+
+    def test_simulated_origin_runtime_accepts_contract_only_policy(self):
+        ledger_path = self._create_ready_simulated_ledger()
+        self._write_contract_only_config(ledger_path)
+
+        runtime = build_continuous_runtime(
+            config_path=self.config,
+            journal_path=self.journal,
+            bundle_store_dir=self.bundle_store,
+            source_sha="b" * 40,
+            environ=self.env,
+            clock_ms=lambda: self.fixture.now,
+        )
+
+        self.assertTrue(self.journal.is_file())
+        self.assertFalse(self.bundle_store.exists())
+        self.assertEqual(runtime.runner.max_book_age_ms, 2_000)
+
+    def test_simulated_origin_runtime_rejects_config_risk_limit_override_before_journal(self):
+        ledger_path = self._create_ready_simulated_ledger()
+        self.config.write_text(json.dumps({
+            "mode": "PAPER",
+            "ai_execution_enabled": False,
+            "ledger_path": str(ledger_path),
+            "risk_limits": {
+                "maxDrawdownPct": "50",
+                "maxDailyLossUsdt": "50",
+                "maxExposureUsdt": "1000",
+            },
+            "max_book_age_ms": 2_000,
+            "max_position_base": "0.01",
+        }), encoding="utf-8")
+
+        with self.assertRaisesRegex(
+            RuntimeFactoryError, "RUNNER_RISK_LIMITS_OVERRIDE_FORBIDDEN"
+        ):
+            build_continuous_runtime(
+                config_path=self.config,
+                journal_path=self.journal,
+                bundle_store_dir=self.bundle_store,
+                source_sha="b" * 40,
+                environ=self.env,
+                clock_ms=lambda: self.fixture.now,
+            )
+
+        self.assertFalse(self.journal.exists())
+        self.assertFalse(self.bundle_store.exists())
+
+    def test_simulated_origin_runtime_rejects_environment_risk_limit_override_before_journal(self):
+        import os
+
+        ledger_path = self._create_ready_simulated_ledger()
+        self._write_contract_only_config(ledger_path)
+        with patch.dict(os.environ, {"PAPER_MAX_EXPOSURE_USDT": "999"}):
+            with self.assertRaisesRegex(
+                RuntimeFactoryError, "RUNNER_RISK_LIMITS_OVERRIDE_FORBIDDEN"
+            ):
+                build_continuous_runtime(
+                    config_path=self.config,
+                    journal_path=self.journal,
+                    bundle_store_dir=self.bundle_store,
+                    source_sha="b" * 40,
+                    environ=self.env,
+                    clock_ms=lambda: self.fixture.now,
+                )
+
+        self.assertFalse(self.journal.exists())
+        self.assertFalse(self.bundle_store.exists())
 
 
 if __name__ == "__main__":
