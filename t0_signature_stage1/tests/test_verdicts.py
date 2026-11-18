@@ -37,6 +37,45 @@ class FixtureMatrixTests(unittest.TestCase):
                 self.assertTrue(fixture.expected_reason)
                 self.assertTrue(fixture.state_unchanged)
 
+    def test_all_27_rows_match_independent_a22_contract_oracle(self):
+        expected = (
+            ("UNTRUSTED", "PURPOSE_NOT_SUPPORTED_BY_PROFILE"),
+            ("BLOCKED", "POLICY_PURPOSE_NOT_EXPLICIT"),
+            ("INVALID", "PROFILE_VERSION_MISMATCH"),
+            ("BLOCKED", "PROFILE_DOWNGRADE_FORBIDDEN"),
+            ("BLOCKED", "PROFILE_UNKNOWN"),
+            ("BLOCKED", "PROFILE_NOT_ENABLED"),
+            ("INVALID", "PROFILE_BINDING_MISMATCH"),
+            ("INVALID", "PROFILE_BINDING_MISMATCH"),
+            ("UNTRUSTED", "PROFILE_RETIRED"),
+            ("BLOCKED", "ROOT_BOOTSTRAP_PATH_NOT_ENABLED"),
+            ("BLOCKED", "ROOT_BOOTSTRAP_PATH_NOT_ENABLED"),
+            ("BLOCKED", "ROOT_BOOTSTRAP_EVIDENCE_MISSING"),
+            ("UNKNOWN", "ROOT_BOOTSTRAP_TRUST_BOUNDARY_UNAVAILABLE"),
+            ("INVALID", "ROOT_BOOTSTRAP_AUTHORIZATION_INVALID"),
+            ("INVALID", "ROOT_BOOTSTRAP_DIGEST_MISMATCH"),
+            ("INVALID", "ROOT_BOOTSTRAP_NAMESPACE_MISMATCH"),
+            ("INVALID", "ROOT_BOOTSTRAP_AUDIENCE_MISMATCH"),
+            ("INVALID", "ROOT_BOOTSTRAP_ROOT_FINGERPRINT_MISMATCH"),
+            ("INVALID", "ROOT_BOOTSTRAP_ROLE_MISMATCH"),
+            ("INVALID", "ROOT_BOOTSTRAP_PROFILE_MISMATCH"),
+            ("INVALID", "ROOT_BOOTSTRAP_SEQUENCE_MISMATCH"),
+            ("INVALID", "ROOT_BOOTSTRAP_RECOVERY_POLICY_MISMATCH"),
+            ("INVALID", "ROOT_BOOTSTRAP_READBACK_MISMATCH"),
+            ("UNKNOWN", "ROOT_BOOTSTRAP_READBACK_UNAVAILABLE"),
+            ("BLOCKED", "ROOT_BOOTSTRAP_SELF_AUTHORIZATION_FORBIDDEN"),
+            ("BLOCKED", "ROOT_BOOTSTRAP_PRODUCER_INPUT_UNTRUSTED"),
+            ("BLOCKED", "ROOT_BOOTSTRAP_PATH_MIXING_FORBIDDEN"),
+        )
+        fixtures = fixture_catalog()
+        self.assertEqual(len(fixtures), len(expected))
+        state = _test_state()
+        for fixture, oracle in zip(fixtures, expected):
+            with self.subTest(case_id=fixture.case_id):
+                self.assertEqual((fixture.expected_verdict, fixture.expected_reason), oracle)
+                _after, result = evaluate_stage1_fixture(fixture.case_id, state)
+                self.assertEqual((result.verdict, result.reason_code), oracle)
+
     def test_each_fixture_produces_exact_expected_verdict_and_reason(self):
         for fixture in fixture_catalog():
             with self.subTest(case_id=fixture.case_id):
