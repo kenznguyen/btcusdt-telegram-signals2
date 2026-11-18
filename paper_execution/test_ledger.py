@@ -235,7 +235,17 @@ class PaperLedgerTest(unittest.TestCase):
         self.assertEqual(rejected["reason"], "KILL_SWITCH")
         with self.assertRaises(ValueError):
             reopened.set_killed(False, self.now+1)
-        reopened.reset_kill(acknowledge=True, ready=True, now_ms=self.now+2)
+        evidence = issue_kill_reset_evidence(
+            checked_at_ms=self.now+2,
+            checks={"closedCandles": True, "orderBook": True,
+                    "noPendingPaperOrders": True, "accountRiskReady": True},
+            candle_evidence={"datasetVersion": "sha256:"+"a"*64,
+                             "closeTimeMs": self.now-900_000,
+                             "availableAtMs": self.now+1},
+            book_evidence={"snapshotDigest": "sha256:"+"b"*64,
+                           "observedAtMs": self.now+1},
+        )
+        reopened.reset_kill(acknowledge=True, readiness_evidence=evidence, now_ms=self.now+2)
         accepted = reopened.submit(self.intent("after-reset"), self.book(time=self.now+2), self.now+2)
         self.assertEqual(accepted["status"], "FILLED")
 
