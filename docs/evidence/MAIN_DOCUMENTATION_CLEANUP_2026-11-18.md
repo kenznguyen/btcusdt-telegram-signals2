@@ -64,3 +64,21 @@ The handoff update and this report are separate sequential commits on the same e
 - The main-side Core API static defect remains open and is not repaired by this documentation task.
 - Do not merge or copy the separate Core First branch into `main` as part of cleanup.
 - Next step: perform final GitHub readback of the cleanup files and verify the exact final `main` SHA. Any source repair, workflow dispatch, branch reconciliation or runtime action requires its own explicit scope and approval.
+
+
+## Final GitHub readback — 2026-11-18
+
+- Main HEAD read back before this final evidence update: `b9fecd23e06f1e122da7e98949fc76d670c8c2ab`.
+- Compare from baseline `ef5bdee41430a9f4acd86e104ad60f44a1386f69`: **6 commits ahead / 0 behind**; exactly six changed paths:
+  - `README.md` (modified)
+  - `docs/PROJECT_SESSION_HANDOFF.md` (modified)
+  - `docs/README.md` (added)
+  - `docs/REPOSITORY_MAINTENANCE.md` (modified)
+  - `docs/archive/README_TELEGRAM_LEGACY_2026-11-18.md` (added)
+  - `docs/evidence/MAIN_DOCUMENTATION_CLEANUP_2026-11-18.md` (added)
+- Archive integrity: archived README content after its preservation notice matches the baseline root README exactly.
+- Handoff integrity: the entire original `docs/PROJECT_SESSION_HANDOFF.md` body is an exact unchanged suffix after the new current-main snapshot.
+- All six documented link targets exist on `main`.
+- No source, test, workflow, T0, runtime, credential, branch, tag or historical evidence path was changed or deleted.
+- Final documentation readback: **PASS**. Tests/build/workflow remain **NOT RUN**; no artifact exists.
+- The final handoff update is committed immediately after this evidence update; its exact commit becomes the final main HEAD and is recorded in the conversation result.
