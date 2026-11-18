@@ -425,21 +425,24 @@ def control_readiness(timestamp):
         read_snapshot,
     )
     db_path = paper_db_path()
-    if dual_ledger_ready(db_path):
-        read_snapshot(db_path, strategy_id="STRATEGY_CORE")
-        read_snapshot(db_path, strategy_id="AI_FREQAI")
-        no_pending = not has_pending_orders(db_path)
-        try:
-            account = read_account_risk_snapshot(db_path, now_ms=timestamp)
-            account_risk_ready = bool(account.get("riskReady"))
-        except (ValueError, sqlite3.Error):
-            account_risk_ready = False
-    else:
-        orders = ledger().snapshot().get("orders", [])
-        no_pending = not any(
-            order.get("status") in ("OPEN", "PARTIALLY_FILLED") for order in orders
-        )
-        account_risk_ready = True
+    if not dual_ledger_ready(db_path):
+        # Kill reset requires the validated account-wide risk contract. A
+        # legacy or partially migrated ledger cannot prove that contract, so
+        # do not infer readiness from an empty legacy order list.
+        checks = {
+            "closedCandles": candle_ready, "orderBook": book_ready,
+            "noPendingPaperOrders": False, "accountRiskReady": False,
+        }
+        return {"ready": False, "checks": checks, "evidence": None}
+
+    read_snapshot(db_path, strategy_id="STRATEGY_CORE")
+    read_snapshot(db_path, strategy_id="AI_FREQAI")
+    no_pending = not has_pending_orders(db_path)
+    try:
+        account = read_account_risk_snapshot(db_path, now_ms=timestamp)
+        account_risk_ready = bool(account.get("riskReady"))
+    except (ValueError, sqlite3.Error):
+        account_risk_ready = False
     checks = {
         "closedCandles": candle_ready, "orderBook": book_ready,
         "noPendingPaperOrders": no_pending,
