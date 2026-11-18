@@ -12,9 +12,9 @@ from t0_signature_stage1.verdicts import (
 
 
 _EXPECTED_BASELINE_DIGESTS = {
-    "B0": "TO_BE_PINNED",
-    "B0-PF": "TO_BE_PINNED",
-    "B-A": "TO_BE_PINNED",
+    "B0": "6f0da5da65d0892cfcb913cc7aeb46df966eedadd26281da64885302d0232cd7",
+    "B0-PF": "3137e4a63a19398469f7d8b27b5fecc71d573cd43d954ed7e76e4124c4a6b223",
+    "B-A": "4a75faea129d1029cbfc1f1b548b9ac5735971289522cebc7913cbd3d9f774b0",
 }
 
 
@@ -394,6 +394,16 @@ class MockVerifierTests(unittest.TestCase):
                 self.assertEqual(snapshot["bootstrap_roots"], [])
                 self.assertEqual(snapshot["test_signer_trust_material"],
                                  ["synthetic-checkpoint-signer-fingerprint"])
+
+    def test_fixture_catalog_fails_closed_when_a_pinned_baseline_drifts(self):
+        import copy
+        from unittest.mock import patch
+        from t0_signature_stage1.verdicts import _BASELINES, fixture_catalog
+        changed = copy.deepcopy(_BASELINES["B0"])
+        changed["fixture"] = "UNEXPECTED-BASELINE-CHANGE"
+        with patch.dict(_BASELINES, {"B0": changed}):
+            with self.assertRaisesRegex(ValueError, "B0: pinned baseline digest mismatch"):
+                fixture_catalog()
 
     def test_each_negative_fixture_changes_exactly_one_declared_leaf(self):
         from t0_signature_stage1.verdicts import build_fixture
