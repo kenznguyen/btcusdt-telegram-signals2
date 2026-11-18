@@ -3390,3 +3390,18 @@ Additional payload inspection:
 - Safety unchanged: no source/runtime/T0 canonical DB/VPS/exchange/credentials changes; paper-only; `AI_EXECUTION_ENABLED=false`; no merge/deployment/trading.
 - Overall status: **PARTIAL / BLOCKED ON P3**. Do not claim workflow fully green, merge, or proceed to Dual-Strategy Intelligence based on this work.
 - Next: obtain the detailed P3 job output, identify the exact failed test/command, propose the smallest correction, and obtain scoped approval before modifying application tests/source. Then rerun CI on the exact new SHA.
+
+
+## 2026-11-18 — T0 workflow F-07/F-08/F-10 final push-CI PASS
+
+- Raw P3 log for failed run `44275967382` was retrieved. Root cause: `market_data.test_feeder_health_api` imports `app.py`, which requires Flask; the P3 job installed only `requirements-market-data.txt`, which did not include Flask. Exact error: `ModuleNotFoundError: No module named 'flask'`. This was a CI dependency omission, not evidence of feeder logic failure.
+- Intermediate attempt commit `b53e013088e9814208ae3b6bedd8230c5a9b8d4d` put Flask installation in the wrong job; run `44276557007` therefore remained failed. It is retained in history, not accepted as the fix.
+- Corrected commit `5ab1d10a54ad31a48fa777d017173c8ffb031ae5` places explicit Flask installation inside `p3-component-auto`. Final workflow blob SHA `2d5d4bfdef7578088df7cf73e603ed1943b9db74`.
+- Final exact-SHA run `44276873908`: branch `feature/core-operational-proof-20261112`, head SHA `5ab1d10a54ad31a48fa777d017173c8ffb031ae5`, event push, conclusion **SUCCESS**.
+- All 10 jobs concluded; lease/fencing, recovery, data-flow, G4, P3 detectors and all four test gates PASS. Manual acceptance SKIPPED as expected on push.
+- P3 log confirms exact SHA checkout, Flask 3.1.3 installation, **33 tests**, `OK`, and `P3_RETRY_HEALTH_COMPONENTS=PASS`.
+- Artifact IDs and provider-reported digests for P3/lease/recovery/data-flow/G4 are recorded in `docs/evidence/T0_MANUAL_VALIDATION_WORKFLOW_F07_F08_F10_FIX_2026-11-18.md`; they have not been independently recomputed from downloaded ZIPs.
+- Disposition: F-07 **PASS**; F-10 **PASS**; F-08 push trigger **PASS**, pull_request-to-main trigger remains **NOT VERIFIED** because no PR event was exercised. Overall workflow correction **PASS WITH PR-TRIGGER VALIDATION LIMITATION**.
+- Evidence report updated in commit `ced6c757e81f6d68d9cf6e186891c43738d30093`.
+- Safety: workflow-only changes; no app source, shared requirements, T0 canonical DB, VPS/runtime, exchange credentials, or orders changed/used. No merge/deployment/trading authorization.
+- Next: if PR-trigger verification is required, use a legitimate PR event on the intended target and record its exact PR head/merge SHA and run evidence. Keep current branch; no merge without separate approval.
