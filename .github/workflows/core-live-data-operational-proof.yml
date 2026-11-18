@@ -21,6 +21,8 @@ on:
       - "paper_execution/test_core_short_lifecycle.py"
       - "paper_execution/test_risk_control.py"
       - "paper_execution/test_dual_ledger_red.py"
+      - "paper_execution/test_support.py"
+      - "paper_execution/test_dual_ledger_bootstrap.py"
       - "pipeline/core_signal.py"
       - "pipeline/test_core_runtime_contract.py"
       - "pipeline/test_core_runtime_one_shot.py"
