@@ -9,6 +9,7 @@
 - Prior Core API focused regression: workflow run 44301625371, exact tested source SHA 1502521b85565b4b75e5368417b3a1169329ec75, SUCCESS, 1/1 test PASS.
 - Dependency inventory and integration plan: docs/evidence/MAIN_CORE_RUNTIME_DEPENDENCY_INVENTORY_AND_INTEGRATION_PLAN_2026-11-18.md
 - Latest T1 source-verification evidence commit: b16f7d4c6c5f3ec38610c85a399e72fdc15803ad
+- T1 provider architecture/contract/RED plan approved and documented in `kenznguyen/binance-futures-collector/docs/T1_ORDERBOOK_HTTP_PROVIDER_V1_CONTRACT_AND_RED_PLAN.md`; collector documentation commit `1bf8e03f54cc77596dbecaccf7e920716c421d10`.
 
 ## Main-side Core Runtime state
 
@@ -27,21 +28,22 @@
 - T1 raw collector source is identified: kenznguyen/binance-futures-collector, main SHA d43a673451f7347e16a214612165c63da1b4339c, Cargo version 1.0.0 (Cargo.toml blob f373e8b32e090a76399905538742e8b34a669419).
 - The collector's Capture Desk server.py blob 1bfc322d9868f5eda7a2d9152575fb22b547093d exposes /api/orderbook/{symbol}, not /internal/v1/orderbook/btcusdt. Its summary response lacks required V1 sequence/provenance/generation/freshness fields and Bearer authentication. The collector is pinned as a raw capture source only, not as the V1 HTTP provider.
 - Inspected relevant accessible default-branch repositories: binance-futures-collector, btcusdt-telegram-signals, btcusdt-telegram-bot and signals2 main. GitHub branch enumeration for binance-futures-collector returned only main. No compatible T1 provider implementation or authoritative provider version was found.
-- T1 HTTP provider repository/path/version: BLOCKED / NOT VERIFIED. Do not label collector 1.0.0 as provider version or alias the dashboard route.
+- T1 HTTP provider target architecture: APPROVED — same collector process, Rust module `src/http/orderbook_v1.rs`, read-only snapshot access from `OrderbookManager`. Contract and RED plan committed in collector documentation at commit `1bf8e03f54cc77596dbecaccf7e920716c421d10`.
+- T1 HTTP provider implementation/version: NOT IMPLEMENTED / NOT VERIFIED. Do not label collector 1.0.0 as provider version or alias the dashboard route.
 - Full dependency matrix cannot yet be locked. The evidence report contains the exact T1 client/contract/source comparison and minimum provider requirements.
 
 ## Safety, test status and scope
 
-- Latest increment was documentation-only on main. No source, dependency manifest, workflow, test, branch, collector runtime, VPS or service was changed or started.
+- Latest increments were documentation-only: collector main contract/RED-plan commit `1bf8e03f54cc77596dbecaccf7e920716c421d10` and this handoff update. No source, dependency manifest, workflow, test, branch, collector runtime, VPS or service was changed or started.
 - No T0 canonical DB, Feeder, exchange, credentials, deployment, AI execution or live order was accessed.
 - Keep paper-only; AI_EXECUTION_ENABLED=false.
-- Main focused projection defect: FIXED / REGRESSION PASS. Main full Core/API/T0 integration: BLOCKED / NOT VERIFIED. T1 raw collector source: PINNED. T1 HTTP provider source/version: BLOCKED / NOT VERIFIED. Current Core First HEAD workflow: NOT RUN.
+- Main focused projection defect: FIXED / REGRESSION PASS. Main full Core/API/T0 integration: BLOCKED / NOT VERIFIED. T1 raw collector source: PINNED. T1 provider architecture and contract/RED plan: APPROVED / DOCUMENTED. T1 provider implementation and wire compatibility: NOT IMPLEMENTED / NOT VERIFIED. Current Core First HEAD workflow: NOT RUN.
 - Core First remains the sole paper-executable strategy. Dual-Strategy Intelligence/AI paper execution remains DEFERRED pending Core First closeout and separate owner approval.
 
 ## Next action and authorization boundary
 
-- User/owner must either identify the authoritative T1 provider repository/path/version if it exists outside inspected sources, or approve a scoped design/implementation location for the missing V1 provider. No implementation location is assumed.
-- Once provider source is pinned and exact V1 route/schema/auth/sequence/freshness behavior is verified, freeze the complete dependency matrix and submit it for review.
+- Next: owner review the committed T1 contract/RED plan, especially the OrderbookManager continuity, exact-decimal preservation, receive-timestamp and generation-fencing requirements. The approved implementation target is `src/http/orderbook_v1.rs` in `kenznguyen/binance-futures-collector`; implementation itself remains NOT AUTHORIZED.
+- After separate source-implementation approval: add behavior tests first, demonstrate valid RED, implement provider/manager publication changes, record exact SHA, and prove compatibility with the pinned Core First validator. Only then freeze the complete dependency matrix and submit it for review.
 - Only after that review and separate explicit approval, run the existing Core First operational workflow on exact current feature HEAD e6606e28a696374f31cd6db1ec0a1372d942d64d; record checkout SHA, run, jobs and artifact.
 - Do not merge, copy source to main, change T0/Shared Risk/Ledger/Core behavior, activate runtime, or start Dual-Strategy work as part of this task.
 
