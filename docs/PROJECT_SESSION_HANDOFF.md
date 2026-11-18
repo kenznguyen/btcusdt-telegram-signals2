@@ -2641,3 +2641,34 @@ This follow-up supersedes the earlier pending items for persistent preview artif
 - Refresh runs `44231937925` and `44231947333`; inspect One-shot suite logs and all downstream steps.
 - Require exact-SHA successful Core First workflow on `40ff89de277d3200b9c12c1db93e91c126b0f7eb` before marking this increment PASS.
 - Continue same branch. Runtime Verification remains **NOT STARTED**; no VPS/T0/T1 runtime, exchange, AI execution, or real orders.
+
+
+## 2026-11-18 — One-shot simulated-origin CI PASS and independent review follow-up
+
+**Confirmed exact-SHA CI**
+- Existing branch retained: `feature/core-operational-proof-20261112`.
+- Core First workflow [44231947333](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/44231947333), run 361, push event, exact source SHA `40ff89de277d3200b9c12c1db93e91c126b0f7eb`: **SUCCESS**.
+- Job `operational-proof`, ID `134560275567`: all 36 primary steps SUCCESS.
+- Exact checkout/source SHA verified in log.
+- One-shot suite: 19 tests, `OK`; the three simulated-origin tests all passed. Workflow verdict explicitly records `CORE_RUNTIME_DECISION_CYCLE=ONE_SHOT_TESTS_PASS` and `CORE_RUNTIME_ONE_SHOT=PASS`.
+- Continuous Runtime Factory suite: 19 tests, `OK`.
+- Artifact: `core-first-code-operational-proof-44231947333`, ID `14396026907`, 17,770 bytes, GitHub SHA-256 `324b51b13c58e25912d9d5c159db0667f3bcb1f2268e8d803b96d89cef78a7e7`. Artifact payload has not been downloaded and independently re-hashed.
+- Earlier run `44231937925` on SHA `88a9f0d315fdc2bee587d5697f77b819ec8cb477` also completed SUCCESS, but its stale 16-test verdict gate marked One-shot NOT_VERIFIED despite the log showing 19 tests. It is superseded for One-shot verdict purposes by run `44231947333`.
+
+**Independent review**
+- Reviewed the One-shot simulated-origin regression tests, the One-shot policy implementation, simulated capital contract validation, and workflow evidence-count/verdict gate.
+- No production-code change was made in this review.
+- One coverage gap found: the original environment-override test exercised only `PAPER_MAX_EXPOSURE_USDT`, while policy rejects three supported environment keys.
+- Expanded the same test to subtest all three keys, setting the other two to empty for isolation. Test count remains 19; no production source or workflow count change.
+- Review follow-up test commit: `c6b453c02201974b91526a196b6c15ce7395c08b`.
+- The new Core First workflow [44233422622](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/44233422622), run 362, checks out exact source SHA `c6b453c02201974b91526a196b6c15ce7395c08b`. At this handoff update, steps 1–20 were SUCCESS; step 21 (read-only PaperLedger readiness preflight) was IN_PROGRESS; remaining steps and artifact were pending.
+- Review verdict: **PARTIAL / awaiting exact-SHA workflow completion**. No Critical or production correctness finding identified in reviewed scope; final review closeout depends on the expanded test run and full workflow.
+
+**Current branch / next action**
+- Branch: `feature/core-operational-proof-20261112`.
+- Code/test commit under verification: `c6b453c02201974b91526a196b6c15ce7395c08b`.
+- This documentation update records progress only; current branch HEAD will be the resulting handoff commit.
+- Refresh workflow `44233422622`, inspect One-shot 19-test log and all 36 primary steps, then record artifact ID/name/size/digest and exact checkout SHA.
+- If full workflow passes, close the independent review as PASS for this narrow test increment and proceed to the broader Core First review; do not treat this as overall Core First acceptance without the broader review.
+- Runtime Verification remains **NOT STARTED**; Dual-Strategy Intelligence remains **DEFERRED**.
+- `AI_EXECUTION_ENABLED=false`; no canonical T0 access, T1 runtime, VPS, exchange connection, AI execution, or real orders. No merge/promotion/rebase/reset/cherry-pick/force push/default-branch change.
