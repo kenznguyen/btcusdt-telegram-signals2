@@ -276,7 +276,7 @@ def fixture_catalog() -> tuple[FixtureSpec, ...]:
             dimension_result=dimension,
             baseline_digest=hashlib.sha256(baseline_bytes).hexdigest(),
             mutation_path=mutation_path,
-            mutation_value=mutation_value,
+            mutation_value=copy.deepcopy(mutation_value),
         ))
     return tuple(fixtures)
 
