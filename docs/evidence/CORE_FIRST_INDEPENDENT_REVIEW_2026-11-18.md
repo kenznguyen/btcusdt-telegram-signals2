@@ -122,3 +122,44 @@ Required:
 4. Update the stale Core-First architecture/readiness documents with exact-SHA evidence.
 5. Re-run the operational workflow on the final code SHA and record the artifact digest.
 6. Reassess branch integration only after a bounded diff and independent review of the main divergence.
+
+
+## Follow-up Review — API AI Deferral Hardening (2026-11-18)
+
+### Approval and scope
+- User approved the narrowly scoped Core-First API hardening.
+- No Dual-Strategy implementation, model/admission changes, Risk Engine changes, ledger schema changes, deployment, VPS/runtime operation, or live trading were included.
+
+### RED → GREEN evidence
+- RED test-only commit: `bcac7a4b8fad5fa18b0ad85dbabb5524fa8be1d2`.
+- RED workflow: [44258548065](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/44258548065).
+- The legacy path was demonstrated to create a FILLED AI paper order when Dual Ledger was not ready. With Dual Ledger ready, a mocked valid AI intent reached the older admission gate rather than the Core-First policy boundary.
+- Implementation/test commits:
+  - `e033b724fa7afc773630527ae732e58ee025ad9d` — API guard and legacy test adaptation.
+  - `81f75156093fd4bdd1cc0bde6ccaa99096a5be67` — default-Core regression and workflow test-name compatibility.
+  - `3fba2a9f72b0d1ab8efad0ced604afe7e8506bc9` — broad AI source rejection and legacy regression adaptation.
+- Final tested source SHA: `3fba2a9f72b0d1ab8efad0ced604afe7e8506bc9`.
+- GREEN workflow: [44258935215](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/44258935215), conclusion **SUCCESS**, branch `feature/core-operational-proof-20261112`, exact checked-out SHA matches.
+- Artifact: [core-first-code-operational-proof-44258935215](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/44258935215/artifacts/14407801013), artifact ID `14407801013`, SHA-256 `3c34a50eebff9aa39a1098286f4483ec339cc41b10957eac7856cde589bfa695`.
+
+### Implemented boundary
+- `POST /v1/paper/evaluate` with an empty payload defaults to `core_runtime_evaluate()` / Strategy Core.
+- Explicit `source=CORE` is accepted and routes to Core Runner.
+- Any payload whose `source` is `AI` is rejected with HTTP 409 and `AI_PAPER_EXECUTION_DEFERRED` before T0 client setup, Paper DB checks, write-budget consumption, AI decision evaluation, or ledger selection.
+- Other unsupported payloads/sources fail with HTTP 400.
+- The AI decision path and its legacy Ledger fallback were removed from this paper-evaluate route. AI remains available to the independent signal/observation path; it cannot submit a paper order in Core First.
+- Regression coverage proves AI rejection with Dual Ledger both NOT READY and READY, even with a valid AI intent mocked; verifies no AI orders are created; verifies empty payload defaults to Core Runner.
+
+### Verification
+- Common API + Paper storage test command: `python -m unittest pipeline.test_api pipeline.test_paper_storage_isolation -v` — **45 tests PASS**.
+- Full Core-First operational workflow: **PASS** on exact source SHA `3fba2a9f72b0d1ab8efad0ced604afe7e8506bc9`.
+- Workflow safety evidence: `AI_EXECUTION_ENABLED=false`, no exchange credentials, `REAL_ORDERS_SENT=false`, no VPS/persistent runtime, no canonical T0 database mutation.
+- Core entry/DCA, long/short lifecycle, mixed-writer stress, repeated mixed-writer stress, Shared Risk/Paper Ledger, T0/Paper storage isolation, and T1/T2 Order Book tests all reported PASS.
+- Real-market OOS profitability remains NOT VERIFIED. This CI evidence is deterministic test/fixture evidence, not a claim of profitability or production readiness.
+
+### Review disposition
+- B2 (AI paper submission reachable during Core First): **RESOLVED** by source change and exact-SHA CI evidence.
+- B1 (branch history divergence: 4,560 ahead / 85 behind main at review time): **OPEN / MERGE BLOCKED**.
+- R3 (Core-First architecture/readiness documents stale): **OPEN**; not changed in this API-only approval.
+- No merge, rebase, reset, force-push, deployment, runtime activation, or real trading was performed.
+- Next: separately review/update the stale architecture/readiness documents, then prepare a bounded integration assessment for the 85 commits on main. Keep merge blocked pending that review and explicit approval.

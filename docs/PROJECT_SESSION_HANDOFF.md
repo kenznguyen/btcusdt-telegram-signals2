@@ -3134,3 +3134,20 @@ Additional payload inspection:
 - Positive static observations and exact required corrections are documented in the review report.
 - No source code, runtime, database, branch history, or trading behavior was changed in this review increment. No tests were run during the review session.
 - Next: obtain approval for B2 API hardening, then regression-first implementation on the same branch; keep merge, Dual-Strategy implementation, VPS/runtime and real trading blocked.
+
+
+## P5 Core First — AI Paper API Deferral RED → GREEN (2026-11-18)
+
+- Scope approved by user: enforce Core-First paper-only policy at the Common API boundary; no Dual-Strategy implementation.
+- Branch: `feature/core-operational-proof-20261112`.
+- RED: test-only commit `bcac7a4b8fad5fa18b0ad85dbabb5524fa8be1d2`; workflow run [44258548065](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/44258548065) demonstrated AI paper order submission on the legacy not-ready ledger path and a distinct admission response when Dual Ledger was ready.
+- Source implementation commits: `e033b724fa7afc773630527ae732e58ee025ad9d`, `81f75156093fd4bdd1cc0bde6ccaa99096a5be67`, `3fba2a9f72b0d1ab8efad0ced604afe7e8506bc9`.
+- Exact tested source SHA: `3fba2a9f72b0d1ab8efad0ced604afe7e8506bc9`.
+- GREEN workflow run [44258935215](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/44258935215): **SUCCESS**, checkout SHA matched source SHA.
+- Artifact ID `14407801013`; SHA-256 `3c34a50eebff9aa39a1098286f4483ec339cc41b10957eac7856cde589bfa695`.
+- Common API + Paper storage: 45 tests PASS. Full Core-First operational workflow PASS, including Core entry/DCA, long/short lifecycle, writer stress, risk/ledger, and T1/T2 order-book contracts.
+- API behavior: empty evaluate payload defaults to Strategy Core; explicit CORE is accepted; AI source is rejected HTTP 409 `AI_PAPER_EXECUTION_DEFERRED` before T0/Paper/write-budget/AI-decision/ledger work; unknown source remains HTTP 400. No AI legacy Ledger fallback remains in this route.
+- AI remains independently observable/researchable; its signal path was not deleted. `AI_EXECUTION_ENABLED=false`; no exchange credentials, live orders, VPS or persistent runtime.
+- Status: **B2 RESOLVED / CI PASS**. B1 branch divergence (4,560 ahead / 85 behind main at review time) remains **MERGE BLOCKED**. R3 stale Core-First architecture/readiness documents remain open and outside this API-only approval.
+- No merge, rebase, reset, force-push, deployment, runtime activation, or real trading.
+- Next: update stale architecture/readiness documents and perform a bounded integration review before any merge proposal.
