@@ -503,6 +503,11 @@ def evaluate_fixture_content(
         if not evidence.get("object_id") or not evidence.get("object_type") or not evidence.get("schema_version"):
             raise ValueError("evidence object identity/schema incomplete")
         snapshot = baseline.get("state_snapshot", {})
+        mutated_snapshot = mutated.get("state_snapshot", {})
+        if mutated_snapshot != snapshot:
+            return state, FixtureResult("INVALID", "FIXTURE_STATE_TRANSITION_FORBIDDEN", "Fixture state transition INVALID",
+                                        dimension_results={}, state_s0=state, state_s1=state,
+                                        forbidden_transitions={key: True for key in _FORBIDDEN_TRANSITIONS})
         if not isinstance(snapshot, Mapping) or (
             tuple(snapshot.get("trust_roots", ())) != state.trust_roots
             or snapshot.get("policy_head") != state.policy_head
