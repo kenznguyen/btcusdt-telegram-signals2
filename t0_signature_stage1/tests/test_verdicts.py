@@ -11,6 +11,16 @@ from t0_signature_stage1.verdicts import (
 )
 
 
+def _test_state():
+    return StageStateSnapshot(
+        trust_roots=("synthetic-root-fingerprint",),
+        policy_head="policy-digest-0",
+        anchor_head=(0, "anchor-digest-0"),
+        checkpoint_head=("checkpoint-0", "object-digest-0"),
+        bootstrap_sequence=0,
+    )
+
+
 class FixtureMatrixTests(unittest.TestCase):
     def test_exactly_27_a22_fixtures_are_registered(self):
         fixtures = fixture_catalog()
@@ -123,6 +133,70 @@ class FixtureMatrixTests(unittest.TestCase):
         first.mutation_value.append("UNEXPECTED")
         _baseline, mutated, _spec = build_fixture("A2.2-NV-27")
         self.assertEqual(mutated["bootstrap"]["path_evidence"], ["PATH_A", "PATH_B"])
+
+
+    def test_nv03_uses_unchanged_a1_object_and_v2_request_not_a_label_trigger(self):
+        from t0_signature_stage1.verdicts import PROFILE_ID, PROFILE_VERSION, build_fixture, evaluate_fixture_content
+        baseline, mutated, _spec = build_fixture("A2.2-NV-03")
+        self.assertEqual(mutated["historical_fixture"], baseline["historical_fixture"])
+        self.assertEqual(mutated["historical_fixture"]["signature_profile_id"], "T0-CHECKPOINT-ISSUER-SIGNATURE-PROFILE-A1")
+        self.assertEqual(mutated["verification_request"]["signature_profile_id"], PROFILE_ID)
+        self.assertEqual(mutated["verification_request"]["signature_profile_version"], PROFILE_VERSION)
+        self.assertNotIn("subject_fixture", mutated["verification_request"])
+        state = _test_state()
+        after, result = evaluate_fixture_content(baseline, mutated, state)
+        self.assertEqual((result.verdict, result.reason_code), ("INVALID", "PROFILE_VERSION_MISMATCH"))
+        self.assertEqual(after, state)
+
+    def test_nv04_b0pf_has_only_normative_statement_profile_mismatch(self):
+        from t0_signature_stage1.verdicts import PROFILE_ID, PROFILE_VERSION, build_fixture
+        baseline, mutated, _spec = build_fixture("A2.2-NV-04")
+        self.assertEqual(baseline["statement"]["signature_profile_id"], "T0-CHECKPOINT-ISSUER-SIGNATURE-PROFILE-LEGACY")
+        self.assertEqual(baseline["statement"]["signature_profile_version"], PROFILE_VERSION)
+        for section in ("descriptor", "envelope", "policy_profile_authorization", "policy_signed_binding", "verification_request", "verifier_allowed_profile"):
+            self.assertEqual(mutated[section]["signature_profile_id"], PROFILE_ID)
+            self.assertEqual(mutated[section]["signature_profile_version"], PROFILE_VERSION)
+        self.assertTrue(mutated["verification_request"]["allow_automatic_fallback"])
+        self.assertEqual(baseline["bootstrap"], mutated["bootstrap"])
+
+    def test_evaluator_rejects_zero_semantic_mutations(self):
+        from t0_signature_stage1.verdicts import build_fixture, evaluate_fixture_content
+        baseline, _mutated, _spec = build_fixture("A2.2-NV-01")
+        state = _test_state()
+        after, result = evaluate_fixture_content(baseline, baseline, state)
+        self.assertEqual((result.verdict, result.reason_code), ("INVALID", "FIXTURE_SINGLE_MUTATION_VIOLATION"))
+        self.assertEqual(after, state)
+
+    def test_profile_bindings_cover_all_normative_locations(self):
+        from t0_signature_stage1.verdicts import PROFILE_ID, PROFILE_VERSION, validate_profile_bindings
+        locations = ("descriptor", "statement", "envelope", "policy_profile_authorization",
+                     "policy_signed_binding", "bootstrap_record", "bootstrap_authorization",
+                     "verifier_request", "verifier_allowed_profile")
+        bindings = {name: {"signature_profile_id": PROFILE_ID, "signature_profile_version": PROFILE_VERSION}
+                    for name in locations}
+        self.assertEqual((validate_profile_bindings(bindings).verdict, validate_profile_bindings(bindings).reason_code),
+                         ("PASS", "PROFILE_BINDING_MATCH"))
+        del bindings["policy_signed_binding"]
+        result = validate_profile_bindings(bindings)
+        self.assertEqual((result.verdict, result.reason_code), ("INVALID", "PROFILE_BINDING_MISMATCH"))
+
+    def test_each_fixture_records_schema_dimensions_state_and_forbidden_transitions(self):
+        from t0_signature_stage1.verdicts import build_fixture, evaluate_fixture_content
+        required = {"parsing_canonicalization", "object_binding", "profile", "purpose",
+                    "signature", "policy_authorization", "bootstrap_authorization", "custody_readback"}
+        for fixture in fixture_catalog():
+            with self.subTest(case_id=fixture.case_id):
+                baseline, mutated, spec = build_fixture(fixture.case_id)
+                self.assertEqual(spec.schema_version, "A2.2-STAGE-I-FIXTURE-V1")
+                self.assertEqual(set(spec.dimension_results), required)
+                state = _test_state()
+                after, result = evaluate_fixture_content(baseline, mutated, state)
+                self.assertEqual(after, state)
+                self.assertEqual(result.state_s0, state)
+                self.assertEqual(result.state_s1, state)
+                self.assertEqual(set(result.dimension_results), required)
+                self.assertTrue(result.forbidden_transitions)
+                self.assertTrue(all(result.forbidden_transitions.values()))
 
 
 class MockVerifierTests(unittest.TestCase):
