@@ -113,7 +113,7 @@ class FixtureMatrixTests(unittest.TestCase):
         from t0_signature_stage1.verdicts import build_fixture, evaluate_fixture_content
         baseline, mutated, _spec = build_fixture("A2.2-NV-01")
         compound = copy.deepcopy(mutated)
-        compound["policy"]["profile_version"] = 3
+        compound["policy_profile_authorization"]["signature_profile_version"] = 3
         state = StageStateSnapshot(
             trust_roots=("synthetic-root-fingerprint",),
             policy_head="policy-digest-0",
