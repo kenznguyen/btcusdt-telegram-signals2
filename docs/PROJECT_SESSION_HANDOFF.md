@@ -12,7 +12,7 @@ This section supersedes older "Current workstream" labels and stale status summa
 
 - Repository: `kenznguyen/btcusdt-telegram-signals2`.
 - Active branch: `feature/core-operational-proof-20261112`.
-- Latest verified branch HEAD before this handoff update: `124eb3d7059363e4cf284c4e053cd70d2c6ad6ea` (R4 fixture-integrity evidence commit; workflow source under test remains `5ab1d10a54ad31a48fa777d017173c8ffb031ae5`).
+- Latest branch HEAD after independent R4 review evidence: `97c001c13043aa9bfeaf9857807673e9a987973f` (independent review report commit; exact R4 source under review remains `fcb188c6d0c215d5e753bad7ef5b6aeb9facad93`).
 - Core First is the active priority. Do not begin Dual-Strategy Intelligence implementation until Core First closeout and a separate owner approval.
 - Strategy Core remains RSI + ADX + Smart DCA and the only paper-executable strategy.
 - AI is observation/research only in this phase. `POST /v1/paper/evaluate` rejects `source=AI` with HTTP 409 / `AI_PAPER_EXECUTION_DEFERRED`; empty payload defaults to Core; explicit `source=CORE` routes to Core Runner.
@@ -41,7 +41,14 @@ This section supersedes older "Current workstream" labels and stale status summa
 - Exact-SHA isolated Python sandbox: compileall PASS; focused tests 30/30 PASS; full Stage I package 53/53 PASS. This was not GitHub Actions; no workflow run or artifact exists.
 - Evidence report: `docs/evidence/T0_A2_2_STAGE_I_R4_FIXTURE_INTEGRITY_HARDENING_2026-11-18.md`; report commit `124eb3d7059363e4cf284c4e053cd70d2c6ad6ea`.
 - R4 remains PARTIAL only because signature cryptographic verification and custody/readback remain NOT VERIFIED. Stage I full contract conformance remains PARTIAL / NOT VERIFIED.
-- Next: independent static review of the R4 diff and evidence. No workflow dispatch, Stages II–V, production crypto/bootstrap, merge, deployment or trading without separate approval.
+- Independent R4 review completed read-only at exact source SHA `fcb188c6d0c215d5e753bad7ef5b6aeb9facad93`; source blobs unchanged: `verdicts.py` `83b56d633d146f5b4df30e5c85943ab08ef7e7ca`, tests `9c0e487be74430bd70b8ca90e9d573fe3ea41136`.
+- Independent Python reconstruction/re-hash reproduced B0 `6f0da5da65d0892cfcb913cc7aeb46df966eedadd26281da64885302d0232cd7`, B0-PF `3137e4a63a19398469f7d8b27b5fecc71d573cd43d954ed7e76e4124c4a6b223`, B-A `4a75faea129d1029cbfc1f1b548b9ac5735971289522cebc7913cbd3d9f774b0`; all match source pins and test oracle.
+- Full reviewed source/test files contain no legacy `trust_roots` identifier; the two explicit fields are separately compared by the evaluator. Independent R4 review: PASS WITH LIMITATIONS; baseline integrity and signer/bootstrap separation PASS.
+- Review report: `docs/evidence/T0_A2_2_STAGE_I_R4_INDEPENDENT_REVIEW_2026-11-18.md`, commit `97c001c13043aa9bfeaf9857807673e9a987973f`.
+- Review did not rerun tests or dispatch workflow. Prior 30/30 focused and 53/53 package results remain tied only to exact source SHA `fcb188c6d0c215d5e753bad7ef5b6aeb9facad93`.
+- Signature cryptographic verification and custody/readback remain `NOT_VERIFIED`; Stage I full contract conformance remains `PARTIAL / NOT VERIFIED`. No workflow dispatch, Stages II–V, production crypto/bootstrap, merge, deployment or trading.
+- Next: Stage I remains gated pending separate owner decision on how to obtain real cryptographic verification and custody/readback evidence. Do not infer acceptance from the synthetic harness.
+
 
 ### Prior T0 A2.2 Stage I post-repair read-only review — 2026-11-18
 
