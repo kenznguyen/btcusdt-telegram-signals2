@@ -220,7 +220,7 @@ jobs:
             test_name="$1"
             log_file="$2"
             set +e
-            timeout --foreground --signal=TERM --kill-after=5s 120s \
+            timeout --signal=TERM --kill-after=5s 120s \
               python -m unittest "$test_name" -v 2>&1 | tee "$log_file"
             status=${PIPESTATUS[0]}
             set -e
