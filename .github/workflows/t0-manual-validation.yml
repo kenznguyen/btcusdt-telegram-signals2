@@ -488,7 +488,7 @@ jobs:
           git diff --name-only "$BASE_SHA" "$HEAD_SHA" > p3-component-changed-files.txt
           cat p3-component-changed-files.txt
           changed=false
-          for path in app.py market_data/feeder.py market_data/test_feeder_retry.py market_data/test_feeder_health.py market_data/test_feeder_health_api.py; do
+          for path in .github/workflows/t0-manual-validation.yml app.py market_data/feeder.py market_data/test_feeder_retry.py market_data/test_feeder_health.py market_data/test_feeder_health_api.py; do
             if grep -Fxq "$path" p3-component-changed-files.txt; then changed=true; fi
           done
           echo "changed=$changed" >> "$GITHUB_OUTPUT"
