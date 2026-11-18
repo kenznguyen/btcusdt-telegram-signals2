@@ -5,7 +5,7 @@
 ## 1. Bắt đầu tại đây
 
 1. [Project Session Handoff](PROJECT_SESSION_HANDOFF.md) — trạng thái phiên làm việc, branch/SHA, quyết định đang có hiệu lực, giới hạn và bước tiếp theo. **Đọc trước khi tiếp tục công việc.**
-2. [Five-Layer Architecture](FIVE_LAYER_ARCHITECTURE.md) — kiến trúc và ranh giới T0–T4.
+2. [Five-Layer Architecture](architecture/FIVE_LAYER_ARCHITECTURE.md) — kiến trúc và ranh giới T0–T4.
 3. [T0 Active Scope Index](T0_ACTIVE_SCOPE_INDEX.md) — phạm vi T0 đang hoạt động và tài liệu liên quan.
 4. [Five-Layer Paper Runbook](FIVE_LAYER_PAPER_RUNBOOK.md) — luồng kiểm tra/paper; không phải giấy phép live trading.
 5. [Complete Roadmap](COMPLETE_ROADMAP.md) — roadmap tổng thể; đối chiếu handoff để biết mục nào còn hiệu lực.

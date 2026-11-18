@@ -159,7 +159,7 @@ Existing storage and API behavior remain unchanged until separately designed, te
 4. `docs/architecture/DATA_DELETION_SAFETY_CONTRACT.md` — fail-closed authorization, final recheck, idempotency, tombstones, audit, and recovery from ambiguous outcomes.
 
 After those designs are reviewed, reconcile:
-- `docs/FIVE_LAYER_ARCHITECTURE.md`;
+- `docs/architecture/FIVE_LAYER_ARCHITECTURE.md`;
 - `docs/FIVE_LAYER_PAPER_RUNBOOK.md`;
 - `docs/T0_POSTGRESQL_LIFECYCLE_ACCEPTANCE_MATRIX.md` (keep runtime lifecycle distinct from data retention lifecycle);
 - `docs/architecture/T0_POSTGRESQL_ATOMIC_WRITER_P0_2026-11-05.md`;

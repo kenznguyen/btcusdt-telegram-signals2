@@ -1,6 +1,6 @@
 # Hummingbot Order Book bridge
 
-See [the five-layer architecture](../docs/FIVE_LAYER_ARCHITECTURE.md) for the proposed collector, microstructure, FreqAI, execution and React/APK integration. That design is a roadmap; this adapter only implements read-only Hummingbot snapshots.
+See [the five-layer architecture](../docs/architecture/FIVE_LAYER_ARCHITECTURE.md) for the proposed collector, microstructure, FreqAI, execution and React/APK integration. That design is a roadmap; this adapter only implements read-only Hummingbot snapshots.
 
 The first canonical BTCUSDT candle store, CCXT importer and read-only API are documented in [market_data/README.md](../market_data/README.md).
 

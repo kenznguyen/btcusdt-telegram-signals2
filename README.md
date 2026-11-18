@@ -2,13 +2,13 @@
 
 **GitHub là nơi lưu trữ mã nguồn, nhánh, lịch sử và bằng chứng; GitHub Actions là cơ chế thực thi CI/workflow chuẩn của dự án.** Codemagic chỉ còn các workflow build/kiểm tra được giữ lại; không phải runner chính của Hệ thống 5 tầng. Ba tác vụ Python Telegram/scanner/backtest cũ đã được gỡ khỏi repository chung.
 
-Chỉ mục điều hướng tài liệu: [Documentation Index](docs/README.md). Phạm vi kiến trúc và các ranh giới loại trừ được ghi tại [Five-Layer Architecture](docs/FIVE_LAYER_ARCHITECTURE.md) và [T0 Active Scope Index](docs/T0_ACTIVE_SCOPE_INDEX.md). Quyết định loại Android Chart/Scanner và Python bot/backtest khỏi phạm vi được ghi tại [Five-Layer Scope Exclusion Decision](docs/evidence/FIVE_LAYER_SCOPE_EXCLUSION_ANDROID_PYTHON_2026-11-10.md).
+Chỉ mục điều hướng tài liệu: [Documentation Index](docs/README.md). Phạm vi kiến trúc và các ranh giới loại trừ được ghi tại [Five-Layer Architecture](docs/architecture/FIVE_LAYER_ARCHITECTURE.md) và [T0 Active Scope Index](docs/T0_ACTIVE_SCOPE_INDEX.md). Quyết định loại Android Chart/Scanner và Python bot/backtest khỏi phạm vi được ghi tại [Five-Layer Scope Exclusion Decision](docs/evidence/FIVE_LAYER_SCOPE_EXCLUSION_ANDROID_PYTHON_2026-11-10.md).
 
 ## Thành phần thuộc Hệ thống 5 tầng
 
 - [Kho dữ liệu chuẩn T0](market_data/README.md): CCXT, SQLite và API chỉ đọc cho nến BTCUSDT perpetual.
 - [Hummingbot integration](integrations/README.md): adapter/snapshot sổ lệnh; credentials nằm ở server. Phạm vi và mức độ tích hợp cần căn cứ bằng chứng hiện hành.
-- [Kiến trúc 5 tầng](docs/FIVE_LAYER_ARCHITECTURE.md): dữ liệu, trinh sát, chiến lược/AI, paper execution và React control plane. Đây là thiết kế đích; chưa mặc nhiên có nghĩa mọi tầng đã triển khai hoặc được kiểm định.
+- [Kiến trúc 5 tầng](docs/architecture/FIVE_LAYER_ARCHITECTURE.md): dữ liệu, trinh sát, chiến lược/AI, paper execution và React control plane. Đây là thiết kế đích; chưa mặc nhiên có nghĩa mọi tầng đã triển khai hoặc được kiểm định.
 - [Luồng paper 5 tầng](docs/FIVE_LAYER_PAPER_RUNBOOK.md): luồng nghiên cứu/paper; fixture tests không chứng minh runtime, model hoặc frontend đã vận hành thực tế.
 
 ## Hệ thống riêng ngoài phạm vi 5 tầng — KHÔNG THUỘC SCOPE
