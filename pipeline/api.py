@@ -70,12 +70,35 @@ def book_snapshot(timestamp):
         return result
 
 
+def paper_db_path():
+    """Return the isolated Paper SQLite path; never alias canonical T0 storage."""
+    raw = os.environ.get("PAPER_DB", "").strip()
+    if not raw:
+        raise ValueError("PAPER_DB_REQUIRED")
+    paper_path = Path(raw).expanduser().resolve()
+    backend = os.environ.get("MARKET_DATA_BACKEND", "sqlite").strip().lower()
+    if backend == "sqlite":
+        market_raw = os.environ.get("MARKET_DATA_DB", "").strip()
+        if not market_raw:
+            raise ValueError("MARKET_DATA_DB_REQUIRED")
+        market_path = Path(market_raw).expanduser().resolve()
+        same_file = paper_path == market_path
+        if not same_file and paper_path.exists() and market_path.exists():
+            try:
+                same_file = os.path.samefile(paper_path, market_path)
+            except OSError as error:
+                raise ValueError("PAPER_DB_PATH_VALIDATION_FAILED") from error
+        if same_file:
+            raise ValueError("PAPER_DB_MUST_BE_SEPARATE_FROM_T0")
+    elif backend != "postgres":
+        raise ValueError("MARKET_DATA_BACKEND_INVALID")
+    return str(paper_path)
+
+
 def ledger(strategy_id="MANUAL", *, admitted_leverage=None):
     from paper_execution.ledger import PaperLedger
     from paper_execution.equity import parse_limits
-    path = os.environ.get("MARKET_DATA_DB")
-    if not path:
-        raise ValueError("Unconfigured store")
+    path = paper_db_path()
     limits = parse_limits(os.environ)
     if strategy_id in {"STRATEGY_CORE", "AI_FREQAI"}:
         from paper_execution.ledger import dual_ledger_ready
@@ -123,8 +146,11 @@ def resolve_order_strategy(db_path, order_id):
 def control_permit(timestamp):
     """A small shared SQLite budget for paper writes across API workers."""
     from contextlib import closing
-    path = os.environ.get("MARKET_DATA_DB")
-    if not path or not Path(path).is_file():
+    try:
+        path = paper_db_path()
+    except ValueError:
+        return False
+    if not Path(path).is_file():
         return False
     with closing(sqlite3.connect(path, timeout=5)) as connection, connection:
         connection.execute("BEGIN IMMEDIATE")
@@ -369,7 +395,7 @@ def control_readiness(timestamp):
         dual_ledger_ready, has_pending_orders, read_account_risk_snapshot,
         read_snapshot,
     )
-    db_path = os.environ.get("MARKET_DATA_DB", "")
+    db_path = paper_db_path()
     if dual_ledger_ready(db_path):
         read_snapshot(db_path, strategy_id="STRATEGY_CORE")
         read_snapshot(db_path, strategy_id="AI_FREQAI")
@@ -466,15 +492,26 @@ def application(environ, start_response):
     try:
         if method == "POST":
             payload = _body(environ)
-            if not os.environ.get("MARKET_DATA_DB") or not Path(os.environ["MARKET_DATA_DB"]).is_file():
+            market_backend = os.environ.get("MARKET_DATA_BACKEND", "sqlite").strip().lower()
+            if market_backend == "sqlite":
+                market_path = os.environ.get("MARKET_DATA_DB", "")
+                if not market_path or not Path(market_path).is_file():
+                    return response("503 Service Unavailable", {"error": "STORE_UNAVAILABLE"})
+            elif market_backend != "postgres" or not os.environ.get("MARKET_DATA_POSTGRES_DSN"):
                 return response("503 Service Unavailable", {"error": "STORE_UNAVAILABLE"})
+            try:
+                paper_path = paper_db_path()
+            except ValueError:
+                return response("503 Service Unavailable", {"error": "PAPER_STORE_UNAVAILABLE"})
+            if not Path(paper_path).is_file():
+                return response("503 Service Unavailable", {"error": "PAPER_STORE_UNAVAILABLE"})
             if not control_permit(timestamp):
                 return response("429 Too Many Requests", {"error": "CONTROL_RATE_LIMIT"})
             if path == "/v1/paper/pause" and set(payload) == {"paused"} and type(payload["paused"]) is bool:
                 result = ledger().set_paused(payload["paused"], timestamp)
             elif path == "/v1/paper/cancel" and set(payload) == {"orderId"} and isinstance(payload["orderId"], str) and 0 < len(payload["orderId"]) <= 100:
                 from paper_execution.ledger import cancel_dual_order, dual_ledger_ready
-                db_path = os.environ["MARKET_DATA_DB"]
+                db_path = paper_db_path()
                 if dual_ledger_ready(db_path):
                     result = cancel_dual_order(db_path, payload["orderId"], timestamp)
                 else:
@@ -493,7 +530,7 @@ def application(environ, start_response):
                 else:
                     source_id = "AI_FREQAI"
                     from paper_execution.ledger import dual_ledger_ready
-                    dual_active = dual_ledger_ready(os.environ["MARKET_DATA_DB"])
+                    dual_active = dual_ledger_ready(paper_db_path())
                     strategy_ledger = (
                         ledger(strategy_id=source_id) if dual_active else ledger()
                     ) if not dual_active else None
@@ -534,9 +571,12 @@ def application(environ, start_response):
             from paper_execution.ledger import (
                 dual_ledger_ready, read_account_risk_snapshot, read_snapshot,
             )
-            db_path = os.environ.get("MARKET_DATA_DB", "")
-            if not db_path:
-                return response("503 Service Unavailable", {"error": "UNCONFIGURED"})
+            try:
+                db_path = paper_db_path()
+            except ValueError:
+                return response("503 Service Unavailable", {"error": "PAPER_STORE_UNAVAILABLE"})
+            if not Path(db_path).is_file():
+                return response("503 Service Unavailable", {"error": "PAPER_STORE_UNAVAILABLE"})
             if dual_ledger_ready(db_path):
                 try:
                     account = read_account_risk_snapshot(db_path, now_ms=timestamp)
@@ -565,7 +605,13 @@ def application(environ, start_response):
             limit = int(query.get("limit",["50"])[0])
             before = int(query["beforeId"][0]) if "beforeId" in query else None
             from paper_execution.ledger import read_audit
-            result = read_audit(os.environ.get("MARKET_DATA_DB", ""),limit=limit,before_id=before)
+            try:
+                paper_path = paper_db_path()
+            except ValueError:
+                return response("503 Service Unavailable", {"error": "PAPER_STORE_UNAVAILABLE"})
+            if not Path(paper_path).is_file():
+                return response("503 Service Unavailable", {"error": "PAPER_STORE_UNAVAILABLE"})
+            result = read_audit(paper_path,limit=limit,before_id=before)
         elif path == "/v1/quality":
             result = quality_snapshot(timestamp)
         elif path == "/v1/order-book":
