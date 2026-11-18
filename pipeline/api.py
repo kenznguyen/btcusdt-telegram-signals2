@@ -325,6 +325,7 @@ def quality_snapshot(timestamp):
     book_ready = bool(book and 0 <= timestamp-stamp(book.get("observedAtMs")) <= 30_000)
     streams.append({"name":"Hummingbot Order Book","status":"READY" if book_ready else "MISSING",
                     "observedAtMs":book.get("observedAtMs") if book else None})
+    core = core_runtime_preview(timestamp)
     t1_evidence = (core.get("sourceEvidence") or {}).get("t1SnapshotId")
     streams.append({"name":"T1 Order Book V1","status":"READY" if t1_evidence else "MISSING",
                     "snapshotId":t1_evidence})
@@ -348,7 +349,6 @@ def quality_snapshot(timestamp):
     except ValueError:
         risk_stream = {"name":"Shared Risk Limits","status":"INVALID","reason":"RISK_LIMITS_INVALID"}
     streams.append(risk_stream)
-    core = core_runtime_preview(timestamp)
     core_values = core.get("indicators")
     core_ready = isinstance(core_values, dict) and all(
         core_values.get(key) is not None for key in ("rsiM15", "adxM15", "plusDiH1", "minusDiH1", "adxH1"))
