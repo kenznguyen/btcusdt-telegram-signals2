@@ -2783,3 +2783,15 @@ This follow-up supersedes the earlier pending items for persistent preview artif
 - Static review of the latest delta: one-use token registry is bounded to 256 entries and 5-second TTL, token consumption is lock-protected and single-use, Ledger uses `BEGIN IMMEDIATE`, pending orders/reservations and dual-account risk readiness are rechecked before latch clear, and API failures fail closed with 409. The full independent review remains open until latest exact-SHA Core workflow and API tests complete.
 - Core First overall remains **PARTIAL / NOT VERIFIED**. Runtime Verification: **NOT STARTED**. Dual-Strategy Intelligence: **DEFERRED**.
 - `AI_EXECUTION_ENABLED=false`; PAPER-only. No canonical T0 DB, T1 runtime, VPS, exchange connection, AI Strategy execution, real orders, merge/promotion, rebase/reset/cherry-pick/force push, or default-branch change.
+
+
+## 2026-11-18 — Migrate Core operational Kill Switch tests to readiness capability
+
+- Full Core workflow on pre-migration test SHA `f837000cb8fe0e54713f7b1b6260c16521ada8c5` (`44235145804`) and the subsequent run on `0b5cf49c5fbcb8e357539c1a1fc570bc60f93035` (`44235467621`) reached `paper_execution.test_core_first_operational` and failed because two existing tests still called the removed `ready=True` parameter. This was a test-contract migration gap; the new Ledger signature correctly rejects that old argument.
+- Updated `paper_execution/test_core_first_operational.py` to create one-use readiness evidence for the reset-vs-entry serialization test and the audit-write rollback test. No production code changed in this follow-up.
+- Latest test/source SHA: `87b67e150f81b0065909dd8e5b2d7667319a2f95`.
+- Latest exact-SHA Core workflow [44235712032](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/44235712032) is **IN_PROGRESS**, job `134571224698`; last observed step 21, read-only PaperLedger readiness preflight. The Core E2E test group containing the migrated tests has not yet been reached at the last status check.
+- Focused PaperLedger workflow [44235467609](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/44235467609) on preceding production/test SHA `0b5cf49c5fbcb8e357539c1a1fc570bc60f93035` remains **PASS**, 161 tests. It does not cover the just-migrated Core operational test file.
+- Next: wait for exact-SHA Core run `44235712032`; inspect the Core operational test group and all downstream gates. If it fails, fix only the verified failure on this branch and rerun. The Kill Switch review finding remains **focused CI PASS / full Core CI NOT VERIFIED / independent review pending**.
+- Branch remains `feature/core-operational-proof-20261112`; no merge or runtime action. Core First overall remains **PARTIAL / NOT VERIFIED**. Runtime Verification: **NOT STARTED**. Dual-Strategy Intelligence: **DEFERRED**.
+- `AI_EXECUTION_ENABLED=false`; PAPER-only. No canonical T0 DB, T1 runtime, VPS, exchange connection, AI Strategy execution, real orders, merge/promotion, rebase/reset/cherry-pick/force push, or default-branch change.
