@@ -169,8 +169,22 @@ def _make_baseline(name: str, *, legacy_statement: bool = False, path_a_enabled:
     statement_binding = dict(binding)
     if legacy_statement:
         statement_binding["signature_profile_id"] = LEGACY_PROFILE_ID
-    policy_authorization = dict(binding, profile_namespace="T0", profile_purpose="T0_CHECKPOINT_ISSUER_ATTESTATION")
-    policy_signed_binding = dict(binding, signed_statement_digest="d" * 64, policy_body_digest="e" * 64)
+    policy_authorization = dict(
+        binding,
+        profile_namespace="T0",
+        profile_purpose="T0_CHECKPOINT_ISSUER_ATTESTATION",
+        signer_id="SYNTHETIC-TEST-SIGNER",
+        signer_role="T0_CHECKPOINT_ISSUER",
+        namespace="T0",
+        audience="BTCUSDT",
+        allowed_purposes=["T0_CHECKPOINT_ISSUER_ATTESTATION"],
+    )
+    policy_signed_binding = dict(
+        binding,
+        signed_statement_digest="d" * 64,
+        policy_body_digest="e" * 64,
+        statement_binding="SYNTHETIC-TEST-ONLY-NOT-CRYPTOGRAPHIC",
+    )
     bootstrap = _bootstrap_baseline(path_a_enabled=path_a_enabled, path_b_enabled=False)
     bootstrap_record = dict(binding, namespace="T0", audience="BTCUSDT", root_spki_fingerprint="b" * 64)
     bootstrap_authorization = dict(binding, sequence_predecessor="1:GENESIS", recovery_policy_digest="c" * 64)
@@ -296,6 +310,8 @@ def _expected_dimensions(mutation_path: str, verdict: str) -> dict[str, str]:
                        "signature": "NOT_VERIFIED", "custody_readback": "NOT_VERIFIED"})
     if mutation_path.startswith("statement.purpose"):
         dimensions["purpose"] = verdict
+    elif mutation_path == "verification_request.bootstrap_path":
+        dimensions["bootstrap_authorization"] = verdict
     elif mutation_path.startswith("policy."):
         dimensions["policy_authorization"] = verdict
     elif mutation_path.startswith(("verification_request.", "descriptor.", "envelope.", "policy_profile_authorization.", "profile.")):
@@ -415,6 +431,8 @@ def _dimension_results_for(fixture: Mapping[str, object], facts: Mapping[str, bo
     dimensions = {key: "NOT_APPLICABLE" for key in _REQUIRED_DIMENSIONS}
     dimensions.update({"parsing_canonicalization": "PASS", "object_binding": "PASS",
                        "signature": "NOT_VERIFIED", "custody_readback": "NOT_VERIFIED"})
+    if facts.get("object_binding_mismatch"):
+        dimensions["object_binding"] = result.verdict
     if facts.get("purpose_not_supported"):
         dimensions["purpose"] = result.verdict
     elif facts.get("policy_purpose_not_explicit"):
