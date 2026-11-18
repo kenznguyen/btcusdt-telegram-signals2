@@ -14,6 +14,7 @@ on:
       - "pipeline/test_api_t0_http_boundary.py"
       - "freqai_bridge/test_http_candles.py"
       - "paper_execution/test_core_first_operational.py"
+      - "paper_execution/test_ledger.py"
       - "paper_execution/test_core_runner_ledger_integration.py"
       - "paper_execution/test_partial_fill_process_crash.py"
       - "paper_execution/test_account_risk_snapshot_read_only.py"
