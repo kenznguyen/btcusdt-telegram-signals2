@@ -46,7 +46,6 @@ class FixtureSpec:
     state_unchanged: bool = True
     baseline_digest: str = ""
     mutation_path: str = ""
-    fact_key: str = ""
     mutation_value: object = None
 
 
