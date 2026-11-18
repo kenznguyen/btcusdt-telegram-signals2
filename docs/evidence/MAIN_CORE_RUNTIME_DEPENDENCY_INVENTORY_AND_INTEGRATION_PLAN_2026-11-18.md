@@ -200,7 +200,9 @@ All tests should run against the existing Core First source branch at a newly re
 | Core First source location | IDENTIFIED — active project branch; not a released package |
 | T0 HTTP consumer contract | IDENTIFIED |
 | T1 HTTP consumer contract | IDENTIFIED |
-| T1 raw collector source/version | PINNED — binance-futures-collector main SHA d43a673451f7347e16a214612165c63da1b4339c, Cargo 1.0.0 |\n| T1 HTTP provider source/version | BLOCKED / NOT VERIFIED — no compatible provider found |\n| Collector Capture Desk route compatibility | NOT COMPATIBLE — /api/orderbook/{symbol} is not the V1 route/schema/auth |
+| T1 raw collector source/version | PINNED — binance-futures-collector main SHA d43a673451f7347e16a214612165c63da1b4339c, Cargo 1.0.0 |
+| T1 HTTP provider source/version | BLOCKED / NOT VERIFIED — no compatible provider found |
+| Collector Capture Desk route compatibility | NOT COMPATIBLE — /api/orderbook/{symbol} is not the V1 route/schema/auth |
 | Existing Core First exact-SHA operational CI | PASS — historical exact tested SHA |
 | Current Core First HEAD full workflow run | NOT RUN |
 | Main full Core/API integration | BLOCKED — implementation dependencies absent |
