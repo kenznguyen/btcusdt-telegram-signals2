@@ -1,3 +1,13 @@
+# CURRENT STAGE I PROVENANCE AUDIT — 2026-11-18
+
+- Stage I follow-up is recorded in the evidence report, section “Stage I provenance follow-up and review correction”.
+- PR #141 and #142 changed only the workflow. Required `t0_signature_stage1` package/test file was not found on main, workflow-introduction branch, parser-fix branch or inspected T0 centralized-data branch.
+- Correction: the merged parser regex in PR #142 is statically correct for timed/singular unittest summaries. Earlier statement that its regex still had a doubled-escape defect is withdrawn.
+- Stage I remains BLOCKED by missing package dependency. Parser syntax PASS by static inspection only. Runtime, manual dispatch history and artifacts NOT VERIFIED. Commit-associated run lookup covered PR-triggered runs only and returned none.
+- No source/workflow changed or deleted. No T0 runtime/database/Feeder/VPS/exchange/trading access. Next: identify whether package lives in another repository/ref or was retired; no deletion without explicit approval.
+
+---
+
 # CURRENT REVIEW WORKFLOW TRACE — 2026-11-18
 
 - Repo: `kenznguyen/btcusdt-telegram-signals2`, branch `main`.
