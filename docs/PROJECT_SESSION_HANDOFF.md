@@ -3525,3 +3525,17 @@ Additional payload inspection:
 - No README/workflow/production crypto/key/root enrollment/durable trust state/T0 canonical data/VPS/runtime/credentials/exchange/trading changes; no workflow dispatch, merge, rebase, reset, cherry-pick, force-push or history rewrite.
 - Final disposition: R1 PASS; R2 PASS (modeled binding structure); R3 PASS; R4 PARTIAL; R5 PASS; Stage I full contract conformance remains PARTIAL / NOT VERIFIED. F-03 README digest-helper mismatch remains OPEN. Workflow dispatch, Stages II–V, merge, deployment and trading remain NOT AUTHORIZED.
 - Next: fresh read-only review of exact final two-file diff/evidence; handle F-03 as a separate documentation-only increment if approved. Do not dispatch workflow or proceed to Stages II–V.
+
+
+## 2026-11-18 — T0 A2.2 Stage I F-03 README correction
+
+- Owner explicitly approved the F-03 documentation-only change.
+- Updated only `t0_signature_stage1/README.md`; source, tests, workflows, runtime, T0 canonical data, VPS, credentials, exchange and trading were untouched.
+- Prior README blob: `883f1adcd866b769c3e094e1c0b5167f278733a5`; updated README blob: `7a36943b9dbfb36a665f93ceea0caf961dac0b74`.
+- Normative A2.2 §20.1 blob: `d9f93bf390d107381b7135c3073aeca0d14894d4`; primitive source blob: `91496d70a67d12525b8399b46aeb1318693b17ee`; primitive test blob: `8e47af0bb98cae6e8501c609c97259ebc5e0c78f`.
+- README now lists all four implemented digest helpers, all four normative domain hex encodings with exactly one NUL octet, the U64BE length-prefixed digest formula, and independent test-vector coverage. The stale `DOMAIN_SEPARATOR_ENCODING_UNRESOLVED` / BLOCKED statement was removed.
+- README explicitly limits the claim to helper-level digest behavior; authenticity, authorization, custody, operational validity and production cryptography are not implied. Signature verification and custody/readback remain NOT VERIFIED.
+- Documentation commit: `205ecc4c8a8d313cc6f837847a6e322a3fc3b4d7`; evidence report commit: `0ba928482a86c2d3f4af20e855d3d895c1bc83df`; report: `docs/evidence/T0_A2_2_STAGE_I_F03_README_CORRECTION_2026-11-18.md`.
+- Compare from pre-change HEAD `11180fdc4eedff5b193fc2e3c9b2e69f242a3c44) showed exactly one changed path for the README commit. No tests were rerun because this is documentation-only. Existing exact-source test evidence remains source SHA `64b859e6b5fbbb45e4f764cfc7af22c1e0d57667`: compileall PASS, focused tests 28/28, Stage I package tests 51/51 in isolated ephemeral Python sandbox; not GitHub Actions.
+- F-03 disposition PASS. Stage I full contract conformance remains PARTIAL / NOT VERIFIED. Workflow dispatch, Stages II–V, merge, deployment and trading remain NOT AUTHORIZED.
+- Next: fresh read-only review of the corrected Stage I package and evidence. No workflow dispatch or Stage II–V work without separate explicit approval.
