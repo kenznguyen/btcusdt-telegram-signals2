@@ -4,11 +4,11 @@
 
 - Repository: kenznguyen/btcusdt-telegram-signals2
 - Branch: main
-- Main HEAD before this handoff update: 9828c41082e03a3ec07e8e33991eac8fbe366762
+- Main HEAD before this handoff update: b16f7d4c6c5f3ec38610c85a399e72fdc15803ad
 - Prior bounded Core API fix: 1502521b85565b4b75e5368417b3a1169329ec75
 - Prior Core API focused regression: workflow run 44301625371, exact tested source SHA 1502521b85565b4b75e5368417b3a1169329ec75, SUCCESS, 1/1 test PASS.
 - Dependency inventory and integration plan: docs/evidence/MAIN_CORE_RUNTIME_DEPENDENCY_INVENTORY_AND_INTEGRATION_PLAN_2026-11-18.md
-- Latest T1 source-verification evidence commit: 9828c41082e03a3ec07e8e33991eac8fbe366762
+- Latest T1 source-verification evidence commit: b16f7d4c6c5f3ec38610c85a399e72fdc15803ad
 
 ## Main-side Core Runtime state
 
@@ -26,7 +26,7 @@
 - T1 consumer is pinned in the Core First branch: core_runtime/orderbook_http.py blob 89e5129eea4c9e7ceaa4439a546daf112d15c3e3; contract validator core_runtime/orderbook_contract.py blob 1620c9f21b1f3df3c2fb65833f2afd80374bf6a5; exact route GET /internal/v1/orderbook/btcusdt; Bearer auth; strict T1_T2_ORDERBOOK_V1 schema.
 - T1 raw collector source is identified: kenznguyen/binance-futures-collector, main SHA d43a673451f7347e16a214612165c63da1b4339c, Cargo version 1.0.0 (Cargo.toml blob f373e8b32e090a76399905538742e8b34a669419).
 - The collector's Capture Desk server.py blob 1bfc322d9868f5eda7a2d9152575fb22b547093d exposes /api/orderbook/{symbol}, not /internal/v1/orderbook/btcusdt. Its summary response lacks required V1 sequence/provenance/generation/freshness fields and Bearer authentication. The collector is pinned as a raw capture source only, not as the V1 HTTP provider.
-- Inspected relevant accessible default-branch repositories: binance-futures-collector, btcusdt-telegram-signals, btcusdt-telegram-bot and signals2 main. No compatible T1 provider implementation or authoritative provider version was found.
+- Inspected relevant accessible default-branch repositories: binance-futures-collector, btcusdt-telegram-signals, btcusdt-telegram-bot and signals2 main. GitHub branch enumeration for binance-futures-collector returned only main. No compatible T1 provider implementation or authoritative provider version was found.
 - T1 HTTP provider repository/path/version: BLOCKED / NOT VERIFIED. Do not label collector 1.0.0 as provider version or alias the dashboard route.
 - Full dependency matrix cannot yet be locked. The evidence report contains the exact T1 client/contract/source comparison and minimum provider requirements.
 
