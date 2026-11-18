@@ -11,9 +11,17 @@ from t0_signature_stage1.verdicts import (
 )
 
 
+_EXPECTED_BASELINE_DIGESTS = {
+    "B0": "TO_BE_PINNED",
+    "B0-PF": "TO_BE_PINNED",
+    "B-A": "TO_BE_PINNED",
+}
+
+
 def _test_state():
     return StageStateSnapshot(
-        trust_roots=("synthetic-root-fingerprint",),
+        bootstrap_roots=(),
+        test_signer_trust_material=("synthetic-checkpoint-signer-fingerprint",),
         policy_head="policy-digest-0",
         anchor_head=(0, "anchor-digest-0"),
         checkpoint_head=("checkpoint-0", "object-digest-0"),
@@ -80,7 +88,8 @@ class FixtureMatrixTests(unittest.TestCase):
         for fixture in fixture_catalog():
             with self.subTest(case_id=fixture.case_id):
                 before = StageStateSnapshot(
-                    trust_roots=("synthetic-root-fingerprint",),
+                    bootstrap_roots=(),
+                    test_signer_trust_material=("synthetic-checkpoint-signer-fingerprint",),
                     policy_head="policy-digest-0",
                     anchor_head=(0, "anchor-digest-0"),
                     checkpoint_head=("checkpoint-0", "object-digest-0"),
@@ -128,7 +137,8 @@ class FixtureMatrixTests(unittest.TestCase):
         from t0_signature_stage1.verdicts import build_fixture, evaluate_fixture_content
         baseline, mutated, _spec = build_fixture("A2.2-NV-01")
         before = StageStateSnapshot(
-            trust_roots=("synthetic-root-fingerprint",),
+            bootstrap_roots=(),
+                    test_signer_trust_material=("synthetic-checkpoint-signer-fingerprint",),
             policy_head="policy-digest-0",
             anchor_head=(0, "anchor-digest-0"),
             checkpoint_head=("checkpoint-0", "object-digest-0"),
@@ -154,7 +164,8 @@ class FixtureMatrixTests(unittest.TestCase):
         compound = copy.deepcopy(mutated)
         compound["policy_profile_authorization"]["signature_profile_version"] = 3
         state = StageStateSnapshot(
-            trust_roots=("synthetic-root-fingerprint",),
+            bootstrap_roots=(),
+                    test_signer_trust_material=("synthetic-checkpoint-signer-fingerprint",),
             policy_head="policy-digest-0",
             anchor_head=(0, "anchor-digest-0"),
             checkpoint_head=("checkpoint-0", "object-digest-0"),
@@ -361,16 +372,28 @@ class MockVerifierTests(unittest.TestCase):
         result = validate_profile_bindings(bindings)
         self.assertEqual((result.verdict, result.reason_code), ("INVALID", "PROFILE_BINDING_MISMATCH"))
 
-    def test_fixture_catalog_binds_exact_baseline_digest_and_one_mutation_path(self):
-        import hashlib
+    def test_fixture_catalog_binds_independently_pinned_baseline_digests(self):
         from t0_signature_stage1.verdicts import _BASELINES
         from t0_signature_stage1.primitives import canonicalize
+        import hashlib
+        for name, expected_digest in _EXPECTED_BASELINE_DIGESTS.items():
+            with self.subTest(baseline=name):
+                actual = hashlib.sha256(canonicalize(_BASELINES[name])).hexdigest()
+                self.assertEqual(actual, expected_digest)
         for fixture in fixture_catalog():
             with self.subTest(case_id=fixture.case_id):
-                expected = hashlib.sha256(canonicalize(_BASELINES[fixture.baseline])).hexdigest()
-                self.assertEqual(fixture.baseline_digest, expected)
+                self.assertEqual(fixture.baseline_digest, _EXPECTED_BASELINE_DIGESTS[fixture.baseline])
                 self.assertTrue(fixture.mutation_path)
                 self.assertEqual(len(fixture.mutations), 1)
+
+    def test_b0_separates_test_signer_material_from_unenrolled_bootstrap_roots(self):
+        from t0_signature_stage1.verdicts import _BASELINES
+        for name, baseline in _BASELINES.items():
+            with self.subTest(baseline=name):
+                snapshot = baseline["state_snapshot"]
+                self.assertEqual(snapshot["bootstrap_roots"], [])
+                self.assertEqual(snapshot["test_signer_trust_material"],
+                                 ["synthetic-checkpoint-signer-fingerprint"])
 
     def test_each_negative_fixture_changes_exactly_one_declared_leaf(self):
         from t0_signature_stage1.verdicts import build_fixture
