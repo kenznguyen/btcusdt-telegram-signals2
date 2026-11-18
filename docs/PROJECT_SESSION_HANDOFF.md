@@ -2413,3 +2413,46 @@ This follow-up supersedes the earlier pending items for persistent preview artif
 - No T0 HTTP connectivity checks, T1 service checks, VPS, deployment, systemd/autostart, live process start, exchange access, AI Strategy execution, or real orders.
 - No source changes, no migrations, no canonical T0 DB access, no merge/branch promotion/rebase/reset/cherry-pick/force push.
 - `AI_EXECUTION_ENABLED=false`; paper-only constraints remain mandatory.
+
+
+## 2026-11-18 — Simulated Continuous config mismatch: RED reproduced
+
+**Scope and source**
+- Added one regression test only in `core_runtime/test_continuous_dry_run.py`; no production source changed.
+- Test requires a contract-only PAPER runner config (no independent `risk_limits`) to pass the static dry-run contract without reading Ledger contents, creating the journal/bundle store, invoking One-shot, or mutating persistent state.
+- Commit/source SHA: `d40217a26bf3a5cd45b8925203822184e4423001`.
+- Existing branch retained: `feature/core-operational-proof-20261112`.
+
+**RED evidence**
+- Core First workflow run: [44229893677](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/44229893677), run number 352, exact HEAD SHA `d40217a26bf3a5cd45b8925203822184e4423001`.
+- Job `134552062956`; workflow conclusion `failure` as expected for RED.
+- Dry-run test step 19 failed specifically on the new test:
+  - `Ran 10 tests`
+  - `FAILED (errors=1)`
+  - stack points to `core_runtime/continuous_dry_run.py` line 63;
+  - actual rejection: `ContinuousDryRunError: RUNNER_CONFIG_REQUIRED`.
+- Other preceding workflow steps passed; downstream steps were skipped after the intentional RED failure.
+- Artifact: `core-first-code-operational-proof-44229893677`, ID `14394796841`, size 9,355 bytes, GitHub SHA256 `7dcc0cf0d550d1826da5bb7f46a547cff6a5ce4477e7d866a2e24cb935697edc`, expires 2026-11-25.
+- Artifact contains the dry-run test log and verdict; it is RED diagnostic evidence, not a passing operational proof.
+- Separate workflow `44229893383` is the T1/T2 Order Book workflow triggered by the same source commit; it is not evidence of deployed T1 runtime.
+
+**Status**
+- Finding confirmed: static dry-run currently requires `risk_limits`, while simulated One-shot policy forbids independent risk-limit overrides.
+- RED regression reproduced on GitHub Actions. No fix applied yet.
+- The added test proves the static config-contract incompatibility; it does not by itself prove a complete simulated-origin Continuous Runtime can be constructed. A follow-up integration test must use a disposable Ledger initialized with the canonical simulated contract and a valid account risk mark, then cover Runtime Factory and One-shot policy.
+- Core First overall remains BLOCKED for simulated Continuous Runtime compatibility; other gates are not reclassified by this RED run.
+
+**Next action**
+- Design the smallest consistent contract across static dry-run, Runtime Factory and One-shot:
+  - static dry-run remains side-effect-free and must not inspect Ledger contents;
+  - Runtime Factory must identify simulated vs funded Ledger through a read-only, validated origin check before journal creation;
+  - simulated config must omit independent `risk_limits` and derive all risk limits only from the immutable simulated account/risk contract;
+  - funded-account config continues to require its approved risk-limit source;
+  - explicit config/environment risk overrides for simulated accounts remain rejected.
+- Add the disposable simulated-origin integration regression before changing production code. Then implement and verify GREEN with targeted suites and a new full Core First workflow run.
+
+**Safety / separation**
+- No canonical T0 access or mutation; no T1 deployment, VPS, persistent runtime, systemd/autostart, exchange connection, AI Strategy execution, or real orders.
+- `AI_EXECUTION_ENABLED=false`; PAPER-only.
+- Runtime Verification remains a separate workstream and was not started.
+- No merge, branch promotion, rebase, reset, cherry-pick, force push, or default-branch change.
