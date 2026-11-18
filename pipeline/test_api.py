@@ -332,7 +332,10 @@ class FiveLayerApiTest(unittest.TestCase):
         self.assertEqual(result["order"]["reason"],"RISK_LIMITS_UNCONFIGURED")
 
     def test_core_producer_waits_on_incomplete_history_without_suppressing_ai(self):
-        _, signals = self.request("/v1/signals")
+        preview = {"source": "STRATEGY_CORE", "action": "WAIT",
+                   "reason": "CORE_CANDLE_WINDOW_INCOMPLETE", "indicators": None}
+        with patch.object(api, "core_runtime_preview", return_value=preview):
+            _, signals = self.request("/v1/signals")
         self.assertEqual(signals["strategyCore"]["action"], "WAIT")
         self.assertEqual(signals["strategyCore"]["reason"], "CORE_CANDLE_WINDOW_INCOMPLETE")
         self.assertEqual(signals["aiStrategy"]["action"], "WAIT")
