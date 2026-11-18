@@ -2726,3 +2726,37 @@ This follow-up supersedes the earlier pending items for persistent preview artif
 - Existing tested code SHA remains `c6b453c02201974b91526a196b6c15ce7395c08b`; this review increment made no source/test changes.
 - Core First overall: **PARTIAL / NOT VERIFIED**. Runtime Verification: **NOT STARTED**. Dual-Strategy Intelligence: **DEFERRED**.
 - `AI_EXECUTION_ENABLED=false`; PAPER-only. No canonical T0 DB, T1 runtime, VPS, exchange connection, AI Strategy execution, real orders, merge/promotion, rebase/reset/cherry-pick/force push, or default-branch change.
+
+
+## 2026-11-18 — TDD implementation: Kill Switch reset readiness capability
+
+**Approval and scope**
+- User explicitly approved the narrowly scoped Kill Switch reset contract fix on the existing branch `feature/core-operational-proof-20261112`.
+- No new branch. No strategy changes, T0 canonical data changes, runtime/VPS actions, exchange connections or live execution.
+
+**RED evidence**
+- Added `PaperLedgerTest.test_direct_ledger_caller_cannot_assert_kill_reset_readiness`.
+- Exact RED source SHA: `c655c82811590e78400170c70e39c8e01ee843e3`.
+- Paper Ledger workflow `44234683308`, job `134567847482`: expected regression failure, `AssertionError: ValueError not raised` at the direct `reset_kill(acknowledge=True, ready=True, ...)` call. This confirms the old caller-supplied boolean could clear the latch.
+- A first test-placement attempt was not collected by unittest; corrected the test to reside in `PaperLedgerTest` before accepting the RED evidence above.
+
+**Implementation**
+- Code/test SHA: `f837000cb8fe0e54713f7b1b6260c16521ada8c5`.
+- Replaced the `ready=True` argument with a one-use process-local readiness capability issued only after API readiness checks succeed. Capability TTL is 5 seconds and it binds the preflight timestamp to the candle dataset/close/availability evidence and a digest plus observation time for the order-book snapshot.
+- API now supplies that capability rather than asserting readiness with a boolean.
+- Ledger reset uses `BEGIN IMMEDIATE` and rechecks all persisted pending orders and active risk reservations in the same transaction. For dual-ledger accounts it also rechecks risk-ready state, mark timestamp/candle ordering, dataset version and current UTC daily-baseline day before clearing the latch.
+- The capability is consumed once; malformed, absent, stale, replayed or unissued evidence fails closed.
+- Tests cover direct old-signature bypass rejection, pending-order state appearing after readiness evidence was issued, evidence replay rejection, acknowledgement and API readiness rejection/success.
+
+**Focused exact-SHA verification**
+- Workflow [44235145825](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/44235145825), job `134569357228`, checked out exact SHA `f837000cb8fe0e54713f7b1b6260c16521ada8c5`: **SUCCESS**.
+- PaperLedger contract suite: `Ran 160 tests`, `OK`.
+- New direct-bypass test and pending-order transaction recheck test both passed; updated persistent risk-control reset test passed.
+- This workflow did not publish an artifact.
+
+**Full Core First CI and review status**
+- Core First workflow [44235145804](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/44235145804) is queued/pending for exact SHA `f837000cb8fe0e54713f7b1b6260c16521ada8c5`; no full-workflow verdict is claimed yet.
+- An older Core workflow `44234683285` on pre-fix SHA `c655c82811590e78400170c70e39c8e01ee843e3` remained in its Core E2E step at the last check and may delay the queued run. Do not treat it as evidence for the fix.
+- The new reset finding is **implementation complete / focused CI PASS / full Core CI NOT VERIFIED**. Independent review of the fix is still required after the full workflow result.
+- Core First overall remains **PARTIAL / NOT VERIFIED**. Runtime Verification: **NOT STARTED**. Dual-Strategy Intelligence: **DEFERRED**.
+- `AI_EXECUTION_ENABLED=false`; PAPER-only. No canonical T0 DB, T1 runtime, VPS, exchange connection, AI Strategy execution, real orders, merge/promotion, rebase/reset/cherry-pick/force push, or default-branch change.
