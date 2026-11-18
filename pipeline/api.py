@@ -11,8 +11,6 @@ import time
 from urllib.parse import parse_qs, unquote
 
 from market_data.api import candle_query
-from market_data.postgres import StoreUnavailable
-from market_data.storage import create_store_from_env
 from pipeline.values import stamp
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -77,10 +75,12 @@ def paper_db_path():
         raise ValueError("PAPER_DB_REQUIRED")
     paper_path = Path(raw).expanduser().resolve()
     backend = os.environ.get("MARKET_DATA_BACKEND", "sqlite").strip().lower()
-    if backend == "sqlite":
-        market_raw = os.environ.get("MARKET_DATA_DB", "").strip()
-        if not market_raw:
-            raise ValueError("MARKET_DATA_DB_REQUIRED")
+    if backend not in {"sqlite", "postgres"}:
+        raise ValueError("MARKET_DATA_BACKEND_INVALID")
+    # The Common API no longer knows T0's local path. When an explicit local
+    # path is supplied for a test/legacy environment, still reject aliases.
+    market_raw = os.environ.get("MARKET_DATA_DB", "").strip()
+    if backend == "sqlite" and market_raw:
         market_path = Path(market_raw).expanduser().resolve()
         same_file = paper_path == market_path
         if not same_file and paper_path.exists() and market_path.exists():
@@ -90,8 +90,6 @@ def paper_db_path():
                 raise ValueError("PAPER_DB_PATH_VALIDATION_FAILED") from error
         if same_file:
             raise ValueError("PAPER_DB_MUST_BE_SEPARATE_FROM_T0")
-    elif backend != "postgres":
-        raise ValueError("MARKET_DATA_BACKEND_INVALID")
     return str(paper_path)
 
 
@@ -166,12 +164,42 @@ def control_permit(timestamp):
 
 
 
-def market_window(*args, **kwargs):
-    """Read canonical candles from the configured backend; paper state stays in SQLite."""
+def t0_candle_http_client():
+    """Build the strict read-only T0 Candle V1 client from explicit endpoint config."""
+    from freqai_bridge.http_candles import CandleHttpClient, CandleHttpConfig, CandleHttpError
+
+    base_url = os.environ.get("T0_CANDLE_API_BASE_URL", "")
+    token = os.environ.get("T0_CANDLE_API_TOKEN", "")
+    raw_max_lag = os.environ.get("T0_CANDLE_MAX_LAG_MS", "")
     try:
-        return create_store_from_env().read_window(*args, **kwargs)
-    except StoreUnavailable:
-        raise OSError("Market data store unavailable") from None
+        if (not base_url or not token or not raw_max_lag
+                or not raw_max_lag.isascii() or not raw_max_lag.isdigit()
+                or str(int(raw_max_lag)) != raw_max_lag):
+            raise ValueError("T0_CANDLE_CONFIG_INVALID")
+        config = CandleHttpConfig(
+            base_url=base_url, token=token, max_lag_ms=int(raw_max_lag),
+        )
+        return CandleHttpClient(config)
+    except (CandleHttpError, ValueError, TypeError):
+        raise OSError("T0_CANDLE_HTTP_UNAVAILABLE") from None
+
+
+def market_window(symbol, timeframe, start_ms, end_ms, as_of_ms=None):
+    """Read canonical candles only through T0's authenticated, read-only HTTP contract."""
+    from freqai_bridge.http_candles import CandleHttpError
+
+    if symbol != "BTCUSDT":
+        raise OSError("T0_CANDLE_HTTP_UNAVAILABLE")
+    try:
+        client = t0_candle_http_client()
+        return client.fetch(
+            start_ms=start_ms,
+            end_ms=end_ms,
+            as_of_ms=now_ms() if as_of_ms is None else as_of_ms,
+            timeframe=timeframe,
+        )
+    except (CandleHttpError, ValueError, TypeError):
+        raise OSError("T0_CANDLE_HTTP_UNAVAILABLE") from None
 
 
 def context(timestamp):
@@ -492,13 +520,10 @@ def application(environ, start_response):
     try:
         if method == "POST":
             payload = _body(environ)
-            market_backend = os.environ.get("MARKET_DATA_BACKEND", "sqlite").strip().lower()
-            if market_backend == "sqlite":
-                market_path = os.environ.get("MARKET_DATA_DB", "")
-                if not market_path or not Path(market_path).is_file():
-                    return response("503 Service Unavailable", {"error": "STORE_UNAVAILABLE"})
-            elif market_backend != "postgres" or not os.environ.get("MARKET_DATA_POSTGRES_DSN"):
-                return response("503 Service Unavailable", {"error": "STORE_UNAVAILABLE"})
+            try:
+                t0_candle_http_client()
+            except OSError:
+                return response("503 Service Unavailable", {"error": "T0_CANDLE_HTTP_UNAVAILABLE"})
             try:
                 paper_path = paper_db_path()
             except ValueError:
