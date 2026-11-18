@@ -2318,3 +2318,21 @@ This follow-up supersedes the earlier pending items for persistent preview artif
 - Safety: `AI_EXECUTION_ENABLED=false`; canonical T0 untouched; no exchange credentials, real orders, VPS, or persistent runtime. No changes to `paper_execution/ledger.py`.
 - Next: inspect run `44226574145`, especially both independently isolated crash checkpoint logs and artifact. If pipe synchronization works, verify SQLite rollback, integrity, foreign keys, and retry state. If it still fails, diagnose the new traceback before changing anything.
 - Prohibited: no Ledger changes without a reproduced production defect and RED regression; no T0/T1 runtime deployment, systemd/autostart, AI Strategy execution, live orders, merge, or branch promotion.
+
+
+## 2026-11-18 — Partial-fill crash recovery PASS; T0 isolation evidence gate correction
+
+- Crash harness verification: GitHub Actions run `44226574145`, branch `feature/core-operational-proof-20261112`, exact source SHA `5c941be7c9221b01ce803aac10068a7cab053a86`, job `134541083225`, conclusion SUCCESS.
+- Both isolated process-kill checkpoints PASS:
+  - after all partial-fill transaction writes but before COMMIT: 1 test PASS, exit status 0;
+  - immediately after Fill Journal insertion: 1 test PASS, exit status 0.
+- Artifact: `core-first-code-operational-proof-44226574145`, ID `14393845228`, 17,724 bytes, GitHub SHA256 `c50f3429619a7e8a002bd3e5e70ea12ea05e78e0fda766d8d938e6ca01925b8f`, expires 2026-11-25. ZIP integrity test passed; independently recomputed SHA256 matches GitHub digest. Both checkpoint logs were inspected and show unittest OK and CHECKPOINT_EXIT_STATUS=0.
+- No PaperLedger production source changes. This proves rollback/recovery for the two simulated kill points in the disposable SQLite test database only; it is not a VPS/power-loss/production-runtime certification.
+- Additional test count discrepancy found in the same artifact: `pipeline.test_paper_storage_isolation` ran 7 tests and all 7 passed, but `core-operational-verdict.txt` said `T0_PAPER_STORAGE_ISOLATION=NOT_VERIFIED` because the workflow evidence gate incorrectly expected `Ran 6 tests`.
+- Corrected only `.github/workflows/core-live-data-operational-proof.yml` to expect 7 tests and report `T0_PAPER_STORAGE_ISOLATION_TESTS=7_PASS`.
+- Workflow correction commit/source SHA: `ca7ad7f2a9e766ca56a02229e310fb611015feb2`; workflow blob SHA `60974ac57dac0ea8f8828a714cf8d3fc8df9fff6`.
+- New GitHub Actions run `44227465459` is triggered on that exact SHA; at this handoff update it is IN_PROGRESS, job `134544042128`. Final verification of corrected evidence gate is pending.
+- Current verdict: partial-fill crash recovery tests PASS; T0/Paper isolation tests 7/7 PASS but published gate status remains NOT_VERIFIED until the corrected workflow run completes. Core First overall remains PARTIAL / NOT VERIFIED pending corrected run and remaining independent runtime/T1 deployment evidence.
+- Safety unchanged: `AI_EXECUTION_ENABLED=false`; canonical T0 untouched; no exchange credentials, real orders, VPS or persistent runtime. No merge, branch promotion, AI Strategy execution, or live trading.
+- Next: inspect run `44227465459`; verify exact checked-out SHA, corrected `T0_PAPER_STORAGE_ISOLATION=PASS` evidence, job conclusion, and artifact digest/content. Then update this handoff with final run/job/artifact evidence.
+- Prohibited: do not change Ledger without a reproduced production defect and RED regression; do not deploy T0/T1 runtime, enable systemd/autostart, start AI Strategy, send live orders, merge, or promote branch.
