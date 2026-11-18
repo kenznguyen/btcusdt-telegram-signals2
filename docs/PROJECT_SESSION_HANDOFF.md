@@ -3274,3 +3274,17 @@ Additional payload inspection:
 - Verdict: targeted entrypoint trace **PARTIAL PASS**; complete repo-wide caller/import graph **NOT VERIFIED**; no source move warranted.
 - Next safe task: prepare a documentation navigation index (architecture, decisions, runbooks, evidence and reviews), without moving source/evidence files. Source changes remain gated by separate approval and tests.
 - No tests/CI run in this second-pass documentation audit; no source/workflow/runtime/T0 changes, no merge/rebase/reset/force-push, no deployment, no AI execution or real order.
+
+
+## 2026-11-18 — Documentation Index created
+
+- Owner approved creating a repository documentation navigation index; implementation is documentation-only on the existing branch `feature/core-operational-proof-20261112`.
+- Added `docs/README.md` in commit `99fb04e74774b577cb95194070d7c1bbac0d79ab`. It groups entrypoints, architecture/contracts, decisions, existing plans/runbooks, selected evidence, reviews/design and governance/handoff records.
+- Updated root `README.md` to link the index in commit `a87dcede5339386f9510cc24f6c3d7bbd9919fa3`.
+- The index explicitly records that dedicated `docs/plans/` and `docs/runbooks/` directories do not exist in the inspected tree; it links to the existing plan/runbook documents without creating misleading empty structure.
+- The index links to curated evidence, not all 545 evidence files. Evidence records remain in place; no file move, rename, deletion, archive or content rewrite was performed.
+- The index distinguishes decision/proposal/plan/review/evidence and states that AI/Dual-Strategy contract references do not authorize activation. Core First priority, T0 independence and paper-only restrictions are preserved.
+- Validation: exact target paths were checked against the recursive Git tree at source snapshot `1ae507d3972a68dd1a3c239e2ab0f469fbcf847b`; **link-resolution was not exhaustively automated**. Tests/CI were not run because this is a documentation-only change.
+- Scope: only `docs/README.md`, root `README.md`, and this handoff were changed. No source/workflow/config/runtime/T0/VPS/credential/exchange changes; no merge/rebase/reset/force-push/new branch; no AI execution or real order.
+- Status: **DOCUMENTATION INDEX CREATED / TARGETED PATHS VERIFIED / TESTS NOT RUN / FULL LINK AUDIT NOT RUN**.
+- Next: optional automated link validation on the exact updated HEAD, then continue only with the current Core First closeout priorities. Do not start Dual-Strategy implementation or source relocation solely because the index now links those documents.
