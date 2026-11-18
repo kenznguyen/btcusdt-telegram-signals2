@@ -12,7 +12,7 @@ This section supersedes older "Current workstream" labels and stale status summa
 
 - Repository: `kenznguyen/btcusdt-telegram-signals2`.
 - Active branch: `feature/core-operational-proof-20261112`.
-- Latest verified branch HEAD before this handoff update: `6546e4570a3d744c8bc1457018e2a94484a659cb` (post-repair Stage I read-only review evidence commit; workflow source under test remains `5ab1d10a54ad31a48fa777d017173c8ffb031ae5`).
+- Latest verified branch HEAD before this handoff update: `124eb3d7059363e4cf284c4e053cd70d2c6ad6ea` (R4 fixture-integrity evidence commit; workflow source under test remains `5ab1d10a54ad31a48fa777d017173c8ffb031ae5`).
 - Core First is the active priority. Do not begin Dual-Strategy Intelligence implementation until Core First closeout and a separate owner approval.
 - Strategy Core remains RSI + ADX + Smart DCA and the only paper-executable strategy.
 - AI is observation/research only in this phase. `POST /v1/paper/evaluate` rejects `source=AI` with HTTP 409 / `AI_PAPER_EXECUTION_DEFERRED`; empty payload defaults to Core; explicit `source=CORE` routes to Core Runner.
@@ -29,7 +29,21 @@ This section supersedes older "Current workstream" labels and stale status summa
 - Creating a PR solely to exercise the PR trigger has not been authorized; do not create one without explicit approval.
 
 
-### Latest T0 A2.2 Stage I post-repair review — 2026-11-18
+
+### Latest T0 A2.2 Stage I R4 fixture-integrity hardening — 2026-11-18
+
+- Continued within the owner-approved R1–R5 two-file scope, mock-only/offline. Only `t0_signature_stage1/verdicts.py` and `t0_signature_stage1/tests/test_verdicts.py` changed.
+- RED test commit: `67782da56fb15e536e94535243a3e632350cbad2`; expected RED run: 29 tests, failed before implementation (30 subtest failures, 66 errors).
+- Exact final tested source SHA: `fcb188c6d0c215d5e753bad7ef5b6aeb9facad93`.
+- Final blobs: `verdicts.py` `83b56d633d146f5b4df30e5c85943ab08ef7e7ca`; `tests/test_verdicts.py` `9c0e487be74430bd70b8ca90e9d573fe3ea41136`.
+- B0/B0-PF/B-A canonical baseline digests are now independently pinned in source and duplicated in test oracle; catalog construction fails closed on drift.
+- State model now separates `bootstrap_roots=[]` from `test_signer_trust_material=[synthetic-checkpoint-signer-fingerprint]`; no bootstrap root is modeled as enrolled in these fixtures.
+- Exact-SHA isolated Python sandbox: compileall PASS; focused tests 30/30 PASS; full Stage I package 53/53 PASS. This was not GitHub Actions; no workflow run or artifact exists.
+- Evidence report: `docs/evidence/T0_A2_2_STAGE_I_R4_FIXTURE_INTEGRITY_HARDENING_2026-11-18.md`; report commit `124eb3d7059363e4cf284c4e053cd70d2c6ad6ea`.
+- R4 remains PARTIAL only because signature cryptographic verification and custody/readback remain NOT VERIFIED. Stage I full contract conformance remains PARTIAL / NOT VERIFIED.
+- Next: independent static review of the R4 diff and evidence. No workflow dispatch, Stages II–V, production crypto/bootstrap, merge, deployment or trading without separate approval.
+
+### Prior T0 A2.2 Stage I post-repair read-only review — 2026-11-18
 
 - Reviewed branch HEAD before report commit: `45e2457af945d9b3ea4c9d02de054798d8b4b47f`; review was static/read-only.
 - Evidence report: `docs/evidence/T0_A2_2_STAGE_I_POST_REPAIR_READ_ONLY_REVIEW_2026-11-18.md`; report commit `6546e4570a3d744c8bc1457018e2a94484a659cb`.
