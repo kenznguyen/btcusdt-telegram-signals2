@@ -267,6 +267,15 @@ class PaperLedgerTest(unittest.TestCase):
         self.assertEqual(blocked["reason"],"MAX_DRAWDOWN_LIMIT")
 
 
+
+    def test_direct_ledger_caller_cannot_assert_kill_reset_readiness(self):
+        self.ledger.set_killed(True, self.now, "TEST_KILL")
+        with self.assertRaises(ValueError):
+            self.ledger.reset_kill(
+                acknowledge=True, ready=True, now_ms=self.now+1
+            )
+        self.assertTrue(self.ledger.snapshot()["riskControl"]["killed"])
+
 class T1PaperBookCompatibilityTest(unittest.TestCase):
     now = 1_800_000_000_000
 
@@ -363,14 +372,6 @@ class T1PaperBookCompatibilityTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             book_value(future, self.now, allow_t1=True)
 
-
-    def test_direct_ledger_caller_cannot_assert_kill_reset_readiness(self):
-        self.ledger.set_killed(True, self.now, "TEST_KILL")
-        with self.assertRaises(ValueError):
-            self.ledger.reset_kill(
-                acknowledge=True, ready=True, now_ms=self.now+1
-            )
-        self.assertTrue(self.ledger.snapshot()["riskControl"]["killed"])
 
 
 if __name__ == "__main__":
