@@ -239,7 +239,8 @@ class FixtureMatrixTests(unittest.TestCase):
         baseline["descriptor"]["object_id"] = "SUBSTITUTED-OBJECT"
         mutated["descriptor"]["object_id"] = "SUBSTITUTED-OBJECT"
         _after, result = evaluate_fixture_content(baseline, mutated, _test_state())
-        self.assertEqual((result.verdict, result.reason_code), ("INVALID", "FIXTURE_SINGLE_MUTATION_VIOLATION"))
+        self.assertEqual((result.verdict, result.reason_code), ("INVALID", "OBJECT_BINDING_MISMATCH"))
+        self.assertEqual(result.dimension_results["object_binding"], "INVALID")
 
     def test_evaluator_rejects_invalid_canonical_evidence_object(self):
         import copy
