@@ -2920,3 +2920,64 @@ This follow-up supersedes the earlier pending items for persistent preview artif
 - Runtime Verification: **NOT STARTED**. Dual-Strategy Intelligence: **DEFERRED**. `AI_EXECUTION_ENABLED=false`; PAPER-only.
 - No VPS/T0/T1 access, deployment, service provisioning, exchange connection, AI execution, real orders, merge/promotion or default-branch change.
 - Next: collect both in-progress workflow results, inspect every failed step/log, download and verify artifact metadata/digest where available, then update this handoff with exact verdicts. Continue on the existing branch.
+
+
+## 2026-11-18 — Core First acceptance CI completed; security review refreshed
+
+**Branch and source identity**
+- Active branch: `feature/core-operational-proof-20261112`.
+- Current source HEAD before this documentation update: `dba0e6badf23f54167625bef2ad2e96f3dca4985`.
+- Core operational source/test SHA: `0ca9574b37bbe30a70ae08dc5ddb4b3679a47f9e`.
+- The one commit between Core workflow SHA and current HEAD is `dba0e6badf23f54167625bef2ad2e96f3dca4985`; GitHub compare confirms it changes only `paper_execution/test_dual_strategy_api_red.py` (7 additions, 1 deletion). No production code changed after the Core workflow checked out its exact SHA.
+- No branch creation, merge, rebase, reset, cherry-pick, promotion or runtime action.
+
+**Core First operational proof — PASS**
+- Workflow: [44241526021](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/44241526021).
+- Exact checked-out source SHA from run metadata: `0ca9574b37bbe30a70ae08dc5ddb4b3679a47f9e`.
+- Job `134590324129`: SUCCESS; every executed workflow step, including end-to-end paper operational proof, partial-fill crash checkpoint diagnosis, disposable SQLite ledger integration, account-wide read-only/fail-closed risk snapshot, shared risk/Paper Ledger regressions, scoped reservation expiry, T1/T2 Order Book contracts, evidence publication and artifact upload, succeeded.
+- API regressions: 37 tests, including path-swap-to-symlink, existing symlink, group-readable key and unauthorized peer UID regressions: **37/37 PASS**.
+- Core E2E: **50/50 PASS**.
+- Core one-shot runtime contract: **19/19 PASS**; `CORE_RUNTIME_DECISION_CYCLE=ONE_SHOT_TESTS_PASS`, `CORE_RUNTIME_ONE_SHOT=PASS`.
+- Workflow emitted `CORE_DCA_MARGIN_BUDGET=PASS_ENTRY_AND_DCA_EACH_WITHIN_1_PERCENT`, Core long/short position lifecycle PASS, mixed-writer stress PASS and repeated mixed-writer stress PASS.
+- Artifact: `core-first-code-operational-proof-44241526021`, ID `14399617831`, 18,062 bytes, SHA-256 `0c36fe44a113262f7744db4bb52aa44ac724407393f285f0deab3c6c6b3ff4b6`. GitHub upload log and artifact API metadata agree. Artifact contains 30 evidence files and excludes raw candle DB. ZIP payload has not been downloaded and independently re-hashed.
+
+**Dual Ledger reconciliation — PASS**
+- Historical failure [44238943245](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/44238943245) was on old SHA `e7de6043a1a7c41edfdd68cbab00d273406a305c`; its 13 errors/failures were reproduced as test fixture setup defects (missing separate `PAPER_DB`, paper/market DB conflation and missing T0 HTTP test config), not a production-code regression.
+- Fixture-only correction commit: `dba0e6badf23f54167625bef2ad2e96f3dca4985`. It assigns a separate disposable Paper DB and Market Data DB and supplies a non-routable test T0 HTTP endpoint/token. The workflow passed without contacting T0 or reading canonical market data.
+- Workflow: [44241630180](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/44241630180).
+- Exact checked-out SHA: `dba0e6badf23f54167625bef2ad2e96f3dca4985`.
+- Job `134590669234`: SUCCESS. Full PaperLedger regression: **672 tests, OK**. All focused bootstrap and D07 suites also succeeded.
+- Artifact: `dual-ledger-bootstrap-proof-dba0e6badf23f54167625bef2ad2e96f3dca4985`, ID `14399404044`, 20,440 bytes, SHA-256 `472548ca926a3839322fd7f10ab3ab4acdf178d89559632a7da146fe15d9e0ab`. GitHub upload log and artifact API metadata agree. Artifact contains 15 evidence files. ZIP payload has not been downloaded and independently re-hashed.
+
+**Independent Kill Reset security review — PASS WITH DEPLOYMENT LIMITATIONS**
+- Re-reviewed the final descriptor-based key loader, IPC handler, API route, reset service, Ledger transaction and risk-control capability consumption at the tested source.
+- Key loader now opens with `O_NOFOLLOW` (and `O_CLOEXEC` where available), verifies the opened descriptor with `fstat()`, requires a regular file owned by the service UID with no group/other permission bits, bounds the read to 4097 bytes, closes the descriptor on all paths, and fails closed when `O_NOFOLLOW` is unavailable.
+- Regression suite proves the prior symlink-swap behavior RED and verifies post-fix path-swap rejection, existing-symlink rejection, group-readable-key rejection and wrong-peer-UID rejection. All four are included in the 37-test API group which passed in workflow 44241526021.
+- API route sends only explicit acknowledgement over the Unix socket. The isolated service independently evaluates readiness, issues the one-use evidence and executes the Ledger reset. Peer UID and IPC token are checked before the reset operation. The Ledger keeps `BEGIN IMMEDIATE`, pending-order and active-reservation checks, account-risk freshness checks and audit write in the transaction.
+- No new code-level Required finding identified in this review. Prior fabricated-readiness trust-boundary finding remains **CLOSED**.
+- Deployment constraints remain mandatory and unverified: protected key parent directory; distinct non-root API/service OS users; socket directory ownership/group arrangement that permits only the API UID to connect; service least-privilege access to T0 read data and Paper DB; actual OS key ownership/mode; service lifecycle and restart behavior. CI does not prove these host-level conditions.
+- Runtime deployment and runtime security remain **NOT VERIFIED**. Do not treat this static review as a production certification.
+
+**Updated acceptance disposition**
+| Gate | Status |
+|---|---|
+| Core source/API regression suite at SHA `0ca9574...` | **PASS** |
+| Core operational E2E, partial-fill recovery and risk contracts | **PASS** |
+| Core one-shot decision cycle contracts | **PASS** |
+| Kill Reset signing-key race remediation | **PASS — code/CI** |
+| Kill Reset peer UID and file permission regressions | **PASS — code/CI** |
+| Dual Ledger fixture reconciliation and full PaperLedger suite at HEAD `dba0e6...` | **PASS — 672 tests** |
+| Independent Kill Reset static review | **PASS WITH DEPLOYMENT LIMITATIONS** |
+| GitHub artifact metadata/digest association | **PASS** |
+| Artifact ZIP payload independently downloaded/re-hashed | **NOT VERIFIED** |
+| OS provisioning, service/socket/key deployment | **NOT VERIFIED / NOT AUTHORIZED** |
+| Runtime Verification | **NOT STARTED** |
+| Overall Core First code-level acceptance | **PASS WITH LIMITATIONS** |
+| Overall operational/production acceptance | **PARTIAL / NOT VERIFIED** |
+| Dual-Strategy Intelligence | **DEFERRED** |
+
+**Safety and next steps**
+- `AI_EXECUTION_ENABLED=false`; PAPER-only tests. No real orders, exchange credentials, exchange connection, canonical T0 data, T1 runtime or VPS access.
+- Do not deploy or provision OS identities, signing key, socket, systemd/autostart, or runtime config without explicit authorization.
+- Next permitted work is documentation/evidence reconciliation and independent review of any remaining Core First acceptance criteria. Runtime acceptance remains a separate, explicitly authorized phase.
+- This section supersedes the immediately preceding appended 2026-11-18 status that described both workflows as IN PROGRESS; the final workflow results above are authoritative.
