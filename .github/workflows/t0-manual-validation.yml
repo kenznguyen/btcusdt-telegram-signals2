@@ -119,8 +119,6 @@ jobs:
           python-version: "3.11"
       - name: Install isolated market-data dependencies
         run: python -m pip install -r requirements-market-data.txt
-      - name: Install Flask for the health API contract test
-        run: python -m pip install "Flask>=3.0.0,<4"
       - name: Enforce isolated environment and record source SHA
         shell: bash
         run: |
@@ -524,6 +522,8 @@ jobs:
           python-version: "3.11"
       - name: Install isolated market-data dependencies
         run: python -m pip install -r requirements-market-data.txt
+      - name: Install Flask for the health API contract test
+        run: python -m pip install "Flask>=3.0.0,<4"
       - name: Enforce isolated environment and record source SHA
         shell: bash
         run: |
