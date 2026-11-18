@@ -2065,3 +2065,50 @@ This follow-up supersedes the earlier pending items for persistent preview artif
 - Commit 13389d9b6345d5b7ddad08f2bd8ccb9973bed5ae changes only expected test-count markers in .github/workflows/core-live-data-operational-proof.yml; no application source changed.
 - Workflow run 44200958119 is running against that workflow-only commit. The last completed code-level proof remains run 44200894064 at source SHA 20586231f018f76b943a6ab86ec4109ec9c6928f.
 - Handoff update commit before this correction: ad3fe1694c3cba80e67970e2064c8b8830b5423c.
+
+
+## 2026-11-18 — Architecture Compliance Remediation 1: isolate Paper storage from T0 (CI pending)
+
+**Owner authorization**
+- Owner approved starting with the first TDD increment: prove that Common API Paper Ledger/control/rate-limit state cannot use the canonical T0 SQLite path.
+- This is a compliance correction to the approved five-layer architecture; no architecture redesign was authorized.
+
+**Scope and implementation**
+- Existing branch: `feature/core-operational-proof-20261112`.
+- `pipeline/api.py` now requires an explicit `PAPER_DB` path for Paper state.
+- `paper_db_path()` resolves paths and rejects exact-path, symlink and existing hard-link aliases to the SQLite T0 `MARKET_DATA_DB`; unknown market backend fails closed.
+- PaperLedger construction, control rate-limit budget, dual-ledger readiness, order cancellation, Paper account snapshots, equity history and audit reads now use `PAPER_DB`.
+- T0 market-data reads remain configured through `MARKET_DATA_BACKEND` / `MARKET_DATA_DB` or the configured Postgres DSN. No T0 write route was added.
+- Common API tests now use separate market-data and Paper DB fixtures. The stale Core API test fixtures were aligned to the authoritative Bundle V1 preview/evaluate facade.
+- Core operational workflow now compiles and runs the storage-isolation and Common API regression suites.
+
+**Source and branch identity**
+- Branch HEAD at this handoff entry: `f00dc7f6b6162d989a694e4fb1a446437b9fcf5e`.
+- Common API implementation commit/source: `9affd499337365dfc2be1bf0b4e277ce4645068f`.
+- Common API fixture update: `879a4734f7eafc0a8e2f51b584a1e196aa080021`.
+- Core facade fixture update: `09a9981d39f4bb7b6a9b3abcbedd502366869be1`.
+- Latest workflow change is workflow-only; no additional application-source change after the implementation commit above.
+- Diff from pre-increment HEAD `26096fffac842462c2fd845577a2451cf8f34d89`: 8 commits, 5 files changed, 182 additions / 17 deletions.
+
+**TDD and CI evidence**
+1. RED baseline:
+   - Workflow run `44207449933`: FAILURE as expected for the new RED contract.
+   - Exact checkout SHA: `3e40316e5f89ecf84a02f5fd03e77a65874f1f2e`.
+   - Six isolation tests ran; 4 errors and 2 assertion failures demonstrated the missing Paper DB boundary and old T0 path usage.
+2. Implementation verification:
+   - Workflow run `44207500397`, exact checkout SHA `9affd499337365dfc2be1bf0b4e277ce4645068f`: all six isolation tests PASS. The overall workflow later failed in an unrelated/stale Core API facade fixture, which was subsequently corrected.
+   - Workflow run `44207582522`, exact checkout SHA `337404958909ddcc86c21206b22c27bdca8b65a1`: isolation contracts PASS; Common API suite exposed one stale Core preview fixture, subsequently corrected.
+   - Workflow run `44207703940`, exact checkout SHA `09a9981d39f4bb7b6a9b3abcbedd502366869be1`: Core API facade fixture was corrected, but the Common API suite still exposed one stale signal-preview expectation, subsequently corrected.
+   - Workflow run `44207805789`, exact checkout SHA `f00dc7f6b6162d989a694e4fb1a446437b9fcf5e`: at the time of this entry, six isolation contracts, Common API regression suite, Core strategy/signal suite, Core facade suite, and preceding Core runtime suites were PASS; the run was still executing the Continuous Core runtime-factory suite. Final workflow conclusion and artifact metadata are pending.
+   - Workflow URL: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/44207805789
+
+**Safety and limits**
+- CI environment is disposable and paper-only: `AI_EXECUTION_ENABLED=false`; no canonical T0 DB, exchange credentials, real orders, VPS or persistent runtime were used.
+- No T0 data, T0 runtime, T1 runtime, VPS configuration, deployment environment or exchange connection was changed.
+- Common API now requires `PAPER_DB`; deployment environment/configuration has NOT been updated. Do not deploy or start the API until a separate Paper DB path is explicitly configured and validated.
+- This increment does not fix remaining direct local T0 reads in legacy Common API projections; T0 HTTP-boundary normalization remains a separate remediation increment.
+- Core First overall remains PARTIAL / NOT VERIFIED pending final workflow evidence and the other previously recorded architecture gaps. Dual-Strategy AI remains DEFERRED. No merge, branch promotion, runtime activation or live trading.
+
+**Next**
+- Reconcile final status, exact source SHA, job conclusions and artifact ID/digest for run `44207805789`; update this section with the terminal result.
+- Only after that, separately scope the Common API T0 HTTP boundary migration. Keep runtime/deployment unchanged.
