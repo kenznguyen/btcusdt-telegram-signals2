@@ -501,6 +501,39 @@ class FiveLayerApiTest(unittest.TestCase):
             _, result = self.request("/v1/paper/evaluate", "POST", {})
         self.assertEqual(result["order"]["status"], "FILLED")
 
+    def test_kill_reset_fails_closed_when_dual_ledger_is_not_ready(self):
+        # A legacy database without the validated Dual Ledger contract must
+        # not inherit accountRiskReady=True from the compatibility path.
+        candles = {
+            "coverage": {"complete": True},
+            "datasetVersion": "sha256:" + "a" * 64,
+            "candles": [{
+                "closeTimeMs": self.now - 900_000,
+                "availableAtMs": self.now - 1_000,
+            }],
+        }
+        context = {"candles": candles, "book": {
+            "observedAtMs": self.now - 100,
+            "bids": [{"price": "100", "quantity": "1"}],
+            "asks": [{"price": "100.02", "quantity": "1"}],
+        }}
+        with patch.object(api, "context", return_value=context), \
+             patch.object(api, "paper_db_path", return_value=str(self.paper_db)), \
+             patch("paper_execution.ledger.dual_ledger_ready", return_value=False), \
+             patch.object(api, "ledger") as legacy_ledger, \
+             patch.object(kill_reset_service, "_issue_kill_reset_evidence",
+                          return_value={"token": "x" * 43, "checkedAtMs": self.now,
+                                        "signature": "0" * 64}) as issue_evidence:
+            legacy_ledger.return_value.snapshot.return_value = {"orders": []}
+            readiness = api.control_readiness(self.now)
+
+        self.assertFalse(readiness["ready"])
+        self.assertFalse(readiness["checks"]["accountRiskReady"])
+        self.assertFalse(readiness["checks"]["noPendingPaperOrders"])
+        self.assertIsNone(readiness["evidence"])
+        legacy_ledger.assert_not_called()
+        issue_evidence.assert_not_called()
+
     def test_kill_reset_rejects_stale_or_unissued_readiness_capability(self):
         self.request("/v1/paper/kill", "POST", {"enabled": True})
         checks = {
