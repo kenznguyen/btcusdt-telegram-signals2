@@ -15,10 +15,16 @@ class DualStrategyApiScopeRedTest(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.db = Path(self.temp.name) / "paper.sqlite3"
+        self.market_db = Path(self.temp.name) / "market-data.sqlite3"
         with sqlite3.connect(self.db) as connection:
             connection.execute("CREATE TABLE seed (id INTEGER PRIMARY KEY)")
+        self.market_db.touch()
         self.environment = patch.dict(os.environ, {
-            "MARKET_DATA_DB": str(self.db),
+            "PAPER_DB": str(self.db),
+            "MARKET_DATA_DB": str(self.market_db),
+            "T0_CANDLE_API_BASE_URL": "https://t0.test.invalid",
+            "T0_CANDLE_API_TOKEN": "read-only-test-token",
+            "T0_CANDLE_MAX_LAG_MS": "120000",
             "MARKET_DATA_TOKEN": "read-token",
             "CONTROL_TOKEN": "control-token",
             "PAPER_MAX_DRAWDOWN_PCT": "50",
