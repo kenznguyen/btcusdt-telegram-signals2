@@ -117,3 +117,60 @@ Next: verify the GitHub Actions run for final workflow/source commit `89c129fd3c
 **PARTIAL / BLOCKED ON P3 FAILURE.** F-07 dependency correction is exercised by successful data-flow and G4 jobs on run 44275967382, alongside successful recovery and lease/fencing tests. F-08 push trigger is exercised by the successful workflow run on the active branch; PR trigger remains not exercised because no PR run was part of this validation. F-10 trigger and automatic P3 job are exercised, but the P3 test command failed and its detailed cause remains NOT VERIFIED. The workflow must not be treated as fully green until the P3 failure is diagnosed and corrected in an explicitly bounded scope, then rerun on a new exact SHA.
 
 No live/VPS/T0 canonical database/exchange access occurred. No merge/deployment/trading authorization is implied.
+
+
+## Root-cause diagnosis and final green exact-SHA run — 2026-11-18
+
+### Diagnosis of run 44275967382
+
+The raw P3 job log was subsequently retrieved. The failing test module was `market_data.test_feeder_health_api`, which imports `app.py`; that module imports Flask. The isolated P3 job installed only `requirements-market-data.txt`, which contains CCXT and psycopg but not Flask. Exact error:
+
+```
+ModuleNotFoundError: No module named 'flask'
+Ran 25 tests
+FAILED (errors=1)
+```
+
+This was an incomplete CI test environment dependency, not a demonstrated feeder logic failure. The 24 retry/health unit tests in the other two modules passed; the API module could not import.
+
+### Correction history
+
+- Commit `b53e013088e9814208ae3b6bedd8230c5a9b8d4d` attempted to add Flask, but inspection of the resulting run `44276557007` showed the step was inserted into a different market-data job rather than the P3 job. P3 remained without Flask and failed with the same import error. This intermediate commit is retained in history and is not considered a fix.
+- Commit `5ab1d10a54ad31a48fa777d017173c8ffb031ae5` moved the explicit Flask installation into the actual `p3-component-auto` job. No application source, shared requirements file, or runtime configuration was changed.
+- Final workflow blob SHA: `2d5d4bfdef7578088df7cf73e603ed1943b9db74`.
+
+### Final exact-SHA validation — run 44276873908
+
+- Branch: `feature/core-operational-proof-20261112`.
+- Event: `push`.
+- Exact run head SHA: `5ab1d10a54ad31a48fa777d017173c8ffb031ae5`.
+- Run conclusion: **SUCCESS**.
+- All 10 workflow jobs completed:
+  - PASS: recovery scope detector.
+  - PASS: G4 scope detector.
+  - PASS: lease/fencing tests.
+  - PASS: P3 scope detector.
+  - PASS: data-flow scope detector.
+  - PASS: P3 retry/health component tests.
+  - PASS: G4 read-only runtime contract tests.
+  - PASS: T0→T2 data-flow tests.
+  - PASS: SQLite recovery tests.
+  - SKIPPED: manual acceptance, expected for push event (manual-only).
+- P3 job log proves the runner checked out exact SHA `5ab1d10a54ad31a48fa777d017173c8ffb031ae5`, installed Flask 3.1.3, and executed **33 tests** successfully:
+  `Ran 33 tests in 0.126s`; `OK`; `P3_RETRY_HEALTH_COMPONENTS=PASS`.
+- No skipped P3 test module; the retry, health, and health API modules all ran.
+- Artifact IDs and provider-reported SHA-256 digests:
+  - P3: `14414213988`, `769a23520be5e2a85836f16506207a36370ae769f30f7a1a1402b66cfa4f090d`.
+  - Lease/fencing: `14415306565`, `97d3165994ac71728f41160cfc6a0264398db3ea99b50e9298c379f5f2d5899d`.
+  - Recovery: `14413709582`, `8e8c27c09912fb2a4b5691adb7ac3110be832c9d92404ac8d0fd3de6e1a21174`.
+  - Data flow: `14414278957`, `f19f21033461209345ffe4305066afcd70ecd523860b03d2f1420ba31a2f0db5`.
+  - G4: `14414504139`, `c5d7de657a4b0b9e6074be00adafa48089f092cc73ee62221ab9cc5f31a612b6`.
+- Digests above are from GitHub artifact metadata/logs; they have not been independently recomputed from downloaded ZIPs.
+
+### Updated disposition
+
+- **F-07: PASS** — independent data-flow and G4 gates both ran successfully alongside the shared lease/fencing prerequisite.
+- **F-08: PARTIAL PASS** — push trigger on the active Core First branch exercised successfully. The new pull_request-to-main trigger has not yet been exercised by a PR event.
+- **F-10: PASS** — P3 scope trigger, automatic job, all 33 tests, and evidence artifact succeeded.
+- Workflow correction overall: **PASS WITH ONE REMAINING TRIGGER-VALIDATION LIMITATION**. Exact-SHA push CI is green; PR-event behavior remains NOT VERIFIED.
+- No T0 canonical DB, VPS, persistent runtime, exchange credentials, or real/paper order execution was used. No merge/deployment/trading authorization is implied.
