@@ -116,7 +116,7 @@ _FIXTURE_ROWS = (
     ("B-A", "bootstrap.audience", "SUBSTITUTED-AUDIENCE", "INVALID", "ROOT_BOOTSTRAP_AUDIENCE_MISMATCH", "Audience binding INVALID"),
     ("B-A", "bootstrap.root_spki_fingerprint", "0" * 64, "INVALID", "ROOT_BOOTSTRAP_ROOT_FINGERPRINT_MISMATCH", "Root binding INVALID"),
     ("B-A", "bootstrap.root_role", "UNAUTHORIZED-ROLE", "INVALID", "ROOT_BOOTSTRAP_ROLE_MISMATCH", "Role binding INVALID"),
-    ("B-A", "bootstrap.profile_binding", "SUBSTITUTED-PROFILE-VERSION", "INVALID", "ROOT_BOOTSTRAP_PROFILE_MISMATCH", "Profile binding INVALID"),
+    ("B-A", "bootstrap_record.signature_profile_id", "SUBSTITUTED-PROFILE", "INVALID", "ROOT_BOOTSTRAP_PROFILE_MISMATCH", "Profile binding INVALID"),
     ("B-A", "bootstrap.sequence_predecessor", "SUBSTITUTED-SEQUENCE-PREDECESSOR", "INVALID", "ROOT_BOOTSTRAP_SEQUENCE_MISMATCH", "Sequence binding INVALID"),
     ("B-A", "bootstrap.recovery_policy_digest", "0" * 64, "INVALID", "ROOT_BOOTSTRAP_RECOVERY_POLICY_MISMATCH", "Recovery binding INVALID"),
     ("B-A", "bootstrap.verifier_readback_bytes", "ALTERED-READBACK", "INVALID", "ROOT_BOOTSTRAP_READBACK_MISMATCH", "Readback integrity INVALID"),
@@ -316,7 +316,7 @@ def _expected_dimensions(mutation_path: str, verdict: str) -> dict[str, str]:
         dimensions["policy_authorization"] = verdict
     elif mutation_path.startswith(("verification_request.", "descriptor.", "envelope.", "policy_profile_authorization.", "profile.")):
         dimensions["profile"] = verdict
-    elif mutation_path.startswith("bootstrap."):
+    elif mutation_path.startswith(("bootstrap.", "bootstrap_record.", "bootstrap_authorization.")):
         dimensions["bootstrap_authorization"] = verdict
         dimensions["custody_readback"] = "NOT_VERIFIED"
     return dimensions
@@ -349,11 +349,12 @@ def derive_stage1_facts(fixture: Mapping[str, object]) -> dict[str, bool]:
         or item.get("signature_profile_version") != selected_version
         for item in profile_locations
     )
+    bootstrap_profile_mismatch = False
     if request.get("bootstrap_path") is not None:
         for item in (fixture.get("bootstrap_record", {}), fixture.get("bootstrap_authorization", {})):
             if not isinstance(item, Mapping):
                 raise ValueError("bootstrap profile binding must be a mapping")
-            binding_mismatch = binding_mismatch or (
+            bootstrap_profile_mismatch = bootstrap_profile_mismatch or (
                 item.get("signature_profile_id") != selected_id
                 or item.get("signature_profile_version") != selected_version
             )
@@ -418,7 +419,10 @@ def derive_stage1_facts(fixture: Mapping[str, object]) -> dict[str, bool]:
         "audience_mismatch": authorization.get("audience") != bootstrap.get("audience"),
         "root_fingerprint_mismatch": authorization.get("root_spki_fingerprint") != bootstrap.get("root_spki_fingerprint"),
         "root_role_mismatch": authorization.get("root_role") != bootstrap.get("root_role"),
-        "bootstrap_profile_mismatch": authorization.get("profile_binding") != bootstrap.get("profile_binding"),
+        "bootstrap_profile_mismatch": (
+            bootstrap_profile_mismatch
+            or authorization.get("profile_binding") != bootstrap.get("profile_binding")
+        ),
         "sequence_mismatch": authorization.get("sequence_predecessor") != bootstrap.get("sequence_predecessor"),
         "recovery_policy_mismatch": authorization.get("recovery_policy_digest") != bootstrap.get("recovery_policy_digest"),
         "readback_mismatch": bootstrap.get("verifier_readback_bytes") != bootstrap.get("expected_readback_bytes"),
