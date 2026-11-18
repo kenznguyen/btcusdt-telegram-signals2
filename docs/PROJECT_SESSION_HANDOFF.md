@@ -3469,3 +3469,12 @@ Additional payload inspection:
 - Safety: no workflow, README, runtime, T0 canonical data, VPS, credentials, exchange or trading changes; no merge or history rewrite.
 - Disposition: F-01 PASS; F-02 PASS; tested synthetic package scope PASS. Overall Stage I contract conformance remains PARTIAL / NOT VERIFIED beyond synthetic routing and single-mutation checks. Stages II–V, workflow execution, merge, deployment and trading remain BLOCKED / NOT AUTHORIZED.
 - Next: read-only review the two-file diff against A2.2 §§17–18, then handle F-03 documentation consistency separately with approval if required.
+
+
+### A2.2 F-01/F-02 verification refresh — 2026-11-18
+
+- Added compound-mutation regression: evaluator returns INVALID / FIXTURE_SINGLE_MUTATION_VIOLATION and preserves state when two leaves are changed.
+- Final tested source commit: `637f494b48939a26d1abf0d948186267d1ca58a4`.
+- Final source blobs: verdicts.py `85938c16d338f56d38721460adf4494f18bb2ed3`; test_verdicts.py `45880b5c68b9f74a25c63ff125fef9826de4eca0`.
+- Exact-SHA isolated sandbox rerun: compileall PASS; focused tests 16/16 PASS; complete package tests 39/39 PASS.
+- Evidence report updated to reflect final SHA and counts; workflow remains NOT RUN / NOT AUTHORIZED.
