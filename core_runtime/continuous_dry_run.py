@@ -56,13 +56,17 @@ def inspect_continuous_dry_run(
     except PreflightError as exc:
         raise ContinuousDryRunError(str(exc)) from None
 
-    if set(config) != {
-        "mode", "ai_execution_enabled", "ledger_path", "risk_limits",
+    required_runner_keys = {
+        "mode", "ai_execution_enabled", "ledger_path",
         "max_book_age_ms", "max_position_base",
-    }:
+    }
+    if set(config) not in (
+        required_runner_keys,
+        required_runner_keys | {"risk_limits"},
+    ):
         raise ContinuousDryRunError("RUNNER_CONFIG_REQUIRED")
     try:
-        _runner_policy(config)
+        _runner_policy(config, allow_missing_risk_limits=True, environ=env)
     except PreflightError as exc:
         raise ContinuousDryRunError(str(exc)) from None
 
