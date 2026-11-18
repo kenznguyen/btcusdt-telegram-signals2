@@ -4,37 +4,44 @@
 
 - Repository: kenznguyen/btcusdt-telegram-signals2
 - Branch: main
-- Main HEAD before this handoff update: 2aa9d95fa2b3d640e490b1765f7e8b7cb744c3ea
-- Core API source fix: 1502521b85565b4b75e5368417b3a1169329ec75
-- Regression test isolation commit: 15158d0bc38e03b939b01765e41e3beb00815ea9
-- Workflow adjustment commit: 5ec333702185760ab40f8efa5d8e50ca06e3ce8f
-- Evidence update commit: 2aa9d95fa2b3d640e490b1765f7e8b7cb744c3ea
-- Detailed report: docs/evidence/MAIN_CORE_API_QUALITY_SNAPSHOT_STATIC_REVIEW_2026-11-18.md
+- Main HEAD before this handoff update: 107882efbcbd1264c49ea011deecf936238b5dd7
+- Prior bounded Core API fix: 1502521b85565b4b75e5368417b3a1169329ec75
+- Prior Core API focused regression: workflow run 44301625371, exact tested source SHA 1502521b85565b4b75e5368417b3a1169329ec75, SUCCESS, 1/1 test PASS.
+- New inventory report: docs/evidence/MAIN_CORE_RUNTIME_DEPENDENCY_INVENTORY_AND_INTEGRATION_PLAN_2026-11-18.md
+- Inventory report commit: 107882efbcbd1264c49ea011deecf936238b5dd7
 
-## Main-side technical state
+## Main-side Core Runtime state
 
-- The main-side quality_snapshot() local-variable ordering defect is fixed: core_runtime_preview(timestamp) is now called immediately before the first read of local core, and that preview is reused for the Strategy Core projection.
-- Runtime regression proof: RED run 44301561075 on source SHA 5ec333702185760ab40f8efa5d8e50ca06e3ce8f reproduced UnboundLocalError.
-- GREEN run 44301625371 on exact source SHA 1502521b85565b4b75e5368417b3a1169329ec75: job SUCCESS; py_compile PASS; focused regression 1/1 PASS.
-- GREEN artifact ID 14425806625; SHA-256 8c7fee79dcc06e311097e7b5681fd02a4de6eb71ef396ced85e65f2c2e12dc87. Artifact URL: https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/44301625371/artifacts/14425806625
-- Focused test: ci/test_core_api_quality_snapshot.py. It stubs only import-time T0 adapter symbols and the unrelated risk-limit parser; context, market_window and core_runtime_preview inputs are mocked. The production quality_snapshot() function itself is exercised.
-- Verification boundary: this is a focused projection regression, not full T0/API/Core integration. The original core_runtime/test_api_facade.py suite remains NOT VERIFIED because the corresponding Core runtime modules are absent from this main tree.
-- Workflow run 44300987446 failed before the test due to missing market_data.api. Run 44301561075 then established valid RED after test isolation. These earlier failures are recorded as CI setup history, not product regression outcomes.
-- feature/core-operational-proof-20261112 remains separate and divergent. No merge, cherry-pick, rebase, reset, or source copy occurred. Do not reconcile without a separate approved plan.
-- Do not describe Dual-Strategy Intelligence or independent AI LONG/SHORT as implemented on main without separate source and test evidence.
+- Read-only inventory at main SHA 9490b64b232258604418257ef5f69bd17f4b9a3f found 49 tracked blobs. main has pipeline/api.py and a few isolated tests, but does not contain the implementation packages required for a full Core API/Core Runtime integration.
+- Missing/incomplete main paths include core_runtime (only test_api_facade.py), pipeline (only api.py), paper_execution, freqai_bridge, risk_policy.py, futures_intelligence, integrations, and most market_data implementation modules. Direct import blockers are listed in the inventory report.
+- The focused quality_snapshot regression is intentionally isolated with import-time stubs. It proves only the repaired projection defect; it is not full Core API or T0 integration evidence.
+- Main requirements-web.txt does not currently include rfc8785, which the Core First Bundle v1 path uses. Do not change dependency manifests until the per-workflow dependency scope is reviewed.
+- Main full Core/API integration status: BLOCKED / NOT VERIFIED due to absent internal implementation packages.
+
+## Core First dependency source and integration plan
+
+- Current inspected Core First branch: feature/core-operational-proof-20261112, SHA e6606e28a696374f31cd6db1ec0a1372d942d64d.
+- This branch is the project's active Core First source, not a released Python package or standalone Core Runtime repository. Keep it separate; no source copy, cherry-pick, rebase, merge or branch reconciliation occurred.
+- Latest successful full Core-First operational workflow inspected: run 44272495963, exact tested SHA ea8dc9159782a3da83cab2b84409698922bd281d, artifact ID 14413755795, SHA-256 86370ed99fb0895e560d60469334fd5f765c40c10c2ac764912041002e2e09d6.
+- Current feature HEAD is 86 commits ahead of that tested SHA; the bounded compare lists docs, T0 Stage-I and T0 manual-workflow changes. Selected Core source, test and Core workflow blobs were independently confirmed unchanged between tested SHA and current feature HEAD. This does not represent a new full workflow run at current HEAD.
+- Current compare between feature branch and main reports 4,667 commits ahead / 101 behind; changed-file list is capped at 300. No open PR for this branch was found. Merge/reconciliation remains BLOCKED.
+- T0 is consumed through the read-only Candle Contract v1 HTTP client; do not couple Core to the T0 canonical database or copy T0 implementation into main as a workaround.
+- T1 consumer contract is identified in core_runtime/orderbook_http.py, but the exact server-side provider for /internal/v1/orderbook/btcusdt was not found in the inspected T1 collector repository. Provider source/version binding remains NOT VERIFIED.
+- Detailed source inventory, dependency classification and proposed I0-I7 integration gates are in the linked report. Plan is documented, not executed.
 
 ## Safety and scope
 
-- Paper/simulated only; AI_EXECUTION_ENABLED=false. No live orders or exchange credentials.
-- T0 remains an independent data asset. No T0 source, canonical database, Feeder, VPS/runtime, deployment, credential or market-data operation was performed.
-- No strategy, API schema, risk policy, ledger, or runtime behavior beyond the local variable ordering was changed.
-- Commits on main for this bounded task: 15158d0bc38e03b939b01765e41e3beb00815ea9 (focused test); 5ec333702185760ab40f8efa5d8e50ca06e3ce8f (workflow/test invocation); 1502521b85565b4b75e5368417b3a1169329ec75 (minimal source fix); 2aa9d95fa2b3d640e490b1765f7e8b7cb744c3ea (evidence report). Earlier workflow setup commits: ceb6580833e3dc597dcd720aa23b0a2e90402b91 and 1498c17efbb10a3cd102864b900b571f6ffa7eab.
-- Focused defect status: FIXED / REGRESSION PASS. Full Core API/T0 integration: NOT VERIFIED. Independent review of broader Core First architecture: NOT PERFORMED in this bounded task.
+- Documentation-only inventory on main. No source, dependency manifest, workflow, test, branch or runtime was changed in this increment.
+- No T0 canonical DB, Feeder, VPS, exchange, credentials, deployment, AI execution or live order was accessed.
+- Keep paper-only; AI_EXECUTION_ENABLED=false.
+- Core First remains the sole paper-executable strategy. Dual-Strategy Intelligence/AI paper execution remains DEFERRED pending Core First closeout and separate owner approval.
+- Main focused projection defect: FIXED / REGRESSION PASS. Main full Core/API/T0 integration: BLOCKED / NOT VERIFIED. T1 provider source binding: NOT VERIFIED.
 
-## Next step and limits
+## Next authorized action and limits
 
-- Next: if broader validation is needed, first identify the authoritative main-side Core runtime/T0 dependency source and define a separate isolated integration test; do not import source from the divergent feature branch.
-- Keep the current main branch and its evidence intact. No branch reconciliation, Dual-Strategy work, T0/VPS/runtime activity, deployment, or trading is authorized by this fix.
+- Resolve the exact T1 HTTP provider repository/path and pin its source/version; do not assume binance-futures-collector alone exposes the API route.
+- After separate owner authorization, run the existing Core First operational workflow on the exact current feature branch HEAD and record checkout SHA, run, jobs and artifact.
+- Do not merge, copy source to main, change T0/Shared Risk/Ledger/Core behavior, activate runtime, or start Dual-Strategy work as part of this inventory.
 
 
 ---
