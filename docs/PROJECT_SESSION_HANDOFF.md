@@ -3353,3 +3353,20 @@ Additional payload inspection:
 - Main-only `pipeline/api.py` static defect and test implications remain F-01/F-02. No source or workflow change is proposed/applied by this map.
 - Status: bounded map **PASS WITH CONDITIONS**; full semantic review of all 85 main-side commits **NOT COMPLETE**; merged-tree validation **NOT RUN**; merge **BLOCKED / NOT AUTHORIZED**.
 - Next: request explicit owner decision on whether to correct F-07/F-08/F-10 in the existing branch workflow and run approved exact-SHA validation. Until then, preserve branch state; no merge/rebase/reset/cherry-pick/force-push, workflow dispatch, VPS/T0/runtime access, AI execution or real orders.
+
+
+## 2026-11-18 — T0 Manual Validation workflow F-07 / F-08 / F-10 correction
+
+- Owner explicitly approved minimal correction of `.github/workflows/t0-manual-validation.yml` and exact-SHA CI validation.
+- Changes committed on the existing branch only:
+  - `a125bfec531d840a76eea20eb436d437ecb35737` — initial F-07/F-08/F-10 workflow correction.
+  - `89c129fd3c68740398fd70792e46d376910859d1` — remove a cross-job-only file from the P3 artifact upload list; final workflow blob SHA `9b0ba4424e3674486f082bc7d884492f2d7cb8ac`.
+- F-07: data-flow gate no longer requires the recovery auto job; G4 gate no longer requires recovery or data-flow auto jobs. Required lease/fencing prerequisite and each job's own change-scope detector remain fail-closed.
+- F-08: added PR trigger targeting `main`; added active branch `feature/core-operational-proof-20261112` to push trigger; retained legacy T0 push branch and manual dispatch.
+- F-10: added path filters, a dedicated change-scope detector, and isolated automatic retry/health tests; preserved existing manual P3 gate.
+- Static content assertions: PASS (PR trigger, active push branch, independent scoped dependencies, P3 tests, manual gate, artifact paths).
+- GitHub combined status lookup for both commits returned no status entries. YAML parser validation and exact-SHA GitHub Actions run/log/artifact verification remain **NOT VERIFIED**. No run ID/artifact ID/digest is recorded.
+- Evidence report: `docs/evidence/T0_MANUAL_VALIDATION_WORKFLOW_F07_F08_F10_FIX_2026-11-18.md`; report creation commit `610b618ed33ce5ef4c9b829ed2ada82789f68243`.
+- No source/runtime/T0 canonical DB/exchange/credentials changes; no merge/rebase/reset/cherry-pick/force-push; paper-only and `AI_EXECUTION_ENABLED=false`.
+- Status: **PARTIAL** — workflow edit committed; static checks PASS; exact-SHA CI NOT VERIFIED.
+- Next: retrieve the GitHub Actions run for final workflow commit `89c129fd3c68740398fd70792e46d376910859d1`; verify checked-out SHA, all relevant job results, and artifacts/digests. Do not merge or proceed to Dual-Strategy Intelligence based on this workflow change.
