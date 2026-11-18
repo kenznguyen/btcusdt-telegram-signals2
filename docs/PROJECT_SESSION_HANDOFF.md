@@ -2949,7 +2949,7 @@ This follow-up supersedes the earlier pending items for persistent preview artif
 - Job `134590669234`: SUCCESS. Full PaperLedger regression: **672 tests, OK**. All focused bootstrap and D07 suites also succeeded.
 - Artifact: `dual-ledger-bootstrap-proof-dba0e6badf23f54167625bef2ad2e96f3dca4985`, ID `14399404044`, 20,440 bytes, SHA-256 `472548ca926a3839322fd7f10ab3ab4acdf178d89559632a7da146fe15d9e0ab`. GitHub upload log and artifact API metadata agree. Artifact contains 15 evidence files. ZIP payload has not been downloaded and independently re-hashed.
 
-**Independent Kill Reset security review — PASS WITH DEPLOYMENT LIMITATIONS**
+**Kill Reset static security review — PASS WITH DEPLOYMENT LIMITATIONS (single reviewer)**
 - Re-reviewed the final descriptor-based key loader, IPC handler, API route, reset service, Ledger transaction and risk-control capability consumption at the tested source.
 - Key loader now opens with `O_NOFOLLOW` (and `O_CLOEXEC` where available), verifies the opened descriptor with `fstat()`, requires a regular file owned by the service UID with no group/other permission bits, bounds the read to 4097 bytes, closes the descriptor on all paths, and fails closed when `O_NOFOLLOW` is unavailable.
 - Regression suite proves the prior symlink-swap behavior RED and verifies post-fix path-swap rejection, existing-symlink rejection, group-readable-key rejection and wrong-peer-UID rejection. All four are included in the 37-test API group which passed in workflow 44241526021.
@@ -2967,7 +2967,7 @@ This follow-up supersedes the earlier pending items for persistent preview artif
 | Kill Reset signing-key race remediation | **PASS — code/CI** |
 | Kill Reset peer UID and file permission regressions | **PASS — code/CI** |
 | Dual Ledger fixture reconciliation and full PaperLedger suite at HEAD `dba0e6...` | **PASS — 672 tests** |
-| Independent Kill Reset static review | **PASS WITH DEPLOYMENT LIMITATIONS** |
+| Kill Reset static review (this assistant; no second-model/external auditor) | **PASS WITH DEPLOYMENT LIMITATIONS** |
 | GitHub artifact metadata/digest association | **PASS** |
 | Artifact ZIP payload independently downloaded/re-hashed | **PASS — both SHA-256 values match GitHub digest** |
 | OS provisioning, service/socket/key deployment | **NOT VERIFIED / NOT AUTHORIZED** |
@@ -3009,3 +3009,8 @@ Additional payload inspection:
 - ZIP listings contain test/evidence logs and no raw candle database.
 - Artifact payload integrity gate: **PASS**. This verifies artifact bytes and provenance, not runtime/deployment readiness.
 - Exact source and docs provenance: handoff update follows source HEAD `dba0e6badf23f54167625bef2ad2e96f3dca4985`; the Core workflow SHA differs by only the later Dual Ledger test-fixture-only commit as recorded above.
+
+
+**Review independence qualification**
+- The code review recorded above is a fresh static review of the source, tests, API boundary and Ledger transaction by this assistant. It is not a separate-model review, human security audit, penetration test or external certification.
+- Therefore the code-level review findings are recorded, but a genuinely independent second reviewer remains **NOT VERIFIED**. Do not label this as an externally independent security sign-off.
