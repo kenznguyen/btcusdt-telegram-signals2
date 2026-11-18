@@ -301,22 +301,45 @@ class ContinuousRuntimeFactoryTest(unittest.TestCase):
         self.assertFalse(self.bundle_store.exists())
 
     def test_simulated_origin_runtime_rejects_environment_risk_limit_override_before_journal(self):
-        import os
-
         ledger_path = self._create_ready_simulated_ledger()
         self._write_contract_only_config(ledger_path)
-        with patch.dict(os.environ, {"PAPER_MAX_EXPOSURE_USDT": "999"}):
-            with self.assertRaisesRegex(
-                RuntimeFactoryError, "RUNNER_RISK_LIMITS_OVERRIDE_FORBIDDEN"
-            ):
-                build_continuous_runtime(
-                    config_path=self.config,
-                    journal_path=self.journal,
-                    bundle_store_dir=self.bundle_store,
-                    source_sha="b" * 40,
-                    environ=self.env,
-                    clock_ms=lambda: self.fixture.now,
-                )
+        env = dict(self.env, PAPER_MAX_EXPOSURE_USDT="999")
+
+        with self.assertRaisesRegex(
+            RuntimeFactoryError, "RUNNER_RISK_LIMITS_OVERRIDE_FORBIDDEN"
+        ):
+            build_continuous_runtime(
+                config_path=self.config,
+                journal_path=self.journal,
+                bundle_store_dir=self.bundle_store,
+                source_sha="b" * 40,
+                environ=env,
+                clock_ms=lambda: self.fixture.now,
+            )
+
+        self.assertFalse(self.journal.exists())
+        self.assertFalse(self.bundle_store.exists())
+
+    def test_funded_origin_still_requires_approved_risk_limit_source(self):
+        self.config.write_text(json.dumps({
+            "mode": "PAPER",
+            "ai_execution_enabled": False,
+            "ledger_path": str(self.fixture.path),
+            "max_book_age_ms": 2_000,
+            "max_position_base": "0.01",
+        }), encoding="utf-8")
+
+        with self.assertRaisesRegex(
+            RuntimeFactoryError, "RUNNER_RISK_LIMITS_REQUIRED"
+        ):
+            build_continuous_runtime(
+                config_path=self.config,
+                journal_path=self.journal,
+                bundle_store_dir=self.bundle_store,
+                source_sha="b" * 40,
+                environ=self.env,
+                clock_ms=lambda: self.fixture.now,
+            )
 
         self.assertFalse(self.journal.exists())
         self.assertFalse(self.bundle_store.exists())
