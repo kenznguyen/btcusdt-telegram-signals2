@@ -2563,3 +2563,43 @@ This follow-up supersedes the earlier pending items for persistent preview artif
 
 **Next action**
 - Inspect completion of workflow `44230898155`, exact job logs and artifact. If targeted tests pass but a later suite fails, diagnose that separate failure before modifying code. Only after full CI and additional focused One-shot simulated-origin coverage can this risk-policy correction be marked PASS.
+
+
+## 2026-11-18 — Origin-aware simulated risk policy CI completed
+
+**Exact source and workflow evidence**
+- Active branch retained: `feature/core-operational-proof-20261112`.
+- Code source SHA tested: `7033d7d8bb7aec0dff38efea5d6bcdde679ef112`.
+- Core First workflow: [44230898155](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/44230898155), run number 358, event `push`, conclusion **SUCCESS**.
+- Workflow job: `operational-proof`, ID `134555496775`, conclusion **SUCCESS**; all 36 primary steps completed successfully.
+- Job log checkout and explicit `SOURCE_SHA` both identify `7033d7d8bb7aec0dff38efea5d6bcdde679ef112`.
+- Key suites observed in the job log:
+  - simulated-origin Continuous Runtime: 3/3;
+  - Continuous Core dry-run: 10;
+  - PaperLedger readiness preflight: 27;
+  - Continuous Runtime Factory: 34;
+  - Core-First operational E2E: 50;
+  - partial-fill process-crash checkpoints: 2 test invocations;
+  - Core Runner Ledger integration: 27;
+  - account-wide risk snapshot read-only: 3;
+  - shared risk / PaperLedger: 34;
+  - T1/T2 Order Book contracts: 49.
+- Artifact: `core-first-code-operational-proof-44230898155`, ID `14394234104`, 17,767 bytes, unexpired at retrieval, GitHub digest `sha256:b1479db54123cf6f981186d5d4125b5ec81f2b62656bcc1d059220e5d6200729`.
+- Artifact digest is GitHub metadata; payload ZIP has not been downloaded and independently re-hashed in this increment.
+
+**Verdict**
+- Origin-aware simulated Continuous Runtime correction and all required steps in this Core First workflow: **PASS for exact code SHA above**.
+- This is code-level CI evidence only. It does not certify deployed Runtime, T0/T1 connectivity, VPS operation, or live execution.
+- Current branch HEAD after this handoff update is expected to advance by one documentation commit; the tested code SHA remains the workflow source SHA above.
+
+**Remaining focused gap**
+- `pipeline/test_core_runtime_one_shot.py` currently exercises the One-shot runner's funded-style config path. Static inspection found no direct test that runs `run_once` against an actual disposable simulated-origin Ledger with contract-only config.
+- The current workflow's 16 One-shot tests pass, but do not by themselves prove that One-shot's own origin detection, immutable simulated contract loading, and Ledger construction path work together for simulated origin.
+- Next permitted increment: add a focused disposable simulated-origin One-shot regression using the canonical simulated capital contract and valid account mark; prove that contract-only config is accepted and that no caller-supplied risk limits are passed to the simulated Ledger. Add negative config/environment override cases if they can be asserted without widening scope. Use TDD and run the targeted suite before full Core First CI.
+- Do not alter production code unless the new regression exposes a concrete defect.
+
+**Safety / separation**
+- `AI_EXECUTION_ENABLED=false`; PAPER-only.
+- No canonical T0 DB, VPS, T1 runtime, exchange connection, AI Strategy execution, or real orders.
+- Runtime Verification remains **NOT STARTED**.
+- No merge, promotion, rebase, reset, cherry-pick, force push, or default branch change.
