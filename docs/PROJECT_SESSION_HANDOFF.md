@@ -2336,3 +2336,41 @@ This follow-up supersedes the earlier pending items for persistent preview artif
 - Safety unchanged: `AI_EXECUTION_ENABLED=false`; canonical T0 untouched; no exchange credentials, real orders, VPS or persistent runtime. No merge, branch promotion, AI Strategy execution, or live trading.
 - Next: inspect run `44227465459`; verify exact checked-out SHA, corrected `T0_PAPER_STORAGE_ISOLATION=PASS` evidence, job conclusion, and artifact digest/content. Then update this handoff with final run/job/artifact evidence.
 - Prohibited: do not change Ledger without a reproduced production defect and RED regression; do not deploy T0/T1 runtime, enable systemd/autostart, start AI Strategy, send live orders, merge, or promote branch.
+
+
+## 2026-11-18 — Corrected Core operational evidence gate: verified PASS
+
+**Scope and provenance**
+- Continued on existing branch `feature/core-operational-proof-20261112`; no branch or PR created.
+- Workflow: [44227465459](https://github.com/kenznguyen/btcusdt-telegram-signals2/actions/runs/44227465459), workflow `Core-First code-level operational proof`, event `push`, run conclusion `success`.
+- Exact workflow/source SHA: `ca7ad7f2a9e766ca56a02229e310fb611015feb2`; artifact's `core-operational-source-sha.txt` independently matches this SHA.
+- Job: `134544042128`, conclusion `success`; all 35 primary steps completed successfully.
+- Branch HEAD before this handoff update: `4246908c2b4d4fe83631e444af38fc3bff24b2b8`.
+- Artifact: `core-first-code-operational-proof-44227465459`, ID `14393542634`, size 17,722 bytes, GitHub digest `sha256:7b5b5df4090544bdf5e9a7d98adfccb5ecc9b1f116bb5dd28ebbcc03de6cf2c0`, expires 2026-11-25.
+- Artifact ZIP downloaded and inspected. `unzip -t` passed for all 30 files. Independently computed SHA-256 is `7b5b5df4090544bdf5e9a7d98adfccb5ecc9b1f116bb5dd28ebbcc03de6cf2c0`, matching GitHub's digest.
+
+**Evidence inspected**
+- `paper-storage-isolation-tests.log`: exactly 7 tests, all PASS; verdict file now reports `T0_PAPER_STORAGE_ISOLATION=PASS` and `T0_PAPER_STORAGE_ISOLATION_TESTS=7_PASS`. The previously stale six-test gate is corrected and independently verified.
+- `partial-fill-process-crash-tests.log`: both isolated tests PASS with exit status 0:
+  - after all partial-fill transaction writes but before COMMIT;
+  - immediately after Fill Journal insertion.
+  Verdict: `PARTIAL_FILL_PROCESS_CRASH=PASS`.
+- Both checkpoint-specific logs were inspected; each reports one test, `OK`, `CHECKPOINT_EXIT_STATUS=0`.
+- `core-operational-verdict.txt` confirms: T1/T2 Order Book V1 32 PASS; T2 HTTP reader 16 PASS; T0/Paper isolation 7 PASS; scoped reservation expiry 4 PASS; Core runtime preflight 5 PASS; runtime adapter 6 PASS; Bundle V1 validator and normalization/provider gates PASS; Core entry/Paper flow, DCA end-to-end, margin-budget guard (entry and DCA each within 1%), long/short position lifecycle and mixed-writer stress gates PASS.
+- Core end-to-end operational proof and all other workflow steps completed successfully; exact per-suite logs are retained in the artifact.
+- Safety artifact confirms `PAPER_ONLY=PASS`; verdict confirms `AI_EXECUTION_ENABLED=false`, `CANONICAL_T0_TOUCHED=false`, `EXCHANGE_CREDENTIALS_USED=false`, `REAL_ORDERS_SENT=false`, and `VPS_OR_PERSISTENT_RUNTIME_USED=false`.
+
+**Verdict**
+- PASS: corrected workflow gate, exact source provenance, artifact ZIP integrity and SHA-256, T0/Paper isolation 7/7, and both disposable SQLite process-crash checkpoints.
+- PASS: code-level Core/Paper operational contracts represented by this workflow and its artifact.
+- NOT VERIFIED: deployed T0 HTTP connectivity, deployed Common API configuration/connectivity, T1 deployed service interoperability, VPS/persistent runtime operation, and real power-loss/kernel-failure recovery. Disposable CI tests do not prove those runtime properties.
+- Overall Core First remains **PARTIAL / NOT VERIFIED for operational sign-off** until the independent review and separately authorized runtime/deployment evidence gates are resolved. This workflow is not permission to deploy or trade.
+
+**Next action**
+- Perform a read-only independent review of the Core First source and the full evidence artifact, checking risk-source-of-truth, Core signal/DCA lifecycle, ledger transaction boundaries, T0 isolation and API boundaries, runtime fail-closed behavior, and safety switches.
+- Then produce a concise acceptance-gap matrix for the remaining deployed T0/Common API/T1 interoperability evidence and seek explicit authorization before any runtime activity.
+
+**Prohibited / unchanged**
+- No production Ledger changes without a reproduced defect and RED regression.
+- No canonical T0 database access/modification, T0 Feeder startup, T1 deployment, VPS runtime, systemd/autostart, exchange connection, AI Strategy execution, real orders, merge, branch promotion, rebase, reset, cherry-pick, force push, or default-branch change.
+- `AI_EXECUTION_ENABLED=false`; paper-only safeguards remain mandatory.
