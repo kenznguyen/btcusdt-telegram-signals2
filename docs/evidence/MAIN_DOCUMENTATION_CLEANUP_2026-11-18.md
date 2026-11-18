@@ -160,3 +160,29 @@ The handoff update and this report are separate sequential commits on the same e
 - Corrected status: package/test dependency provenance on the inspected T0 branch **PASS (static GitHub readback)**; workflow path compatibility **PASS (static inspection)**; test execution, compile execution, Python 3.12 parity, manual dispatch history and artifact production **NOT VERIFIED**. The previous claim that the package was absent from the inspected T0 branch is withdrawn.
 - Scope remained read-only: no workflow dispatch, test/build execution, source/workflow edit or deletion, branch mutation, T0 runtime/database/Feeder/VPS/exchange/trading access.
 - Recommendation: retain the Stage I workflow as a valid manual branch-context gate, not an orphan. Do not dispatch without separate owner approval; if approved later, select the exact T0 branch ref and record the checked-out SHA, run, job results and artifact identity.
+
+
+## Cross-branch functional overlap audit — 2026-11-18
+
+- Scope: read-only static comparison of selected same-purpose application surfaces on `main` and `feature/t0-centralized-data-feeder-p1-20261101`. This is a targeted overlap pass, not a complete repository-wide symbol/dependency graph.
+- Refs: main HEAD at audit start `fb26b5cb8c7184c735a170e139bf0935367ce337`; T0 branch current HEAD readback `eb91528bab2b994f283dbe34cd7b0bcbfe406cb5`. The branch compare reports a heavily diverged history (main 122 commits behind; branch 3,437 commits ahead relative to this compare base); do not merge, rebase or bulk-delete based on path overlap.
+- **Confirmed functional overlap — Strategy Core logic:**
+  - Main `bot.py`, blob `9151c61165d5ce9bcfd90f800b4f56f016347d6f`, contains RSI/ADX indicators, M15 RSI-cross + closed-H1 ADX directional entry rules, TP, DCA and soft-stop logic; it is a signal-only Telegram bot surface.
+  - T0 branch `pipeline/core_strategy.py`, blob `c14e76f2cecb9f8aca54db263ded1ff17881cb24`, explicitly states that its rules mirror the signal-only `bot.py` implementation and implements RSI/ADX/Smart-DCA as a native Strategy Core producer.
+  - Assessment: strategy rule logic is duplicated/migrated across the two refs, but the files are not drop-in replacements. `bot.py` also owns legacy Telegram/reporting and signal delivery behavior; `core_strategy.py` emits a versioned strategy intent under the paper architecture. **Candidate for future consolidation only after Core First acceptance and parity evidence. Do not delete or rewrite either file in this cleanup.**
+- **Confirmed functional overlap — common API server:**
+  - Main `pipeline/api.py`, blob `b6f017f603fecd242ba47a83fff387f8594bca2e`, and branch `pipeline/api.py`, blob `d0217944bbfa9b864b0f259e0091daf9a989d180`, both implement the common read API and paper controls and expose overlapping route families including `/v1/system`, `/v1/candles`, `/v1/order-book`, `/v1/intelligence`, `/v1/decision`, `/v1/signals`, and paper endpoints. The branch variant imports/uses the dedicated `pipeline.core_signal` adapter and has different signal/paper event handling.
+  - Assessment: same module and service responsibility with divergent implementation state, not two independent files within one checkout. Keep branch-specific implementation and main-specific implementation isolated; no file replacement or cherry-pick implied.
+- **Same filename, different responsibility — not a duplicate:**
+  - Main `app.py`, blob `198c373b1008a2a53e74dd43d7c2c3f8f6343c83`, is the Telegram webhook/dashboard and GitHub Actions backtest-dispatch surface.
+  - Branch `app.py`, blob `760d6d8e8a8680160df97f030931fda256205072`, is a T0 feeder health/dashboard surface using `HealthEvaluator`. Do not treat these as interchangeable or delete one because the paths match.
+- **Related research/backtest, not proven duplicate:**
+  - Main `backtest.py`, blob `1ad441dbfd18498adefea3776b60a0797ac3367a`, imports `bot.py` and simulates its RSI/ADX/Smart-DCA entry, TP and DCA rules.
+  - Branch `backtest_rsi_percent_b_h1_adx.py`, blob `4765c53c358b1091a6619cad6d2b37a3f1751520`, is an independent RSI-%b / closed-H1 ADX research backtest with different entry/exit definitions and assumptions. It is not a drop-in duplicate of main `backtest.py`.
+- **No same-path T0 package duplication on main in the checked paths:** `market_data/api.py`, `market_data/storage.py`, `market_data/feeder.py`, `pipeline/core_strategy.py`, `pipeline/core_signal.py`, `pipeline/decision.py`, `paper_execution/risk_control.py` and `paper_execution/ledger.py` were not found on main at the checked ref, while their branch versions exist. This is absence on main, not authorization to copy or delete branch content.
+- Disposition:
+  - KEEP: both `app.py` files (different responsibilities); both backtest surfaces (different strategy definitions); branch T0 package and paper execution modules.
+  - REVIEW / consolidation candidate: `bot.py` Strategy Core rules versus `pipeline/core_strategy.py`; `pipeline/api.py` cross-ref implementation divergence.
+  - No file deleted, edited, renamed or moved. No tests, build, CI, workflow, runtime, T0 DB/Feeder/VPS, exchange or trading action performed.
+- Status: targeted static overlap inspection **PASS**; complete repository-wide functional duplicate detection **NOT VERIFIED**; runtime/test parity **NOT VERIFIED**.
+- Next: if a broader cleanup is approved, inventory remaining same-purpose modules by subsystem (signal, API, backtest, Android/dashboard, CI) and trace callers/tests before proposing any exact file retirement. Preserve Core First sequencing and do not merge the T0 branch wholesale.
