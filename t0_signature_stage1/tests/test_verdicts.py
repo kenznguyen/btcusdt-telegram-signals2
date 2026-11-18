@@ -229,6 +229,18 @@ class FixtureMatrixTests(unittest.TestCase):
         self.assertEqual(after, _test_state())
 
 
+    def test_evaluator_rejects_fixture_state_snapshot_transition(self):
+        import copy
+        from t0_signature_stage1.verdicts import build_fixture, evaluate_fixture_content
+        baseline, _mutated, _spec = build_fixture("A2.2-NV-01")
+        transitioned = copy.deepcopy(baseline)
+        transitioned["state_snapshot"]["policy_head"] = "unexpected-policy-head"
+        after, result = evaluate_fixture_content(baseline, transitioned, _test_state())
+        self.assertEqual((result.verdict, result.reason_code),
+                         ("INVALID", "FIXTURE_STATE_TRANSITION_FORBIDDEN"))
+        self.assertEqual(after, _test_state())
+        self.assertTrue(all(result.forbidden_transitions.values()))
+
     def test_evaluator_rejects_zero_semantic_mutations(self):
         from t0_signature_stage1.verdicts import build_fixture, evaluate_fixture_content
         baseline, _mutated, _spec = build_fixture("A2.2-NV-01")
