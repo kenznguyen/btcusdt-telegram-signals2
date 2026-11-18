@@ -1,3 +1,37 @@
+# CURRENT MAIN SNAPSHOT — 2026-11-18
+
+> This section is the authoritative restart point for work on `main`. The older handoff body below is preserved as historical continuity; its dated workstream labels and status tables are not automatically current.
+
+- Repository: `kenznguyen/btcusdt-telegram-signals2`
+- Branch: `main`
+- Main SHA immediately before this handoff update: `f796efd141ea92b46a645c566d1d0338b461c35f`
+- Documentation cleanup record: [MAIN_DOCUMENTATION_CLEANUP_2026-11-18.md](evidence/MAIN_DOCUMENTATION_CLEANUP_2026-11-18.md)
+- Cleanup commits on `main`: archive README `d8a5d036ee8fc4b456898f4824a561700140be5d`; root README `9fa3426a6d6c6e8576d3913ef6415c572f324bd5`; maintenance policy `3f998b30fd7d9e54ecb70799c4b59001d275de53`; docs index `48177f7a73c0f11ae56a466958207809f0fff904`; cleanup evidence `f796efd141ea92b46a645c566d1d0338b461c35f`.
+- Current guidance: root `README.md`, `docs/README.md`, and `docs/REPOSITORY_MAINTENANCE.md`.
+
+## Main-side technical state
+
+- The repository contains Telegram scanner/command code, backtesting/dashboard, Android source, T0 market-data code, pipeline and Core runtime. Presence in source does not establish deployment or runtime readiness.
+- `.github/workflows/signal-scan.yml` is manual-only (`workflow_dispatch`); scheduled scanning is disabled.
+- Main Core API quality projection has a critical statically confirmed ordering defect in `pipeline/api.py:quality_snapshot()`: local `core` is read before assignment. Review: `docs/evidence/MAIN_CORE_API_QUALITY_SNAPSHOT_STATIC_REVIEW_2026-11-18.md`. That review did not run tests; runtime failure is **NOT RUN**. This defect is not repaired by the documentation cleanup.
+- `feature/core-operational-proof-20261112` remains a separate, divergent Core First workstream. It is not merged into `main`; do not merge, reset, rebase, cherry-pick or copy its state without a separately approved reconciliation plan.
+- Do not describe Dual-Strategy Intelligence or independent AI LONG/SHORT capability as implemented on `main` without exact-main source and test evidence.
+
+## Safety and scope
+
+- Paper/simulated only; no live orders. Keep `AI_EXECUTION_ENABLED=false`.
+- T0 remains an independent data asset. No canonical database, Feeder, exchange, market-data sync, VPS/runtime, credential or deployment action was performed by this cleanup.
+- No source, test, workflow, branch, tag, historical evidence or artifact was deleted. No branch was created/deleted; no merge, rebase, reset, cherry-pick, force-push or history rewrite occurred.
+- Four documentation commits plus archive and evidence were written sequentially to existing `main`; exact commit IDs are listed above.
+- Tests/build/workflow dispatch: **NOT RUN**. Artifact: **NONE**. Independent review: **NOT PERFORMED**.
+- Documentation refresh and evidence preservation: **PASS**, pending final exact-SHA readback. Runtime/deployment/operational readiness: **NOT VERIFIED**.
+
+## Next authorized action
+
+Complete read-only GitHub readback of the cleanup paths and confirm the final `main` HEAD. Do not start Core API source repair, workflow execution, branch reconciliation, T0/runtime activity or trading without a separate explicit scope and approval.
+
+---
+
 # Five-Layer System — Session Handoff
 
 Last updated: 2026-11-05 (Asia/Ho_Chi_Minh)
