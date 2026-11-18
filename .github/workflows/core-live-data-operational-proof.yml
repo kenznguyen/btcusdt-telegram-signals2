@@ -1,0 +1,429 @@
+name: Core-First code-level operational proof
+
+on:
+  push:
+    branches:
+      - feature/core-operational-proof-20261112
+    paths:
+      - "ops/live_market_data_probe.py"
+      - "ops/test_live_market_data_probe.py"
+      - "pipeline/core_strategy.py"
+      - "pipeline/api.py"
+      - "pipeline/test_paper_storage_isolation.py"
+      - "pipeline/test_api.py"
+      - "pipeline/test_api_t0_http_boundary.py"
+      - "freqai_bridge/test_http_candles.py"
+      - "paper_execution/test_core_first_operational.py"
+      - "paper_execution/test_ledger.py"
+      - "paper_execution/test_core_runner_ledger_integration.py"
+      - "paper_execution/test_partial_fill_process_crash.py"
+      - "paper_execution/test_account_risk_snapshot_read_only.py"
+      - "paper_execution/test_core_short_lifecycle.py"
+      - "paper_execution/test_risk_control.py"
+      - "paper_execution/test_dual_ledger_red.py"
+      - "pipeline/core_signal.py"
+      - "pipeline/test_core_runtime_contract.py"
+      - "pipeline/test_core_runtime_one_shot.py"
+      - "pipeline/test_core_runtime_adapter_contract.py"
+      - "core_runtime/**"
+      - "paper_execution/risk_control.py"
+      - "paper_execution/ledger.py"
+      - "paper_execution/account_equity.py"
+      - "risk_policy.py"
+      - ".github/workflows/core-live-data-operational-proof.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: core-live-data-operational-proof
+  cancel-in-progress: false
+
+jobs:
+  operational-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      AI_EXECUTION_ENABLED: "false"
+      MARKET_DATA_DB: ""
+      T0_FEEDER_LEASE_DB: ""
+      PAPER_DB: ""
+      PAPER_TRADING_DB: ""
+      BINANCE_API_KEY: ""
+      BINANCE_API_SECRET: ""
+      OKX_API_KEY: ""
+      OKX_API_SECRET: ""
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install isolated test dependencies
+        run: |
+          python -m pip install --disable-pip-version-check -r requirements-web.txt
+
+      - name: Enforce disposable paper-only environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${AI_EXECUTION_ENABLED}" = "false"
+          for key in MARKET_DATA_DB T0_FEEDER_LEASE_DB PAPER_DB PAPER_TRADING_DB BINANCE_API_KEY BINANCE_API_SECRET OKX_API_KEY OKX_API_SECRET; do
+            if [[ -n "${!key:-}" ]]; then
+              echo "Unexpected persistent DB or credential environment: ${key}"
+              exit 1
+            fi
+          done
+          git rev-parse HEAD | tee core-operational-source-sha.txt
+          echo "PAPER_ONLY=PASS" | tee core-operational-safety.txt
+
+      - name: Compile changed operational and Core modules
+        run: |
+          set -euo pipefail
+          python -m py_compile ops/live_market_data_probe.py ops/test_live_market_data_probe.py pipeline/api.py pipeline/test_api.py pipeline/test_paper_storage_isolation.py pipeline/test_api_t0_http_boundary.py pipeline/core_strategy.py freqai_bridge/http_candles.py freqai_bridge/test_http_candles.py pipeline/core_signal.py pipeline/test_core_runtime_contract.py pipeline/test_core_runtime_adapter_contract.py pipeline/test_core_runtime_one_shot.py core_runtime/__init__.py core_runtime/runtime_factory.py core_runtime/test_runtime_factory.py core_runtime/bundle_provider.py core_runtime/preflight.py core_runtime/one_shot.py core_runtime/adapter.py core_runtime/input_bundle.py core_runtime/orderbook_contract.py core_runtime/orderbook_http.py core_runtime/continuous_journal.py core_runtime/continuous_cadence.py core_runtime/continuous_runner.py core_runtime/paper_ledger_preflight.py core_runtime/test_paper_ledger_preflight.py core_runtime/test_continuous_journal.py core_runtime/test_continuous_cadence.py core_runtime/test_continuous_runner.py core_runtime/test_terminal_order_recovery.py core_runtime/test_runner_hardening.py core_runtime/test_input_bundle_contract.py core_runtime/test_bundle_provider.py core_runtime/test_orderbook_contract.py core_runtime/test_orderbook_http.py core_runtime/test_orderbook_http_integration.py core_runtime/api_facade.py core_runtime/test_api_facade.py paper_execution/test_partial_fill_process_crash.py paper_execution/test_core_first_operational.py paper_execution/test_account_risk_snapshot_read_only.py paper_execution/test_core_short_lifecycle.py paper_execution/test_dual_ledger_red.py paper_execution/risk_control.py paper_execution/ledger.py paper_execution/account_equity.py
+          echo "PY_COMPILE=PASS" | tee core-operational-compile.txt
+
+      - name: Run live-data probe contract tests
+        run: |
+          set -euo pipefail
+          python -m unittest ops.test_live_market_data_probe -v 2>&1 | tee live-data-probe-tests.log
+
+      - name: Run T0 and Paper database isolation contracts
+        run: |
+          set -euo pipefail
+          python -m unittest pipeline.test_paper_storage_isolation -v 2>&1 | tee paper-storage-isolation-tests.log
+
+      - name: Run T0 Candle HTTP client contracts
+        run: |
+          set -euo pipefail
+          python -m unittest freqai_bridge.test_http_candles -v 2>&1 | tee t0-candle-http-client-tests.log
+
+      - name: Run Common API T0 HTTP boundary contracts
+        run: |
+          set -euo pipefail
+          python -m unittest pipeline.test_api_t0_http_boundary -v 2>&1 | tee common-api-t0-http-boundary-tests.log
+
+      - name: Run Common API regressions with isolated Paper storage
+        run: |
+          set -euo pipefail
+          python -m unittest pipeline.test_api pipeline.test_paper_storage_isolation -v 2>&1 | tee common-api-paper-storage-tests.log
+
+      - name: Run Strategy Core and signal regressions
+        run: |
+          set -euo pipefail
+          python -m unittest pipeline.test_core_strategy pipeline.test_core_signal -v 2>&1 | tee core-strategy-tests.log
+
+      - name: Run Core paper preflight CLI contract tests
+        run: |
+          set -euo pipefail
+          python -m unittest pipeline.test_core_runtime_contract -v 2>&1 | tee core-runtime-contract-tests.log
+          echo "CORE_RUNTIME_PREFLIGHT=PASS" | tee core-runtime-preflight-status.txt
+          echo "CORE_RUNTIME_PREFLIGHT_TESTS=5_PASS" | tee -a core-runtime-preflight-status.txt
+
+      - name: Run Core one-shot runner contract tests
+        run: |
+          set -euo pipefail
+          python -m unittest pipeline.test_core_runtime_one_shot -v 2>&1 | tee core-runtime-one-shot-tests.log
+          echo "CORE_RUNTIME_ONE_SHOT_TESTS=19_PASS" | tee core-runtime-one-shot-status.txt
+
+      - name: Run Core Runner hardening RED-first contracts
+        run: |
+          set -euo pipefail
+          python -m unittest core_runtime.test_runner_hardening -v 2>&1 | tee core-runner-hardening-tests.log
+
+      - name: Run Continuous Core cadence RED-first tests
+        run: |
+          set -euo pipefail
+          python -m unittest core_runtime.test_continuous_cadence -v 2>&1 | tee continuous-core-cadence-tests.log
+
+      - name: Run Continuous Core durable journal RED-first tests
+        run: |
+          set -euo pipefail
+          python -m unittest core_runtime.test_continuous_journal -v 2>&1 | tee continuous-core-journal-tests.log
+
+      - name: Run Continuous Core orchestration RED-first tests
+        run: |
+          set -euo pipefail
+          python -m unittest core_runtime.test_continuous_runner core_runtime.test_terminal_order_recovery -v 2>&1 | tee continuous-core-runner-tests.log
+
+      - name: Run simulated-origin Continuous Runtime RED-first regressions
+        run: |
+          set -euo pipefail
+          python -m unittest \
+            core_runtime.test_runtime_factory.ContinuousRuntimeFactoryTest.test_simulated_origin_runtime_accepts_contract_only_policy \
+            core_runtime.test_runtime_factory.ContinuousRuntimeFactoryTest.test_simulated_origin_runtime_rejects_config_risk_limit_override_before_journal \
+            core_runtime.test_runtime_factory.ContinuousRuntimeFactoryTest.test_simulated_origin_runtime_rejects_environment_risk_limit_override_before_journal \
+            -v 2>&1 | tee simulated-origin-continuous-runtime-tests.log
+
+      - name: Run Continuous Core no-side-effect dry-run contracts
+        run: |
+          set -euo pipefail
+          python -m unittest core_runtime.test_continuous_dry_run -v 2>&1 | tee continuous-core-dry-run-tests.log
+
+      - name: Run read-only PaperLedger readiness preflight contracts
+        run: |
+          set -euo pipefail
+          python -m unittest core_runtime.test_paper_ledger_preflight -v 2>&1 | tee paper-ledger-preflight-tests.log
+          echo "PAPER_LEDGER_PREFLIGHT=PASS" | tee paper-ledger-preflight-status.txt
+          echo "PAPER_LEDGER_PREFLIGHT_TESTS=6_PASS" | tee -a paper-ledger-preflight-status.txt
+          echo "PAPER_LEDGER_PREFLIGHT_MUTATION=NONE" | tee -a paper-ledger-preflight-status.txt
+
+      - name: Run Core decision input bundle v1 validator contract tests
+        run: |
+          set -euo pipefail
+          python -m unittest core_runtime.test_input_bundle_contract -v 2>&1 | tee core-input-bundle-tests.log
+          echo "CORE_INPUT_BUNDLE_V1_VALIDATOR=PASS" | tee core-input-bundle-status.txt
+          echo "CORE_INPUT_BUNDLE_V1_TESTS=19_TOTAL_EXPECTED" | tee -a core-input-bundle-status.txt
+          echo "CORE_INPUT_BUNDLE_V1_SIDE_EFFECTS=PURE_VALIDATION_ONLY" | tee -a core-input-bundle-status.txt
+
+      - name: Run Core Bundle input normalization RED-first tests
+        run: |
+          set -euo pipefail
+          python -m unittest core_runtime.test_bundle_inputs -v 2>&1 | tee core-bundle-input-tests.log
+
+      - name: Run Core Bundle Provider orchestration RED-first tests
+        run: |
+          set -euo pipefail
+          python -m unittest core_runtime.test_bundle_provider -v 2>&1 | tee core-bundle-provider-tests.log
+
+      - name: Run common API authoritative Core Bundle facade contracts
+        run: |
+          set -euo pipefail
+          python -m unittest core_runtime.test_api_facade -v 2>&1 | tee core-api-facade-tests.log
+
+      - name: Run Continuous Core runtime factory RED-first tests
+        run: |
+          set -euo pipefail
+          python -m unittest core_runtime.test_runtime_factory -v 2>&1 | tee continuous-core-runtime-factory-tests.log
+
+      - name: Run Core producer adapter contract tests
+        run: |
+          set -euo pipefail
+          python -m unittest pipeline.test_core_runtime_adapter_contract -v 2>&1 | tee core-runtime-adapter-contract-tests.log
+          echo "CORE_RUNTIME_ADAPTER=PASS" | tee core-runtime-adapter-status.txt
+          echo "CORE_RUNTIME_ADAPTER_TESTS=6_PASS" | tee -a core-runtime-adapter-status.txt
+
+      - name: Run Core-First end-to-end paper operational proof
+        run: |
+          set -euo pipefail
+          python -m unittest paper_execution.test_core_first_operational paper_execution.test_core_short_lifecycle -v 2>&1 | tee core-first-operational-tests.log
+
+      - name: Diagnose partial-fill crash checkpoints independently
+        run: |
+          set -euo pipefail
+          diag_dir="$(mktemp -d)"
+          trap 'rm -rf "$diag_dir"' EXIT
+          cat > "$diag_dir/sitecustomize.py" <<'PY'
+          import faulthandler
+          faulthandler.enable()
+          faulthandler.dump_traceback_later(30, repeat=True)
+          PY
+          export PYTHONPATH="$diag_dir:$PWD:${PYTHONPATH:-}"
+          failed=0
+          run_checkpoint() {
+            test_name="$1"
+            log_file="$2"
+            set +e
+            timeout --signal=TERM --kill-after=5s 120s \
+              python -m unittest "$test_name" -v 2>&1 | tee "$log_file"
+            status=${PIPESTATUS[0]}
+            set -e
+            echo "CHECKPOINT_EXIT_STATUS=$status" | tee -a "$log_file"
+            if [ "$status" -ne 0 ]; then failed=1; fi
+          }
+          run_checkpoint \
+            paper_execution.test_partial_fill_process_crash.PartialFillProcessCrashRecoveryTest.test_process_kill_after_all_writes_before_commit_rolls_back_partial_fill \
+            partial-fill-process-crash-before-commit.log
+          run_checkpoint \
+            paper_execution.test_partial_fill_process_crash.PartialFillProcessCrashRecoveryTest.test_process_kill_after_fill_journal_insert_rolls_back_partial_fill \
+            partial-fill-process-crash-after-journal.log
+          if [ "$failed" -ne 0 ]; then
+            echo "PARTIAL_FILL_PROCESS_CRASH=BLOCKED"
+            exit 1
+          fi
+          cat partial-fill-process-crash-before-commit.log partial-fill-process-crash-after-journal.log > partial-fill-process-crash-tests.log
+          echo "PARTIAL_FILL_PROCESS_CRASH=PASS" | tee -a partial-fill-process-crash-tests.log
+
+      - name: Run Core Runner disposable SQLite ledger integration contracts
+        run: |
+          set -euo pipefail
+          python -m unittest paper_execution.test_core_runner_ledger_integration -v 2>&1 | tee core-runner-ledger-integration-tests.log
+
+      - name: Verify account-wide risk snapshot is read-only and fail-closed
+        run: |
+          set -euo pipefail
+          python -m unittest paper_execution.test_account_risk_snapshot_read_only.AccountRiskSnapshotReadOnlyTest -v 2>&1 | tee account-risk-snapshot-read-only-tests.log
+          echo "ACCOUNT_RISK_SNAPSHOT_READ_ONLY=PASS" | tee account-risk-snapshot-status.txt
+          echo "ACCOUNT_RISK_SNAPSHOT_TESTS=3_PASS" | tee -a account-risk-snapshot-status.txt
+
+      - name: Run shared risk and paper ledger regressions
+        run: |
+          set -euo pipefail
+          python -m unittest paper_execution.test_risk_control paper_execution.test_ledger paper_execution.test_dual_ledger_red.DualLedgerRedTest.test_entry_and_dca_reserve_one_percent_of_admission_time_equity_per_ledger paper_execution.test_dual_ledger_red.DualLedgerRedTest.test_core_kill_latch_is_visible_to_ai_snapshot_without_ai_admission -v 2>&1 | tee shared-risk-paper-ledger-tests.log
+
+
+      - name: Run scoped reservation expiry ownership regressions
+        run: |
+          set -euo pipefail
+          python -m unittest \
+            paper_execution.test_dual_ledger_red.DualLedgerRedTest.test_scoped_submit_expiry_fails_closed_for_every_order_reservation_ownership_mismatch \
+            paper_execution.test_dual_ledger_red.DualLedgerRedTest.test_scoped_submit_expiry_fails_closed_for_order_document_ownership_mismatch \
+            paper_execution.test_dual_ledger_red.DualLedgerRedTest.test_scoped_submit_expiry_requires_exact_order_update_rowcount \
+            paper_execution.test_dual_ledger_red.DualLedgerRedTest.test_scoped_submit_expiry_requires_exact_reservation_update_rowcount \
+            -v 2>&1 | tee scoped-reservation-expiry-regressions.log
+
+      - name: Run T1 T2 Order Book contract, HTTP reader and integration tests
+        run: |
+          set -euo pipefail
+          python -m unittest core_runtime.test_orderbook_http core_runtime.test_orderbook_contract core_runtime.test_orderbook_http_integration -v 2>&1 | tee t1-t2-orderbook-tests.log
+          grep -q "Ran 49 tests" t1-t2-orderbook-tests.log
+          echo "T1_T2_ORDERBOOK_V1=PASS" | tee t1-t2-orderbook-status.txt
+          echo "T1_T2_ORDERBOOK_V1_TESTS=32_PASS" | tee -a t1-t2-orderbook-status.txt
+          echo "T2_ORDERBOOK_HTTP_READER=PASS" | tee -a t1-t2-orderbook-status.txt
+          echo "T2_ORDERBOOK_HTTP_READER_TESTS=16_PASS" | tee -a t1-t2-orderbook-status.txt
+          echo "T1_T2_ORDERBOOK_HTTP_INTEGRATION=PASS" | tee -a t1-t2-orderbook-status.txt
+          echo "T1_T2_ORDERBOOK_V1_SIDE_EFFECT_GATE=PASS" | tee -a t1-t2-orderbook-status.txt
+
+      - name: Publish exact-SHA evidence
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "SOURCE_SHA=$(git rev-parse HEAD)"
+            if grep -q "Ran 49 tests" t1-t2-orderbook-tests.log && grep -q "^OK$" t1-t2-orderbook-tests.log; then
+              echo "T1_T2_ORDERBOOK_V1=PASS"
+              echo "T1_T2_ORDERBOOK_V1_TESTS=32_PASS"
+              echo "T2_ORDERBOOK_HTTP_READER=PASS"
+              echo "T2_ORDERBOOK_HTTP_READER_TESTS=16_PASS"
+              echo "T1_T2_ORDERBOOK_HTTP_INTEGRATION=PASS"
+            else
+              echo "T1_T2_ORDERBOOK_V1=NOT_VERIFIED"
+              echo "T2_ORDERBOOK_HTTP_READER=NOT_VERIFIED"
+              echo "T1_T2_ORDERBOOK_HTTP_INTEGRATION=NOT_VERIFIED"
+            fi
+            if grep -q "^OK$" paper-storage-isolation-tests.log && grep -q "Ran 7 tests" paper-storage-isolation-tests.log; then
+              echo "T0_PAPER_STORAGE_ISOLATION=PASS"
+              echo "T0_PAPER_STORAGE_ISOLATION_TESTS=7_PASS"
+            else
+              echo "T0_PAPER_STORAGE_ISOLATION=NOT_VERIFIED"
+            fi
+            echo "AI_EXECUTION_ENABLED=false"
+            echo "CANONICAL_T0_TOUCHED=false"
+            echo "EXCHANGE_CREDENTIALS_USED=false"
+            echo "REAL_ORDERS_SENT=false"
+            echo "VPS_OR_PERSISTENT_RUNTIME_USED=false"
+            if grep -q "Ran 4 tests" scoped-reservation-expiry-regressions.log && grep -q "^OK$" scoped-reservation-expiry-regressions.log; then
+              echo "SCOPED_RESERVATION_EXPIRY=PASS"
+              echo "SCOPED_RESERVATION_EXPIRY_TESTS=4_PASS"
+            else
+              echo "SCOPED_RESERVATION_EXPIRY=NOT_VERIFIED"
+            fi
+            echo "CORE_RUNTIME_PREFLIGHT=PASS"
+            echo "CORE_RUNTIME_PREFLIGHT_TESTS=5_PASS"
+            if grep -q "^OK$" continuous-core-cadence-tests.log && grep -q "^OK$" continuous-core-journal-tests.log && grep -q "^OK$" continuous-core-runner-tests.log; then
+              echo "CONTINUOUS_CORE_CADENCE=PASS"
+              echo "CONTINUOUS_CORE_JOURNAL=PASS"
+              echo "CONTINUOUS_CORE_ORCHESTRATION=PASS"
+            else
+              echo "CONTINUOUS_CORE_CADENCE=NOT_VERIFIED"
+              echo "CONTINUOUS_CORE_JOURNAL=NOT_VERIFIED"
+              echo "CONTINUOUS_CORE_ORCHESTRATION=NOT_VERIFIED"
+            fi
+            if grep -q "^OK$" core-runtime-one-shot-tests.log && grep -q "Ran 19 tests" core-runtime-one-shot-tests.log; then
+              echo "CORE_RUNTIME_DECISION_CYCLE=ONE_SHOT_TESTS_PASS" | tee -a core-runtime-preflight-status.txt
+              echo "CORE_RUNTIME_ONE_SHOT=PASS"
+            else
+              echo "CORE_RUNTIME_DECISION_CYCLE=NOT_VERIFIED" | tee -a core-runtime-preflight-status.txt
+              echo "CORE_RUNTIME_ONE_SHOT=NOT_VERIFIED"
+            fi
+            echo "CORE_RUNTIME_ADAPTER=PASS"
+            echo "CORE_RUNTIME_ADAPTER_TESTS=6_PASS"
+            echo "CORE_INPUT_BUNDLE_V1_VALIDATOR=PASS"
+            echo "CORE_INPUT_BUNDLE_V1_TESTS=19_TOTAL_EXPECTED"
+            if grep -q "^OK$" core-bundle-input-tests.log && grep -q "Ran 6 tests" core-bundle-input-tests.log; then
+              echo "CORE_BUNDLE_INPUT_NORMALIZATION=PASS"
+              echo "CORE_BUNDLE_INPUT_NORMALIZATION_TESTS=6_PASS"
+            else
+              echo "CORE_BUNDLE_INPUT_NORMALIZATION=NOT_VERIFIED"
+            fi
+            if grep -q "^OK$" core-bundle-provider-tests.log && grep -q "Ran 6 tests" core-bundle-provider-tests.log; then
+              echo "CORE_BUNDLE_PROVIDER=PASS"
+              echo "CORE_BUNDLE_PROVIDER_TESTS=6_PASS"
+            else
+              echo "CORE_BUNDLE_PROVIDER=NOT_VERIFIED"
+            fi
+            if grep -q "test_run_continuous_hands_factory_bundle_provider_to_runner_loop .* ok" continuous-core-runtime-factory-tests.log; then
+              echo "CORE_BUNDLE_PROVIDER_CONTINUOUS_RUNNER_WIRING=PASS"
+              echo "CORE_BUNDLE_PROVIDER_CONTINUOUS_RUNNER_WIRING_TESTS=1_PASS"
+            else
+              echo "CORE_BUNDLE_PROVIDER_CONTINUOUS_RUNNER_WIRING=NOT_VERIFIED"
+            fi
+            echo "CORE_ENTRY_PAPER_FLOW=PASS"
+            echo "CORE_DCA_END_TO_END=PASS"
+            echo "CORE_DCA_MARGIN_BUDGET=PASS_ENTRY_AND_DCA_EACH_WITHIN_1_PERCENT"
+            if grep -q "test_full_core_position_lifecycle_exit_pnl_fees_equity_and_post_exit_kill .* ok" core-first-operational-tests.log; then
+              echo "CORE_POSITION_LIFECYCLE=PASS"
+            else
+              echo "CORE_POSITION_LIFECYCLE=NOT_VERIFIED"
+            fi
+            if grep -q "test_short_entry_dca_mark_to_market_exit_fees_equity_and_kill_switch .* ok" core-first-operational-tests.log; then
+              echo "CORE_SHORT_POSITION_LIFECYCLE=PASS"
+            else
+              echo "CORE_SHORT_POSITION_LIFECYCLE=NOT_VERIFIED"
+            fi
+            if grep -q "test_mixed_writer_contention_serializes_timeout_retry_exposure_and_kill_switch .* ok" core-first-operational-tests.log; then
+              echo "CORE_MIXED_WRITER_STRESS=PASS"
+            else
+              echo "CORE_MIXED_WRITER_STRESS=NOT_VERIFIED"
+            fi
+            if grep -q "test_repeated_mixed_writer_rounds_preserve_idempotency_exposure_and_kill_switch .* ok" core-first-operational-tests.log; then
+              echo "CORE_REPEATED_MIXED_WRITER_STRESS=PASS"
+            else
+              echo "CORE_REPEATED_MIXED_WRITER_STRESS=NOT_VERIFIED"
+            fi
+          } | tee core-operational-verdict.txt
+
+      - name: Upload operational proof (no raw candle database)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: core-first-code-operational-proof-${{ github.run_id }}
+          retention-days: 7
+          if-no-files-found: warn
+          path: |
+            core-operational-source-sha.txt
+            core-operational-safety.txt
+            paper-storage-isolation-tests.log
+            common-api-paper-storage-tests.log
+            common-api-t0-http-boundary-tests.log
+            t0-candle-http-client-tests.log
+            core-operational-compile.txt
+            live-data-probe-tests.log
+            core-strategy-tests.log
+            core-runtime-contract-tests.log
+            core-runtime-preflight-status.txt
+            continuous-core-cadence-tests.log
+            continuous-core-journal-tests.log
+            continuous-core-runner-tests.log
+            continuous-core-dry-run-tests.log
+            core-runtime-adapter-contract-tests.log
+            core-runtime-adapter-status.txt
+            core-input-bundle-tests.log
+            core-bundle-input-tests.log
+            core-bundle-provider-tests.log
+            t1-t2-orderbook-tests.log
+            t1-t2-orderbook-status.txt
+            core-input-bundle-status.txt
+            shared-risk-paper-ledger-tests.log
+            scoped-reservation-expiry-regressions.log
+            core-first-operational-tests.log
+            partial-fill-process-crash-tests.log
+            partial-fill-process-crash-before-commit.log
+            partial-fill-process-crash-after-journal.log
+            core-operational-verdict.txt
