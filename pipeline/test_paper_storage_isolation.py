@@ -53,6 +53,10 @@ class PaperStorageIsolationTest(unittest.TestCase):
         with self.configured():
             self.assertEqual(Path(api.paper_db_path()), self.paper.resolve())
 
+    def test_paper_database_does_not_require_t0_local_path_when_http_is_used(self):
+        with self.configured(MARKET_DATA_DB=""):
+            self.assertEqual(Path(api.paper_db_path()), self.paper.resolve())
+
     def test_control_budget_is_written_only_to_the_paper_database(self):
         self.paper.touch()
         with self.configured():
