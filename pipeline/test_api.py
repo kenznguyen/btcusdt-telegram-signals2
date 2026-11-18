@@ -128,6 +128,30 @@ class FiveLayerApiTest(unittest.TestCase):
         self.books.start()
         self.addCleanup(self.books.stop)
 
+    def test_kill_reset_signing_key_loader_rejects_path_swap_to_symlink(self):
+        key_path = self.root / "race-signing.key"
+        target_path = self.root / "attacker-signing.key"
+        key_path.write_bytes(b"trusted-signing-key-material-32-bytes")
+        target_path.write_bytes(b"attacker-signing-key-material-32-bytes")
+        key_path.chmod(0o600)
+        target_path.chmod(0o600)
+        real_open = os.open
+
+        def replace_path_before_open(path, flags, *args, **kwargs):
+            Path(path).unlink()
+            Path(path).symlink_to(target_path)
+            return real_open(path, flags, *args, **kwargs)
+
+        with patch.object(
+            kill_reset_service, "KILL_RESET_SIGNING_KEY_PATH", key_path
+        ), patch.object(
+            kill_reset_service.os, "open", side_effect=replace_path_before_open
+        ):
+            with self.assertRaisesRegex(
+                ValueError, "KILL_RESET_SIGNING_KEY_UNAVAILABLE"
+            ):
+                kill_reset_service._load_signing_key()
+
     def start_kill_reset_service(self):
         ready = multiprocessing.Event()
         process = multiprocessing.Process(
