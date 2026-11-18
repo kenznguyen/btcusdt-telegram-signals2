@@ -7,7 +7,7 @@ import copy
 import hashlib
 from typing import Mapping
 
-from .primitives import canonicalize
+from .primitives import canonicalize, parse_canonical_json, evidence_object_digest
 
 
 PROFILE_ID = "T0-CHECKPOINT-ISSUER-SIGNATURE-PROFILE-V2"
@@ -183,12 +183,12 @@ def _make_baseline(name: str, *, legacy_statement: bool = False, path_a_enabled:
             "schema_version": "T0-CHECKPOINT-V1",
             "canonical_bytes": '{"checkpoint":"synthetic","sequence":"0"}',
             "byte_length": 42,
-            "digest": hashlib.sha256(b'{"checkpoint":"synthetic","sequence":"0"}').hexdigest(),
+            "digest": evidence_object_digest(b'{"checkpoint":"synthetic","sequence":"0"}'),
         },
-        "descriptor": dict(binding),
-        "statement": dict(statement_binding, purpose="T0_CHECKPOINT_ISSUER_ATTESTATION",
+        "descriptor": dict(binding, object_id="A2_2_CURRENT_OBJECT"),
+        "statement": dict(statement_binding, object_id="A2_2_CURRENT_OBJECT", purpose="T0_CHECKPOINT_ISSUER_ATTESTATION",
                           signer_id="SYNTHETIC-TEST-SIGNER", signer_role="T0_CHECKPOINT_ISSUER"),
-        "envelope": dict(binding, signature_bytes="MOCK-NOT-CRYPTOGRAPHIC", envelope_digest="f" * 64),
+        "envelope": dict(binding, object_id="A2_2_CURRENT_OBJECT", signature_bytes="MOCK-NOT-CRYPTOGRAPHIC", envelope_digest="f" * 64),
         "test_signer": {"signer_id": "SYNTHETIC-TEST-SIGNER", "role": "T0_CHECKPOINT_ISSUER",
                         "classification": MOCK_LABEL},
         "policy": {"allowed_purposes": ["T0_CHECKPOINT_ISSUER_ATTESTATION"]},
@@ -353,6 +353,11 @@ def derive_stage1_facts(fixture: Mapping[str, object]) -> dict[str, bool]:
         or statement.get("signature_profile_version") != selected_version
     )
     facts = {
+        "object_binding_mismatch": (
+            fixture.get("evidence_object", {}).get("object_id") != descriptor.get("object_id")
+            or descriptor.get("object_id") != statement.get("object_id")
+            or descriptor.get("object_id") != envelope.get("object_id")
+        ),
         "profile_downgrade_forbidden": request.get("allow_automatic_fallback") is True
             and (binding_mismatch or statement_profile_mismatch),
         "profile_unknown": selected_id not in {PROFILE_ID, A1_PROFILE_ID, LEGACY_PROFILE_ID},
@@ -465,8 +470,33 @@ def evaluate_fixture_content(
                                     dimension_results={}, state_s0=state, state_s1=state,
                                     forbidden_transitions={key: True for key in _FORBIDDEN_TRANSITIONS})
     try:
+        evidence = baseline.get("evidence_object", {})
+        if not isinstance(evidence, Mapping):
+            raise ValueError("evidence object must be a mapping")
+        raw = evidence.get("canonical_bytes")
+        if not isinstance(raw, str):
+            raise ValueError("canonical evidence bytes missing")
+        raw_bytes = raw.encode("utf-8", "strict")
+        parse_canonical_json(raw_bytes)
+        if evidence.get("byte_length") != len(raw_bytes):
+            raise ValueError("evidence byte length mismatch")
+        if evidence.get("digest") != evidence_object_digest(raw_bytes):
+            raise ValueError("evidence object digest mismatch")
+        if not evidence.get("object_id") or not evidence.get("object_type") or not evidence.get("schema_version"):
+            raise ValueError("evidence object identity/schema incomplete")
+        snapshot = baseline.get("state_snapshot", {})
+        if not isinstance(snapshot, Mapping) or (
+            tuple(snapshot.get("trust_roots", ())) != state.trust_roots
+            or snapshot.get("policy_head") != state.policy_head
+            or tuple(snapshot.get("anchor_head", ())) != state.anchor_head
+            or tuple(snapshot.get("checkpoint_head", ())) != state.checkpoint_head
+            or snapshot.get("bootstrap_sequence") != state.bootstrap_sequence
+        ):
+            raise ValueError("fixture S0 state snapshot mismatch")
         facts = derive_stage1_facts(mutated)
         result = evaluate_stage1_facts(facts)
+        if facts.get("object_binding_mismatch"):
+            result = FixtureResult("INVALID", "OBJECT_BINDING_MISMATCH", "Object binding INVALID")
         dimensions = _dimension_results_for(mutated, facts, result)
         result = FixtureResult(result.verdict, result.reason_code, result.dimension_result,
                                state_advanced=False, dimension_results=dimensions,
