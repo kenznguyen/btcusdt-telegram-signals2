@@ -2254,3 +2254,20 @@ This follow-up supersedes the earlier pending items for persistent preview artif
 - Reconcile the two workflow runs and inspect the actual partial-fill crash test logs.
 - If the trigger test fails, fix the test harness or a proven transaction defect with a new RED/GREEN cycle; do not weaken assertions.
 - After the crash test passes, perform read-only review and update Core First sign-off status. T1 deployment/interoperability remains separately NOT VERIFIED.
+
+## 2026-11-18 — Partial-fill process-crash CI investigation (BLOCKED)
+
+- Detailed evidence report: `docs/evidence/CORE_FIRST_PARTIAL_FILL_CRASH_INVESTIGATION_2026-11-18.md`.
+- Evidence report commit: `8fba1a420367ee2fcdb42f5c1277fbbf31f4500f` on existing branch `feature/core-operational-proof-20261112`.
+- Earlier run `44210233295`, checked-out SHA `56eea1be3126d01ad691e0931787cb20dae9f73f`, job `134486415005`: preceding Core PAPER E2E suite 50/50 PASS; crash test `test_process_kill_after_all_writes_before_commit_rolls_back_partial_fill` reported FAIL; remaining crash test did not complete before workflow cancellation.
+- Earlier artifact: ID `14386797004`, 13,268 bytes, SHA-256 `1afb0acc6b9818577373957df6e777a2ea05cebf3ed82861d26310244d0f43b9`.
+- Corrected-trigger run `44210302780`, checked-out SHA `ddaf2c3e5fcd957f228ae90300858679d45baf85`, job `134495571303`: crash test emitted only its first test-start line before the 20-minute job timeout/cancellation; no traceback or terminal test result.
+- Corrected-run artifact: ID `14388426412`, 13,232 bytes, SHA-256 `438dd48aa0ceb76567f1d5bc4aa2c32e8082f6d37c3e1216cac6102cc921c6ab`.
+- Verdict: actual partial-fill process-crash atomicity **BLOCKED / NOT VERIFIED**. The available evidence does not establish a PaperLedger defect; test harness/process-control root cause remains undetermined.
+- No production ledger source was changed. No T0/T1 runtime, canonical DB, VPS, exchange credentials or real orders were used. `AI_EXECUTION_ENABLED=false`.
+
+**Next**
+- Isolate each checkpoint test in a bounded CI diagnostic invocation with process timeout, faulthandler, worker exit diagnostics, and separate invocations.
+- Determine whether the checkpoint event is reached, whether the writer is terminated, and where the parent process blocks.
+- Fix only a demonstrated test-harness defect; if a ledger atomicity defect is reproduced, add a RED regression before changing production source.
+- Keep Core First PARTIAL / NOT VERIFIED; T1 deployed interoperability remains separately NOT VERIFIED. No merge, branch promotion, deployment, AI execution, or live trading.
