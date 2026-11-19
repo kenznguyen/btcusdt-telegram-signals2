@@ -3733,3 +3733,17 @@ These findings make the current stop condition explicit: completing Trusted Admi
 - Verdict: static source/workflow inventory PASS (static only); latest exact-HEAD CI/artifacts NOT VERIFIED; current runtime NOT VERIFIED; canonical data/OOS BLOCKED; production NOT CERTIFIED. T0 remains independent/protected; T1 inactive; paper-only; `AI_EXECUTION_ENABLED=false`.
 - No source, tests, workflows, dependencies, schema, canonical data, runtime, VPS, deployment, exchange or trading behavior changed. One documentation evidence file and this handoff entry were committed on the existing branch only.
 - Next: preserve the branch; resolve source/path divergence against current main before any integration decision. Any new CI execution, VPS/runtime inspection, data collection or export requires its own bounded approval.
+
+## 2026-11-19 — F4 bounded TDD RED preparation
+
+- Owner approved the bounded F4 TDD RED phase only: F4-R1 shared Account/Risk Contract authority, F4-R2 Kill Switch fail-closed state, F4-R3 atomic authoritative reset readiness, and Core-First AI deny-boundary regression tests. GREEN/source repair requires a separate approval after RED evidence review.
+- Preserved existing branch `feature/t0-centralized-data-feeder-p1-20261101`; parent/source HEAD before this increment: `8623d1076d6b821091ff9da0d84033f48fd8ba7a`.
+- Test-only commit: `83c687d2615f6f51696e9af0004279c859c88bae`.
+- Added `paper_execution/test_f4_risk_red.py`, blob SHA `5f0fe7af4677047f789b761d62a07389436bae72`: conflicting per-strategy risk limits; missing Kill Switch table; malformed unlatched Kill Switch state; caller-supplied `ready=True` attempting reset without account readiness.
+- Extended `paper_execution/test_dual_strategy_api_red.py`, blob SHA `70eb419280717aa04560267e80716920844f8de1`: AI candidate is denied before the legacy MANUAL-ledger fallback when Dual Ledger is not ready and `AI_EXECUTION_ENABLED=false`.
+- Existing isolated workflow inspected: `.github/workflows/dual-ledger-red.yml`, blob SHA `8b1620482dabd59d46e6f3f4e7ad66c178e520e8`. It runs the full `paper_execution` test discovery and uploads evidence. No workflow run, job logs, or artifact were established for the new exact SHA; combined commit status is empty. The workflow lookup returned no PR-associated runs; push/workflow-dispatch execution remains NOT VERIFIED.
+- Syntax compilation was verified for the new `test_f4_risk_red.py` module only. RED test execution and failure signatures are NOT VERIFIED. The AI test module was not independently compiled or executed in this increment.
+- No production source, workflow, dependency, schema, database, canonical data, runtime, VPS, exchange or trading behavior changed. No live or paper orders were created.
+- Status: RED test source committed; test syntax PARTIAL PASS; RED execution NOT VERIFIED; F4 implementation BLOCKED pending observed RED evidence and separate GREEN approval. Paper-only remains in force; `AI_EXECUTION_ENABLED=false`.
+- Next: obtain an exact-SHA isolated workflow execution and inspect each failure signature. Do not repair source, change workflow semantics, migrate repositories, enable AI, or activate runtime without separate bounded approval.
+
