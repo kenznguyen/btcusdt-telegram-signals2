@@ -64,12 +64,11 @@ class SQLiteWriteGateway:
             if names != expected_candles or primary_key != candle_pk:
                 raise ValueError("Incompatible canonical SQLite schema: candles table is missing or invalid")
 
-            lease_rows = connection.execute("PRAGMA table_info(feeder_leases)").fetchall()
-            if lease_rows:
-                lease_names = [row[1] for row in lease_rows]
-                lease_pk = [row[1] for row in sorted(lease_rows, key=lambda row: row[5]) if row[5]]
-                if lease_names != expected_lease or lease_pk != ["lease_name"]:
-                    raise ValueError("Incompatible canonical SQLite schema: feeder_leases table is invalid")
+            lease_names, lease_pk = columns("feeder_leases")
+            if lease_names != expected_lease or lease_pk != ["lease_name"]:
+                raise ValueError(
+                    "Incompatible canonical SQLite schema: feeder_leases table is missing or invalid"
+                )
 
     @staticmethod
     def _now(clock):
