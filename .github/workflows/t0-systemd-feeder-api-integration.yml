@@ -1,28 +1,6 @@
 name: T0 Feeder API systemd Integration
 
 on:
-  push:
-    branches:
-      - feature/t0-centralized-data-feeder-p1-20261101
-    paths:
-      - "ci/t0_systemd_feeder_api_integration.py"
-      - "market_data/api.py"
-      - "market_data/feeder.py"
-      - "market_data/feeder_service.py"
-      - "market_data/store.py"
-      - "market_data/write_gateway.py"
-      - ".github/workflows/t0-systemd-feeder-api-integration.yml"
-  pull_request:
-    branches:
-      - feature/t0-centralized-data-feeder-p1-20261101
-    paths:
-      - "ci/t0_systemd_feeder_api_integration.py"
-      - "market_data/api.py"
-      - "market_data/feeder.py"
-      - "market_data/feeder_service.py"
-      - "market_data/store.py"
-      - "market_data/write_gateway.py"
-      - ".github/workflows/t0-systemd-feeder-api-integration.yml"
   workflow_dispatch:
 
 permissions:
