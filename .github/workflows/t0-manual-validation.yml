@@ -1,5 +1,5 @@
 name: T0 Manual Validation
-run-name: T0 manual gate - ${{ inputs.gate }} (${{ github.sha }})
+run-name: T0 validation - ${{ github.event_name }} - ${{ inputs.gate || 'sqlite-regression' }} (${{ github.sha }})
 
 'on':
   workflow_dispatch:
