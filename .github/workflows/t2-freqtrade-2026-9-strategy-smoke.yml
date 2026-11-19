@@ -7,7 +7,6 @@ on:
     paths:
       - "freqai_bridge/**"
       - "pipeline/**"
-      - "market_data/**"
       - ".github/workflows/t2-freqtrade-2026-9-strategy-smoke.yml"
   pull_request:
     branches:
