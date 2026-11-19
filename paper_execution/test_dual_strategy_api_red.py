@@ -575,5 +575,100 @@ class DualStrategyApiScopeRedTest(unittest.TestCase):
         ledger_factory.assert_not_called()
 
 
+
+
+class CoreFirstAiExecutionBoundaryRedTest(unittest.TestCase):
+    """AI is offline research only; no AI candidate may reach any paper ledger."""
+
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.db = Path(self.temp.name) / "legacy-paper.sqlite3"
+        with sqlite3.connect(self.db) as connection:
+            connection.execute("CREATE TABLE seed (id INTEGER PRIMARY KEY)")
+        self.now = 1_800_000_000_000
+        self.environment = patch.dict(os.environ, {
+            "MARKET_DATA_DB": str(self.db),
+            "MARKET_DATA_TOKEN": "read-token",
+            "CONTROL_TOKEN": "control-token",
+            "AI_EXECUTION_ENABLED": "false",
+            "PAPER_MAX_DRAWDOWN_PCT": "50",
+            "PAPER_MAX_DAILY_LOSS_USDT": "50",
+            "PAPER_MAX_EXPOSURE_USDT": "1000",
+        }, clear=True)
+        self.environment.start()
+        self.addCleanup(self.environment.stop)
+
+    def request(self, body):
+        raw = json.dumps(body).encode()
+        environ = {
+            "PATH_INFO": "/v1/paper/evaluate",
+            "REQUEST_METHOD": "POST",
+            "QUERY_STRING": "",
+            "HTTP_AUTHORIZATION": "Bearer control-token",
+            "CONTENT_LENGTH": str(len(raw)),
+            "wsgi.input": io.BytesIO(raw),
+        }
+        statuses = []
+        payload = b"".join(api.application(
+            environ, lambda status, headers: statuses.append((status, headers))
+        ))
+        return int(statuses[0][0].split()[0]), json.loads(payload)
+
+    def test_ai_candidate_is_denied_before_legacy_manual_ledger_fallback(self):
+        from paper_execution import ledger as ledger_module
+
+        book = {
+            "source": "hummingbot",
+            "connector": "binance_perpetual",
+            "symbol": "BTCUSDT",
+            "observedAtMs": self.now,
+            "bids": [{"price": "99.9", "quantity": "1"}],
+            "asks": [{"price": "100", "quantity": "1"}],
+        }
+        complete_mark = {
+            "candles": [{
+                "close": "100",
+                "closeTimeMs": self.now - 60_000,
+            }],
+            "coverage": {"complete": True},
+            "datasetVersion": "sha256:" + "a" * 64,
+        }
+        candidate = {
+            "source": "AI_FREQAI",
+            "action": "BUY",
+            "reason": "ALIGNED_PAPER_SIGNAL",
+            "intent": {
+                "intentId": "core-first-ai-must-not-submit",
+                "symbol": "BTCUSDT",
+                "exchange": "binance",
+                "marketType": "USDT_PERPETUAL",
+                "strategyVersion": "offline-ai-fixture",
+                "modelVersion": "offline-ai-fixture",
+                "datasetVersion": "sha256:" + "a" * 64,
+                "targetPositionBase": "0.001",
+                "limitPrice": "100",
+                "decisionAtMs": self.now - 1,
+                "validUntilMs": self.now + 20_000,
+                "inputSnapshotId": "sha256:" + "b" * 64,
+                "mode": "PAPER",
+            },
+        }
+
+        with patch.object(api, "now_ms", return_value=self.now), \
+             patch.object(api, "control_permit", return_value=True), \
+             patch.object(ledger_module, "dual_ledger_ready", return_value=False), \
+             patch.object(api, "context", return_value={"book": book}), \
+             patch.object(api, "decide", return_value=candidate), \
+             patch.object(api, "market_window", return_value=complete_mark), \
+             patch.object(api, "ledger", wraps=api.ledger) as ledger_factory:
+            status, result = self.request({"source": "AI"})
+
+        self.assertNotEqual(status, 200, result)
+        self.assertIsNone(result.get("order"), result)
+        ledger_factory.assert_not_called()
+
+
 if __name__ == "__main__":
     unittest.main()
+
